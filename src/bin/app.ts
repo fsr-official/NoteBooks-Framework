@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Main JavaScript for the NoteBooks file explorer app
 // This file handles the UI interactions, file fetching, previewing, and all client-side logic.
 

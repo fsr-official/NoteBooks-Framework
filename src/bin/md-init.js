@@ -1,5 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 /* Set up markdown-it + Obsidian plugin once, reuse for all previews */
 (function () {
     var md = markdownit({

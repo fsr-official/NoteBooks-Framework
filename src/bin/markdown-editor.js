@@ -1,19 +1,17 @@
-"use strict";
 // Markdown Editor Module
 // Provides an in-browser editor pane for markdown files.
 // Edits are stored in sessionStorage and survive page navigation within the session.
 // The split-view wiring (left preview ↔ right editor) is handled by app.js;
 // this module is responsible only for the editor pane itself.
-Object.defineProperty(exports, "__esModule", { value: true });
-const MarkdownEditor = (() => {
-    const EDITOR_STORAGE_PREFIX = 'md-editor-';
-    const MAX_HISTORY_SIZE = 50;
-    const HISTORY_DEBOUNCE = 300;
+var MarkdownEditor = (function () {
+    var EDITOR_STORAGE_PREFIX = 'md-editor-';
+    var MAX_HISTORY_SIZE = 50;
+    var HISTORY_DEBOUNCE = 300;
     // ─── Undo/Redo History System ─────────────────────────────────────────────
-    const EditorHistory = (() => {
-        let stack = [];
-        let currentIndex = -1;
-        let debounceTimer = null;
+    var EditorHistory = (function () {
+        var stack = [];
+        var currentIndex = -1;
+        var debounceTimer = null;
         return {
             init: function (initialValue) {
                 stack = [initialValue];
@@ -21,7 +19,7 @@ const MarkdownEditor = (() => {
             },
             push: function (value) {
                 clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
+                debounceTimer = setTimeout(function () {
                     // Remove any future states if user made changes after undo
                     stack = stack.slice(0, currentIndex + 1);
                     // Add new state
@@ -55,7 +53,7 @@ const MarkdownEditor = (() => {
         };
     })();
     // ─── Format action table ──────────────────────────────────────────────────
-    const FORMAT_ACTIONS = {
+    var FORMAT_ACTIONS = {
         bold: { before: '**', after: '**' },
         italic: { before: '*', after: '*' },
         strike: { before: '~~', after: '~~' },
@@ -71,7 +69,7 @@ const MarkdownEditor = (() => {
     // ─── Internal helpers ─────────────────────────────────────────────────────
     function showToast(wrapper, message, type) {
         type = type || 'success';
-        const bar = wrapper && wrapper.querySelector('.mde-status-bar');
+        var bar = wrapper && wrapper.querySelector('.mde-status-bar');
         if (!bar)
             return;
         bar.textContent = message;
@@ -470,8 +468,8 @@ const MarkdownEditor = (() => {
                     originalContent: originalContent
                 })
             })
-                .then(r => r.json())
-                .then(data => {
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
                 prBtn.disabled = false;
                 prBtn.textContent = '\u2191 Submit PR';
                 if (data.success) {
@@ -482,7 +480,7 @@ const MarkdownEditor = (() => {
                     showToast(wrapper, data.error || 'Failed to create PR', 'error');
                 }
             })
-                .catch(err => {
+                .catch(function (err) {
                 prBtn.disabled = false;
                 prBtn.textContent = '\u2191 Submit PR';
                 showToast(wrapper, 'Error: ' + err.message, 'error');
@@ -550,10 +548,10 @@ const MarkdownEditor = (() => {
     function getSavedContent(filePath) { return sessionStorage.getItem(_key(filePath)); }
     // ─── Public API ───────────────────────────────────────────────────────────
     return {
-        createEditorUI,
-        clearSession,
-        hasUnsavedEdits,
-        getSavedContent,
+        createEditorUI: createEditorUI,
+        clearSession: clearSession,
+        hasUnsavedEdits: hasUnsavedEdits,
+        getSavedContent: getSavedContent,
         insertFormat: function (before, after, ta) { insertFormat(before, after, ta); },
         insertLink: function (ta) { insertLink(ta); },
         insertTable: function (ta) { insertTable(ta); },

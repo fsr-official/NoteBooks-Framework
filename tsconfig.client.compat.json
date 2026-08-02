@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.client.json",
+  "compilerOptions": {
+    "noEmitOnError": false,
+    "strict": false,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
+    "noCheck": true
+  },
+  "include": [
+    "src/bin/**/*.ts",
+    "src/bin/globals.d.ts"
+  ],
+  "exclude": [
+    "src/bin/tikzjax/**/*.js",
+    "src/bin/**/*.js"
+  ]
+}

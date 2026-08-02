@@ -1,5 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * obsidian-markdown-it.js  (IIFE / plain-script build)
  * ─────────────────────────────────────────────────────
