@@ -107,7 +107,7 @@ export default async function handler(req: Request, res: Response) {
       return res.status(503).json({ success: false, error: 'No GitHub write credentials configured. Set a PAT or GitHub App credentials.' });
     }
 
-    const repoCfg = getRepoConfig();
+    const repoCfg = await getRepoConfig();
     if (!repoCfg) {
       return res.status(500).json({ success: false, error: 'GITHUB_REPO is not configured' });
     }

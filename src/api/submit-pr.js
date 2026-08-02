@@ -89,7 +89,7 @@ async function handler(req, res) {
         if (!token && !appConfigured) {
             return res.status(503).json({ success: false, error: 'No GitHub write credentials configured. Set a PAT or GitHub App credentials.' });
         }
-        const repoCfg = (0, _shared_1.getRepoConfig)();
+        const repoCfg = await (0, _shared_1.getRepoConfig)();
         if (!repoCfg) {
             return res.status(500).json({ success: false, error: 'GITHUB_REPO is not configured' });
         }

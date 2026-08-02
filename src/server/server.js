@@ -81,6 +81,13 @@ function createApp() {
     });
     app.use(express_1.default.static(projectDir, { index: false }));
     app.get('/api/files.json', async (_req, res) => {
+        const filePath = path_1.default.join(projectDir, 'files.json');
+        if (fs_1.default.existsSync(filePath)) {
+            const content = fs_1.default.readFileSync(filePath, 'utf-8');
+            res.setHeader('Cache-Control', 'no-store');
+            res.type('application/json').send(content);
+            return;
+        }
         const manifest = await (0, files_manifest_1.buildLocalFilesManifest)(projectDir);
         res.setHeader('Cache-Control', 'no-store');
         res.type('application/json').send(JSON.stringify(manifest));

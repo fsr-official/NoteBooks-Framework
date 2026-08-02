@@ -9,7 +9,7 @@ async function handler(req, res) {
     const { action, path: filePath, content, sha, message } = req.body || {};
     try {
         const octokit = await (0, _shared_1.getOctokit)({ allowUnauthenticated: true });
-        const repoCfg = (0, _shared_1.getRepoConfig)();
+        const repoCfg = await (0, _shared_1.getRepoConfig)();
         if (!repoCfg) {
             return res.status(500).json({ error: 'GITHUB_REPO is not configured' });
         }

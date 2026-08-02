@@ -10,7 +10,7 @@ export default async function handler(req: Request, res: Response) {
 
   try {
     const octokit = await getOctokit({ allowUnauthenticated: true });
-    const repoCfg = getRepoConfig();
+    const repoCfg = await getRepoConfig();
     if (!repoCfg) {
       return res.status(500).json({ error: 'GITHUB_REPO is not configured' });
     }

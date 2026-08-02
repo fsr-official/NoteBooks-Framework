@@ -52,6 +52,14 @@ export function createApp() {
   app.use(express.static(projectDir, { index: false }));
 
   app.get('/api/files.json', async (_req, res) => {
+    const filePath = path.join(projectDir, 'files.json');
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.type('application/json').send(content);
+      return;
+    }
+
     const manifest = await buildLocalFilesManifest(projectDir);
     res.setHeader('Cache-Control', 'no-store');
     res.type('application/json').send(JSON.stringify(manifest));

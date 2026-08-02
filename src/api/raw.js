@@ -70,9 +70,8 @@ async function handler(req, res) {
     }
     try {
         const octokit = await (0, _shared_1.getOctokit)({ allowUnauthenticated: true });
-        const repoCfg = (0, _shared_1.getRepoConfig)();
+        const repoCfg = await (0, _shared_1.getRepoConfig)();
         if (!repoCfg) {
-            // If no GitHub repo configured, serve local files from disk instead
             return serveLocalFile(filePath, res);
         }
         const { owner, repo } = repoCfg;
@@ -84,17 +83,15 @@ async function handler(req, res) {
         else if (filePath.startsWith('http')) {
             return res.status(400).json({ error: 'Unsupported URL format for path parameter' });
         }
-        const data = await octokit.repos.getContent({ owner, repo, path: repoPath });
+        const branch = repoCfg.branch || process.env.GITHUB_BRANCH || 'main';
+        const data = await octokit.repos.getContent({ owner, repo, path: repoPath, ref: branch });
         const content = Array.isArray(data.data) ? data.data[0] : data.data;
         const downloadUrl = content?.download_url || null;
-        if (!downloadUrl) {
+        const contentUrl = content?.url || null;
+        if (!downloadUrl && !contentUrl) {
             return res.status(404).json({ error: 'File not found or not downloadable' });
         }
-        const rawRes = await fetch(downloadUrl);
-        if (!rawRes.ok) {
-            return res.status(rawRes.status).json({ error: 'Failed to fetch raw file' });
-        }
-        const ext = filePath.split('.').pop()?.toLowerCase() || '';
+        const ext = repoPath.split('.').pop()?.toLowerCase() || '';
         const contentType = MIME_TYPES[ext] || 'application/octet-stream';
         res.setHeader('Content-Type', contentType);
         res.setHeader('Cache-Control', 'public, max-age=300');
@@ -102,7 +99,26 @@ async function handler(req, res) {
         res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-        const buffer = Buffer.from(await rawRes.arrayBuffer());
+        let buffer;
+        if (downloadUrl) {
+            const rawRes = await fetch(downloadUrl);
+            if (!rawRes.ok) {
+                return res.status(rawRes.status).json({ error: 'Failed to fetch raw file' });
+            }
+            buffer = Buffer.from(await rawRes.arrayBuffer());
+        }
+        else {
+            const rawRes = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+                owner,
+                repo,
+                path: repoPath,
+                ref: branch,
+                headers: { 'X-GitHub-Api-Version': '2022-11-28' }
+            });
+            const fileData = Array.isArray(rawRes.data) ? rawRes.data[0] : rawRes.data;
+            const encoded = fileData?.content || '';
+            buffer = Buffer.from(encoded, 'base64');
+        }
         return res.status(200).send(buffer);
     }
     catch (error) {

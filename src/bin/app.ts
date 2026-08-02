@@ -119,14 +119,14 @@ async function fetchTree() {
     let tree;
 
     try {
-      const res = await fetch("/api/registry?" + new Date().getTime());
-      if (!res.ok) throw new Error(`Failed to fetch registry: ${res.status}`);
-      tree = await res.json();
-    } catch (registryError) {
-      console.warn("Registry fetch failed, falling back to files.json:", registryError);
       const fallbackRes = await fetch("/files.json?" + new Date().getTime());
       if (!fallbackRes.ok) throw new Error(`Failed to fetch: ${fallbackRes.status}`);
       tree = await fallbackRes.json();
+    } catch (manifestError) {
+      console.warn("files.json manifest unavailable, falling back to registry:", manifestError);
+      const res = await fetch("/api/registry?" + new Date().getTime());
+      if (!res.ok) throw new Error(`Failed to fetch registry: ${res.status}`);
+      tree = await res.json();
     }
 
     const raw = JSON.stringify(tree, Object.keys(tree).sort());
@@ -151,7 +151,6 @@ async function fetchTree() {
       testSpan.textContent = "A quick brown fox jumps";
       testSpan.style.cssText = "position:absolute;visibility:hidden;fontSize:32px;fontFamily:sans-serif";
       document.body.appendChild(testSpan);
-      const baseWidth = testSpan.offsetWidth;
       testSpan.style.fontFamily = '"Roboto", sans-serif';
       requestAnimationFrame(() => {
         document.body.removeChild(testSpan);
@@ -159,7 +158,7 @@ async function fetchTree() {
       });
     });
 
-    Promise.all([fontPromise, new Promise(res => setTimeout(res, 500))]).then(() => {
+    fontPromise.then(() => {
       splash.style.opacity = 0;
       setTimeout(() => { splash.style.display = 'none'; }, 600);
 
@@ -507,8 +506,11 @@ function handlePreview() {
 function handleDownload() {
   if (selected && selected.type === "file") {
     const a = document.createElement("a");
-    a.href = selected.path;
+    const downloadUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(selected.path)}`;
+    a.href = downloadUrl;
     a.download = selected.name;
+    a.target = '_blank';
+    a.rel = 'noopener';
     a.click();
     showStatus(`Downloading: ${selected.name}`);
   }

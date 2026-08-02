@@ -1,11 +1,136 @@
 {
   "type": "folder",
   "name": "NoteBooks-Framework",
+  "path": "",
   "children": [
+    {
+      "type": "file",
+      "name": ".env",
+      "path": ".env"
+    },
+    {
+      "type": "file",
+      "name": ".gitignore",
+      "path": ".gitignore"
+    },
+    {
+      "type": "folder",
+      "name": "bin",
+      "path": "bin",
+      "children": [
+        {
+          "type": "file",
+          "name": "admin-terminal.js",
+          "path": "bin/admin-terminal.js"
+        },
+        {
+          "type": "file",
+          "name": "app.js",
+          "path": "bin/app.js"
+        },
+        {
+          "type": "file",
+          "name": "auth.js",
+          "path": "bin/auth.js"
+        },
+        {
+          "type": "file",
+          "name": "generate-files-manifest.js",
+          "path": "bin/generate-files-manifest.js"
+        },
+        {
+          "type": "file",
+          "name": "gh-proxy.js",
+          "path": "bin/gh-proxy.js"
+        },
+        {
+          "type": "file",
+          "name": "markdown-editor.js",
+          "path": "bin/markdown-editor.js"
+        },
+        {
+          "type": "file",
+          "name": "markdown.js",
+          "path": "bin/markdown.js"
+        },
+        {
+          "type": "file",
+          "name": "md-init.js",
+          "path": "bin/md-init.js"
+        },
+        {
+          "type": "file",
+          "name": "mobile.js",
+          "path": "bin/mobile.js"
+        },
+        {
+          "type": "file",
+          "name": "modern-auth.js",
+          "path": "bin/modern-auth.js"
+        },
+        {
+          "type": "file",
+          "name": "obsidian-markdown-it.js",
+          "path": "bin/obsidian-markdown-it.js"
+        },
+        {
+          "type": "file",
+          "name": "upload.js",
+          "path": "bin/upload.js"
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "community",
+      "path": "community",
+      "children": [
+        {
+          "type": "file",
+          "name": ".gitkeep",
+          "path": "community/.gitkeep"
+        },
+        {
+          "type": "file",
+          "name": "community.html",
+          "path": "community/community.html"
+        }
+      ]
+    },
     {
       "type": "file",
       "name": "EDITOR_UPGRADES.md",
       "path": "EDITOR_UPGRADES.md"
+    },
+    {
+      "type": "file",
+      "name": "favicon.png",
+      "path": "favicon.png"
+    },
+    {
+      "type": "file",
+      "name": "files.json",
+      "path": "files.json"
+    },
+    {
+      "type": "file",
+      "name": "fmtree.py",
+      "path": "fmtree.py"
+    },
+    {
+      "type": "file",
+      "name": "GITHUB-REPOSITORIES.md",
+      "path": "GITHUB-REPOSITORIES.md"
+    },
+    {
+      "type": "file",
+      "name": "index.html",
+      "path": "index.html"
+    },
+    {
+      "type": "file",
+      "name": "installer.html",
+      "path": "installer.html"
     },
     {
       "type": "file",
@@ -14,8 +139,416 @@
     },
     {
       "type": "file",
+      "name": "manifest.json",
+      "path": "manifest.json"
+    },
+    {
+      "type": "file",
+      "name": "offline.html",
+      "path": "offline.html"
+    },
+    {
+      "type": "file",
+      "name": "package-lock.json",
+      "path": "package-lock.json"
+    },
+    {
+      "type": "file",
+      "name": "package.json",
+      "path": "package.json"
+    },
+    {
+      "type": "file",
       "name": "README.md",
       "path": "README.md"
+    },
+    {
+      "type": "file",
+      "name": "repo-registry.json",
+      "path": "repo-registry.json"
+    },
+    {
+      "type": "folder",
+      "name": "src",
+      "path": "src",
+      "children": [
+        {
+          "type": "folder",
+          "name": "api",
+          "path": "src/api",
+          "children": [
+            {
+              "type": "file",
+              "name": "_shared.js",
+              "path": "src/api/_shared.js"
+            },
+            {
+              "type": "file",
+              "name": "_shared.ts",
+              "path": "src/api/_shared.ts"
+            },
+            {
+              "type": "file",
+              "name": "auth.js",
+              "path": "src/api/auth.js"
+            },
+            {
+              "type": "file",
+              "name": "auth.ts",
+              "path": "src/api/auth.ts"
+            },
+            {
+              "type": "file",
+              "name": "blob.js",
+              "path": "src/api/blob.js"
+            },
+            {
+              "type": "file",
+              "name": "blob.ts",
+              "path": "src/api/blob.ts"
+            },
+            {
+              "type": "file",
+              "name": "config.js",
+              "path": "src/api/config.js"
+            },
+            {
+              "type": "file",
+              "name": "config.ts",
+              "path": "src/api/config.ts"
+            },
+            {
+              "type": "file",
+              "name": "desmos.js",
+              "path": "src/api/desmos.js"
+            },
+            {
+              "type": "file",
+              "name": "desmos.ts",
+              "path": "src/api/desmos.ts"
+            },
+            {
+              "type": "file",
+              "name": "files-manifest.js",
+              "path": "src/api/files-manifest.js"
+            },
+            {
+              "type": "file",
+              "name": "files-manifest.ts",
+              "path": "src/api/files-manifest.ts"
+            },
+            {
+              "type": "file",
+              "name": "gh.js",
+              "path": "src/api/gh.js"
+            },
+            {
+              "type": "file",
+              "name": "gh.ts",
+              "path": "src/api/gh.ts"
+            },
+            {
+              "type": "file",
+              "name": "raw.js",
+              "path": "src/api/raw.js"
+            },
+            {
+              "type": "file",
+              "name": "raw.ts",
+              "path": "src/api/raw.ts"
+            },
+            {
+              "type": "file",
+              "name": "repo-registry.js",
+              "path": "src/api/repo-registry.js"
+            },
+            {
+              "type": "file",
+              "name": "repo-registry.ts",
+              "path": "src/api/repo-registry.ts"
+            },
+            {
+              "type": "file",
+              "name": "submit-pr.js",
+              "path": "src/api/submit-pr.js"
+            },
+            {
+              "type": "file",
+              "name": "submit-pr.ts",
+              "path": "src/api/submit-pr.ts"
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "bin",
+          "path": "src/bin",
+          "children": [
+            {
+              "type": "file",
+              "name": "admin-terminal.js",
+              "path": "src/bin/admin-terminal.js"
+            },
+            {
+              "type": "file",
+              "name": "admin-terminal.ts",
+              "path": "src/bin/admin-terminal.ts"
+            },
+            {
+              "type": "file",
+              "name": "app.js",
+              "path": "src/bin/app.js"
+            },
+            {
+              "type": "file",
+              "name": "app.ts",
+              "path": "src/bin/app.ts"
+            },
+            {
+              "type": "file",
+              "name": "auth.js",
+              "path": "src/bin/auth.js"
+            },
+            {
+              "type": "file",
+              "name": "auth.ts",
+              "path": "src/bin/auth.ts"
+            },
+            {
+              "type": "file",
+              "name": "gh-proxy.js",
+              "path": "src/bin/gh-proxy.js"
+            },
+            {
+              "type": "file",
+              "name": "gh-proxy.ts",
+              "path": "src/bin/gh-proxy.ts"
+            },
+            {
+              "type": "file",
+              "name": "globals.d.ts",
+              "path": "src/bin/globals.d.ts"
+            },
+            {
+              "type": "file",
+              "name": "markdown-editor.js",
+              "path": "src/bin/markdown-editor.js"
+            },
+            {
+              "type": "file",
+              "name": "markdown-editor.ts",
+              "path": "src/bin/markdown-editor.ts"
+            },
+            {
+              "type": "file",
+              "name": "markdown.js",
+              "path": "src/bin/markdown.js"
+            },
+            {
+              "type": "file",
+              "name": "markdown.ts",
+              "path": "src/bin/markdown.ts"
+            },
+            {
+              "type": "file",
+              "name": "md-init.js",
+              "path": "src/bin/md-init.js"
+            },
+            {
+              "type": "file",
+              "name": "md-init.ts",
+              "path": "src/bin/md-init.ts"
+            },
+            {
+              "type": "file",
+              "name": "mobile.js",
+              "path": "src/bin/mobile.js"
+            },
+            {
+              "type": "file",
+              "name": "mobile.ts",
+              "path": "src/bin/mobile.ts"
+            },
+            {
+              "type": "file",
+              "name": "modern-auth.js",
+              "path": "src/bin/modern-auth.js"
+            },
+            {
+              "type": "file",
+              "name": "modern-auth.ts",
+              "path": "src/bin/modern-auth.ts"
+            },
+            {
+              "type": "file",
+              "name": "obsidian-markdown-it.js",
+              "path": "src/bin/obsidian-markdown-it.js"
+            },
+            {
+              "type": "file",
+              "name": "obsidian-markdown-it.ts",
+              "path": "src/bin/obsidian-markdown-it.ts"
+            },
+            {
+              "type": "file",
+              "name": "style.css",
+              "path": "src/bin/style.css"
+            },
+            {
+              "type": "folder",
+              "name": "tikzjax",
+              "path": "src/bin/tikzjax",
+              "children": [
+                {
+                  "type": "folder",
+                  "name": "css",
+                  "path": "src/bin/tikzjax/css",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "fonts.css",
+                      "path": "src/bin/tikzjax/css/fonts.css"
+                    }
+                  ]
+                },
+                {
+                  "type": "folder",
+                  "name": "output",
+                  "path": "src/bin/tikzjax/output",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "fonts.css",
+                      "path": "src/bin/tikzjax/output/fonts.css"
+                    },
+                    {
+                      "type": "file",
+                      "name": "tikzjax.js",
+                      "path": "src/bin/tikzjax/output/tikzjax.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "file",
+                  "name": "tex_files.json",
+                  "path": "src/bin/tikzjax/tex_files.json"
+                },
+                {
+                  "type": "file",
+                  "name": "tex-mml-chtml.js",
+                  "path": "src/bin/tikzjax/tex-mml-chtml.js"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "tsconfig.client-compat.json",
+              "path": "src/bin/tsconfig.client-compat.json"
+            },
+            {
+              "type": "file",
+              "name": "upload.js",
+              "path": "src/bin/upload.js"
+            },
+            {
+              "type": "file",
+              "name": "upload.ts",
+              "path": "src/bin/upload.ts"
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "server",
+          "path": "src/server",
+          "children": [
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "src/server/README.md"
+            },
+            {
+              "type": "file",
+              "name": "server.js",
+              "path": "src/server/server.js"
+            },
+            {
+              "type": "file",
+              "name": "server.ts",
+              "path": "src/server/server.ts"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "service-worker.js",
+          "path": "src/service-worker.js"
+        },
+        {
+          "type": "file",
+          "name": "service-worker.ts",
+          "path": "src/service-worker.ts"
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "tests",
+      "path": "tests",
+      "children": [
+        {
+          "type": "file",
+          "name": "auth.test.ts",
+          "path": "tests/auth.test.ts"
+        },
+        {
+          "type": "file",
+          "name": "registry-files.test.ts",
+          "path": "tests/registry-files.test.ts"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.client.compat.json",
+      "path": "tsconfig.client.compat.json"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.client.json",
+      "path": "tsconfig.client.json"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.json",
+      "path": "tsconfig.json"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.server.json",
+      "path": "tsconfig.server.json"
+    },
+    {
+      "type": "file",
+      "name": "vercel.json",
+      "path": "vercel.json"
+    },
+    {
+      "type": "folder",
+      "name": "waiting-list",
+      "path": "waiting-list",
+      "children": [
+        {
+          "type": "file",
+          "name": ".gitkeep",
+          "path": "waiting-list/.gitkeep"
+        },
+        {
+          "type": "file",
+          "name": "index.json",
+          "path": "waiting-list/index.json"
+        }
+      ]
     }
   ]
 }

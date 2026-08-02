@@ -37,6 +37,27 @@ describe('repo registry markdown loader', () => {
       priority: 99
     });
   });
+
+  it('parses a markdown file when the table appears after descriptive text', () => {
+    const markdown = `# GitHub Repositories
+
+Repos are checked top-to-bottom. Set enabled to false to keep a repo in the list without indexing it.
+
+| name | repo | branch | root | enabled | priority |
+| --- | --- | --- | --- | --- | --- |
+| Demo Notes | fsr-science/NCERT-Science | main | | true | 1 |
+`;
+
+    const entries = parseRepoRegistryMarkdown(markdown);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      name: 'Demo Notes',
+      repo: 'fsr-science/NCERT-Science',
+      enabled: true,
+      priority: 1
+    });
+  });
 });
 
 describe('local files manifest', () => {

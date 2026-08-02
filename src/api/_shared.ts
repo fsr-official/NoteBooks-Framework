@@ -1,5 +1,64 @@
 import { Octokit } from '@octokit/rest';
 import { createAppAuth } from '@octokit/auth-app';
+import { readFile } from 'fs/promises';
+import path from 'path';
+
+interface RepoRegistryEntryLike {
+  name?: string;
+  repo?: string;
+  branch?: string;
+  root?: string;
+  enabled?: boolean;
+  priority?: number;
+}
+
+function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntryLike[] {
+  const lines = String(markdown || '').split(/\r?\n/);
+  const tableLines = lines.filter((line) => line.trim().startsWith('|'));
+  if (tableLines.length < 2) {
+    return [];
+  }
+
+  return tableLines.slice(2)
+    .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
+    .filter((cells) => cells.length >= 6 && cells[0] && cells[1])
+    .map((cells) => {
+      const [name, repo, branch, root, enabled, priority] = cells;
+      return {
+        name,
+        repo,
+        branch,
+        root,
+        enabled: enabled.toLowerCase() !== 'false',
+        priority: Number(priority)
+      };
+    })
+    .filter((entry) => !Number.isNaN(entry.priority));
+}
+
+async function readRepoRegistryEntries(): Promise<RepoRegistryEntryLike[]> {
+  const projectDir = process.cwd();
+  const registryPath = path.resolve(projectDir, 'GITHUB-REPOSITORIES.md');
+  const fallbackPath = path.resolve(projectDir, 'repo-registry.json');
+
+  try {
+    const markdown = await readFile(registryPath, 'utf8');
+    const entries = parseRepoRegistryMarkdown(markdown);
+    if (entries.length > 0) {
+      return entries;
+    }
+  } catch {
+    // fall through to JSON fallback
+  }
+
+  try {
+    const fallbackText = await readFile(fallbackPath, 'utf8');
+    const parsed = JSON.parse(fallbackText);
+    return Array.isArray(parsed) ? parsed : parsed.entries || [];
+  } catch {
+    return [];
+  }
+}
 
 export async function getOctokit(options: { allowUnauthenticated?: boolean } = {}) {
   const token = (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
@@ -29,24 +88,42 @@ export async function getOctokit(options: { allowUnauthenticated?: boolean } = {
   throw new Error('GitHub auth is not configured. Set GITHUB_TOKEN, GITHUB_PAT, or GitHub App credentials.');
 }
 
-export function getRepoConfig(): { owner: string; repo: string } | null {
+export async function getRepoConfig(): Promise<{ owner: string; repo: string; branch?: string; root?: string } | null> {
   const repo = (process.env.GITHUB_REPO || '').trim();
-  if (!repo) {
+  if (repo) {
+    const [owner, repoName] = repo.split('/').filter(Boolean);
+    if (owner && repoName) {
+      return { owner, repo: repoName, branch: process.env.GITHUB_BRANCH || 'main' };
+    }
+  }
+
+  const entries = await readRepoRegistryEntries();
+  const entry = entries.find((item) => item.enabled !== false);
+  if (!entry?.repo) {
     return null;
   }
 
-  const [owner, repoName] = repo.split('/');
+  const [owner, repoName] = String(entry.repo).split('/').filter(Boolean);
   if (!owner || !repoName) {
     return null;
   }
 
-  return { owner, repo: repoName };
+  return {
+    owner,
+    repo: repoName,
+    branch: entry.branch || process.env.GITHUB_BRANCH || 'main',
+    root: entry.root || ''
+  };
 }
 
 export async function readRepoFile(filePath: string, branch?: string) {
-  const { owner, repo } = getRepoConfig();
+  const repoConfig = await getRepoConfig();
+  if (!repoConfig) {
+    throw new Error('GitHub repo is not configured');
+  }
+  const { owner, repo } = repoConfig;
   const octokit = await getOctokit({ allowUnauthenticated: true });
-  const ref = branch || process.env.GITHUB_BRANCH || 'main';
+  const ref = branch || repoConfig.branch || process.env.GITHUB_BRANCH || 'main';
 
   const response = await octokit.repos.getContent({ owner, repo, path: filePath, ref });
   const item = Array.isArray(response.data) ? response.data[0] : (response.data as any);

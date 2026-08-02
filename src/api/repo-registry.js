@@ -17,7 +17,11 @@ function normalizeRepoEntry(entry) {
 }
 function parseRepoRegistryMarkdown(markdown) {
     const lines = markdown.split(/\r?\n/);
-    const rows = lines.filter((line) => line.trim().startsWith('|')).slice(2);
+    const tableLines = lines.filter((line) => line.trim().startsWith('|'));
+    if (tableLines.length < 2) {
+        return [];
+    }
+    const rows = tableLines.slice(2);
     return rows
         .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
         .filter((cells) => cells.length >= 6 && cells[0] && cells[1])
@@ -161,9 +165,18 @@ async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
     try {
-        const entries = await loadRepoRegistry();
-        const tree = await buildRegistryTree(entries);
-        return res.status(200).json(tree);
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const manifestPath = path.resolve(process.cwd(), 'files.json');
+        try {
+            const manifestText = await fs.readFile(manifestPath, 'utf8');
+            return res.status(200).type('application/json').send(manifestText);
+        }
+        catch {
+            const entries = await loadRepoRegistry();
+            const tree = await buildRegistryTree(entries);
+            return res.status(200).json(tree);
+        }
     }
     catch (error) {
         console.error('[api/repo-registry]', error);
