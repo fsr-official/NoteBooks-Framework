@@ -115,10 +115,19 @@ async function fetchTree() {
   showStatus("Loading files...", true);
 
   try {
-    const res = await fetch("files.json?" + new Date().getTime());
-    if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+    let tree;
 
-    const tree = await res.json();
+    try {
+      const res = await fetch("/api/registry?" + new Date().getTime());
+      if (!res.ok) throw new Error(`Failed to fetch registry: ${res.status}`);
+      tree = await res.json();
+    } catch (registryError) {
+      console.warn("Registry fetch failed, falling back to files.json:", registryError);
+      const fallbackRes = await fetch("/files.json?" + new Date().getTime());
+      if (!fallbackRes.ok) throw new Error(`Failed to fetch: ${fallbackRes.status}`);
+      tree = await fallbackRes.json();
+    }
+
     const raw = JSON.stringify(tree, Object.keys(tree).sort());
 
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));

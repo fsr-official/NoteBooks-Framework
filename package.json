@@ -4,17 +4,31 @@
   "description": "NoteBooks XI - A structured knowledge system for students and educators",
   "scripts": {
     "dev": "npx serve -l 3000",
-    "start": "npx serve -l 3000"
+    "start": "npx serve -l 3000",
+    "build": "npm run build:server && npm run build:client",
+    "build:client": "tsc -p tsconfig.client.json",
+    "build:server": "tsc -p tsconfig.server.json",
+    "backend": "node src/server/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.server.json"
   },
   "devDependencies": {
-    "serve": "^14.2.0"
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.10.1",
+    "serve": "^14.2.0",
+    "supertest": "^7.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
   },
   "dependencies": {
+    "@octokit/auth-app": "^7.1.0",
     "@octokit/rest": "^20.1.2",
     "@upstash/redis": "^1.38.0",
     "@vercel/blob": "^2.3.3",
     "bcrypt": "^6.0.0",
     "dotenv-cli": "^11.0.0",
+    "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
     "resend": "^6.12.4"
   }

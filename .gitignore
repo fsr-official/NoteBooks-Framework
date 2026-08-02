@@ -1,0 +1,9 @@
+tmp/
+.vercel/
+node_modules/
+.env*
+bin/*.js
+bin/**/*.js
+!bin/style.css
+!bin/tikzjax/
+!bin/fonts/

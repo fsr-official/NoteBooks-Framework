@@ -1,74 +1,113 @@
+import type { Request, Response } from 'express';
 import { Resend } from 'resend';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+interface UserRecord {
+  email: string;
+  password: string;
+  createdAt: string;
+  passwordResetAt?: string;
+}
+
+interface ResetRecord {
+  email: string;
+  expiresAt: number;
+}
+
+export function assertAuthConfig() {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is required to start the server');
+  }
+}
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Initialize Redis client if available
-let redis = null;
-if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-  const { createClient } = await import('@upstash/redis');
-  redis = createClient({
-    url: process.env.KV_REST_API_URL,
-    token: process.env.KV_REST_API_TOKEN,
-  });
+let redis: any = null;
+
+async function getRedisClient() {
+  if (redis || !process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+    return redis;
+  }
+
+  const upstashRedis = await import('@upstash/redis');
+  const createClient = (upstashRedis as { createClient?: (config: { url: string; token: string }) => any }).createClient;
+  if (createClient) {
+    redis = createClient({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    });
+  }
+
+  return redis;
 }
 
 // Fallback to in-memory storage if Redis is not available
-const users = new Map();
-const resetTokens = new Map();
+const users = new Map<string, UserRecord>();
+const resetTokens = new Map<string, ResetRecord>();
 
-const JWT_SECRET = process.env.JWT_SECRET;
 const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY;
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
+function getJwtSecret(): string {
+  assertAuthConfig();
+  return process.env.JWT_SECRET as string;
+}
+
 // Helper to get user from Redis or memory
-async function getUser(email) {
-  if (redis) {
-    return await redis.get(`user:${email}`);
+async function getUser(email: string): Promise<UserRecord | undefined> {
+  const client = await getRedisClient();
+  if (client) {
+    return await client.get(`user:${email}`);
   }
   return users.get(email);
 }
 
 // Helper to set user in Redis or memory
-async function setUser(email, userData) {
-  if (redis) {
-    await redis.set(`user:${email}`, userData, { ex: 60 * 60 * 24 * 365 }); // 1 year
+async function setUser(email: string, userData: UserRecord) {
+  const client = await getRedisClient();
+  if (client) {
+    await client.set(`user:${email}`, userData, { ex: 60 * 60 * 24 * 365 }); // 1 year
   } else {
     users.set(email, userData);
   }
 }
 
 // Helper to get reset token
-async function getResetToken(token) {
-  if (redis) {
-    return await redis.get(`reset:${token}`);
+async function getResetToken(token: string): Promise<string | undefined> {
+  const client = await getRedisClient();
+  if (client) {
+    return await client.get(`reset:${token}`);
   }
-  return resetTokens.get(token);
+  return resetTokens.get(token)?.email;
 }
 
 // Helper to set reset token
-async function setResetToken(token, email, expiryMinutes = 15) {
-  if (redis) {
-    await redis.set(`reset:${token}`, email, { ex: expiryMinutes * 60 });
+async function setResetToken(token: string, email: string, expiryMinutes = 15) {
+  const client = await getRedisClient();
+  if (client) {
+    await client.set(`reset:${token}`, email, { ex: expiryMinutes * 60 });
   } else {
     resetTokens.set(token, { email, expiresAt: Date.now() + expiryMinutes * 60 * 1000 });
   }
 }
 
 // Helper to delete reset token
-async function deleteResetToken(token) {
-  if (redis) {
-    await redis.del(`reset:${token}`);
+async function deleteResetToken(token: string) {
+  const client = await getRedisClient();
+  if (client) {
+    await client.del(`reset:${token}`);
   } else {
     resetTokens.delete(token);
   }
 }
 
 // Helper to check password reset cooldown
-async function checkResetCooldown(email) {
-  if (redis) {
-    const cooldown = await redis.get(`reset_cooldown:${email}`);
+async function checkResetCooldown(email: string) {
+  const client = await getRedisClient();
+  if (client) {
+    const cooldown = await client.get(`reset_cooldown:${email}`);
     return !cooldown;
   }
   // For in-memory, just allow (would need better tracking)
@@ -76,22 +115,23 @@ async function checkResetCooldown(email) {
 }
 
 // Helper to set password reset cooldown
-async function setResetCooldown(email) {
-  if (redis) {
-    await redis.set(`reset_cooldown:${email}`, '1', { ex: 15 * 60 }); // 15 minutes
+async function setResetCooldown(email: string) {
+  const client = await getRedisClient();
+  if (client) {
+    await client.set(`reset_cooldown:${email}`, '1', { ex: 15 * 60 }); // 15 minutes
   }
 }
 
 // Verify reCAPTCHA token
-async function verifyCaptcha(token) {
+async function verifyCaptcha(token?: string) {
   try {
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `secret=${RECAPTCHA_SECRET}&response=${token}`
     });
-    const data = await response.json();
-    return data.success && data.score > 0.5;
+    const data = (await response.json()) as { success?: boolean; score?: number };
+    return Boolean(data.success && data.score && data.score > 0.5);
   } catch (error) {
     console.error('[v0] reCAPTCHA verification error:', error);
     return false;
@@ -99,13 +139,13 @@ async function verifyCaptcha(token) {
 }
 
 // Register a new user
-export async function handleRegister(req, res) {
+export async function handleRegister(req: Request, res: Response) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { email, password, confirmPassword, captchaToken } = req.body;
+    const { email, password, confirmPassword, captchaToken } = (req.body || {}) as Record<string, string | undefined>;
 
     // Validate inputs
     if (!email || !password || !confirmPassword) {
@@ -140,7 +180,7 @@ export async function handleRegister(req, res) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const user = {
+    const user: UserRecord = {
       email,
       password: hashedPassword,
       createdAt: new Date().toISOString()
@@ -149,7 +189,7 @@ export async function handleRegister(req, res) {
     await setUser(email, user);
 
     // Generate JWT token
-    const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ email }, getJwtSecret(), { expiresIn: '30d' });
 
     return res.status(201).json({
       success: true,
@@ -164,13 +204,13 @@ export async function handleRegister(req, res) {
 }
 
 // Login user
-export async function handleLogin(req, res) {
+export async function handleLogin(req: Request, res: Response) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { email, password, captchaToken } = req.body;
+    const { email, password, captchaToken } = (req.body || {}) as Record<string, string | undefined>;
 
     // Validate inputs
     if (!email || !password) {
@@ -196,7 +236,7 @@ export async function handleLogin(req, res) {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ email }, getJwtSecret(), { expiresIn: '30d' });
 
     return res.status(200).json({
       success: true,
@@ -211,13 +251,13 @@ export async function handleLogin(req, res) {
 }
 
 // Request password reset
-export async function handleForgotPassword(req, res) {
+export async function handleForgotPassword(req: Request, res: Response) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { email, captchaToken } = req.body;
+    const { email, captchaToken } = (req.body || {}) as Record<string, string | undefined>;
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -243,7 +283,7 @@ export async function handleForgotPassword(req, res) {
     }
 
     // Generate reset token
-    const resetToken = jwt.sign({ email, type: 'reset' }, JWT_SECRET, { expiresIn: '15m' });
+    const resetToken = jwt.sign({ email, type: 'reset' }, getJwtSecret(), { expiresIn: '15m' });
 
     // Store reset token
     await setResetToken(resetToken, email, 15);
@@ -255,6 +295,10 @@ export async function handleForgotPassword(req, res) {
     const resetLink = `${APP_URL}/reset-password?token=${resetToken}`;
 
     try {
+      if (!resend) {
+        return res.status(200).json({ success: true, message: 'If email exists, a reset link will be sent' });
+      }
+
       await resend.emails.send({
         from: 'noreply@resend.dev',
         to: email,
@@ -288,13 +332,13 @@ export async function handleForgotPassword(req, res) {
 }
 
 // Reset password with token
-export async function handleResetPassword(req, res) {
+export async function handleResetPassword(req: Request, res: Response) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { token, newPassword, confirmPassword, captchaToken } = req.body;
+    const { token, newPassword, confirmPassword, captchaToken } = (req.body || {}) as Record<string, string | undefined>;
 
     if (!token || !newPassword || !confirmPassword) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -317,7 +361,7 @@ export async function handleResetPassword(req, res) {
     // Verify and decode token
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, getJwtSecret()) as { email?: string; type?: string };
     } catch (error) {
       return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
@@ -360,8 +404,8 @@ export async function handleResetPassword(req, res) {
 }
 
 // Export handler for API route
-export default async function handler(req, res) {
-  const { action } = req.query;
+export default async function handler(req: Request, res: Response) {
+  const action = Array.isArray(req.query.action) ? req.query.action[0] : req.query.action;
 
   switch (action) {
     case 'register':

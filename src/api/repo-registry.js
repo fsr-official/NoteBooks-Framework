@@ -1,0 +1,172 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseRepoRegistryMarkdown = parseRepoRegistryMarkdown;
+exports.buildRegistryTree = buildRegistryTree;
+exports.loadRepoRegistry = loadRepoRegistry;
+exports.default = handler;
+const _shared_1 = require("./_shared");
+function normalizeRepoEntry(entry) {
+    return {
+        name: entry.name || entry.repo,
+        repo: entry.repo,
+        branch: entry.branch || process.env.GITHUB_BRANCH || 'main',
+        root: entry.root || '',
+        enabled: entry.enabled !== false,
+        priority: typeof entry.priority === 'number' ? entry.priority : Number.MAX_SAFE_INTEGER
+    };
+}
+function parseRepoRegistryMarkdown(markdown) {
+    const lines = markdown.split(/\r?\n/);
+    const rows = lines.filter((line) => line.trim().startsWith('|')).slice(2);
+    return rows
+        .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
+        .filter((cells) => cells.length >= 6 && cells[0] && cells[1])
+        .map((cells) => {
+        const [name, repo, branch, root, enabled, priority] = cells;
+        return {
+            name,
+            repo,
+            branch,
+            root,
+            enabled: enabled.toLowerCase() !== 'false',
+            priority: Number(priority)
+        };
+    })
+        .filter((entry) => !Number.isNaN(entry.priority));
+}
+function buildTreeNode(name, path, children = []) {
+    return { type: 'folder', name, path, children };
+}
+function normalizePath(input) {
+    return input.replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+}
+function stripRootPrefix(path, root) {
+    const normalizedRoot = normalizePath(root);
+    const normalizedPath = normalizePath(path);
+    if (!normalizedRoot)
+        return normalizedPath;
+    return normalizedPath.startsWith(`${normalizedRoot}/`) ? normalizedPath.slice(normalizedRoot.length + 1) : normalizedPath;
+}
+async function fetchRepoContentsWithRetry(octokit, owner, repo, path, branch, retries = 3) {
+    const normalizedPath = normalizePath(path || '.');
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+        try {
+            return await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+                owner,
+                repo,
+                path: normalizedPath || '.',
+                ref: branch,
+                headers: {
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
+            });
+        }
+        catch (error) {
+            const status = typeof error?.status === 'number' ? error.status : 0;
+            const shouldRetry = attempt < retries && (status === 429 || status === 500 || status === 502 || status === 503 || status === 504 || status === 0);
+            if (!shouldRetry)
+                throw error;
+            const delayMs = 500 * (attempt + 1) + Math.floor(Math.random() * 250);
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+    }
+    throw new Error('Failed to fetch repository contents after retries');
+}
+async function fetchRepoTree(octokit, owner, repo, branch, root = '') {
+    const rootPath = normalizePath(root);
+    const response = await fetchRepoContentsWithRetry(octokit, owner, repo, rootPath || '.', branch);
+    const item = Array.isArray(response.data) ? response.data : [response.data];
+    const children = [];
+    for (const entry of item) {
+        const name = entry.name;
+        const entryPath = normalizePath([rootPath, name].filter(Boolean).join('/'));
+        if (entry.type === 'dir') {
+            const nestedChildren = await fetchRepoTree(octokit, owner, repo, branch, entryPath);
+            children.push({ type: 'folder', name, path: entryPath, children: nestedChildren, repo: `${owner}/${repo}` });
+        }
+        else if (entry.type === 'file') {
+            children.push({ type: 'file', name, path: entryPath, repo: `${owner}/${repo}` });
+        }
+    }
+    return children;
+}
+async function buildRegistryTree(entries) {
+    const octokit = await (0, _shared_1.getOctokit)({ allowUnauthenticated: true });
+    const normalizedEntries = entries.map(normalizeRepoEntry).filter((entry) => entry.enabled);
+    const rootChildren = [];
+    for (const entry of normalizedEntries) {
+        const [owner, repoName] = entry.repo.split('/');
+        if (!owner || !repoName)
+            continue;
+        const repoRoot = normalizePath(entry.root || '');
+        const repoNode = {
+            type: 'folder',
+            name: entry.name || repoName,
+            path: entry.name || repoName,
+            repo: entry.repo,
+            children: []
+        };
+        try {
+            const children = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
+            repoNode.children = children.map((child) => ({
+                ...child,
+                path: child.path ? `${entry.name || repoName}/${child.path}` : `${entry.name || repoName}`
+            }));
+            rootChildren.push(repoNode);
+        }
+        catch (error) {
+            console.warn(`Skipping repo ${entry.repo}:`, error);
+        }
+    }
+    return {
+        type: 'folder',
+        name: 'root',
+        children: rootChildren
+    };
+}
+async function loadRepoRegistry() {
+    const registryPath = process.env.REPO_REGISTRY_PATH || 'GITHUB-REPOSITORIES.md';
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const filePath = path.resolve(process.cwd(), registryPath);
+    try {
+        const data = await fs.readFile(filePath, 'utf8');
+        if (data.trim().startsWith('|')) {
+            return parseRepoRegistryMarkdown(data);
+        }
+        if (data.trim().startsWith('{')) {
+            const parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed : parsed.entries || [];
+        }
+        return parseRepoRegistryMarkdown(data);
+    }
+    catch (error) {
+        if (error?.code === 'ENOENT') {
+            const fallbackPath = path.resolve(process.cwd(), 'repo-registry.json');
+            try {
+                const fallbackData = await fs.readFile(fallbackPath, 'utf8');
+                const parsed = JSON.parse(fallbackData);
+                console.warn('[api/repo-registry] repo-registry.json is deprecated; please migrate to GITHUB-REPOSITORIES.md');
+                return Array.isArray(parsed) ? parsed : parsed.entries || [];
+            }
+            catch {
+                return [];
+            }
+        }
+        throw error;
+    }
+}
+async function handler(req, res) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+    try {
+        const entries = await loadRepoRegistry();
+        const tree = await buildRegistryTree(entries);
+        return res.status(200).json(tree);
+    }
+    catch (error) {
+        console.error('[api/repo-registry]', error);
+        return res.status(500).json({ error: error?.message || 'Failed to build repo registry index' });
+    }
+}

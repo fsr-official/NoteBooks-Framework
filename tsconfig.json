@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": ".",
+    "outDir": ".",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "lib": ["DOM", "ES2022", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmitOnError": false
+  },
+  "include": [
+    "src/server/**/*.ts",
+    "src/api/_shared.ts",
+    "src/api/blob.ts",
+    "src/api/config.ts",
+    "src/api/gh.ts",
+    "src/api/raw.ts",
+    "src/api/submit-pr.ts"
+  ],
+  "exclude": ["node_modules", "tmp", ".vercel"]
+}

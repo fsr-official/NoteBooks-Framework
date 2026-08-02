@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "none",
+    "moduleResolution": "classic",
+    "rootDir": "src/bin",
+    "outDir": "bin",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "lib": ["DOM", "ES2022", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmitOnError": false,
+    "skipDefaultLibCheck": true
+  },
+  "include": [
+    "src/bin/**/*.ts"
+  ],
+  "exclude": ["node_modules", "tmp", ".vercel"]
+}
