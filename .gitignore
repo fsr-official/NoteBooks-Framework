@@ -1,6 +1,8 @@
 tmp/
 .vercel/
 node_modules/
+src/*.js
+src/**/*.js
 .env*
 bin/*.js
 bin/**/*.js
