@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "npx serve -l 3000",
     "start": "npx serve -l 3000",
-    "build": "npm run build:server && npm run build:client && node bin/generate-files-manifest.js",
+    "build": "npm run build:server && npm run build:client",
     "build:client": "tsc -p tsconfig.client.compat.json",
     "build:server": "tsc -p tsconfig.server.json",
     "backend": "node src/server/server.js",
