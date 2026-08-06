@@ -79,6 +79,10 @@ function handleGet(req: Request, res: Response) {
   const since = req.query.since ? Number(req.query.since) : 0;
   const signals = getRecentSignals(since > 0 ? since : undefined);
   
+  if (signals.length > 0) {
+    console.log(`[refresh-signal] GET returning ${signals.length} signal(s) for client`);
+  }
+  
   return res.status(200).json({
     signals,
     count: signals.length,
