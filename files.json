@@ -14,6 +14,11 @@
     },
     {
       "type": "file",
+      "name": "IMPLEMENTATION_SUMMARY.md",
+      "path": "IMPLEMENTATION_SUMMARY.md"
+    },
+    {
+      "type": "file",
       "name": "LICENSE",
       "path": "LICENSE"
     },
@@ -31,6 +36,22 @@
       "type": "file",
       "name": "community.zip",
       "path": "community.zip"
+    },
+    {
+      "type": "folder",
+      "name": "docs",
+      "children": [
+        {
+          "type": "file",
+          "name": "CACHE_SYSTEM.md",
+          "path": "docs/CACHE_SYSTEM.md"
+        },
+        {
+          "type": "file",
+          "name": "WEBHOOK_SETUP.md",
+          "path": "docs/WEBHOOK_SETUP.md"
+        }
+      ]
     },
     {
       "type": "file",
@@ -77,6 +98,11 @@
       "type": "file",
       "name": "vercel.json",
       "path": "vercel.json"
+    },
+    {
+      "type": "file",
+      "name": "version.json",
+      "path": "version.json"
     }
   ]
 }
