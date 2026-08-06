@@ -19,6 +19,11 @@
     },
     {
       "type": "file",
+      "name": "PHASE0-PLAN.md",
+      "path": "PHASE0-PLAN.md"
+    },
+    {
+      "type": "file",
       "name": "README.md",
       "path": "README.md"
     },
@@ -146,18 +151,8 @@
             },
             {
               "type": "file",
-              "name": "pages-fetch.js",
-              "path": "src/api/pages-fetch.js"
-            },
-            {
-              "type": "file",
               "name": "pages-fetch.ts",
               "path": "src/api/pages-fetch.ts"
-            },
-            {
-              "type": "file",
-              "name": "pr-review.js",
-              "path": "src/api/pr-review.js"
             },
             {
               "type": "file",
@@ -173,11 +168,6 @@
               "type": "file",
               "name": "raw.ts",
               "path": "src/api/raw.ts"
-            },
-            {
-              "type": "file",
-              "name": "refresh-signal.js",
-              "path": "src/api/refresh-signal.js"
             },
             {
               "type": "file",
@@ -1573,23 +1563,8 @@
         },
         {
           "type": "file",
-          "name": "pages-registry.test.ts",
-          "path": "tests/pages-registry.test.ts"
-        },
-        {
-          "type": "file",
-          "name": "pr-submission.test.ts",
-          "path": "tests/pr-submission.test.ts"
-        },
-        {
-          "type": "file",
           "name": "registry-files.test.ts",
           "path": "tests/registry-files.test.ts"
-        },
-        {
-          "type": "file",
-          "name": "submit-pr.test.ts",
-          "path": "tests/submit-pr.test.ts"
         }
       ]
     },
