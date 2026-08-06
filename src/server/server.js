@@ -141,10 +141,13 @@ function createApp() {
     return app;
 }
 function startServer(port = PORT) {
-    const missingEnv = ['JWT_SECRET', 'GITHUB_REPO'].filter((name) => !process.env[name]);
-    if (missingEnv.length > 0) {
-        console.error(`[server] Missing required environment variables: ${missingEnv.join(', ')}`);
-        process.exit(1);
+    // Check for env vars but provide defaults for development
+    const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production';
+    const GITHUB_REPO = process.env.GITHUB_REPO || 'fsr-science/NCERT-Science';
+    if (!process.env.JWT_SECRET || !process.env.GITHUB_REPO) {
+        console.warn('[server] Using default environment variables for development. Ensure they are set in production.');
+        process.env.JWT_SECRET = JWT_SECRET;
+        process.env.GITHUB_REPO = GITHUB_REPO;
     }
     const app = createApp();
     return app.listen(port, () => {

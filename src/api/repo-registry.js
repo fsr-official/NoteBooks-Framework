@@ -27,14 +27,15 @@ function parseRepoRegistryMarkdown(markdown) {
         .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
         .filter((cells) => cells.length >= 6 && cells[0] && cells[1])
         .map((cells) => {
-        const [name, repo, branch, root, enabled, priority] = cells;
+        const [name, repo, branch, root, enabled, priority, pages] = cells;
         return {
             name,
             repo,
             branch,
             root,
             enabled: enabled.toLowerCase() !== 'false',
-            priority: Number(priority)
+            priority: Number(priority),
+            pages: pages ? pages.toLowerCase() === 'true' : false
         };
     })
         .filter((entry) => !Number.isNaN(entry.priority));
@@ -71,11 +72,15 @@ function prefixRepoPaths(node, prefix, repo, branch, priority) {
     };
     return result;
 }
-async function fetchRepoContentsWithRetry(octokit, owner, repo, path, branch, retries = 3) {
+async function fetchRepoContentsWithRetry(octokit, owner, repo, path, branch, retries = 2, timeoutMs = 3000) {
     const normalizedPath = normalizePath(path || '.');
     for (let attempt = 0; attempt <= retries; attempt += 1) {
         try {
-            return await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+            // Add timeout to prevent hanging requests
+            const timeoutPromise = new Promise((_resolve, reject) => {
+                setTimeout(() => reject(new Error(`Octokit request timeout for ${owner}/${repo}/${path}`)), timeoutMs);
+            });
+            const requestPromise = octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
                 owner,
                 repo,
                 path: normalizedPath || '.',
@@ -84,13 +89,15 @@ async function fetchRepoContentsWithRetry(octokit, owner, repo, path, branch, re
                     'X-GitHub-Api-Version': '2022-11-28'
                 }
             });
+            return await Promise.race([requestPromise, timeoutPromise]);
         }
         catch (error) {
             const status = typeof error?.status === 'number' ? error.status : 0;
-            const shouldRetry = attempt < retries && (status === 429 || status === 500 || status === 502 || status === 503 || status === 504 || status === 0);
+            const isTimeout = error?.message?.includes('timeout');
+            const shouldRetry = attempt < retries && (status === 429 || status === 500 || status === 502 || status === 503 || status === 504 || status === 0 || isTimeout);
             if (!shouldRetry)
                 throw error;
-            const delayMs = 500 * (attempt + 1) + Math.floor(Math.random() * 250);
+            const delayMs = 300 * (attempt + 1) + Math.floor(Math.random() * 150);
             await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
     }
@@ -141,15 +148,17 @@ async function buildRegistryTree(entries) {
         };
         try {
             const priority = typeof entry.priority === 'number' ? entry.priority : Number.MAX_SAFE_INTEGER;
-            const pagesBaseUrl = (0, pages_fetch_1.resolvePagesBaseUrl)(entry);
+            const usePagesPath = entry.pages === true || entry.pages === 'true';
+            const pagesBaseUrl = usePagesPath ? (0, pages_fetch_1.resolvePagesBaseUrl)(entry) : '';
             let children = [];
-            if (pagesBaseUrl) {
+            if (usePagesPath && pagesBaseUrl) {
                 try {
+                    console.log(`[repo-registry] Using Pages read-path for ${entry.repo}`);
                     const pagesChildren = await (0, pages_fetch_1.fetchPagesManifest)(pagesBaseUrl, entry.name || repoName);
                     children = pagesChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
                 }
                 catch (error) {
-                    console.warn(`[repo-registry] Pages manifest fallback for ${entry.repo}:`, error);
+                    console.warn(`[repo-registry] Pages manifest failed for ${entry.repo}, falling back to Octokit:`, error);
                     const repoChildren = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
                     children = repoChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
                 }
@@ -242,6 +251,8 @@ async function loadRepoRegistry() {
     }
 }
 const refreshCache = new Map();
+let buildInProgress = false;
+let lastSuccessfulBuild = null;
 function getRefreshCacheKey(req) {
     return `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host || 'localhost'}`;
 }
@@ -261,13 +272,47 @@ async function handler(req, res) {
             const cacheKey = getRefreshCacheKey(req);
             const cached = refreshCache.get(cacheKey);
             const now = Date.now();
+            // Return cached result if fresh (30 seconds)
             if (cached && now - cached.cachedAt < 30_000) {
                 return res.status(200).json(cached.value);
             }
-            const entries = await loadRepoRegistry();
-            const tree = await buildRegistryTree(entries);
-            refreshCache.set(cacheKey, { cachedAt: now, value: tree });
-            return res.status(200).json(tree);
+            // If build is already in progress, return last successful build immediately
+            // to avoid timeout on concurrent requests
+            if (buildInProgress && lastSuccessfulBuild) {
+                console.log('[repo-registry] Build in progress, returning cached result');
+                return res.status(200).json(lastSuccessfulBuild.value);
+            }
+            // Start new build with a timeout to prevent Vercel function timeout
+            buildInProgress = true;
+            try {
+                const buildPromise = (async () => {
+                    const entries = await loadRepoRegistry();
+                    const tree = await buildRegistryTree(entries);
+                    return tree;
+                })();
+                // Set a 9-second timeout (Vercel limit is 10s for Hobby)
+                const timeoutPromise = new Promise((_resolve, reject) => {
+                    setTimeout(() => reject(new Error('Registry build timeout - returning cached data')), 9000);
+                });
+                const tree = await Promise.race([buildPromise, timeoutPromise]);
+                const cacheEntry = { cachedAt: now, value: tree };
+                refreshCache.set(cacheKey, cacheEntry);
+                lastSuccessfulBuild = cacheEntry;
+                console.log('[repo-registry] Successfully built registry');
+                return res.status(200).json(tree);
+            }
+            catch (buildError) {
+                console.warn('[repo-registry] Build failed:', buildError.message);
+                // If build fails/times out and we have a previous successful build, return it
+                if (lastSuccessfulBuild) {
+                    console.log('[repo-registry] Returning last successful build due to timeout/error');
+                    return res.status(200).json(lastSuccessfulBuild.value);
+                }
+                throw buildError;
+            }
+            finally {
+                buildInProgress = false;
+            }
         }
     }
     catch (error) {

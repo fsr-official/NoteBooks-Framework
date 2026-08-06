@@ -8,7 +8,7 @@ export interface PagesManifestEntry {
 export interface PagesRegistryEntryLike {
   repo?: string;
   name?: string;
-  pages?: string;
+  pages?: string | boolean;
 }
 
 function normalizePath(input: string) {
@@ -58,9 +58,18 @@ export function buildPagesTreeFromManifest(repoName: string, manifest: PagesMani
 
 export async function fetchPagesManifest(pagesBase: string, repoName: string) {
   const url = `${String(pagesBase).replace(/\/$/, '')}/files.json`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Pages manifest fetch failed with ${res.status}`);
-  const manifest = await res.json();
-  const normalizedManifest = Array.isArray(manifest) ? manifest : [];
-  return buildPagesTreeFromManifest(repoName, normalizedManifest as PagesManifestEntry[]);
+  
+  // Add a 5-second timeout for Pages manifest fetch to prevent hanging
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`Pages manifest fetch failed with ${res.status}`);
+    const manifest = await res.json();
+    const normalizedManifest = Array.isArray(manifest) ? manifest : [];
+    return buildPagesTreeFromManifest(repoName, normalizedManifest as PagesManifestEntry[]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

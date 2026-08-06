@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "NoteBooks XI - A structured knowledge system for students and educators",
   "scripts": {
-    "dev": "npx serve -l 3000",
+    "dev": "npm run build && node src/server/server.js",
     "start": "npx serve -l 3000",
     "build": "npm run build:server && npm run build:client",
     "build:client": "tsc -p tsconfig.client.compat.json",
