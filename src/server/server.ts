@@ -47,6 +47,32 @@ export function createApp() {
     res.json({ status: 'ok' });
   });
 
+  app.get('/api/version', (_req, res) => {
+    const versionPath = path.join(projectDir, 'version.json');
+    try {
+      if (fs.existsSync(versionPath)) {
+        const content = fs.readFileSync(versionPath, 'utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.type('application/json').send(content);
+        return;
+      }
+    } catch (error) {
+      console.warn('[version] Failed to read version.json:', error);
+    }
+    
+    // Fallback version if file doesn't exist
+    const fallbackVersion = {
+      version: '1.0.0',
+      buildTime: new Date().toISOString(),
+      buildTimestamp: Date.now(),
+      buildHash: 'unknown'
+    };
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json(fallbackVersion);
+  });
+
   app.get('/private/files.json', async (_req, res) => {
     const filePath = path.join(projectDir, 'files.json');
     if (!fs.existsSync(filePath)) {
@@ -109,6 +135,7 @@ export function createApp() {
   app.post('/api/submit-pr', submitPrHandler);
   app.post('/api/submit-pr.js', submitPrHandler);
   app.post('/api/refresh-signal', refreshSignalHandler);
+  app.get('/api/refresh-signal', refreshSignalHandler);
   app.post('/api/pr-review/accept', prReview.acceptHandler);
   app.post('/api/pr-review/reject', prReview.rejectHandler);
   app.get('/api/desmos', desmosHandler);

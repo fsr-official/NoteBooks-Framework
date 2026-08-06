@@ -79,6 +79,31 @@ function createApp() {
     app.get('/health', (_req, res) => {
         res.json({ status: 'ok' });
     });
+    app.get('/api/version', (_req, res) => {
+        const versionPath = path_1.default.join(projectDir, 'version.json');
+        try {
+            if (fs_1.default.existsSync(versionPath)) {
+                const content = fs_1.default.readFileSync(versionPath, 'utf-8');
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+                res.type('application/json').send(content);
+                return;
+            }
+        }
+        catch (error) {
+            console.warn('[version] Failed to read version.json:', error);
+        }
+        // Fallback version if file doesn't exist
+        const fallbackVersion = {
+            version: '1.0.0',
+            buildTime: new Date().toISOString(),
+            buildTimestamp: Date.now(),
+            buildHash: 'unknown'
+        };
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.json(fallbackVersion);
+    });
     app.get('/private/files.json', async (_req, res) => {
         const filePath = path_1.default.join(projectDir, 'files.json');
         if (!fs_1.default.existsSync(filePath)) {
@@ -134,6 +159,7 @@ function createApp() {
     app.post('/api/submit-pr', submit_pr_1.default);
     app.post('/api/submit-pr.js', submit_pr_1.default);
     app.post('/api/refresh-signal', refresh_signal_1.default);
+    app.get('/api/refresh-signal', refresh_signal_1.default);
     app.post('/api/pr-review/accept', prReview.acceptHandler);
     app.post('/api/pr-review/reject', prReview.rejectHandler);
     app.get('/api/desmos', desmos_1.default);

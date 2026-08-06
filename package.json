@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "NoteBooks XI - A structured knowledge system for students and educators",
   "scripts": {
-    "dev": "npm run build && node src/server/server.js",
+    "dev": "node src/scripts/generate-version.js && npm run build && node src/server/server.js",
     "start": "npx serve -l 3000",
-    "build": "npm run build:server && npm run build:client",
+    "build": "node src/scripts/generate-version.js && npm run build:server && npm run build:client",
     "build:client": "tsc -p tsconfig.client.compat.json",
     "build:server": "tsc -p tsconfig.server.json",
     "backend": "node src/server/server.js",
