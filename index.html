@@ -34,9 +34,9 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <!-- TikZJax — TikZ/PGF diagram rendering (```tikz blocks) -->
-  <!-- Engine lives in bin/tikzjax/output/; fonts in bin/tikzjax/css/ -->
-  <link rel="stylesheet" href="bin/tikzjax/css/fonts.css">
-  <script src="bin/tikzjax/output/tikzjax.js"></script>
+  <!-- Engine lives in public/tikzjax/output/; fonts in public/tikzjax/css/ -->
+  <link rel="stylesheet" href="/public/tikzjax/css/fonts.css">
+  <script src="/public/tikzjax/output/tikzjax.js"></script>
   <!-- highlight.js — syntax highlighting for code blocks -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css"
         media="(prefers-color-scheme: light)">
@@ -48,14 +48,14 @@
   <!-- Desmos Graphing Calculator API -->
   <script src="/api/desmos.js"></script>
   <!-- Obsidian-syntax compatibility layer (replaces obsidian-md.js) -->
-  <script src="bin/obsidian-markdown-it.js"></script>
+  <script src="/public/obsidian-markdown-it.js"></script>
   <!-- Google reCAPTCHA v3 -->
   <script src="https://www.google.com/recaptcha/api.js?render=6LeI4QgtAAAAAIHR7fZ2uCoPNqNe3LBFLCuCBBZH" async defer></script>
   <!-- Modern Email + Password Auth System -->
-  <script src="bin/modern-auth.js"></script>
-  <link rel="stylesheet" href="bin/style.css">
-  <script src="bin/md-init.js"></script>
-  <script src="bin/markdown-editor.js"></script>
+  <script src="/public/modern-auth.js"></script>
+  <link rel="stylesheet" href="/public/style.css">
+  <script src="/public/md-init.js"></script>
+  <script src="/public/markdown-editor.js"></script>
 </head>
 <body>
   <div id="splash"><img src="favicon.png" alt="Loading..." /></div>
@@ -512,9 +512,9 @@
     </div>
   </div>
 
-<script src="bin/gh-proxy.js"></script>
-<script src="bin/markdown.js"></script>
-<script src="bin/app.js"></script>
+<script src="/public/gh-proxy.js"></script>
+<script src="/public/markdown.js"></script>
+<script src="/public/app.js"></script>
 
 <div id="updateNotice" style="display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--item); color: var(--fg); padding: 12px 20px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2); z-index: 9999; align-items: center; gap: 12px;">
   <span>Update detected. Refresh now to apply changes.</span>
@@ -522,8 +522,8 @@
   <button onclick="dismissUpdateNotice()">×</button>
 	</div>
 <div id="taskbarContextMenu" class="context-menu" style="display: none;"></div>
-<script src="bin/admin-terminal.js"></script>
-<script src="bin/auth.js"></script>
-<script src="bin/upload.js"></script>
-<script src="bin/mobile.js"></script>
+<script src="/public/admin-terminal.js"></script>
+<script src="/public/auth.js"></script>
+<script src="/public/upload.js"></script>
+<script src="/public/mobile.js"></script>
 </body>

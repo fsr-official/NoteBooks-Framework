@@ -96,7 +96,23 @@ export function createApp() {
     res.sendFile(path.join(projectDir, 'index.html'));
   });
 
-  // Serve public directory with proper MIME types
+  // Serve public static assets under /public and also as the root public directory.
+  app.use('/public', express.static(path.join(projectDir, 'public'), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      } else if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.woff') || filePath.endsWith('.woff2')) {
+        res.setHeader('Content-Type', 'font/woff2');
+      } else if (filePath.endsWith('.ttf')) {
+        res.setHeader('Content-Type', 'font/ttf');
+      } else if (filePath.endsWith('.gz')) {
+        res.setHeader('Content-Type', 'application/gzip');
+      }
+    }
+  }));
+
   app.use(express.static(path.join(projectDir, 'public'), {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.css')) {
