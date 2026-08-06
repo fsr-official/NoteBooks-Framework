@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { getOctokit, getRepoConfig } from './_shared';
+import { fetchPagesManifest, resolvePagesBaseUrl } from './pages-fetch';
 
 export interface RepoRegistryEntry {
   name: string;
@@ -14,6 +15,11 @@ export interface TreeNode {
   type: 'folder' | 'file';
   name: string;
   path?: string;
+  repoPath?: string;
+  branch?: string;
+  priority?: number;
+  shadowedBy?: string;
+  isCanonical?: boolean;
   children?: TreeNode[];
   repo?: string;
 }
@@ -70,6 +76,28 @@ function stripRootPrefix(path: string, root: string) {
   return normalizedPath.startsWith(`${normalizedRoot}/`) ? normalizedPath.slice(normalizedRoot.length + 1) : normalizedPath;
 }
 
+function prefixRepoPaths(node: TreeNode, prefix: string, repo: string, branch: string, priority: number): TreeNode {
+  const normalizedPath = normalizePath(node.path || '');
+  const prefixedPath = normalizedPath ? `${prefix}/${normalizedPath}` : prefix;
+  const repoPath = normalizedPath || undefined;
+  const children = Array.isArray(node.children)
+    ? node.children.map((child) => prefixRepoPaths(child, prefixedPath, repo, branch, priority))
+    : undefined;
+
+  const result: TreeNode = {
+    ...node,
+    path: prefixedPath,
+    repo,
+    branch,
+    priority,
+    repoPath,
+    isCanonical: true,
+    children
+  };
+
+  return result;
+}
+
 async function fetchRepoContentsWithRetry(octokit: any, owner: string, repo: string, path: string, branch: string, retries = 3) {
   const normalizedPath = normalizePath(path || '.');
 
@@ -120,7 +148,15 @@ async function fetchRepoTree(octokit: any, owner: string, repo: string, branch: 
 
 export async function buildRegistryTree(entries: RepoRegistryEntry[]) {
   const octokit = await getOctokit({ allowUnauthenticated: true });
-  const normalizedEntries = entries.map(normalizeRepoEntry).filter((entry) => entry.enabled);
+  const normalizedEntries = entries
+    .map(normalizeRepoEntry)
+    .filter((entry) => entry.enabled)
+    .sort((a, b) => {
+      const aPriority = typeof a.priority === 'number' ? a.priority : Number.MAX_SAFE_INTEGER;
+      const bPriority = typeof b.priority === 'number' ? b.priority : Number.MAX_SAFE_INTEGER;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return String(a.name).localeCompare(String(b.name));
+    });
   const rootChildren: TreeNode[] = [];
 
   for (const entry of normalizedEntries) {
@@ -137,22 +173,81 @@ export async function buildRegistryTree(entries: RepoRegistryEntry[]) {
     };
 
     try {
-      const children = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
-      repoNode.children = children.map((child) => ({
-        ...child,
-        path: child.path ? `${entry.name || repoName}/${child.path}` : `${entry.name || repoName}`
-      }));
+      const priority = typeof entry.priority === 'number' ? entry.priority : Number.MAX_SAFE_INTEGER;
+      const pagesBaseUrl = resolvePagesBaseUrl(entry);
+      let children: TreeNode[] = [];
+
+      if (pagesBaseUrl) {
+        try {
+          const pagesChildren = await fetchPagesManifest(pagesBaseUrl, entry.name || repoName);
+          children = pagesChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+        } catch (error) {
+          console.warn(`[repo-registry] Pages manifest fallback for ${entry.repo}:`, error);
+          const repoChildren = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
+          children = repoChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+        }
+      } else {
+        const repoChildren = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
+        children = repoChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+      }
+
+      repoNode.children = children;
       rootChildren.push(repoNode);
     } catch (error) {
       console.warn(`Skipping repo ${entry.repo}:`, error);
     }
   }
 
-  return {
+  const tree: TreeNode = {
     type: 'folder',
     name: 'root',
     children: rootChildren
   };
+
+  resolveDuplicateFiles(tree);
+
+  return tree;
+}
+
+function resolveDuplicateFiles(root: TreeNode) {
+  const filesByRepoPath = new Map<string, TreeNode[]>();
+
+  function collect(node: TreeNode) {
+    if (!node) return;
+    if (node.type === 'file' && node.repoPath) {
+      const key = normalizePath(node.repoPath);
+      const existing = filesByRepoPath.get(key) || [];
+      existing.push(node);
+      filesByRepoPath.set(key, existing);
+    }
+    if (Array.isArray(node.children)) {
+      node.children.forEach(collect);
+    }
+  }
+
+  collect(root);
+
+  for (const [repoPath, nodes] of filesByRepoPath.entries()) {
+    if (nodes.length <= 1) {
+      nodes[0].isCanonical = true;
+      continue;
+    }
+
+    nodes.sort((a, b) => {
+      const aPriority = typeof a.priority === 'number' ? a.priority : Number.MAX_SAFE_INTEGER;
+      const bPriority = typeof b.priority === 'number' ? b.priority : Number.MAX_SAFE_INTEGER;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return String(a.repo || '').localeCompare(String(b.repo || ''));
+    });
+
+    const canonical = nodes[0];
+    canonical.isCanonical = true;
+
+    for (const shadowed of nodes.slice(1)) {
+      shadowed.isCanonical = false;
+      shadowed.shadowedBy = canonical.path;
+    }
+  }
 }
 
 export async function loadRepoRegistry(): Promise<RepoRegistryEntry[]> {
@@ -187,6 +282,12 @@ export async function loadRepoRegistry(): Promise<RepoRegistryEntry[]> {
   }
 }
 
+const refreshCache = new Map<string, { cachedAt: number; value: any }>();
+
+function getRefreshCacheKey(req: Request) {
+  return `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host || 'localhost'}`;
+}
+
 export default async function handler(req: Request, res: Response) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -201,8 +302,16 @@ export default async function handler(req: Request, res: Response) {
       const manifestText = await fs.readFile(manifestPath, 'utf8');
       return res.status(200).type('application/json').send(manifestText);
     } catch {
+      const cacheKey = getRefreshCacheKey(req);
+      const cached = refreshCache.get(cacheKey);
+      const now = Date.now();
+      if (cached && now - cached.cachedAt < 30_000) {
+        return res.status(200).json(cached.value);
+      }
+
       const entries = await loadRepoRegistry();
       const tree = await buildRegistryTree(entries);
+      refreshCache.set(cacheKey, { cachedAt: now, value: tree });
       return res.status(200).json(tree);
     }
   } catch (error: any) {

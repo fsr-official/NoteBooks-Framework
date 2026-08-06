@@ -1,4 +1,6 @@
 import express from 'express';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs';
 import repoRegistryHandler from '../api/repo-registry';
@@ -7,11 +9,29 @@ import ghHandler from '../api/gh';
 import blobHandler from '../api/blob';
 import rawHandler from '../api/raw';
 import submitPrHandler from '../api/submit-pr';
+import * as prReview from '../api/pr-review';
+import refreshSignalHandler from '../api/refresh-signal';
 import desmosHandler from '../api/desmos';
 import authHandler, { assertAuthConfig } from '../api/auth';
 import { buildLocalFilesManifest } from '../api/files-manifest';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many auth attempts. Please try again later.' }
+});
+
+const submitPrLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many PR submissions. Please try again later.' }
+});
 
 export function createApp() {
   assertAuthConfig();
@@ -19,6 +39,7 @@ export function createApp() {
   const app = express();
   const projectDir = path.resolve(process.cwd());
 
+  app.use(helmet());
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ extended: true }));
 
@@ -71,6 +92,9 @@ export function createApp() {
   app.get('/api/registry.js', repoRegistryHandler);
   app.get('/api/files', repoRegistryHandler);
   app.get('/api/files.js', repoRegistryHandler);
+  app.get('/api/pr-review', prReview.listHandler);
+  app.get('/api/pr-review.js', prReview.listHandler);
+  app.use('/api/auth', authLimiter);
   app.all('/api/auth', authHandler);
   app.all('/api/auth.js', authHandler);
   app.post('/api/gh', ghHandler);
@@ -81,8 +105,12 @@ export function createApp() {
   app.get('/api/raw.js', rawHandler);
   app.options('/api/raw', rawHandler);
   app.options('/api/raw.js', rawHandler);
+  app.use('/api/submit-pr', submitPrLimiter);
   app.post('/api/submit-pr', submitPrHandler);
   app.post('/api/submit-pr.js', submitPrHandler);
+  app.post('/api/refresh-signal', refreshSignalHandler);
+  app.post('/api/pr-review/accept', prReview.acceptHandler);
+  app.post('/api/pr-review/reject', prReview.rejectHandler);
   app.get('/api/desmos', desmosHandler);
   app.get('/api/desmos.js', desmosHandler);
 
@@ -90,6 +118,12 @@ export function createApp() {
 }
 
 export function startServer(port: number = PORT) {
+  const missingEnv = ['JWT_SECRET', 'GITHUB_REPO'].filter((name) => !process.env[name]);
+  if (missingEnv.length > 0) {
+    console.error(`[server] Missing required environment variables: ${missingEnv.join(', ')}`);
+    process.exit(1);
+  }
+
   const app = createApp();
   return app.listen(port, () => {
     console.log(`Private backend listening on port ${port}`);

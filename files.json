@@ -143,6 +143,25 @@
       "path": "manifest.json"
     },
     {
+      "type": "folder",
+      "name": "memories",
+      "path": "memories",
+      "children": [
+        {
+          "type": "folder",
+          "name": "repo",
+          "path": "memories/repo",
+          "children": [
+            {
+              "type": "file",
+              "name": "auth-unification-note.md",
+              "path": "memories/repo/auth-unification-note.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "type": "file",
       "name": "offline.html",
       "path": "offline.html"
@@ -156,6 +175,11 @@
       "type": "file",
       "name": "package.json",
       "path": "package.json"
+    },
+    {
+      "type": "file",
+      "name": "PHASE0-PLAN.md",
+      "path": "PHASE0-PLAN.md"
     },
     {
       "type": "file",
@@ -249,6 +273,26 @@
             },
             {
               "type": "file",
+              "name": "pages-fetch.js",
+              "path": "src/api/pages-fetch.js"
+            },
+            {
+              "type": "file",
+              "name": "pages-fetch.ts",
+              "path": "src/api/pages-fetch.ts"
+            },
+            {
+              "type": "file",
+              "name": "pr-review.js",
+              "path": "src/api/pr-review.js"
+            },
+            {
+              "type": "file",
+              "name": "pr-review.ts",
+              "path": "src/api/pr-review.ts"
+            },
+            {
+              "type": "file",
               "name": "raw.js",
               "path": "src/api/raw.js"
             },
@@ -256,6 +300,16 @@
               "type": "file",
               "name": "raw.ts",
               "path": "src/api/raw.ts"
+            },
+            {
+              "type": "file",
+              "name": "refresh-signal.js",
+              "path": "src/api/refresh-signal.js"
+            },
+            {
+              "type": "file",
+              "name": "refresh-signal.ts",
+              "path": "src/api/refresh-signal.ts"
             },
             {
               "type": "file",
@@ -503,8 +557,23 @@
         },
         {
           "type": "file",
+          "name": "pages-registry.test.ts",
+          "path": "tests/pages-registry.test.ts"
+        },
+        {
+          "type": "file",
+          "name": "pr-submission.test.ts",
+          "path": "tests/pr-submission.test.ts"
+        },
+        {
+          "type": "file",
           "name": "registry-files.test.ts",
           "path": "tests/registry-files.test.ts"
+        },
+        {
+          "type": "file",
+          "name": "submit-pr.test.ts",
+          "path": "tests/submit-pr.test.ts"
         }
       ]
     },

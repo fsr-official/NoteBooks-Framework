@@ -1,4 +1,6 @@
-export default async function handler(req, res) {
+import type { Request, Response } from 'express';
+
+export default async function handler(req: Request, res: Response) {
   const apiKey = process.env.DESMOS_API_KEY || '';
   const upstream = `https://www.desmos.com/api/v1.9/calculator.js?apiKey=${apiKey}`;
 

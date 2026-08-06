@@ -469,13 +469,24 @@ const MarkdownEditor = (() => {
       }
       prBtn.disabled = true;
       prBtn.textContent = '\u2191 Submitting...';
+      if (!window.ModernAuthInstance || !window.ModernAuthInstance.isLoggedIn()) {
+        showToast(wrapper, 'Please sign in before submitting a PR', 'error');
+        prBtn.disabled = false;
+        prBtn.textContent = '↑ Submit PR';
+        return;
+      }
       fetch('/api/submit-pr', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + window.ModernAuthInstance.getToken()
+        },
         body: JSON.stringify({
           filePath: filePath,
           content: textarea.value,
-          originalContent: originalContent
+          originalContent: originalContent,
+          authorName: window.ModernAuthInstance.getEmail() || 'anonymous',
+          authorEmail: window.ModernAuthInstance.getEmail() || 'n/a'
         })
       })
       .then(r => r.json())

@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 interface UserRecord {
   email: string;
   password: string;
+  role: 'user';
   createdAt: string;
   passwordResetAt?: string;
 }
@@ -13,6 +14,15 @@ interface UserRecord {
 interface ResetRecord {
   email: string;
   expiresAt: number;
+}
+
+interface AuthRequestBody {
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  captchaToken?: string;
+  token?: string;
+  newPassword?: string;
 }
 
 export function assertAuthConfig() {
@@ -24,9 +34,9 @@ export function assertAuthConfig() {
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Initialize Redis client if available
-let redis: any = null;
+let redis: unknown = null;
 
-async function getRedisClient() {
+async function getRedisClient(): Promise<any> {
   if (redis || !process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
     return redis;
   }
@@ -55,6 +65,10 @@ function getJwtSecret(): string {
   return process.env.JWT_SECRET as string;
 }
 
+function getAuthBody(req: Request): AuthRequestBody {
+  return (req.body || {}) as AuthRequestBody;
+}
+
 // Helper to get user from Redis or memory
 async function getUser(email: string): Promise<UserRecord | undefined> {
   const client = await getRedisClient();
@@ -65,7 +79,7 @@ async function getUser(email: string): Promise<UserRecord | undefined> {
 }
 
 // Helper to set user in Redis or memory
-async function setUser(email: string, userData: UserRecord) {
+async function setUser(email: string, userData: UserRecord): Promise<void> {
   const client = await getRedisClient();
   if (client) {
     await client.set(`user:${email}`, userData, { ex: 60 * 60 * 24 * 365 }); // 1 year
@@ -84,7 +98,7 @@ async function getResetToken(token: string): Promise<string | undefined> {
 }
 
 // Helper to set reset token
-async function setResetToken(token: string, email: string, expiryMinutes = 15) {
+async function setResetToken(token: string, email: string, expiryMinutes = 15): Promise<void> {
   const client = await getRedisClient();
   if (client) {
     await client.set(`reset:${token}`, email, { ex: expiryMinutes * 60 });
@@ -94,7 +108,7 @@ async function setResetToken(token: string, email: string, expiryMinutes = 15) {
 }
 
 // Helper to delete reset token
-async function deleteResetToken(token: string) {
+async function deleteResetToken(token: string): Promise<void> {
   const client = await getRedisClient();
   if (client) {
     await client.del(`reset:${token}`);
@@ -104,7 +118,7 @@ async function deleteResetToken(token: string) {
 }
 
 // Helper to check password reset cooldown
-async function checkResetCooldown(email: string) {
+async function checkResetCooldown(email: string): Promise<boolean> {
   const client = await getRedisClient();
   if (client) {
     const cooldown = await client.get(`reset_cooldown:${email}`);
@@ -115,7 +129,7 @@ async function checkResetCooldown(email: string) {
 }
 
 // Helper to set password reset cooldown
-async function setResetCooldown(email: string) {
+async function setResetCooldown(email: string): Promise<void> {
   const client = await getRedisClient();
   if (client) {
     await client.set(`reset_cooldown:${email}`, '1', { ex: 15 * 60 }); // 15 minutes
@@ -123,7 +137,11 @@ async function setResetCooldown(email: string) {
 }
 
 // Verify reCAPTCHA token
-async function verifyCaptcha(token?: string) {
+async function verifyCaptcha(token?: string): Promise<boolean> {
+  if (!token || !RECAPTCHA_SECRET) {
+    return true;
+  }
+
   try {
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
@@ -145,7 +163,7 @@ export async function handleRegister(req: Request, res: Response) {
   }
 
   try {
-    const { email, password, confirmPassword, captchaToken } = (req.body || {}) as Record<string, string | undefined>;
+    const { email, password, confirmPassword, captchaToken } = getAuthBody(req);
 
     // Validate inputs
     if (!email || !password || !confirmPassword) {
@@ -183,6 +201,7 @@ export async function handleRegister(req: Request, res: Response) {
     const user: UserRecord = {
       email,
       password: hashedPassword,
+      role: 'user',
       createdAt: new Date().toISOString()
     };
 
@@ -210,7 +229,7 @@ export async function handleLogin(req: Request, res: Response) {
   }
 
   try {
-    const { email, password, captchaToken } = (req.body || {}) as Record<string, string | undefined>;
+    const { email, password, captchaToken } = getAuthBody(req);
 
     // Validate inputs
     if (!email || !password) {
@@ -236,7 +255,7 @@ export async function handleLogin(req: Request, res: Response) {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ email }, getJwtSecret(), { expiresIn: '30d' });
+    const token = jwt.sign({ email, role: user.role }, getJwtSecret(), { expiresIn: '30d' });
 
     return res.status(200).json({
       success: true,
@@ -257,7 +276,7 @@ export async function handleForgotPassword(req: Request, res: Response) {
   }
 
   try {
-    const { email, captchaToken } = (req.body || {}) as Record<string, string | undefined>;
+    const { email, captchaToken } = getAuthBody(req);
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -338,7 +357,7 @@ export async function handleResetPassword(req: Request, res: Response) {
   }
 
   try {
-    const { token, newPassword, confirmPassword, captchaToken } = (req.body || {}) as Record<string, string | undefined>;
+    const { token, newPassword, confirmPassword, captchaToken } = getAuthBody(req);
 
     if (!token || !newPassword || !confirmPassword) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -359,7 +378,7 @@ export async function handleResetPassword(req: Request, res: Response) {
     }
 
     // Verify and decode token
-    let decoded;
+    let decoded: { email?: string; type?: string };
     try {
       decoded = jwt.verify(token, getJwtSecret()) as { email?: string; type?: string };
     } catch (error) {
@@ -377,6 +396,10 @@ export async function handleResetPassword(req: Request, res: Response) {
     }
 
     // Get user
+    if (!decoded.email) {
+      return res.status(400).json({ error: 'Invalid token payload' });
+    }
+
     const user = await getUser(decoded.email);
     if (!user) {
       return res.status(401).json({ error: 'User not found' });

@@ -43,6 +43,9 @@ function getJwtSecret() {
     assertAuthConfig();
     return process.env.JWT_SECRET;
 }
+function getAuthBody(req) {
+    return (req.body || {});
+}
 // Helper to get user from Redis or memory
 async function getUser(email) {
     const client = await getRedisClient();
@@ -108,6 +111,9 @@ async function setResetCooldown(email) {
 }
 // Verify reCAPTCHA token
 async function verifyCaptcha(token) {
+    if (!token || !RECAPTCHA_SECRET) {
+        return true;
+    }
     try {
         const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
             method: 'POST',
@@ -128,7 +134,7 @@ async function handleRegister(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
     try {
-        const { email, password, confirmPassword, captchaToken } = (req.body || {});
+        const { email, password, confirmPassword, captchaToken } = getAuthBody(req);
         // Validate inputs
         if (!email || !password || !confirmPassword) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -158,6 +164,7 @@ async function handleRegister(req, res) {
         const user = {
             email,
             password: hashedPassword,
+            role: 'user',
             createdAt: new Date().toISOString()
         };
         await setUser(email, user);
@@ -181,7 +188,7 @@ async function handleLogin(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
     try {
-        const { email, password, captchaToken } = (req.body || {});
+        const { email, password, captchaToken } = getAuthBody(req);
         // Validate inputs
         if (!email || !password) {
             return res.status(400).json({ error: 'Missing email or password' });
@@ -202,7 +209,7 @@ async function handleLogin(req, res) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
         // Generate JWT token
-        const token = jsonwebtoken_1.default.sign({ email }, getJwtSecret(), { expiresIn: '30d' });
+        const token = jsonwebtoken_1.default.sign({ email, role: user.role }, getJwtSecret(), { expiresIn: '30d' });
         return res.status(200).json({
             success: true,
             token,
@@ -221,7 +228,7 @@ async function handleForgotPassword(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
     try {
-        const { email, captchaToken } = (req.body || {});
+        const { email, captchaToken } = getAuthBody(req);
         if (!email) {
             return res.status(400).json({ error: 'Email is required' });
         }
@@ -291,7 +298,7 @@ async function handleResetPassword(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
     try {
-        const { token, newPassword, confirmPassword, captchaToken } = (req.body || {});
+        const { token, newPassword, confirmPassword, captchaToken } = getAuthBody(req);
         if (!token || !newPassword || !confirmPassword) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
@@ -323,6 +330,9 @@ async function handleResetPassword(req, res) {
             return res.status(400).json({ error: 'Reset token has expired' });
         }
         // Get user
+        if (!decoded.email) {
+            return res.status(400).json({ error: 'Invalid token payload' });
+        }
         const user = await getUser(decoded.email);
         if (!user) {
             return res.status(401).json({ error: 'User not found' });

@@ -92,6 +92,13 @@ class ModernAuth {
       body:    JSON.stringify(body),
     });
 
+    if (response.status === 401) {
+      this._clearToken();
+      if (window.showLoginScreen) {
+        window.showLoginScreen();
+      }
+    }
+
     let data;
     const ct = response.headers.get('content-type') || '';
     if (ct.includes('application/json')) {
@@ -177,8 +184,8 @@ class ModernAuth {
 // ─── Global Instance ─────────────────────────────────────────────────────────
 
 const ModernAuthInstance = new ModernAuth({
-  apiUrl:           '/api/auth',
-  recaptchaSiteKey: '6LeI4QgtAAAAAIHR7fZ2uCoPNqNe3LBFLCuCBBZH', // ← paste your key here
+  apiUrl: '/api/auth',
+  recaptchaSiteKey: null,
 });
 
 window.ModernAuthInstance = ModernAuthInstance;

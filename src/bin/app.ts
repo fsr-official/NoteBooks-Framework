@@ -20,6 +20,12 @@ let previewId = 0;
 const windows = {};
 const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 let updateDismissed = false;
+let treeRoot = null;
+let fileIndex = [];
+let searchQuery = '';
+let sidebarSearchInput = null;
+let sidebarTree = null;
+let searchDebounceTimer = null;
 
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
@@ -96,6 +102,24 @@ function showStatus(message, isLoading = false) {
   }, 3000);
 }
 
+function notifyRefreshSignal(type, message) {
+  if (type === 'directory') {
+    showStatus(`Repository update detected: ${message}`);
+  } else {
+    showStatus(`File update detected: ${message}`);
+  }
+}
+
+async function refreshFromSignal(payload) {
+  if (!payload || !payload.signal) return;
+  const signalType = payload.type === 'directory' ? 'directory' : 'file';
+  notifyRefreshSignal(signalType, payload.signal);
+  treeRoot = null;
+  fileIndex = [];
+  currentNode = null;
+  await fetchTree();
+}
+
 async function generateFileTree() {
   showStatus("Generating file tree...", true);
   try {
@@ -107,30 +131,286 @@ async function generateFileTree() {
   }
 }
 
+async function refreshSignalLoop() {
+  try {
+    const res = await fetch('/api/refresh-signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signal: 'manual-refresh', type: 'directory' })
+    });
+    if (res.ok) {
+      await refreshFromSignal(await res.json());
+    }
+  } catch (error) {
+    console.warn('refreshSignalLoop failed', error);
+  }
+}
+
 function refreshFiles() {
   fetchTree();
   showStatus("Refreshing files list…");
+}
+
+function buildPagesUrl(p) {
+  if (!appConfig.GITPAGE_URL) return '';
+  const cleanedPath = String(p || '').replace(/^\/+/, '');
+  const baseUrl = appConfig.GITPAGE_URL.endsWith('/') ? appConfig.GITPAGE_URL : `${appConfig.GITPAGE_URL}/`;
+  try {
+    return new URL(cleanedPath, baseUrl).toString();
+  } catch (error) {
+    console.warn('buildPagesUrl error:', error);
+    return '';
+  }
+}
+
+async function fetchPagesManifest() {
+  const manifestUrl = buildPagesUrl('files.json');
+  if (!manifestUrl) throw new Error('GITPAGE_URL is not configured or invalid');
+  const res = await fetch(`${manifestUrl}?${Date.now()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch Pages manifest: ${res.status}`);
+  return await res.json();
+}
+
+function buildFileIndex(node, acc = []) {
+  if (!node || !node.name) return acc;
+  const path = node.path || node.name || '';
+  acc.push({
+    type: node.type,
+    name: node.name,
+    path,
+    repo: node.repo || '',
+    branch: node.branch || '',
+    repoPath: node.repoPath || '',
+    node
+  });
+  if (Array.isArray(node.children)) {
+    node.children.forEach((child) => buildFileIndex(child, acc));
+  }
+  return acc;
+}
+
+function nodeMatchesQuery(node, query) {
+  if (!query) return true;
+  const lower = String(node.name || node.path || node.repo || '').toLowerCase();
+  return lower.includes(query);
+}
+
+function updateSearchResults(query) {
+  searchQuery = String(query || '').trim().toLowerCase();
+  if (sidebarSearchInput) sidebarSearchInput.value = String(query || '');
+  renderSidebarTree(treeRoot, searchQuery);
+
+  if (!searchQuery) {
+    renderFolder(currentNode || treeRoot);
+    updatePathNav();
+    return;
+  }
+
+  const hits = fileIndex.filter((item) => nodeMatchesQuery(item, searchQuery));
+  renderSearchResults(hits);
+  pathNav.innerHTML = `<span class="path-segment">Search results</span>`;
+}
+
+function renderSearchResults(results) {
+  listView.innerHTML = '';
+  selected = null;
+
+  if (!results || results.length === 0) {
+    listView.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🔍</div>
+        <h3>No matches found</h3>
+        <p>Try a different keyword or clear the search box.</p>
+      </div>
+    `;
+    return;
+  }
+
+  results.sort((a, b) => a.name.localeCompare(b.name));
+
+  for (let i = 0; i < results.length; i++) {
+    const itemData = results[i];
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item._childData = itemData;
+
+    const fileIcon = getFileIcon(itemData);
+    const fileTypeClass = getFileTypeClass(itemData);
+    const subtitle = itemData.repo ? `<div class="file-subtitle">${itemData.path} · ${itemData.repo}</div>` : `<div class="file-subtitle">${itemData.path}</div>`;
+
+    item.innerHTML = `
+      <div class="file-icon" data-type="${fileTypeClass}">${fileIcon}</div>
+      <div class="file-name">
+        ${itemData.name}
+        ${subtitle}
+      </div>
+    `;
+
+    item.onclick = () => {
+      if (itemData.type === 'folder') {
+        navigateToSidebarNode(itemData.path);
+      } else {
+        openPreview(itemData.path, itemData.name, itemData.repo, itemData.branch, itemData.repoPath);
+      }
+    };
+
+    listView.appendChild(item);
+    item.style.animationDelay = `${i * 10}ms`;
+  }
+}
+
+function findAncestors(node, targetPath, ancestors = []) {
+  if (!node) return null;
+  const normalizedTarget = String(targetPath || '').replace(/^\/+|\/+$/g, '');
+  const nodePath = String(node.path || '').replace(/^\/+|\/+$/g, '');
+
+  if (nodePath && nodePath === normalizedTarget) {
+    return [...ancestors, node];
+  }
+
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      const result = findAncestors(child, targetPath, [...ancestors, node]);
+      if (result) return result;
+    }
+  }
+  return null;
+}
+
+function navigateToSidebarNode(path) {
+  if (!treeRoot || !path) return;
+  const ancestors = findAncestors(treeRoot, path);
+  if (!ancestors || ancestors.length === 0) return;
+
+  const nodePath = ancestors[ancestors.length - 1];
+  const cleanedAncestors = ancestors.filter((n) => n.name !== 'root');
+  currentNode = nodePath;
+  pathHistory = cleanedAncestors.slice(0, -1);
+  renderFolder(nodePath);
+  updatePathNav();
+}
+
+function createSidebarTreeItem(node, query) {
+  if (!node) return null;
+  const matchesSelf = nodeMatchesQuery(node, query);
+  const childItems = Array.isArray(node.children)
+    ? node.children
+        .map((child) => createSidebarTreeItem(child, query))
+        .filter(Boolean)
+    : [];
+
+  if (query && !matchesSelf && childItems.length === 0) {
+    return null;
+  }
+
+  const li = document.createElement('li');
+  li.className = `sidebar-tree-item ${node.type}`;
+
+  const row = document.createElement('div');
+  row.className = 'sidebar-tree-row';
+  if (matchesSelf) row.classList.add('match');
+
+  const toggle = document.createElement('button');
+  toggle.className = 'sidebar-tree-toggle';
+  toggle.type = 'button';
+  toggle.textContent = node.type === 'folder' && childItems.length > 0 ? '▾' : '';
+  toggle.onclick = (event) => {
+    event.stopPropagation();
+    li.classList.toggle('collapsed');
+  };
+  row.appendChild(toggle);
+
+  const label = document.createElement('span');
+  label.className = 'sidebar-tree-label';
+  label.textContent = node.name;
+  label.onclick = () => {
+    if (node.type === 'file') {
+      openPreview(node.path, node.name, node.repo, node.branch, node.repoPath);
+    } else {
+      navigateToSidebarNode(node.path);
+    }
+  };
+  row.appendChild(label);
+
+  li.appendChild(row);
+
+  if (childItems.length > 0) {
+    const ul = document.createElement('ul');
+    ul.className = 'sidebar-tree-children';
+    childItems.forEach((childLi) => ul.appendChild(childLi));
+    li.appendChild(ul);
+  }
+
+  return li;
+}
+
+function renderSidebarTree(root, query = '') {
+  if (!sidebarTree) return;
+  sidebarTree.innerHTML = '';
+  if (!root || !Array.isArray(root.children) || root.children.length === 0) {
+    sidebarTree.innerHTML = `<div class="sidebar-tree-empty">No repository tree available.</div>`;
+    return;
+  }
+
+  const ul = document.createElement('ul');
+  ul.className = 'sidebar-tree-root';
+  root.children.forEach((child) => {
+    const childLi = createSidebarTreeItem(child, query);
+    if (childLi) ul.appendChild(childLi);
+  });
+
+  if (!ul.children.length) {
+    sidebarTree.innerHTML = `<div class="sidebar-tree-empty">No matches found.</div>`;
+    return;
+  }
+
+  sidebarTree.appendChild(ul);
 }
 
 async function fetchTree() {
   showStatus("Loading files...", true);
 
   try {
-    let tree;
+    let tree = null;
 
-    try {
-      const fallbackRes = await fetch("/files.json?" + new Date().getTime());
-      if (!fallbackRes.ok) throw new Error(`Failed to fetch: ${fallbackRes.status}`);
-      tree = await fallbackRes.json();
-    } catch (manifestError) {
-      console.warn("files.json manifest unavailable, falling back to registry:", manifestError);
-      const res = await fetch("/api/registry?" + new Date().getTime());
+    if (appConfig.GITPAGE_URL) {
+      try {
+        tree = await fetchPagesManifest();
+      } catch (pagesError) {
+        console.warn("GitHub Pages manifest unavailable, falling back:", pagesError);
+      }
+    }
+
+    if (!tree) {
+      try {
+        const fallbackRes = await fetch(`/files.json?${Date.now()}`, { cache: 'no-store' });
+        if (!fallbackRes.ok) throw new Error(`Failed to fetch: ${fallbackRes.status}`);
+        tree = await fallbackRes.json();
+      } catch (manifestError) {
+        console.warn("files.json manifest unavailable, falling back to registry:", manifestError);
+      }
+    }
+
+    if (!tree) {
+      const res = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Failed to fetch registry: ${res.status}`);
       tree = await res.json();
     }
 
-    const raw = JSON.stringify(tree, Object.keys(tree).sort());
+    treeRoot = tree;
+    fileIndex = buildFileIndex(treeRoot);
+    currentNode = treeRoot;
+    pathHistory = [];
+    renderSidebarTree(treeRoot, searchQuery);
 
+    if (searchQuery) {
+      updateSearchResults(searchQuery);
+    } else {
+      renderFolder(treeRoot);
+      updatePathNav();
+    }
+
+    const raw = JSON.stringify(tree, Object.keys(tree).sort());
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
     lastHash = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
     initialLoadComplete = true;
@@ -140,11 +420,6 @@ async function fetchTree() {
     } catch (e) {
       console.warn("Failed to fetch initial commit:", e);
     }
-
-    currentNode = tree;
-    pathHistory = [];
-    renderFolder(tree);
-    updatePathNav();
 
     const fontPromise = new Promise((resolve) => {
       const testSpan = document.createElement("span");
@@ -496,9 +771,10 @@ function showContextMenu(x, y) {
 
 function handlePreview() {
   if (selected && selected.type === "file") {
+    const args = [selected.path, selected.name, selected.repo || '', selected.branch || '', selected.repoPath || selected.path];
     isMobile
-      ? openMobilePreview(selected.path, selected.name)
-      : openPreview(selected.path, selected.name);
+      ? openMobilePreview(...args)
+      : openPreview(...args);
   }
   contextMenu.style.display = 'none';
 }
@@ -506,7 +782,14 @@ function handlePreview() {
 function handleDownload() {
   if (selected && selected.type === "file") {
     const a = document.createElement("a");
-    const downloadUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(selected.path)}`;
+    let downloadUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(selected.path)}`;
+    if (selected.repo) {
+      const branch = selected.branch || appConfig.GITHUB_BRANCH;
+      downloadUrl = `https://raw.githubusercontent.com/${selected.repo}/${branch}/${selected.repoPath || selected.path}`;
+    } else if (appConfig.GITPAGE_URL) {
+      const pagesUrl = buildPagesUrl(selected.path);
+      if (pagesUrl) downloadUrl = pagesUrl;
+    }
     a.href = downloadUrl;
     a.download = selected.name;
     a.target = '_blank';
@@ -517,9 +800,9 @@ function handleDownload() {
   contextMenu.style.display = 'none';
 }
 
-function openMobilePreview(path, filename) {
+function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '') {
   mobilePreviewTitle.textContent = filename;
-  fetchFileContent(path, filename, mobilePreviewContent);
+  fetchFileContent(path, filename, mobilePreviewContent, null, repo, branch, repoPath);
   mobilePreview.style.display = "flex";
 }
 
@@ -661,7 +944,7 @@ function injectSplitViewStyles() {
 
 // ─── openPreview ─────────────────────────────────────────────────────────────
 
-function openPreview(path, filename) {
+function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
   injectSplitViewStyles();
 
   const id = 'preview-' + (++previewId);
@@ -702,6 +985,9 @@ function openPreview(path, filename) {
 
   // Metadata stored on the element
   win._filePath        = path;
+  win._repo            = repo;
+  win._branch          = branch;
+  win._repoPath        = repoPath || path;
   win._filename        = filename;
   win._isMarkdown      = isMarkdown;
   win._originalContent = null;   // populated by fetchFileContent
@@ -709,7 +995,7 @@ function openPreview(path, filename) {
 
   // ✅ Pass win directly so _originalContent is set correctly after the await
   const container = document.getElementById(id + "-body");
-  fetchFileContent(path, filename, container, win);
+  fetchFileContent(path, filename, container, win, repo, branch, repoPath);
   updateTaskbar();
 
   if (isFullScreen) setTimeout(() => toggleFullscreen(id, true), 100);
@@ -728,25 +1014,59 @@ async function fetchFileContent(path, filename, container, winElement = null) {
   // In local development, try direct file access first (for static servers like `serve`)
   // On GitHub Pages, use raw.githubusercontent.com
   // On Vercel, use /api/raw endpoint
+  function buildPagesUrl(p) {
+    if (!appConfig.GITPAGE_URL) return '';
+    const cleanedPath = String(p || '').replace(/^\/+/, '');
+    const baseUrl = appConfig.GITPAGE_URL.endsWith('/') ? appConfig.GITPAGE_URL : `${appConfig.GITPAGE_URL}/`;
+    try {
+      return new URL(cleanedPath, baseUrl).toString();
+    } catch {
+      return '';
+    }
+  }
+
   const fetchUrl = (p) => {
+    if (repo) {
+      return `https://raw.githubusercontent.com/${repo}/${branch || appConfig.GITHUB_BRANCH}/${repoPath || p}`;
+    }
+    const pagesUrl = buildPagesUrl(p);
+    if (pagesUrl) {
+      return pagesUrl;
+    }
     if (isGitHubPages) {
       return `https://raw.githubusercontent.com/${appConfig.GITHUB_REPO}/${appConfig.GITHUB_BRANCH}/${p}`;
     }
-    // For local dev or when API might not be available, try direct file path first
     return `${window.location.origin}/${p}`;
   };
   
   // Fallback to API if direct file access fails (for Vercel deployments with private repos)
   const fetchUrlWithFallback = async (p) => {
+    if (repo) {
+      const rawUrl = fetchUrl(p);
+      const response = await fetch(rawUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.text();
+    }
+
+    const pagesUrl = buildPagesUrl(p);
+    if (pagesUrl) {
+      try {
+        const response = await fetch(pagesUrl);
+        if (response.ok) {
+          return await response.text();
+        }
+      } catch (e) {
+        // Continue to fallback behavior
+      }
+    }
+
     const directUrl = `${window.location.origin}/${p}`;
     const apiUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(p)}`;
     
-    // Try direct file access first
     try {
       const response = await fetch(directUrl);
       if (response.ok) {
         const contentType = response.headers.get('content-type') || '';
-        // Make sure we got actual file content, not an HTML error page
         if (!contentType.includes('text/html') || directUrl.endsWith('.html') || directUrl.endsWith('.htm')) {
           return await response.text();
         }
@@ -755,13 +1075,12 @@ async function fetchFileContent(path, filename, container, winElement = null) {
       // Direct access failed, try API
     }
     
-    // Fallback to API endpoint
     const apiResponse = await fetch(apiUrl);
     if (!apiResponse.ok) throw new Error(`HTTP ${apiResponse.status}`);
     return await apiResponse.text();
   };
   
-  const rawUrl = `${window.location.origin}/api/raw?path=${path}`;
+  const rawUrl = fetchUrl(path);
 
   try {
     if (/\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(filename)) {
@@ -789,7 +1108,6 @@ async function fetchFileContent(path, filename, container, winElement = null) {
     } else if (ext === 'md' || ext === 'markdown') {
       const text = await fetchUrlWithFallback(path);
 
-      // ✅ Fixed: use the directly-passed winElement reference, not stale previewId
       if (winElement) {
         winElement._originalContent = text;
         // If there are session edits, show the unsaved dot
@@ -807,7 +1125,7 @@ async function fetchFileContent(path, filename, container, winElement = null) {
 
     } else {
       try {
-        const response = await fetch(fetchUrl(path));
+        const response = await fetch(resolveRawUrl());
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const text = await response.text();
         container.innerHTML = `<pre style="margin:0;white-space:pre-wrap;font-family:Consolas,monospace;font-size:13px;line-height:1.5">${escapeHTML(text)}</pre>`;
@@ -1033,6 +1351,18 @@ function openCommunity() {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  sidebarSearchInput = document.getElementById("sidebarSearch");
+  sidebarTree = document.getElementById("sidebarTree");
+
+  if (sidebarSearchInput) {
+    sidebarSearchInput.addEventListener('input', (event) => {
+      const target = event.target;
+      const query = target && 'value' in target ? target.value : '';
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => updateSearchResults(query), 120);
+    });
+  }
+
   await fetchConfig();
   fetchTree();
   maybeShowVercelPopup();

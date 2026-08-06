@@ -9,3 +9,6 @@ bin/**/*.js
 !bin/style.css
 !bin/tikzjax/
 !bin/fonts/
+community.zip
+memories/
+tests/

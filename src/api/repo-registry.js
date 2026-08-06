@@ -5,6 +5,7 @@ exports.buildRegistryTree = buildRegistryTree;
 exports.loadRepoRegistry = loadRepoRegistry;
 exports.default = handler;
 const _shared_1 = require("./_shared");
+const pages_fetch_1 = require("./pages-fetch");
 function normalizeRepoEntry(entry) {
     return {
         name: entry.name || entry.repo,
@@ -51,6 +52,25 @@ function stripRootPrefix(path, root) {
         return normalizedPath;
     return normalizedPath.startsWith(`${normalizedRoot}/`) ? normalizedPath.slice(normalizedRoot.length + 1) : normalizedPath;
 }
+function prefixRepoPaths(node, prefix, repo, branch, priority) {
+    const normalizedPath = normalizePath(node.path || '');
+    const prefixedPath = normalizedPath ? `${prefix}/${normalizedPath}` : prefix;
+    const repoPath = normalizedPath || undefined;
+    const children = Array.isArray(node.children)
+        ? node.children.map((child) => prefixRepoPaths(child, prefixedPath, repo, branch, priority))
+        : undefined;
+    const result = {
+        ...node,
+        path: prefixedPath,
+        repo,
+        branch,
+        priority,
+        repoPath,
+        isCanonical: true,
+        children
+    };
+    return result;
+}
 async function fetchRepoContentsWithRetry(octokit, owner, repo, path, branch, retries = 3) {
     const normalizedPath = normalizePath(path || '.');
     for (let attempt = 0; attempt <= retries; attempt += 1) {
@@ -96,7 +116,16 @@ async function fetchRepoTree(octokit, owner, repo, branch, root = '') {
 }
 async function buildRegistryTree(entries) {
     const octokit = await (0, _shared_1.getOctokit)({ allowUnauthenticated: true });
-    const normalizedEntries = entries.map(normalizeRepoEntry).filter((entry) => entry.enabled);
+    const normalizedEntries = entries
+        .map(normalizeRepoEntry)
+        .filter((entry) => entry.enabled)
+        .sort((a, b) => {
+        const aPriority = typeof a.priority === 'number' ? a.priority : Number.MAX_SAFE_INTEGER;
+        const bPriority = typeof b.priority === 'number' ? b.priority : Number.MAX_SAFE_INTEGER;
+        if (aPriority !== bPriority)
+            return aPriority - bPriority;
+        return String(a.name).localeCompare(String(b.name));
+    });
     const rootChildren = [];
     for (const entry of normalizedEntries) {
         const [owner, repoName] = entry.repo.split('/');
@@ -111,22 +140,74 @@ async function buildRegistryTree(entries) {
             children: []
         };
         try {
-            const children = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
-            repoNode.children = children.map((child) => ({
-                ...child,
-                path: child.path ? `${entry.name || repoName}/${child.path}` : `${entry.name || repoName}`
-            }));
+            const priority = typeof entry.priority === 'number' ? entry.priority : Number.MAX_SAFE_INTEGER;
+            const pagesBaseUrl = (0, pages_fetch_1.resolvePagesBaseUrl)(entry);
+            let children = [];
+            if (pagesBaseUrl) {
+                try {
+                    const pagesChildren = await (0, pages_fetch_1.fetchPagesManifest)(pagesBaseUrl, entry.name || repoName);
+                    children = pagesChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+                }
+                catch (error) {
+                    console.warn(`[repo-registry] Pages manifest fallback for ${entry.repo}:`, error);
+                    const repoChildren = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
+                    children = repoChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+                }
+            }
+            else {
+                const repoChildren = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
+                children = repoChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+            }
+            repoNode.children = children;
             rootChildren.push(repoNode);
         }
         catch (error) {
             console.warn(`Skipping repo ${entry.repo}:`, error);
         }
     }
-    return {
+    const tree = {
         type: 'folder',
         name: 'root',
         children: rootChildren
     };
+    resolveDuplicateFiles(tree);
+    return tree;
+}
+function resolveDuplicateFiles(root) {
+    const filesByRepoPath = new Map();
+    function collect(node) {
+        if (!node)
+            return;
+        if (node.type === 'file' && node.repoPath) {
+            const key = normalizePath(node.repoPath);
+            const existing = filesByRepoPath.get(key) || [];
+            existing.push(node);
+            filesByRepoPath.set(key, existing);
+        }
+        if (Array.isArray(node.children)) {
+            node.children.forEach(collect);
+        }
+    }
+    collect(root);
+    for (const [repoPath, nodes] of filesByRepoPath.entries()) {
+        if (nodes.length <= 1) {
+            nodes[0].isCanonical = true;
+            continue;
+        }
+        nodes.sort((a, b) => {
+            const aPriority = typeof a.priority === 'number' ? a.priority : Number.MAX_SAFE_INTEGER;
+            const bPriority = typeof b.priority === 'number' ? b.priority : Number.MAX_SAFE_INTEGER;
+            if (aPriority !== bPriority)
+                return aPriority - bPriority;
+            return String(a.repo || '').localeCompare(String(b.repo || ''));
+        });
+        const canonical = nodes[0];
+        canonical.isCanonical = true;
+        for (const shadowed of nodes.slice(1)) {
+            shadowed.isCanonical = false;
+            shadowed.shadowedBy = canonical.path;
+        }
+    }
 }
 async function loadRepoRegistry() {
     const registryPath = process.env.REPO_REGISTRY_PATH || 'GITHUB-REPOSITORIES.md';
@@ -160,6 +241,10 @@ async function loadRepoRegistry() {
         throw error;
     }
 }
+const refreshCache = new Map();
+function getRefreshCacheKey(req) {
+    return `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host || 'localhost'}`;
+}
 async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -173,8 +258,15 @@ async function handler(req, res) {
             return res.status(200).type('application/json').send(manifestText);
         }
         catch {
+            const cacheKey = getRefreshCacheKey(req);
+            const cached = refreshCache.get(cacheKey);
+            const now = Date.now();
+            if (cached && now - cached.cachedAt < 30_000) {
+                return res.status(200).json(cached.value);
+            }
             const entries = await loadRepoRegistry();
             const tree = await buildRegistryTree(entries);
+            refreshCache.set(cacheKey, { cachedAt: now, value: tree });
             return res.status(200).json(tree);
         }
     }

@@ -2,21 +2,28 @@
 
 // Initialize reCAPTCHA and auth system on page load
 document.addEventListener('DOMContentLoaded', function() {
-  const siteKey = document.querySelector('meta[name="recaptcha-sitekey"]')?.content;
-  if (siteKey) {
-    window.ModernAuthInstance.setRecaptchaKey(siteKey);
-  }
-  
+  void loadRecaptchaConfig();
+
   // Check if user is logged in on page load
   updateModernAuthUI();
   restoreModernSession();
 });
 
 // ===== CONFIG LOADER =====
-// Placeholder for future config needs (currently unused with email-based auth)
-async function loadWmConfig() {
-  // Config loading handled by ModernAuthInstance
-  // This function is kept for backward compatibility
+async function loadRecaptchaConfig() {
+  try {
+    const response = await fetch('/api/config');
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json();
+    const siteKey = data.RECAPTCHA_SITE_KEY || '';
+    if (siteKey) {
+      window.ModernAuthInstance.setRecaptchaKey(siteKey);
+    }
+  } catch (error) {
+    console.warn('[auth] Failed to load config', error);
+  }
 }
 
 // ===== AUTH UI FUNCTIONS =====
@@ -290,8 +297,8 @@ function hasPerm(p) {
 
 // Set reCAPTCHA site key from environment
 function initRecaptcha() {
-  const siteKey = document.querySelector('meta[name="recaptcha-sitekey"]')?.content || '6LeI4QgtAAAAAIHR7fZ2uCoPNqNe3LBFLCuCBBZH';
-  window.ModernAuthInstance.setRecaptchaKey(siteKey);
+  void loadRecaptchaConfig();
 }
 
+window.showLoginScreen = showLoginScreen;
 initRecaptcha();

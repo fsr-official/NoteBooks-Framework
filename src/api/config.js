@@ -10,6 +10,7 @@ function handler(req, res) {
         GITHUB_REPO: process.env.GITHUB_REPO || '',
         GITHUB_BRANCH: process.env.GITHUB_BRANCH || 'main',
         APP_URL: process.env.APP_URL || '',
-        GITPAGE_URL: process.env.GITPAGE_URL || ''
+        GITPAGE_URL: process.env.GITPAGE_URL || '',
+        RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || ''
     });
 }

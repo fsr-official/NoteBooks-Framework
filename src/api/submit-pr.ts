@@ -1,40 +1,43 @@
-import { createHash } from 'crypto';
+import jwt from 'jsonwebtoken';
 import type { Request, Response } from 'express';
 import { getOctokit, getRepoConfig } from './_shared';
 
 const cooldownState = new Map<string, { attempts: number; lastAttempt: number; violations: number; bannedUntil?: number }>();
 
-function getAccountToken(req: Request) {
-  const bodyToken = typeof req.body?.accountToken === 'string' ? req.body.accountToken : '';
-  const authHeader = req.get('authorization') || '';
-  const headerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-  return bodyToken || headerToken;
+export function getOpenPrLimitError(openPulls: Array<{ body?: string | null; head?: { ref?: string | null } }>, accountEmail: string, maxOpenPerAccount: number) {
+  if (!maxOpenPerAccount || maxOpenPerAccount <= 0) return null;
+
+  const accountKey = `Account ID: ${accountEmail}`;
+  const accountBranchPrefix = `pr/edit-${accountEmail.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/-+/g, '-').slice(0, 32) || 'account'}`;
+
+  const matching = (openPulls || []).filter((pull) => {
+    if ((pull.head?.ref || '').startsWith(accountBranchPrefix)) return true;
+    if (String(pull.body || '').includes(accountKey)) return true;
+    return false;
+  });
+
+  return matching.length >= maxOpenPerAccount ? `Open PR limit reached (${maxOpenPerAccount})` : null;
 }
 
-function verifyAccountAuthorization(accountId: string, accountToken: string) {
-  if (!accountId || !accountToken) {
-    throw new Error('accountId and accountToken are required');
+function getBearerToken(req: Request) {
+  const authHeader = req.get('authorization') || '';
+  return authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+}
+
+function verifyBearerToken(token: string) {
+  if (!token) {
+    throw new Error('Authorization header is required. Provide a Bearer token from /api/auth.');
   }
 
-  const allowedTokens = (process.env.PR_AUTH_TOKENS || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (allowedTokens.includes(accountToken)) {
-    return;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as { email?: string; role?: string };
+    if (!decoded.email) {
+      throw new Error('JWT payload is missing an email');
+    }
+    return decoded;
+  } catch (error) {
+    throw new Error('Invalid or expired authorization token');
   }
-
-  const secret = (process.env.PR_AUTH_SECRET || process.env.GITHUB_REPO || 'notebooks-pr').trim();
-  const expected = createHash('sha256')
-    .update(`${accountId}:${secret}`)
-    .digest('hex');
-
-  if (accountToken === expected) {
-    return;
-  }
-
-  throw new Error('Account authorization failed');
 }
 
 function enforceCooldown(accountId: string) {
@@ -79,20 +82,22 @@ export default async function handler(req: Request, res: Response) {
 
   try {
     const body = req.body || {};
-    const { filePath, content, editSummary, upgradeDetails, accountId, authorName, authorEmail } = body;
+    const { filePath, content, editSummary, upgradeDetails, authorName, authorEmail } = body;
 
     if (!filePath || !content) {
       return res.status(400).json({ error: 'Missing filePath or content' });
     }
 
-    const normalizedAccountId = String(accountId || '').trim();
-    const accountToken = getAccountToken(req);
+    const bearerToken = getBearerToken(req);
+    let decodedIdentity: { email: string; role?: string };
 
     try {
-      verifyAccountAuthorization(normalizedAccountId, accountToken);
+      decodedIdentity = verifyBearerToken(bearerToken) as { email: string; role?: string };
     } catch (error: any) {
       return res.status(401).json({ success: false, error: error?.message || 'Unauthorized PR request' });
     }
+
+    const normalizedAccountId = String(decodedIdentity.email || '').trim();
 
     try {
       enforceCooldown(normalizedAccountId);
@@ -112,6 +117,19 @@ export default async function handler(req: Request, res: Response) {
       return res.status(500).json({ success: false, error: 'GITHUB_REPO is not configured' });
     }
     const { owner, repo } = repoCfg;
+    // Enforce a hard cap on open PRs per account to avoid unreviewed backlog
+    const maxOpenPerAccount = Number(process.env.MAX_OPEN_PRS_PER_ACCOUNT || '3');
+    if (maxOpenPerAccount > 0) {
+      try {
+        const openPulls = await octokit.pulls.list({ owner, repo, state: 'open', per_page: 100 });
+        const limitError = getOpenPrLimitError(openPulls.data as Array<{ body?: string | null; head?: { ref?: string | null } }>, normalizedAccountId, maxOpenPerAccount);
+        if (limitError) {
+          return res.status(429).json({ success: false, error: limitError });
+        }
+      } catch (err) {
+        console.warn('[submit-pr] could not enforce open PR cap:', err);
+      }
+    }
     const mainBranch = process.env.GITHUB_BRANCH || 'main';
     const branchName = `pr/edit-${sanitizeBranchSegment(normalizedAccountId)}-${Date.now()}`;
     const fileName = filePath.split('/').pop() || 'file';
@@ -158,7 +176,7 @@ export default async function handler(req: Request, res: Response) {
       '**Automated PR from NoteBooks Editor**',
       `**Account ID:** ${normalizedAccountId || 'unknown'}`,
       `**Author:** ${authorName || 'anonymous'}`,
-      `**Email:** ${authorEmail || 'n/a'}`,
+      `**Email:** ${authorEmail || decodedIdentity.email || 'n/a'}`,
       `**File:** ${filePath}`,
       `**Edit Summary:** ${editSummary || 'No summary provided'}`,
       `**Upgrade Details:** ${upgradeDetails || 'No upgrade details provided'}`,
