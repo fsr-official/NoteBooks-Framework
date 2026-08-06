@@ -47,6 +47,32 @@ export function createApp() {
     res.json({ status: 'ok' });
   });
 
+  app.get('/api/version', (_req, res) => {
+    const versionPath = path.join(projectDir, 'version.json');
+    try {
+      if (fs.existsSync(versionPath)) {
+        const content = fs.readFileSync(versionPath, 'utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.type('application/json').send(content);
+        return;
+      }
+    } catch (error) {
+      console.warn('[version] Failed to read version.json:', error);
+    }
+    
+    // Fallback version if file doesn't exist
+    const fallbackVersion = {
+      version: '1.0.0',
+      buildTime: new Date().toISOString(),
+      buildTimestamp: Date.now(),
+      buildHash: 'unknown'
+    };
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json(fallbackVersion);
+  });
+
   app.get('/private/files.json', async (_req, res) => {
     const filePath = path.join(projectDir, 'files.json');
     if (!fs.existsSync(filePath)) {
@@ -70,7 +96,22 @@ export function createApp() {
     res.sendFile(path.join(projectDir, 'index.html'));
   });
 
-  app.use(express.static(projectDir, { index: false }));
+  // Serve public directory with proper MIME types
+  app.use(express.static(path.join(projectDir, 'public'), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      } else if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.woff') || filePath.endsWith('.woff2')) {
+        res.setHeader('Content-Type', 'font/woff2');
+      } else if (filePath.endsWith('.ttf')) {
+        res.setHeader('Content-Type', 'font/ttf');
+      } else if (filePath.endsWith('.gz')) {
+        res.setHeader('Content-Type', 'application/gzip');
+      }
+    }
+  }));
 
   app.get('/api/files.json', async (_req, res) => {
     const filePath = path.join(projectDir, 'files.json');
@@ -109,6 +150,7 @@ export function createApp() {
   app.post('/api/submit-pr', submitPrHandler);
   app.post('/api/submit-pr.js', submitPrHandler);
   app.post('/api/refresh-signal', refreshSignalHandler);
+  app.get('/api/refresh-signal', refreshSignalHandler);
   app.post('/api/pr-review/accept', prReview.acceptHandler);
   app.post('/api/pr-review/reject', prReview.rejectHandler);
   app.get('/api/desmos', desmosHandler);
@@ -118,10 +160,14 @@ export function createApp() {
 }
 
 export function startServer(port: number = PORT) {
-  const missingEnv = ['JWT_SECRET', 'GITHUB_REPO'].filter((name) => !process.env[name]);
-  if (missingEnv.length > 0) {
-    console.error(`[server] Missing required environment variables: ${missingEnv.join(', ')}`);
-    process.exit(1);
+  // Check for env vars but provide defaults for development
+  const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production';
+  const GITHUB_REPO = process.env.GITHUB_REPO || 'fsr-science/NCERT-Science';
+  
+  if (!process.env.JWT_SECRET || !process.env.GITHUB_REPO) {
+    console.warn('[server] Using default environment variables for development. Ensure they are set in production.');
+    process.env.JWT_SECRET = JWT_SECRET;
+    process.env.GITHUB_REPO = GITHUB_REPO;
   }
 
   const app = createApp();
