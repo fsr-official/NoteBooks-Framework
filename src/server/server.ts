@@ -96,8 +96,8 @@ export function createApp() {
     res.sendFile(path.join(projectDir, 'index.html'));
   });
 
-  // Serve static files from /bin directory with proper MIME types
-  app.use('/bin', express.static(path.join(projectDir, 'src', 'bin'), {
+  // Serve public directory with proper MIME types
+  app.use(express.static(path.join(projectDir, 'public'), {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css; charset=utf-8');
@@ -107,6 +107,8 @@ export function createApp() {
         res.setHeader('Content-Type', 'font/woff2');
       } else if (filePath.endsWith('.ttf')) {
         res.setHeader('Content-Type', 'font/ttf');
+      } else if (filePath.endsWith('.gz')) {
+        res.setHeader('Content-Type', 'application/gzip');
       }
     }
   }));
@@ -153,22 +155,6 @@ export function createApp() {
   app.post('/api/pr-review/reject', prReview.rejectHandler);
   app.get('/api/desmos', desmosHandler);
   app.get('/api/desmos.js', desmosHandler);
-
-  // Catch-all for remaining static files (place at END to not interfere with API routes)
-  app.use(express.static(projectDir, {
-    index: false,
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css');
-      } else if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      } else if (filePath.endsWith('.json')) {
-        res.setHeader('Content-Type', 'application/json');
-      } else if (filePath.endsWith('.html')) {
-        res.setHeader('Content-Type', 'text/html');
-      }
-    }
-  }));
 
   return app;
 }
