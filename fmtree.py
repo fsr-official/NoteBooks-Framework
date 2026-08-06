@@ -23,11 +23,10 @@ EXCLUDED_ROOT_FILES = {
 }
 
 EXCLUDED_ROOT_DIRS = {
+    "src",
     "community",
     "waiting-list",
-    "api",
     "node_modules",
-    "bin",
     "GH Fix"
 }
 

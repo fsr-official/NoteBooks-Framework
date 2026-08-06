@@ -23,9 +23,43 @@
       "path": "README.md"
     },
     {
+      "type": "folder",
+      "name": "memories",
+      "path": "memories",
+      "children": [
+        {
+          "type": "folder",
+          "name": "repo",
+          "path": "memories/repo",
+          "children": [
+            {
+              "type": "file",
+              "name": "auth-unification-note.md",
+              "path": "memories/repo/auth-unification-note.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "type": "file",
-      "name": "community.zip",
-      "path": "community.zip"
+      "name": "offline.html",
+      "path": "offline.html"
+    },
+    {
+      "type": "file",
+      "name": "package-lock.json",
+      "path": "package-lock.json"
+    },
+    {
+      "type": "file",
+      "name": "package.json",
+      "path": "package.json"
+    },
+    {
+      "type": "file",
+      "name": "README.md",
+      "path": "README.md"
     },
     {
       "type": "file",
