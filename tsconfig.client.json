@@ -3,21 +3,17 @@
     "target": "ES2022",
     "module": "none",
     "moduleResolution": "classic",
-    "rootDir": "src/bin",
-    "outDir": "bin",
-    "allowJs": true,
-    "checkJs": false,
-    "strict": false,
-    "esModuleInterop": true,
+    "rootDir": "src/client",
+    "outDir": "public/client",
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "lib": ["DOM", "ES2022", "DOM.Iterable"],
-    "types": ["node"],
-    "noEmitOnError": false,
-    "skipDefaultLibCheck": true
+    "noEmitOnError": true
   },
-  "include": [
-    "src/bin/**/*.ts"
-  ],
+  "include": ["src/client/**/*.ts"],
   "exclude": ["node_modules", "tmp", ".vercel"]
 }

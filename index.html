@@ -411,14 +411,6 @@
       </div>
 
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Browse</div>
-        <input id="sidebarSearch" class="sidebar-search-input" type="search" placeholder="Search files and folders" autocomplete="off" />
-        <div class="sidebar-tree" id="sidebarTree">
-          <div class="sidebar-tree-empty">Loading file tree…</div>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
         <div class="sidebar-section-title">Account</div>
         <div class="sidebar-account-card" id="sidebarAccountCard">
           <div class="sidebar-avatar" id="sidebarAvatar">U</div>
@@ -466,6 +458,23 @@
       </div>
       <div class="list-view" id="listView"></div>
     </div>
+
+    <aside class="tree-rail" id="treeRail" aria-label="Repository tree">
+      <div class="tree-rail-header">
+        <div>
+          <div class="tree-rail-kicker">Navigator</div>
+          <div class="tree-rail-title">Repository tree</div>
+        </div>
+        <button class="tree-rail-toggle" id="treeRailToggle" type="button" aria-label="Collapse repository tree" aria-expanded="true" title="Collapse repository tree">‹</button>
+      </div>
+      <div class="tree-rail-search">
+        <label class="sr-only" for="sidebarSearch">Search files and folders</label>
+        <input id="sidebarSearch" class="sidebar-search-input" type="search" placeholder="Filter tree" autocomplete="off" />
+      </div>
+      <div class="sidebar-tree tree-rail-body" id="sidebarTree">
+        <div class="sidebar-tree-empty">Loading file tree…</div>
+      </div>
+    </aside>
   </div>
 
   <div class="context-menu" id="contextMenu">
@@ -525,5 +534,6 @@
 <script src="/public/admin-terminal.js"></script>
 <script src="/public/auth.js"></script>
 <script src="/public/upload.js"></script>
-<script src="/public/mobile.js"></script>
+  <script src="/public/mobile.js"></script>
+  <script src="/client/main.js" defer></script>
 </body>

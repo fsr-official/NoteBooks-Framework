@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "npm run build && node src/server/server.js",
     "start": "node src/server/server.js",
-    "build": "node src/scripts/generate-version.js && npm run build:server",
-    "build:client": "echo \"No client build required; static frontend assets are already in public/\"",
+    "build": "node src/scripts/generate-version.js && npm run build:client && npm run build:server",
+    "build:client": "tsc -p tsconfig.client.json",
     "build:server": "tsc -p tsconfig.server.json",
     "backend": "node src/server/server.js",
     "setup": "npm run dev",
