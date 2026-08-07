@@ -411,14 +411,6 @@
       </div>
 
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Browse</div>
-        <input id="sidebarSearch" class="sidebar-search-input" type="search" placeholder="Search files and folders" autocomplete="off" />
-        <div class="sidebar-tree" id="sidebarTree">
-          <div class="sidebar-tree-empty">Loading file tree…</div>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
         <div class="sidebar-section-title">Account</div>
         <div class="sidebar-account-card" id="sidebarAccountCard">
           <div class="sidebar-avatar" id="sidebarAvatar">U</div>
@@ -430,11 +422,13 @@
         <button class="sidebar-action secondary" id="sidebarLoginBtn" onclick="showLoginScreen()">🔐 Login / Account</button>
         <button class="sidebar-action secondary" id="sidebarAdminBtn" onclick="showAdminPanel()" style="display:none">⚙️ Admin Panel</button>
       </div>
+
     </aside>
 
-    <div class="window">
+    <main class="window workspace-window" id="workspaceWindow" aria-label="File workspace">
       <div class="toolbar">
         <h1>NoteBooks-Science</h1>
+        <div class="workspace-location-marker" id="workspaceLocationMarker" role="status" aria-live="polite" title="Current location">Inside: workspace root</div>
         <button class="mob-toolbar-overflow" onclick="refreshFiles()" title="Refresh">↻</button>
         <button class="mob-toolbar-overflow" onclick="goUp()" title="Go up">↑</button>
         <button class="mob-toolbar-overflow" id="uploadBtnToolbar" onclick="showUploadScreen()" title="Upload file">⬆</button>
@@ -465,7 +459,28 @@
         <span class="path-segment" onclick="goToRoot()">☁️</span>
       </div>
       <div class="list-view" id="listView"></div>
-    </div>
+    </main>
+
+    <aside class="tree-rail" id="treeRail" aria-label="Repository navigator">
+      <div class="tree-rail-header">
+        <div>
+          <div class="tree-rail-kicker">Navigator</div>
+          <div class="tree-rail-title">Repository tree</div>
+        </div>
+        <button class="sidebar-collapse-control" id="sidebarCollapseBtn" type="button"
+          aria-label="Collapse repository navigator" aria-expanded="true"
+          title="Collapse repository navigator">›</button>
+      </div>
+      <div class="sidebar-section sidebar-browse-section">
+        <label class="sidebar-section-title" for="sidebarSearch">Search files and folders</label>
+        <input id="sidebarSearch" class="sidebar-search-input" type="search" placeholder="Filter tree" autocomplete="off" aria-label="Search repository files and folders" />
+        <div class="tree-current-location" id="treeCurrentLocation" role="status" aria-live="polite">Current location: workspace root</div>
+        <div class="sidebar-tree" id="sidebarTree" role="tree" aria-label="Repository files and folders">
+          <div class="sidebar-tree-empty">Loading file tree…</div>
+        </div>
+        <div class="tree-hover-details" id="treeHoverDetails" role="tooltip" aria-live="polite" hidden></div>
+      </div>
+    </aside>
   </div>
 
   <div class="context-menu" id="contextMenu">

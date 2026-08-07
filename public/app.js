@@ -24,6 +24,12 @@ let searchQuery = '';
 let sidebarSearchInput = null;
 let sidebarTree = null;
 let searchDebounceTimer = null;
+let treeHoverDetails = null;
+let treeCurrentLocation = null;
+let workspaceLocationMarker = null;
+let activeTreePath = '';
+let treeInteractionStarted = false;
+const expandedTreePaths = new Set();
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
 let appConfig = {
@@ -229,6 +235,7 @@ function renderSearchResults(results) {
       </div>
     `;
         item.onclick = () => {
+            setActiveTreePath(itemData.path);
             if (itemData.type === 'folder') {
                 navigateToSidebarNode(itemData.path);
             }
@@ -265,17 +272,74 @@ function navigateToSidebarNode(path) {
         return;
     const nodePath = ancestors[ancestors.length - 1];
     const cleanedAncestors = ancestors.filter((n) => n.name !== 'root');
+    setActiveTreePath(nodePath.path || path);
     currentNode = nodePath;
     pathHistory = cleanedAncestors.slice(0, -1);
     renderFolder(nodePath);
     updatePathNav();
+}
+function getNodePath(node) {
+    return String(node?.path || node?.name || '').replace(/^\/+|\/+$/g, '');
+}
+function getNodeDetails(node) {
+    const children = Array.isArray(node?.children) ? node.children : [];
+    const files = children.filter((child) => child.type === 'file').length;
+    const folders = children.filter((child) => child.type === 'folder').length;
+    return { children, files, folders };
+}
+function setActiveTreePath(path) {
+    activeTreePath = String(path || '').replace(/^\/+|\/+$/g, '');
+    if (activeTreePath)
+        treeInteractionStarted = true;
+    if (activeTreePath && treeRoot) {
+        const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
+        activeAncestors.forEach((ancestor) => {
+            if (ancestor.type === 'folder' && getNodePath(ancestor) !== activeTreePath)
+                expandedTreePaths.add(getNodePath(ancestor));
+        });
+    }
+    if (treeCurrentLocation) {
+        const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
+        const label = activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root');
+        treeCurrentLocation.textContent = `Current location: ${label}`;
+        treeCurrentLocation.title = activeTreePath || 'workspace root';
+        if (workspaceLocationMarker) {
+            workspaceLocationMarker.textContent = `Inside: ${label}`;
+            workspaceLocationMarker.title = activeTreePath || 'workspace root';
+        }
+    }
+    if (sidebarTree && treeRoot)
+        renderSidebarTree(treeRoot, searchQuery);
+}
+function showTreeHoverDetails(node) {
+    if (!treeHoverDetails)
+        return;
+    const { children, files, folders } = getNodeDetails(node);
+    const path = node.path || node.name || 'workspace root';
+    const repo = node.repo || appConfig.GITHUB_REPO || 'Repository unavailable';
+    const branch = node.branch || appConfig.GITHUB_BRANCH || 'default branch';
+    treeHoverDetails.innerHTML = `
+      <strong>${escapeHTML(node.name || 'Unnamed item')}</strong>
+      <span>${escapeHTML(node.type || 'item')} · ${escapeHTML(path)}</span>
+      <span>${escapeHTML(repo)} · ${escapeHTML(branch)}</span>
+      <span>${node.type === 'folder' ? `${children.length} children · ${folders} folders · ${files} files` : 'File available to preview'}</span>
+    `;
+    treeHoverDetails.hidden = false;
+}
+function hideTreeHoverDetails() {
+    if (treeHoverDetails)
+        treeHoverDetails.hidden = true;
 }
 function createSidebarTreeItem(node, query) {
     if (!node)
         return null;
     const matchesSelf = nodeMatchesQuery(node, query);
     const childItems = Array.isArray(node.children)
-        ? node.children
+        ? [...node.children].sort((a, b) => {
+            if (a.type !== b.type)
+                return a.type === 'folder' ? -1 : 1;
+            return String(a.name || '').localeCompare(String(b.name || ''));
+        })
             .map((child) => createSidebarTreeItem(child, query))
             .filter(Boolean)
         : [];
@@ -284,23 +348,51 @@ function createSidebarTreeItem(node, query) {
     }
     const li = document.createElement('li');
     li.className = `sidebar-tree-item ${node.type}`;
+    const nodePath = getNodePath(node);
+    const { children } = getNodeDetails(node);
+    const hasChildren = node.type === 'folder' && childItems.length > 0;
+    const isActive = activeTreePath && nodePath === activeTreePath;
+    const isAncestor = activeTreePath && findAncestors(treeRoot, activeTreePath)?.some((ancestor) => getNodePath(ancestor) === nodePath);
+    const shouldExpandForSearch = Boolean(query && childItems.length);
+    const isExpanded = hasChildren && (shouldExpandForSearch || (treeInteractionStarted && expandedTreePaths.has(nodePath)));
+    if (isActive)
+        li.classList.add('current');
+    if (isAncestor)
+        li.classList.add('active-trail');
+    if (node.type === 'folder' && !isExpanded)
+        li.classList.add('collapsed');
     const row = document.createElement('div');
     row.className = 'sidebar-tree-row';
     if (matchesSelf)
         row.classList.add('match');
+    row.setAttribute('role', 'treeitem');
+    row.setAttribute('aria-level', String((nodePath.match(/\//g) || []).length + 1));
+    row.setAttribute('aria-current', isActive ? 'location' : 'false');
+    if (hasChildren)
+        row.setAttribute('aria-expanded', String(isExpanded));
     const toggle = document.createElement('button');
     toggle.className = 'sidebar-tree-toggle';
     toggle.type = 'button';
-    toggle.textContent = node.type === 'folder' && childItems.length > 0 ? '▾' : '';
+    toggle.textContent = hasChildren ? (isExpanded ? '▾' : '▸') : '·';
+    toggle.disabled = !hasChildren;
+    toggle.setAttribute('aria-label', hasChildren ? `${isExpanded ? 'Collapse' : 'Expand'} ${node.name}` : `${node.name} file`);
     toggle.onclick = (event) => {
         event.stopPropagation();
-        li.classList.toggle('collapsed');
+        if (!hasChildren)
+            return;
+        treeInteractionStarted = true;
+        if (expandedTreePaths.has(nodePath))
+            expandedTreePaths.delete(nodePath);
+        else
+            expandedTreePaths.add(nodePath);
+        renderSidebarTree(treeRoot, searchQuery);
     };
     row.appendChild(toggle);
     const label = document.createElement('span');
     label.className = 'sidebar-tree-label';
     label.textContent = node.name;
     label.onclick = () => {
+        setActiveTreePath(nodePath);
         if (node.type === 'file') {
             openPreview(node.path, node.name, node.repo, node.branch, node.repoPath);
         }
@@ -316,6 +408,10 @@ function createSidebarTreeItem(node, query) {
         childItems.forEach((childLi) => ul.appendChild(childLi));
         li.appendChild(ul);
     }
+    row.addEventListener('mouseenter', () => showTreeHoverDetails(node));
+    row.addEventListener('focusin', () => showTreeHoverDetails(node));
+    row.addEventListener('mouseleave', hideTreeHoverDetails);
+    row.addEventListener('focusout', hideTreeHoverDetails);
     return li;
 }
 function renderSidebarTree(root, query = '') {
@@ -328,7 +424,11 @@ function renderSidebarTree(root, query = '') {
     }
     const ul = document.createElement('ul');
     ul.className = 'sidebar-tree-root';
-    root.children.forEach((child) => {
+    [...root.children].sort((a, b) => {
+        if (a.type !== b.type)
+            return a.type === 'folder' ? -1 : 1;
+        return String(a.name || '').localeCompare(String(b.name || ''));
+    }).forEach((child) => {
         const childLi = createSidebarTreeItem(child, query);
         if (childLi)
             ul.appendChild(childLi);
@@ -338,6 +438,17 @@ function renderSidebarTree(root, query = '') {
         return;
     }
     sidebarTree.appendChild(ul);
+}
+function toggleSidebar() {
+    const sidebar = document.getElementById('treeRail');
+    const button = document.getElementById('sidebarCollapseBtn');
+    if (!sidebar || !button)
+        return;
+    const collapsed = sidebar.classList.toggle('tree-rail--collapsed');
+    button.setAttribute('aria-expanded', String(!collapsed));
+    button.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} repository navigator`);
+    button.title = `${collapsed ? 'Expand' : 'Collapse'} repository navigator`;
+    button.textContent = collapsed ? '›' : '‹';
 }
 async function fetchTree() {
     showStatus("Loading files...", true);
@@ -371,6 +482,9 @@ async function fetchTree() {
         treeRoot = tree;
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
+        expandedTreePaths.clear();
+        treeInteractionStarted = false;
+        setActiveTreePath('');
         pathHistory = [];
         renderSidebarTree(treeRoot, searchQuery);
         if (searchQuery) {
@@ -484,12 +598,14 @@ function renderFolder(node) {
             item.classList.add('selected');
             selected = child;
             if (child.type === "folder") {
+                setActiveTreePath(child.path);
                 pathHistory.push(currentNode);
                 currentNode = child;
                 renderFolder(child);
                 updatePathNav();
             }
             else {
+                setActiveTreePath(child.path);
                 if (!e.target.closest('.file-action'))
                     handlePreview();
             }
@@ -549,6 +665,7 @@ function updatePathNav() {
 function goToRoot() { fetchTree(); }
 function goToPath(index) {
     currentNode = pathHistory[index];
+    setActiveTreePath(currentNode?.path || '');
     pathHistory = pathHistory.slice(0, index);
     renderFolder(currentNode);
     updatePathNav();
@@ -556,6 +673,7 @@ function goToPath(index) {
 function goUp() {
     if (pathHistory.length > 0) {
         currentNode = pathHistory.pop();
+        setActiveTreePath(currentNode?.path || '');
         renderFolder(currentNode);
         updatePathNav();
     }
@@ -1260,6 +1378,10 @@ function openCommunity() {
 window.addEventListener("DOMContentLoaded", async () => {
     sidebarSearchInput = document.getElementById("sidebarSearch");
     sidebarTree = document.getElementById("sidebarTree");
+    treeHoverDetails = document.getElementById("treeHoverDetails");
+    treeCurrentLocation = document.getElementById("treeCurrentLocation");
+    workspaceLocationMarker = document.getElementById("workspaceLocationMarker");
+    document.getElementById('sidebarCollapseBtn')?.addEventListener('click', toggleSidebar);
     if (sidebarSearchInput) {
         sidebarSearchInput.addEventListener('input', (event) => {
             const target = event.target;
