@@ -69,6 +69,17 @@
         },
         {
           "type": "folder",
+          "name": "client",
+          "children": [
+            {
+              "type": "file",
+              "name": "main.js",
+              "path": "public/client/main.js"
+            }
+          ]
+        },
+        {
+          "type": "folder",
           "name": "fonts",
           "children": [
             {
