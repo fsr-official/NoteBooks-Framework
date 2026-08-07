@@ -297,6 +297,12 @@ function createSidebarTreeItem(node, query) {
         li.classList.toggle('collapsed');
     };
     row.appendChild(toggle);
+    const glyph = document.createElement('span');
+    glyph.className = `sidebar-tree-glyph ${node.type === 'folder' ? 'folder' : 'file'}`;
+    glyph.innerHTML = node.type === 'folder'
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5h7l2 2h9v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 6.5v-1a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1"/></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v5h5"/></svg>';
+    row.appendChild(glyph);
     const label = document.createElement('span');
     label.className = 'sidebar-tree-label';
     label.textContent = node.name;
@@ -888,7 +894,7 @@ function injectSplitViewStyles() {
   `;
     document.head.appendChild(style);
 }
-// ─── openPreview ─────────────────────────────────────────────────────────────
+// ─── openPreview ────────────────────────────────────────���────────────────────
 function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     injectSplitViewStyles();
     const id = 'preview-' + (++previewId);
@@ -904,8 +910,8 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
         || ext === 'ppt' || ext === 'pptx';
     // Edit button — only for markdown files
     const editBtnHTML = isMarkdown
-        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Toggle markdown editor" onclick="toggleSplitEditor('${id}')">
-         Edit<span class="sv-dot"></span>
+        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Open markdown editor" aria-label="Open markdown editor" onclick="toggleSplitEditor('${id}')">
+         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="sv-dot"></span>
        </button>`
         : '';
     win.innerHTML = `
@@ -1258,6 +1264,16 @@ function openCommunity() {
     }
 }
 window.addEventListener("DOMContentLoaded", async () => {
+    const treeRail = document.getElementById('treeRail');
+    const treeRailToggle = document.getElementById('treeRailToggle');
+    treeRailToggle?.addEventListener('click', () => {
+        const collapsed = treeRail?.classList.toggle('is-collapsed') ?? false;
+        if (treeRailToggle) {
+            treeRailToggle.textContent = collapsed ? '›' : '‹';
+            treeRailToggle.setAttribute('aria-label', collapsed ? 'Expand repository tree' : 'Collapse repository tree');
+            treeRailToggle.title = collapsed ? 'Expand repository tree' : 'Collapse repository tree';
+        }
+    });
     sidebarSearchInput = document.getElementById("sidebarSearch");
     sidebarTree = document.getElementById("sidebarTree");
     if (sidebarSearchInput) {

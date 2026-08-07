@@ -291,6 +291,7 @@ const MarkdownEditor = (() => {
             '.mde-toolbar-sep{width:1px;height:20px;background:var(--mde-border);margin:0 2px;flex-shrink:0;opacity:0.2;}',
             '.mde-toolbar-right{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}',
             '.mde-btn{display:inline-flex;align-items:center;justify-content:center;gap:3px;',
+            '.mde-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}',
             'padding:6px 10px;border:1.5px solid var(--mde-border);border-radius:6px;font-size:13px;font-weight:500;',
             'cursor:pointer;background:var(--mde-btn-bg);color:var(--mde-text-secondary);line-height:1;font-family:inherit;',
             'min-width:auto;height:32px;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);',
@@ -436,14 +437,14 @@ const MarkdownEditor = (() => {
         var unsavedDot = document.createElement('span');
         unsavedDot.className = 'mde-unsaved-dot' + (savedContent !== (originalContent || '') ? ' visible' : '');
         unsavedDot.title = 'Unsaved changes';
-        var doneBtn = makeBtn('\u2713 Done', 'Save & close (Ctrl+S)', 'mde-btn-primary', function () {
+        var doneBtn = makeBtn('<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>', 'Save & close (Ctrl+S)', 'mde-btn-primary', function () {
             sessionStorage.setItem(storageKey, textarea.value);
             if (onClose)
                 onClose(textarea.value);
             showToast(wrapper, '\u2713 Applied');
             unsavedDot.classList.remove('visible');
         });
-        var revertBtn = makeBtn('\u21bb Revert', 'Revert to original', 'mde-btn-danger', function () {
+        var revertBtn = makeBtn('<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg>', 'Revert to original', 'mde-btn-danger', function () {
             if (!confirm('Revert all edits and restore original content?'))
                 return;
             textarea.value = originalContent || '';
@@ -452,7 +453,7 @@ const MarkdownEditor = (() => {
             showToast(wrapper, '\u21bb Reverted');
             unsavedDot.classList.remove('visible');
         });
-        var prBtn = makeBtn('\u2191 Submit PR', 'Push changes as pull request', 'mde-btn-primary', function () {
+        var prBtn = makeBtn('<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>', 'Push changes as pull request', 'mde-btn-primary', function () {
             if (textarea.value === originalContent) {
                 showToast(wrapper, 'No changes to submit', 'error');
                 return;
