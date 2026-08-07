@@ -66,7 +66,10 @@ export async function fetchPagesManifest(pagesBase: string, repoName: string) {
   try {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) throw new Error(`Pages manifest fetch failed with ${res.status}`);
-    const manifest = await res.json();
+    const manifest: any = await res.json();
+    if (!Array.isArray(manifest) && manifest?.type === 'folder' && Array.isArray(manifest.children)) {
+      return manifest.children;
+    }
     const normalizedManifest = Array.isArray(manifest) ? manifest : [];
     return buildPagesTreeFromManifest(repoName, normalizedManifest as PagesManifestEntry[]);
   } finally {

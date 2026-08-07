@@ -16,12 +16,6 @@ export default async function handler(req: Request, res: Response) {
     }
     const { owner, repo } = repoCfg;
 
-    if (action === 'latestCommit') {
-      const r = await octokit.repos.listCommits({ owner, repo, per_page: 1 });
-      const sha = r.data?.[0]?.sha || null;
-      return res.status(200).json({ sha });
-    }
-
     if (action === 'getFile') {
       if (!filePath) return res.status(400).json({ error: 'Missing path' });
       try {

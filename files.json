@@ -33,11 +33,6 @@
       "path": "README.md"
     },
     {
-      "type": "file",
-      "name": "community.zip",
-      "path": "community.zip"
-    },
-    {
       "type": "folder",
       "name": "docs",
       "children": [
@@ -55,24 +50,13 @@
     },
     {
       "type": "file",
-      "name": "repo-registry.json",
-      "path": "repo-registry.json"
+      "name": "files.json",
+      "path": "files.json"
     },
     {
-      "type": "folder",
-      "name": "tests",
-      "children": [
-        {
-          "type": "file",
-          "name": "auth.test.ts",
-          "path": "tests/auth.test.ts"
-        },
-        {
-          "type": "file",
-          "name": "registry-files.test.ts",
-          "path": "tests/registry-files.test.ts"
-        }
-      ]
+      "type": "file",
+      "name": "repo-registry.json",
+      "path": "repo-registry.json"
     },
     {
       "type": "file",

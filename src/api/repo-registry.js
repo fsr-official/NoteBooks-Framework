@@ -4,7 +4,6 @@ exports.parseRepoRegistryMarkdown = parseRepoRegistryMarkdown;
 exports.buildRegistryTree = buildRegistryTree;
 exports.loadRepoRegistry = loadRepoRegistry;
 exports.default = handler;
-const _shared_1 = require("./_shared");
 const pages_fetch_1 = require("./pages-fetch");
 function normalizeRepoEntry(entry) {
     return {
@@ -13,7 +12,8 @@ function normalizeRepoEntry(entry) {
         branch: entry.branch || process.env.GITHUB_BRANCH || 'main',
         root: entry.root || '',
         enabled: entry.enabled !== false,
-        priority: typeof entry.priority === 'number' ? entry.priority : Number.MAX_SAFE_INTEGER
+        priority: typeof entry.priority === 'number' ? entry.priority : Number.MAX_SAFE_INTEGER,
+        pages: entry.pages
     };
 }
 function parseRepoRegistryMarkdown(markdown) {
@@ -72,57 +72,7 @@ function prefixRepoPaths(node, prefix, repo, branch, priority) {
     };
     return result;
 }
-async function fetchRepoContentsWithRetry(octokit, owner, repo, path, branch, retries = 2, timeoutMs = 3000) {
-    const normalizedPath = normalizePath(path || '.');
-    for (let attempt = 0; attempt <= retries; attempt += 1) {
-        try {
-            // Add timeout to prevent hanging requests
-            const timeoutPromise = new Promise((_resolve, reject) => {
-                setTimeout(() => reject(new Error(`Octokit request timeout for ${owner}/${repo}/${path}`)), timeoutMs);
-            });
-            const requestPromise = octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-                owner,
-                repo,
-                path: normalizedPath || '.',
-                ref: branch,
-                headers: {
-                    'X-GitHub-Api-Version': '2022-11-28'
-                }
-            });
-            return await Promise.race([requestPromise, timeoutPromise]);
-        }
-        catch (error) {
-            const status = typeof error?.status === 'number' ? error.status : 0;
-            const isTimeout = error?.message?.includes('timeout');
-            const shouldRetry = attempt < retries && (status === 429 || status === 500 || status === 502 || status === 503 || status === 504 || status === 0 || isTimeout);
-            if (!shouldRetry)
-                throw error;
-            const delayMs = 300 * (attempt + 1) + Math.floor(Math.random() * 150);
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
-        }
-    }
-    throw new Error('Failed to fetch repository contents after retries');
-}
-async function fetchRepoTree(octokit, owner, repo, branch, root = '') {
-    const rootPath = normalizePath(root);
-    const response = await fetchRepoContentsWithRetry(octokit, owner, repo, rootPath || '.', branch);
-    const item = Array.isArray(response.data) ? response.data : [response.data];
-    const children = [];
-    for (const entry of item) {
-        const name = entry.name;
-        const entryPath = normalizePath([rootPath, name].filter(Boolean).join('/'));
-        if (entry.type === 'dir') {
-            const nestedChildren = await fetchRepoTree(octokit, owner, repo, branch, entryPath);
-            children.push({ type: 'folder', name, path: entryPath, children: nestedChildren, repo: `${owner}/${repo}` });
-        }
-        else if (entry.type === 'file') {
-            children.push({ type: 'file', name, path: entryPath, repo: `${owner}/${repo}` });
-        }
-    }
-    return children;
-}
 async function buildRegistryTree(entries) {
-    const octokit = await (0, _shared_1.getOctokit)({ allowUnauthenticated: true });
     const normalizedEntries = entries
         .map(normalizeRepoEntry)
         .filter((entry) => entry.enabled)
@@ -138,7 +88,6 @@ async function buildRegistryTree(entries) {
         const [owner, repoName] = entry.repo.split('/');
         if (!owner || !repoName)
             continue;
-        const repoRoot = normalizePath(entry.root || '');
         const repoNode = {
             type: 'folder',
             name: entry.name || repoName,
@@ -158,14 +107,11 @@ async function buildRegistryTree(entries) {
                     children = pagesChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
                 }
                 catch (error) {
-                    console.warn(`[repo-registry] Pages manifest failed for ${entry.repo}, falling back to Octokit:`, error);
-                    const repoChildren = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
-                    children = repoChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+                    console.warn(`[repo-registry] Pages manifest failed for ${entry.repo}; skipping without GitHub API recursion:`, error);
                 }
             }
             else {
-                const repoChildren = await fetchRepoTree(octokit, owner, repoName, entry.branch || 'main', repoRoot);
-                children = repoChildren.map((child) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+                console.warn(`[repo-registry] Skipping ${entry.repo}; pages: true is required for the non-recursive read path.`);
             }
             repoNode.children = children;
             rootChildren.push(repoNode);
@@ -266,7 +212,18 @@ async function handler(req, res) {
         const manifestPath = path.resolve(process.cwd(), 'files.json');
         try {
             const manifestText = await fs.readFile(manifestPath, 'utf8');
-            return res.status(200).type('application/json').send(manifestText);
+            const localTree = JSON.parse(manifestText);
+            const entries = await loadRepoRegistry();
+            const remoteTree = await buildRegistryTree(entries);
+            const combinedTree = {
+                ...localTree,
+                name: 'root',
+                children: [
+                    ...(Array.isArray(localTree.children) ? localTree.children : []),
+                    ...(Array.isArray(remoteTree.children) ? remoteTree.children : [])
+                ]
+            };
+            return res.status(200).json(combinedTree);
         }
         catch {
             const cacheKey = getRefreshCacheKey(req);

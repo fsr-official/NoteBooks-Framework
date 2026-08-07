@@ -33,10 +33,10 @@ const expandedTreePaths = new Set();
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
 let appConfig = {
-    GITHUB_REPO: '',
+    GITHUB_REPO: 'fsr-science/NCERT-Science',
     GITHUB_BRANCH: 'main',
     APP_URL: '',
-    GITPAGE_URL: '',
+    GITPAGE_URL: 'https://fsr-science.github.io/NCERT-Science/',
 };
 async function fetchConfig() {
     try {
@@ -159,13 +159,92 @@ function buildPagesUrl(p) {
     }
 }
 async function fetchPagesManifest() {
-    const manifestUrl = buildPagesUrl('files.json');
-    if (!manifestUrl)
-        throw new Error('GITPAGE_URL is not configured or invalid');
-    const res = await fetch(`${manifestUrl}?${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok)
-        throw new Error(`Failed to fetch Pages manifest: ${res.status}`);
-    return await res.json();
+    const urls = [];
+    const pagesUrl = buildPagesUrl('files.json');
+    if (pagesUrl)
+        urls.push({ url: `${pagesUrl}?v=${Date.now()}`, source: 'GitHub Pages' });
+    if (appConfig.GITHUB_REPO) {
+        urls.push({
+            url: `https://cdn.jsdelivr.net/gh/${appConfig.GITHUB_REPO}@${appConfig.GITHUB_BRANCH || 'main'}/files.json`,
+            source: 'jsDelivr'
+        });
+    }
+    if (!urls.length)
+        throw new Error('No public repository manifest source is configured');
+    let lastError = null;
+    for (const candidate of urls) {
+        try {
+            const res = await fetch(candidate.url, { cache: 'no-store' });
+            if (!res.ok)
+                throw new Error(`HTTP ${res.status}`);
+            const manifest = await res.json();
+            console.info(`[tree] Loaded files.json from ${candidate.source}`);
+            return manifest;
+        }
+        catch (error) {
+            lastError = error;
+            console.warn(`[tree] ${candidate.source} manifest unavailable:`, error);
+        }
+    }
+    throw lastError || new Error('Failed to fetch public repository manifest');
+}
+function pagesBaseForRepository(repo) {
+    const [owner, name] = String(repo || '').split('/').filter(Boolean);
+    if (!owner || !name)
+        return '';
+    return name.toLowerCase() === `${owner.toLowerCase()}.github.io`
+        ? `https://${owner}.github.io/`
+        : `https://${owner}.github.io/${name}/`;
+}
+function annotateRepositoryTree(node, prefix, repo, branch) {
+    if (!node)
+        return null;
+    const nodePath = String(node.path || node.name || '').replace(/^\/+/, '');
+    const path = [prefix, nodePath].filter(Boolean).join('/');
+    return {
+        ...node,
+        path,
+        repo,
+        branch,
+        repoPath: nodePath,
+        children: Array.isArray(node.children)
+            ? node.children.map((child) => annotateRepositoryTree(child, prefix, repo, branch))
+            : node.children
+    };
+}
+async function appendConfiguredRepositoryTrees(localTree) {
+    const registryUrl = buildPagesUrl('repo-registry.json');
+    if (!registryUrl || !localTree || !Array.isArray(localTree.children))
+        return localTree;
+    try {
+        const registryResponse = await fetch(`${registryUrl}?v=${Date.now()}`, { cache: 'no-store' });
+        if (!registryResponse.ok)
+            return localTree;
+        const entries = await registryResponse.json();
+        for (const entry of Array.isArray(entries) ? entries : []) {
+            if (entry?.enabled === false || !entry?.repo || entry.repo === appConfig.GITHUB_REPO)
+                continue;
+            const baseUrl = pagesBaseForRepository(entry.repo);
+            if (!baseUrl)
+                continue;
+            try {
+                const response = await fetch(`${baseUrl.replace(/\/$/, '')}/files.json`, { cache: 'no-store' });
+                if (!response.ok)
+                    continue;
+                const remoteTree = await response.json();
+                const prefix = entry.name || entry.repo.split('/').pop();
+                const children = Array.isArray(remoteTree?.children) ? remoteTree.children : [];
+                localTree.children.push(...children.map((child) => annotateRepositoryTree(child, prefix, entry.repo, entry.branch || 'main')));
+            }
+            catch (error) {
+                console.warn(`[tree] Unable to load configured repository ${entry.repo}:`, error);
+            }
+        }
+    }
+    catch (error) {
+        console.warn('[tree] Public repo-registry.json unavailable:', error);
+    }
+    return localTree;
 }
 function buildFileIndex(node, acc = []) {
     if (!node || !node.name)
@@ -388,6 +467,12 @@ function createSidebarTreeItem(node, query) {
         renderSidebarTree(treeRoot, searchQuery);
     };
     row.appendChild(toggle);
+    const glyph = document.createElement('span');
+    glyph.className = `sidebar-tree-glyph ${node.type === 'folder' ? 'folder' : 'file'}`;
+    glyph.innerHTML = node.type === 'folder'
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5h7l2 2h9v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 6.5v-1a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1"/></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v5h5"/></svg>';
+    row.appendChild(glyph);
     const label = document.createElement('span');
     label.className = 'sidebar-tree-label';
     label.textContent = node.name;
@@ -454,12 +539,29 @@ async function fetchTree() {
     showStatus("Loading files...", true);
     try {
         let tree = null;
-        if (appConfig.GITPAGE_URL) {
+        const isGitHubPagesHost = window.location.hostname.endsWith('github.io');
+        if (!isGitHubPagesHost) {
             try {
-                tree = await fetchPagesManifest();
+                const registryRes = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
+                if (registryRes.ok) {
+                    tree = await registryRes.json();
+                    console.info('[tree] Loaded local files plus configured repository registry');
+                }
             }
-            catch (pagesError) {
-                console.warn("GitHub Pages manifest unavailable, falling back:", pagesError);
+            catch (registryError) {
+                console.warn('[tree] Combined registry unavailable, trying public Pages manifest:', registryError);
+            }
+        }
+        if (appConfig.GITPAGE_URL) {
+            if (!tree) {
+                try {
+                    tree = await fetchPagesManifest();
+                    if (isGitHubPagesHost)
+                        tree = await appendConfiguredRepositoryTrees(tree);
+                }
+                catch (pagesError) {
+                    console.warn("GitHub Pages manifest unavailable, falling back:", pagesError);
+                }
             }
         }
         if (!tree) {
@@ -494,16 +596,6 @@ async function fetchTree() {
             renderFolder(treeRoot);
             updatePathNav();
         }
-        const raw = JSON.stringify(tree, Object.keys(tree).sort());
-        const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
-        lastHash = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
-        initialLoadComplete = true;
-        try {
-            lastCommit = await fetchLatestCommit();
-        }
-        catch (e) {
-            console.warn("Failed to fetch initial commit:", e);
-        }
         const fontPromise = new Promise((resolve) => {
             const testSpan = document.createElement("span");
             testSpan.textContent = "A quick brown fox jumps";
@@ -518,10 +610,6 @@ async function fetchTree() {
         fontPromise.then(() => {
             splash.style.opacity = 0;
             setTimeout(() => { splash.style.display = 'none'; }, 600);
-            if (!window.updateCheckStarted) {
-                window.updateCheckStarted = true;
-                setTimeout(() => setInterval(checkForUpdate, 20000), 5000);
-            }
             showStatus("Files loaded successfully!");
         });
     }
@@ -1006,7 +1094,7 @@ function injectSplitViewStyles() {
   `;
     document.head.appendChild(style);
 }
-// ─── openPreview ─────────────────────────────────────────────────────────────
+// ─── openPreview ────────────────────────────────────────���────────────────────
 function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     injectSplitViewStyles();
     const id = 'preview-' + (++previewId);
@@ -1022,8 +1110,8 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
         || ext === 'ppt' || ext === 'pptx';
     // Edit button — only for markdown files
     const editBtnHTML = isMarkdown
-        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Toggle markdown editor" onclick="toggleSplitEditor('${id}')">
-         Edit<span class="sv-dot"></span>
+        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Open markdown editor" aria-label="Open markdown editor" onclick="toggleSplitEditor('${id}')">
+         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="sv-dot"></span>
        </button>`
         : '';
     win.innerHTML = `
@@ -1109,6 +1197,17 @@ async function fetchFileContent(path, filename, container, winElement = null) {
             }
             catch (e) {
                 // Continue to fallback behavior
+            }
+        }
+        if (appConfig.GITHUB_REPO) {
+            const cdnUrl = `https://cdn.jsdelivr.net/gh/${appConfig.GITHUB_REPO}@${appConfig.GITHUB_BRANCH || 'main'}/${String(p || '').replace(/^\/+/, '')}`;
+            try {
+                const response = await fetch(cdnUrl, { cache: 'no-store' });
+                if (response.ok)
+                    return await response.text();
+            }
+            catch (e) {
+                // Continue to local/API fallback.
             }
         }
         const directUrl = `${window.location.origin}/${p}`;
@@ -1376,6 +1475,16 @@ function openCommunity() {
     }
 }
 window.addEventListener("DOMContentLoaded", async () => {
+    const treeRail = document.getElementById('treeRail');
+    const treeRailToggle = document.getElementById('treeRailToggle');
+    treeRailToggle?.addEventListener('click', () => {
+        const collapsed = treeRail?.classList.toggle('is-collapsed') ?? false;
+        if (treeRailToggle) {
+            treeRailToggle.textContent = collapsed ? '›' : '‹';
+            treeRailToggle.setAttribute('aria-label', collapsed ? 'Expand repository tree' : 'Collapse repository tree');
+            treeRailToggle.title = collapsed ? 'Expand repository tree' : 'Collapse repository tree';
+        }
+    });
     sidebarSearchInput = document.getElementById("sidebarSearch");
     sidebarTree = document.getElementById("sidebarTree");
     treeHoverDetails = document.getElementById("treeHoverDetails");
@@ -1395,36 +1504,3 @@ window.addEventListener("DOMContentLoaded", async () => {
     fetchTree();
     maybeShowVercelPopup();
 });
-// --- Update check ---
-let lastCommit = null;
-let lastHash = null;
-let initialLoadComplete = false;
-async function fetchLatestCommit() {
-    try {
-        const response = await fetch('/api/gh.js', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'latestCommit' })
-        });
-        const data = await response.json();
-        if (!response.ok || !data.sha)
-            throw new Error(data.error || 'Failed to fetch latest commit');
-        return data.sha;
-    }
-    catch (err) {
-        console.warn("[fetchLatestCommit] Could not fetch latest commit:", err.message);
-        return null;
-    }
-}
-async function checkForUpdate() {
-    if (!initialLoadComplete)
-        return;
-    const newCommit = await fetchLatestCommit();
-    if (!newCommit)
-        return;
-    if (lastCommit && newCommit !== lastCommit) {
-        const notice = document.getElementById("updateNotice");
-        if (notice && notice.style.display !== "flex")
-            notice.style.display = "flex";
-    }
-}

@@ -46,35 +46,3 @@ async function initMarkdownFeatures(container) {
         window.obsidianInitHighlight(container);
     }
 }
-async function fetchLatestCommit() {
-    try {
-        // Call the secure server-side API (PAT stored in Vercel env vars)
-        const response = await fetch('/api/gh.js', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'latestCommit' })
-        });
-        const data = await response.json();
-        if (!response.ok || !data.sha) {
-            throw new Error(data.error || 'Failed to fetch latest commit');
-        }
-        return data.sha;
-    }
-    catch (err) {
-        console.warn("[fetchLatestCommit] Could not fetch latest commit:", err.message);
-        return null;
-    }
-}
-async function checkForUpdate() {
-    if (!initialLoadComplete)
-        return;
-    const newCommit = await fetchLatestCommit();
-    if (!newCommit)
-        return;
-    if (lastCommit && newCommit !== lastCommit) {
-        const notice = document.getElementById("updateNotice");
-        if (notice && notice.style.display !== "flex") {
-            notice.style.display = "flex";
-        }
-    }
-}

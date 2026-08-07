@@ -1,9 +1,11 @@
 [
   {
-    "name": "NoteBooks-Framework",
-    "repo": "fsr-official/NoteBooks-Framework",
+    "name": "Demo Notes",
+    "repo": "fsr-science/NCERT-Science",
     "branch": "main",
     "root": "",
-    "enabled": true
+    "enabled": true,
+    "priority": 1,
+    "pages": true
   }
 ]

@@ -2766,5 +2766,3 @@ body {
   .app-sidebar--collapsed .sidebar-brand { justify-content: flex-start; }
   .app-sidebar--collapsed .sidebar-brand > div:not(.brand-mark) { display: block; }
   .app-sidebar--collapsed .sidebar-collapse-control { margin-left: auto; }
-}
-}
