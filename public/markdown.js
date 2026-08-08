@@ -8,11 +8,30 @@
 function markdownToHTML(rawText, filePath) {
     /* Expose current file path so resolveEmbed can build correct relative URLs */
     window._currentNotePath = filePath || '';
+
+    if (typeof window.obsidianParseFrontmatter !== 'function') {
+        window.__markdownRuntimeError = '[markdown] obsidianParseFrontmatter is unavailable';
+        console.error(window.__markdownRuntimeError);
+        return '<div class="markdown-preview-fallback">Markdown preview unavailable. Frontmatter parser failed to load.</div>';
+    }
+
     /* Strip YAML front-matter before rendering */
     var parsed = window.obsidianParseFrontmatter(rawText);
     /* Render via markdown-it + Obsidian plugin */
-    return window.md.render(parsed.content);
+    var renderer = typeof window.initializeMarkdownRenderer === 'function'
+        ? window.initializeMarkdownRenderer()
+        : window.md;
+    if (!renderer || typeof renderer.render !== 'function') {
+        window.__markdownRuntimeError = window.__markdownRuntimeState && window.__markdownRuntimeState.error
+            ? window.__markdownRuntimeState.error
+            : '[markdown] renderer unavailable';
+        console.error(window.__markdownRuntimeError);
+        return '<div class="markdown-preview-fallback">Markdown preview unavailable. The markdown renderer could not be initialized.</div>';
+    }
+    return renderer.render(parsed.content);
 }
+
+window.markdownToHTML = markdownToHTML;
 /**
  * Activate all post-render Obsidian features scoped to a specific DOM element.
  * Must be called AFTER the rendered HTML has been inserted into the DOM.
