@@ -3,6 +3,7 @@ tmp/
 node_modules/
 src/*.js
 src/**/*.js
+!src/scripts/*.js
 !src/scripts/generate-version.js
 .env*
 bin/*.js
