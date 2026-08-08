@@ -771,10 +771,11 @@ async function fetchTree() {
         if (appConfig.GITPAGE_URL) {
             if (!tree) {
                 try {
-                    tree = await fetchPagesManifest();
-                    if (isGitHubPagesHost)
+                        tree = await fetchPagesManifest();
+                        // Always append configured repository entries when we successfully
+                        // loaded a public Pages/jsDelivr manifest — ensure consistent tree shape
                         tree = await appendConfiguredRepositoryTrees(tree);
-                }
+                    }
                 catch (pagesError) {
                     console.warn("GitHub Pages manifest unavailable, falling back:", pagesError);
                 }
@@ -1489,7 +1490,10 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         }
         else if (ext === 'pdf') {
             container.style.cssText = 'padding:0;overflow:hidden;display:flex;flex-direction:column;flex-grow:1;min-height:0;';
-            container.innerHTML = `<iframe src="${fetchUrl(path)}" style="flex:1;min-height:0;width:100%;border:none;display:block;"></iframe>`;
+            // Prefer same-origin proxy to avoid COEP/COOP cross-origin embed issues
+            const targetPath = repo ? (repoPath || path) : path;
+            const proxied = `${window.location.origin}/api/raw?path=${encodeURIComponent(targetPath)}`;
+            container.innerHTML = `<iframe src="${proxied}" style="flex:1;min-height:0;width:100%;border:none;display:block;" ></iframe>`;
         }
         else if (ext === 'md' || ext === 'markdown') {
             const text = await fetchUrlWithFallback(path);

@@ -567,7 +567,13 @@
                 return '<video controls class="obsidian-embed obsidian-video"' + wA + hA + '><source src="' + safe + '"><em>Video: <a href="' + safe + '">' + name + '</a></em></video>';
             case 'pdf': {
                 var pg = anchor ? '#page=' + encodeURIComponent(anchor) : '';
-                return '<iframe src="' + safe + pg + '" class="obsidian-embed obsidian-pdf"' + wA + hA + ' loading="lazy">PDF: <a href="' + safe + '">' + name + '</a></iframe>';
+                // If the source is absolute or remote, route through the same-origin proxy
+                var resolvedSrc = src;
+                if (/^https?:\/\//i.test(src) || src.startsWith('/')) {
+                    resolvedSrc = '/api/raw?path=' + encodeURIComponent(src);
+                }
+                var safeResolved = esc(resolvedSrc);
+                return '<iframe src="' + safeResolved + pg + '" class="obsidian-embed obsidian-pdf"' + wA + hA + ' loading="lazy">PDF: <a href="' + safe + '">' + name + '</a></iframe>';
             }
             case 'note':
                 if (opts.resolveTransclusion) {
