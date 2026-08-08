@@ -118,8 +118,8 @@ export async function buildRegistryTree(entries: RepoRegistryEntry[]) {
 
     const repoNode: TreeNode = {
       type: 'folder',
-      name: entry.name || repoName,
-      path: entry.name || repoName,
+      name: repoName,
+      path: repoName,
       repo: entry.repo,
       children: []
     };
@@ -133,8 +133,8 @@ export async function buildRegistryTree(entries: RepoRegistryEntry[]) {
       if (usePagesPath && pagesBaseUrl) {
         try {
           console.log(`[repo-registry] Using Pages read-path for ${entry.repo}`);
-          const pagesChildren = await fetchPagesManifest(pagesBaseUrl, entry.name || repoName);
-          children = pagesChildren.map((child: TreeNode) => prefixRepoPaths(child, entry.name || repoName, entry.repo, entry.branch || 'main', priority));
+          const pagesChildren = await fetchPagesManifest(pagesBaseUrl, repoName);
+          children = pagesChildren.map((child: TreeNode) => prefixRepoPaths(child, repoName, entry.repo, entry.branch || 'main', priority));
         } catch (error) {
           console.warn(`[repo-registry] Pages manifest failed for ${entry.repo}; skipping without GitHub API recursion:`, error);
         }
