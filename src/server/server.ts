@@ -232,9 +232,36 @@ export function createApp() {
     res.send(JSON.stringify(manifest));
   }
 
+  app.get('/files.json', async (_req, res) => await sendManifestResponse(res));
+  app.get('/repo-registry.json', (_req, res) => {
+    const registryPath = path.join(projectDir, 'repo-registry.json');
+    if (fs.existsSync(registryPath)) {
+      return res.sendFile(registryPath);
+    }
+    return res.status(404).json({ error: 'repo-registry.json not found' });
+  });
   app.get('/api/files.json', async (_req, res) => await sendManifestResponse(res));
   app.get('/api/manifest', async (_req, res) => await sendManifestResponse(res));
   app.get('/api/manifest.js', async (_req, res) => await sendManifestResponse(res));
+  app.get('/files/:filePath(*)', (req, res) => {
+    const params = req.params as { filePath?: string };
+    const filePath = String(params.filePath || '').replace(/^\/+/, '');
+    if (!filePath) {
+      return res.status(400).json({ error: 'Missing file path' });
+    }
+
+    const absolutePath = path.resolve(projectDir, filePath);
+    if (!absolutePath.startsWith(projectDir + path.sep) && absolutePath !== projectDir) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.set('Cache-Control', 'no-cache');
+    return res.sendFile(absolutePath);
+  });
   app.get('/api/workspace', (_req, res) => {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(getWorkspaceMetadata(projectDir));

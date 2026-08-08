@@ -1384,6 +1384,10 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             return '';
         }
     }
+    const localFileUrl = (p) => {
+        const cleanedPath = String(p || '').replace(/^\/+/, '');
+        return `${window.location.origin}/files/${cleanedPath.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`;
+    };
     const fetchUrl = (p) => {
         if (repo) {
             const pagesBase = pagesBaseForRepository(repo);
@@ -1402,7 +1406,7 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         if (isGitHubPages) {
             return `https://raw.githubusercontent.com/${appConfig.GITHUB_REPO}/${appConfig.GITHUB_BRANCH}/${p}`;
         }
-        return `${window.location.origin}/${p}`;
+        return localFileUrl(p);
     };
     // Fallback to API if direct file access fails (for Vercel deployments with private repos)
     const fetchUrlWithFallback = async (p) => {
@@ -1451,6 +1455,7 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         }
         const directUrl = `${window.location.origin}/${p}`;
         const apiUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(p)}`;
+        const directUrl = localFileUrl(p);
         try {
             const response = await fetch(directUrl);
             if (response.ok) {
@@ -1490,10 +1495,11 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         }
         else if (ext === 'pdf') {
             container.style.cssText = 'padding:0;overflow:hidden;display:flex;flex-direction:column;flex-grow:1;min-height:0;';
-            // Prefer same-origin proxy to avoid COEP/COOP cross-origin embed issues
             const targetPath = repo ? (repoPath || path) : path;
-            const proxied = `${window.location.origin}/api/raw?path=${encodeURIComponent(targetPath)}`;
-            container.innerHTML = `<iframe src="${proxied}" style="flex:1;min-height:0;width:100%;border:none;display:block;" ></iframe>`;
+            const proxied = repo
+                ? `${window.location.origin}/api/raw?path=${encodeURIComponent(targetPath)}`
+                : localFileUrl(targetPath);
+            container.innerHTML = `<iframe src="${proxied}" style="flex:1;min-height:0;width:100%;border:none;display:block;"></iframe>`;
         }
         else if (ext === 'md' || ext === 'markdown') {
             const text = await fetchUrlWithFallback(path);

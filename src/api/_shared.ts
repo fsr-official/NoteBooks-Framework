@@ -97,8 +97,17 @@ export async function getRepoConfig(): Promise<{ owner: string; repo: string; br
     }
   }
 
-  const entries = await readRepoRegistryEntries();
-  const entry = entries.find((item) => item.enabled !== false);
+  const entries = (await readRepoRegistryEntries())
+    .filter((item) => item.enabled !== false && item.repo)
+    .sort((a, b) => {
+      const aPriority = Number.isFinite(Number(a.priority)) ? Number(a.priority) : Number.MAX_SAFE_INTEGER;
+      const bPriority = Number.isFinite(Number(b.priority)) ? Number(b.priority) : Number.MAX_SAFE_INTEGER;
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+  const entry = entries[0];
   if (!entry?.repo) {
     return null;
   }
