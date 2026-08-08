@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Setup NoteBooks-Science</title>
+  <title>Setup NoteBooks</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -313,9 +313,9 @@ code{
     <header class="installer-header">
       <div class="logo">
         <div class="logo-mark">⚙</div>
-        <span class="logo-name">Setup NoteBooks-Science</span>
+        <span class="logo-name" id="installerLogoName">Setup NoteBooks</span>
       </div>
-      <div class="subtitle">Configures your new NoteBooks-Science installation</div>
+      <div class="subtitle" id="installerSubtitle">Configures your new NoteBooks installation</div>
     </header>
 
     <nav class="progress-bar" aria-label="Progress">
@@ -1165,6 +1165,30 @@ document.addEventListener('DOMContentLoaded', () => {
       proximity: 20, parallaxMultiplier: 20, particleRadius: 2,
     });
   })();
+  </script>
+
+  <script>
+    (async function() {
+      try {
+        const res = await fetch('/api/config');
+        if (!res.ok) return;
+        const data = await res.json();
+        const name = String(data.WORKSPACE || 'NoteBooks').replace(/\.json$/i, '');
+        const label = name || 'NoteBooks';
+        const installerLogoName = document.getElementById('installerLogoName');
+        const installerSubtitle = document.getElementById('installerSubtitle');
+        if (installerLogoName) {
+          installerLogoName.textContent = `Setup ${label}`;
+        }
+        if (installerSubtitle) {
+          installerSubtitle.textContent = `Configures your new ${label} installation`;
+        }
+        document.title = `Setup ${label}`;
+      }
+      catch (error) {
+        console.warn('Installer workspace branding failed', error);
+      }
+    })();
   </script>
 
 </body>

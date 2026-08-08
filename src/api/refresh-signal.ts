@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type { Request, Response } from 'express';
 
 export interface RefreshSignal {
@@ -34,6 +35,57 @@ export function addRefreshSignal(
   console.log(`[refresh-signal] Added ${type} signal:`, signal, metadata);
 }
 
+function getWebhookSecret(): string | undefined {
+  return process.env.WEBHOOK_SECRET;
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function timingSafeCompare(a: string, b: string): boolean {
+  if (!isString(a) || !isString(b)) {
+    return false;
+  }
+  const aBuf = Buffer.from(a, 'utf8');
+  const bBuf = Buffer.from(b, 'utf8');
+  if (aBuf.length !== bBuf.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+function verifyWebhookSignature(req: Request): boolean {
+  const secret = getWebhookSecret();
+  if (!secret) {
+    return true;
+  }
+
+  const rawBody = (req as any).rawBody;
+  if (!isString(rawBody)) {
+    return false;
+  }
+
+  const signature256 = req.headers['x-hub-signature-256'] as string | undefined;
+  const signature = req.headers['x-hub-signature'] as string | undefined;
+
+  if (signature256) {
+    const expected = `sha256=${crypto.createHmac('sha256', secret).update(rawBody, 'utf8').digest('hex')}`;
+    return timingSafeCompare(signature256, expected);
+  }
+
+  if (signature) {
+    const expected = `sha1=${crypto.createHmac('sha1', secret).update(rawBody, 'utf8').digest('hex')}`;
+    return timingSafeCompare(signature, expected);
+  }
+
+  return false;
+}
+
+export function getLatestSignal(): RefreshSignal | null {
+  return recentSignals[0] || null;
+}
+
 export function getRecentSignals(since?: number): RefreshSignal[] {
   if (!since) {
     return recentSignals.slice(0, 10);
@@ -52,13 +104,31 @@ export default function handler(req: Request, res: Response) {
 }
 
 function handlePost(req: Request, res: Response) {
-  const { signal, type, path: filePath, reason, commitHash } = req.body || {};
-  
+  if (!verifyWebhookSignature(req)) {
+    return res.status(401).json({ error: 'Invalid webhook signature' });
+  }
+
+  const requestBody = req.body || {};
+  let { signal, type, path: filePath, reason, commitHash } = requestBody as any;
+  const signalType = type === 'file' ? 'file' : 'directory';
+
+  if (!signal) {
+    if (requestBody?.head_commit) {
+      const headCommit = requestBody.head_commit;
+      signal = `github-push-${String(headCommit.id || requestBody.after || Date.now())}`;
+      filePath = filePath || headCommit.modified?.[0] || headCommit.added?.[0] || String(requestBody.ref || '');
+      reason = reason || `GitHub push ${String(requestBody.ref || '')}`;
+      commitHash = commitHash || headCommit.id || requestBody.after;
+    } else if (requestBody?.action && requestBody?.repository) {
+      signal = `github-event-${String(requestBody.action)}-${Date.now()}`;
+      reason = reason || `GitHub event ${requestBody.action}`;
+    }
+  }
+
   if (!signal) {
     return res.status(400).json({ error: 'signal is required' });
   }
 
-  const signalType = type === 'directory' ? 'directory' : 'file';
   addRefreshSignal(signal, signalType, {
     path: filePath,
     reason,

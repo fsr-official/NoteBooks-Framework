@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "NoteBooks XI - A structured knowledge system for students and educators",
   "scripts": {
-    "dev": "npm run build && node src/server/server.js",
+    "clean": "node src/scripts/cleanup-stale-src-js.js",
+    "clean:src": "npm run clean",
+    "dev": "npm run clean && npm run build && node src/server/server.js",
     "start": "node src/server/server.js",
-    "build": "node src/scripts/generate-version.js && npm run build:client && npm run build:server",
+    "build": "npm run clean && node src/scripts/generate-version.js && npm run build:client && npm run build:server",
     "build:client": "tsc -p tsconfig.client.json",
     "build:server": "tsc -p tsconfig.server.json",
     "backend": "node src/server/server.js",

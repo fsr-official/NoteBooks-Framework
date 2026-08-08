@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Request } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
@@ -10,12 +10,87 @@ import blobHandler from '../api/blob';
 import rawHandler from '../api/raw';
 import submitPrHandler from '../api/submit-pr';
 import * as prReview from '../api/pr-review';
-import refreshSignalHandler from '../api/refresh-signal';
+import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal';
 import desmosHandler from '../api/desmos';
 import authHandler, { assertAuthConfig } from '../api/auth';
 import { buildLocalFilesManifest } from '../api/files-manifest';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+
+function getWorkspaceEnv(): string {
+  return process.env.WORKSPACE?.trim() || '';
+}
+
+function resolveWorkspaceRoot(projectDir: string, workspaceEnv: string): string {
+  if (!workspaceEnv) {
+    return projectDir;
+  }
+
+  const projectBaseName = path.basename(projectDir);
+  const candidate = path.isAbsolute(workspaceEnv)
+    ? workspaceEnv
+    : workspaceEnv === projectBaseName
+      ? projectDir
+      : path.resolve(projectDir, workspaceEnv);
+
+  const normalized = path.normalize(candidate);
+  const projectRootNormalized = path.normalize(projectDir);
+  const pathLike = path.isAbsolute(workspaceEnv) || workspaceEnv.includes('/') || workspaceEnv.includes(path.sep) || workspaceEnv.toLowerCase().endsWith('.json');
+
+  if (normalized.toLowerCase().endsWith('.json')) {
+    const parentDir = path.dirname(normalized);
+    if (fs.existsSync(parentDir) && fs.statSync(parentDir).isDirectory()) {
+      return parentDir;
+    }
+    if (pathLike) {
+      console.warn(`[workspace] WORKSPACE=${workspaceEnv} points to a JSON file in a missing directory; using project root.`);
+    }
+    return projectDir;
+  }
+
+  if (!normalized.startsWith(projectRootNormalized + path.sep) && normalized !== projectRootNormalized) {
+    if (pathLike) {
+      console.warn(`[workspace] WORKSPACE=${workspaceEnv} resolves outside the project root; using project root instead.`);
+    }
+    return projectDir;
+  }
+
+  if (!fs.existsSync(normalized) || !fs.statSync(normalized).isDirectory()) {
+    if (pathLike) {
+      console.warn(`[workspace] WORKSPACE=${workspaceEnv} does not resolve to an existing directory; using project root instead.`);
+    }
+    return projectDir;
+  }
+
+  return normalized;
+}
+
+function resolveWorkspaceManifestPath(projectDir: string, workspaceEnv: string): string {
+  if (!workspaceEnv) {
+    return path.join(projectDir, 'files.json');
+  }
+
+  const envPath = path.isAbsolute(workspaceEnv)
+    ? workspaceEnv
+    : path.resolve(projectDir, workspaceEnv);
+
+  if (envPath.toLowerCase().endsWith('.json')) {
+    return envPath;
+  }
+
+  const workspaceRoot = resolveWorkspaceRoot(projectDir, workspaceEnv);
+  return path.join(workspaceRoot, 'files.json');
+}
+
+function getWorkspaceMetadata(projectDir: string) {
+  const workspaceEnv = getWorkspaceEnv();
+  const workspaceRoot = resolveWorkspaceRoot(projectDir, workspaceEnv);
+  return {
+    workspace: workspaceEnv || path.basename(projectDir),
+    workspaceRoot,
+    manifestPath: resolveWorkspaceManifestPath(projectDir, workspaceEnv)
+  };
+}
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -54,7 +129,12 @@ export function createApp() {
       }
     }
   }));
-  app.use(express.json({ limit: '25mb' }));
+  app.use(express.json({
+    limit: '25mb',
+    verify: (req, _res, buf) => {
+      (req as any).rawBody = buf?.toString('utf8') || '';
+    }
+  }));
   app.use(express.urlencoded({ extended: true }));
 
   app.get('/health', (_req, res) => {
@@ -66,10 +146,11 @@ export function createApp() {
     try {
       if (fs.existsSync(versionPath)) {
         const content = fs.readFileSync(versionPath, 'utf-8');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        res.type('application/json').send(content);
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        res.set('Content-Type', 'application/json; charset=utf-8');
+        res.send(content);
         return;
       }
     } catch (error) {
@@ -83,22 +164,11 @@ export function createApp() {
       buildTimestamp: Date.now(),
       buildHash: 'unknown'
     };
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(fallbackVersion);
   });
 
-  app.get('/private/files.json', async (_req, res) => {
-    const filePath = path.join(projectDir, 'files.json');
-    if (!fs.existsSync(filePath)) {
-      const manifest = await buildLocalFilesManifest(projectDir);
-      res.setHeader('Cache-Control', 'no-store');
-      res.type('application/json').send(JSON.stringify(manifest));
-      return;
-    }
-    const content = fs.readFileSync(filePath, 'utf-8');
-    res.setHeader('Cache-Control', 'no-store');
-    res.type('application/json').send(content);
-  });
+  app.get('/private/files.json', async (_req, res) => await sendManifestResponse(res));
 
   app.get('/private/config', configHandler);
 
@@ -143,18 +213,31 @@ export function createApp() {
     }
   }));
 
-  app.get('/api/files.json', async (_req, res) => {
-    const filePath = path.join(projectDir, 'files.json');
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf-8');
-      res.setHeader('Cache-Control', 'no-store');
-      res.type('application/json').send(content);
+  async function sendManifestResponse(res: any) {
+    const workspaceEnv = getWorkspaceEnv();
+    const manifestPath = resolveWorkspaceManifestPath(projectDir, workspaceEnv);
+    const workspaceRoot = resolveWorkspaceRoot(projectDir, workspaceEnv);
+
+    if (fs.existsSync(manifestPath)) {
+      const content = fs.readFileSync(manifestPath, 'utf-8');
+      res.set('Cache-Control', 'no-store');
+      res.set('Content-Type', 'application/json; charset=utf-8');
+      res.send(content);
       return;
     }
 
-    const manifest = await buildLocalFilesManifest(projectDir);
-    res.setHeader('Cache-Control', 'no-store');
-    res.type('application/json').send(JSON.stringify(manifest));
+    const manifest = await buildLocalFilesManifest(workspaceRoot);
+    res.set('Cache-Control', 'no-store');
+    res.set('Content-Type', 'application/json; charset=utf-8');
+    res.send(JSON.stringify(manifest));
+  }
+
+  app.get('/api/files.json', async (_req, res) => await sendManifestResponse(res));
+  app.get('/api/manifest', async (_req, res) => await sendManifestResponse(res));
+  app.get('/api/manifest.js', async (_req, res) => await sendManifestResponse(res));
+  app.get('/api/workspace', (_req, res) => {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json(getWorkspaceMetadata(projectDir));
   });
 
   app.get('/api/config', configHandler);
@@ -181,6 +264,23 @@ export function createApp() {
   app.post('/api/submit-pr.js', submitPrHandler);
   app.post('/api/refresh-signal', refreshSignalHandler);
   app.get('/api/refresh-signal', refreshSignalHandler);
+  app.get('/api/latest-commit', (_req, res) => {
+    const latest = getLatestSignal();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.status(200).json({
+      latestCommit: latest?.commitHash || null,
+      latestSignal: latest
+        ? {
+            signal: latest.signal,
+            type: latest.type,
+            at: latest.at,
+            path: latest.path,
+            reason: latest.reason
+          }
+        : null,
+      timestamp: Date.now()
+    });
+  });
   app.post('/api/pr-review/accept', prReview.acceptHandler);
   app.post('/api/pr-review/reject', prReview.rejectHandler);
   app.get('/api/desmos', desmosHandler);

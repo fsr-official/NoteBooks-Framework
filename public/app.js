@@ -37,7 +37,64 @@ let appConfig = {
     GITHUB_BRANCH: 'main',
     APP_URL: '',
     GITPAGE_URL: 'https://fsr-science.github.io/NCERT-Science/',
+    WORKSPACE: ''
 };
+function formatWorkspaceLabel(rawValue) {
+    if (!rawValue) {
+        return 'Workspace';
+    }
+    const normalized = rawValue.replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
+    let label = parts.length ? parts[parts.length - 1] : normalized;
+    label = label.replace(/\.json$/i, '');
+    if (!label) {
+        return 'Workspace';
+    }
+    return label;
+}
+function applyWorkspaceBranding() {
+    const workspaceName = formatWorkspaceLabel(appConfig.WORKSPACE);
+    const pageTitle = workspaceName === 'Workspace' ? 'NoteBooks' : workspaceName;
+    document.title = pageTitle;
+
+    const overlayHeading = document.getElementById('guideOverlayHeading');
+    if (overlayHeading) {
+        overlayHeading.textContent = `Welcome to ${pageTitle}`;
+    }
+
+    const brandSubtitle = document.getElementById('brandSubtitle');
+    if (brandSubtitle) {
+        brandSubtitle.textContent = `${workspaceName} workspace`;
+    }
+
+    const workspaceHeader = document.getElementById('workspaceHeader');
+    if (workspaceHeader) {
+        workspaceHeader.textContent = pageTitle;
+    }
+
+    const sidebarAccountMeta = document.getElementById('sidebarAccountMeta');
+    if (sidebarAccountMeta) {
+        sidebarAccountMeta.textContent = workspaceName === 'Workspace'
+            ? 'Access your workspace'
+            : `Access your ${workspaceName} workspace`;
+    }
+
+    const sidebarBrandTitle = document.getElementById('sidebarBrandTitle');
+    if (sidebarBrandTitle) {
+        sidebarBrandTitle.textContent = 'NoteBooks';
+    }
+
+    const installerLogoName = document.getElementById('installerLogoName');
+    if (installerLogoName) {
+        installerLogoName.textContent = `Setup ${pageTitle}`;
+    }
+
+    const installerSubtitle = document.getElementById('installerSubtitle');
+    if (installerSubtitle) {
+        installerSubtitle.textContent = `Configures your new ${pageTitle} installation`;
+    }
+}
+
 async function fetchConfig() {
     try {
         const res = await fetch('/api/config');
@@ -97,6 +154,17 @@ function showStatus(message, isLoading = false) {
         statusEl.classList.remove("visible");
     }, 3000);
 }
+let currentBuildTimestamp = 0;
+let latestKnownSignalId = '';
+const UPDATE_POLL_INTERVAL = 30_000;
+const PRESERVED_LOCAL_STORAGE_KEYS = [
+    'theme',
+    'sidebarWidth',
+    'sidebarCollapsed',
+    'authToken',
+    'lastViewedPath'
+];
+
 function notifyRefreshSignal(type, message) {
     if (type === 'directory') {
         showStatus(`Repository update detected: ${message}`);
@@ -105,6 +173,148 @@ function notifyRefreshSignal(type, message) {
         showStatus(`File update detected: ${message}`);
     }
 }
+
+async function clearAppCaches() {
+    try {
+        if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+        }
+
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage('CLEAR_CACHE');
+        }
+
+        if ('indexedDB' in window && typeof indexedDB.databases === 'function') {
+            try {
+                const dbs = await indexedDB.databases();
+                await Promise.all(dbs.map((db) => new Promise((resolve) => {
+                    if (!db.name) {
+                        return resolve(null);
+                    }
+                    const request = indexedDB.deleteDatabase(db.name);
+                    request.onsuccess = () => resolve(null);
+                    request.onerror = () => resolve(null);
+                    request.onblocked = () => resolve(null);
+                })));
+            }
+            catch (error) {
+                console.warn('[cache] IndexedDB purge failed', error);
+            }
+        }
+
+        const preserved = {};
+        PRESERVED_LOCAL_STORAGE_KEYS.forEach((key) => {
+            const value = localStorage.getItem(key);
+            if (value !== null) {
+                preserved[key] = value;
+            }
+        });
+        localStorage.clear();
+        Object.entries(preserved).forEach(([key, value]) => {
+            localStorage.setItem(key, value);
+        });
+    }
+    catch (error) {
+        console.warn('[cache] Failed to clear app caches', error);
+    }
+}
+
+function showUpdateBanner(message = 'Update detected. Refresh now to apply changes.') {
+    const updateNotice = document.getElementById('updateNotice');
+    if (!updateNotice)
+        return;
+    const textNode = updateNotice.querySelector('span');
+    if (textNode)
+        textNode.textContent = message;
+    updateNotice.style.display = 'flex';
+}
+
+function scheduleReload(delay = 3000) {
+    setTimeout(() => {
+        showStatus('Reloading to apply updates...');
+        window.location.reload();
+    }, delay);
+}
+
+async function getAppVersion() {
+    try {
+        const res = await fetch(`/api/version?ts=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok)
+            throw new Error(`Version check failed: ${res.status}`);
+        return await res.json();
+    }
+    catch (error) {
+        console.warn('[update] version check failed', error);
+        return null;
+    }
+}
+
+async function getLatestCommitSignal() {
+    try {
+        const res = await fetch(`/api/latest-commit?ts=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok)
+            throw new Error(`Latest commit check failed: ${res.status}`);
+        return await res.json();
+    }
+    catch (error) {
+        console.warn('[update] latest commit check failed', error);
+        return null;
+    }
+}
+
+async function applyDirectoryUpdate(signal) {
+    notifyRefreshSignal('directory', signal.reason || signal.signal);
+    await clearAppCaches();
+    treeRoot = null;
+    fileIndex = [];
+    currentNode = null;
+    await fetchTree();
+}
+
+async function applyFileUpdate(signal) {
+    notifyRefreshSignal('file', signal.reason || signal.signal);
+    treeRoot = null;
+    fileIndex = [];
+    currentNode = null;
+    await fetchTree();
+}
+
+async function checkForAppUpdates() {
+    try {
+        const version = await getAppVersion();
+        if (version?.buildTimestamp) {
+            if (currentBuildTimestamp && version.buildTimestamp !== currentBuildTimestamp) {
+                showUpdateBanner('New deployment detected. Reloading now.');
+                await clearAppCaches();
+                scheduleReload(1500);
+                currentBuildTimestamp = version.buildTimestamp;
+                return;
+            }
+            currentBuildTimestamp = version.buildTimestamp;
+        }
+
+        const latest = await getLatestCommitSignal();
+        if (latest?.latestSignal?.signal && latest.latestSignal.signal !== latestKnownSignalId) {
+            latestKnownSignalId = latest.latestSignal.signal;
+            if (latest.latestSignal.type === 'directory') {
+                await applyDirectoryUpdate(latest.latestSignal);
+            }
+            else {
+                await applyFileUpdate(latest.latestSignal);
+            }
+        }
+    }
+    catch (error) {
+        console.warn('[update] polling failed', error);
+    }
+}
+
+async function startUpdatePolling() {
+    await checkForAppUpdates();
+    setInterval(() => checkForAppUpdates(), UPDATE_POLL_INTERVAL);
+}
+
 async function refreshFromSignal(payload) {
     if (!payload || !payload.signal)
         return;
@@ -1526,6 +1736,8 @@ window.addEventListener("DOMContentLoaded", async () => {
         });
     }
     await fetchConfig();
-    fetchTree();
+    applyWorkspaceBranding();
+    await startUpdatePolling();
+    await fetchTree();
     maybeShowVercelPopup();
 });
