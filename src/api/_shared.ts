@@ -1,5 +1,4 @@
 import { Octokit } from '@octokit/rest';
-import { createAppAuth } from '@octokit/auth-app';
 import { readFile } from 'fs/promises';
 import path from 'path';
 
@@ -71,6 +70,7 @@ export async function getOctokit(options: { allowUnauthenticated?: boolean } = {
   const installationId = process.env.GITHUB_APP_INSTALLATION_ID?.trim();
 
   if (appId && privateKey && installationId) {
+    const { createAppAuth } = await import('@octokit/auth-app');
     const appAuth = createAppAuth({
       appId: Number(appId),
       privateKey,
