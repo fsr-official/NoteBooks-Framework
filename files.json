@@ -1,92 +1,44 @@
 {
   "type": "folder",
   "name": "NoteBooks-Framework",
+  "path": "",
   "children": [
     {
       "type": "file",
-      "name": "EDITOR_UPGRADES.md",
-      "path": "EDITOR_UPGRADES.md"
-    },
-    {
-      "type": "file",
       "name": "GITHUB-REPOSITORIES.md",
-      "path": "GITHUB-REPOSITORIES.md"
-    },
-    {
-      "type": "file",
-      "name": "IMPLEMENTATION_SUMMARY.md",
-      "path": "IMPLEMENTATION_SUMMARY.md"
+      "path": "GITHUB-REPOSITORIES.md",
+      "sha": "493d13fa30b8ee35249e5297518e5f3f5db09f3f3c8224d3242d3911b8c9f120"
     },
     {
       "type": "file",
       "name": "LICENSE",
-      "path": "LICENSE"
-    },
-    {
-      "type": "file",
-      "name": "PHASE0-PLAN.md",
-      "path": "PHASE0-PLAN.md"
+      "path": "LICENSE",
+      "sha": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
     },
     {
       "type": "file",
       "name": "README.md",
-      "path": "README.md"
+      "path": "README.md",
+      "sha": "b5b26512894bb22b1e3ae3dca6d9960499938e4e2073ddffcd123a3676addaa7"
     },
     {
       "type": "folder",
       "name": "docs",
+      "path": "docs",
       "children": [
         {
           "type": "file",
           "name": "CACHE_SYSTEM.md",
-          "path": "docs/CACHE_SYSTEM.md"
+          "path": "docs/CACHE_SYSTEM.md",
+          "sha": "b23fc55fc0ee6962aabcd76f60cca9a906bb9bfd1bcaf8e5f0ba4138df8e032b"
         },
         {
           "type": "file",
           "name": "WEBHOOK_SETUP.md",
-          "path": "docs/WEBHOOK_SETUP.md"
+          "path": "docs/WEBHOOK_SETUP.md",
+          "sha": "ebc6915787fe7676222aab5ba73b0928a14d7d37e77d1cb440234d0e8bd35088"
         }
       ]
-    },
-    {
-      "type": "file",
-      "name": "files.json",
-      "path": "files.json"
-    },
-    {
-      "type": "file",
-      "name": "repo-registry.json",
-      "path": "repo-registry.json"
-    },
-    {
-      "type": "file",
-      "name": "tsconfig.client.compat.json",
-      "path": "tsconfig.client.compat.json"
-    },
-    {
-      "type": "file",
-      "name": "tsconfig.client.json",
-      "path": "tsconfig.client.json"
-    },
-    {
-      "type": "file",
-      "name": "tsconfig.json",
-      "path": "tsconfig.json"
-    },
-    {
-      "type": "file",
-      "name": "tsconfig.server.json",
-      "path": "tsconfig.server.json"
-    },
-    {
-      "type": "file",
-      "name": "vercel.json",
-      "path": "vercel.json"
-    },
-    {
-      "type": "file",
-      "name": "version.json",
-      "path": "version.json"
     }
   ]
 }
