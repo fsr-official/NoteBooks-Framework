@@ -23,6 +23,19 @@
     },
     {
       "type": "folder",
+      "name": "api",
+      "path": "api",
+      "children": [
+        {
+          "type": "file",
+          "name": "[...all].ts",
+          "path": "api/[...all].ts",
+          "sha": "4b8e64fb65974889f51c6b5c55717992e71075704dacb4688ff7ede26c55d95b"
+        }
+      ]
+    },
+    {
+      "type": "folder",
       "name": "docs",
       "path": "docs",
       "children": [
