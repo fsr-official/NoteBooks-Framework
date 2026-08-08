@@ -75,7 +75,7 @@ const FILE_ICONS = {
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js").then(() => {
+    navigator.serviceWorker.register("service-worker.js?v=20260808-pathfix").then(() => {
         console.log("Service Worker registered");
     }).catch(err => {
         console.error("SW registration failed:", err);
@@ -360,6 +360,12 @@ function navigateToSidebarNode(path) {
 function getNodePath(node) {
     return String(node?.path || node?.name || '').replace(/^\/+|\/+$/g, '');
 }
+function getNodeRepositoryPath(nodeOrPath, explicitRepoPath = '') {
+    if (explicitRepoPath)
+        return String(explicitRepoPath).replace(/^\/+/, '');
+    const value = typeof nodeOrPath === 'object' ? nodeOrPath?.path : nodeOrPath;
+    return String(value || '').replace(/^\/+/, '');
+}
 function getNodeDetails(node) {
     const children = Array.isArray(node?.children) ? node.children : [];
     const files = children.filter((child) => child.type === 'file').length;
@@ -479,7 +485,7 @@ function createSidebarTreeItem(node, query) {
     label.onclick = () => {
         setActiveTreePath(nodePath);
         if (node.type === 'file') {
-            openPreview(node.path, node.name, node.repo, node.branch, node.repoPath);
+                openPreview(node.path, node.name, node.repo, node.branch, getNodeRepositoryPath(node, node.repoPath));
         }
         else {
             navigateToSidebarNode(node.path);
@@ -936,13 +942,14 @@ function handlePreview() {
 function handleDownload() {
     if (selected && selected.type === "file") {
         const a = document.createElement("a");
-        let downloadUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(selected.path)}`;
+        const selectedRepoPath = getNodeRepositoryPath(selected, selected.repoPath);
+        let downloadUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(selected.repo ? selectedRepoPath : selected.path)}`;
         if (selected.repo) {
             const branch = selected.branch || appConfig.GITHUB_BRANCH;
-            downloadUrl = `https://raw.githubusercontent.com/${selected.repo}/${branch}/${selected.repoPath || selected.path}`;
+            downloadUrl = `https://raw.githubusercontent.com/${selected.repo}/${branch}/${selectedRepoPath}`;
         }
         else if (appConfig.GITPAGE_URL) {
-            const pagesUrl = buildPagesUrl(selected.path);
+            const pagesUrl = buildPagesUrl(selectedRepoPath);
             if (pagesUrl)
                 downloadUrl = pagesUrl;
         }
@@ -1145,11 +1152,12 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
         setTimeout(() => toggleFullscreen(id, true), 100);
 }
 // ─── fetchFileContent ─────────────────────────────────────────────────────────
-async function fetchFileContent(path, filename, container, winElement = null) {
+async function fetchFileContent(path, filename, container, winElement = null, repo = '', branch = '', repoPath = '') {
     const ext = (filename.includes('.') ? filename : path).split('.').pop().toLowerCase();
     container.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;"><span class="loader"></span> Loading...</div>';
     const isGitHubPages = window.location.hostname.endsWith('github.io');
     const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const repoName = repo ? String(repo).split('/').pop() : '';
     // In local development, try direct file access first (for static servers like `serve`)
     // On GitHub Pages, use raw.githubusercontent.com
     // On Vercel, use /api/raw endpoint
@@ -1167,7 +1175,14 @@ async function fetchFileContent(path, filename, container, winElement = null) {
     }
     const fetchUrl = (p) => {
         if (repo) {
-            return `https://raw.githubusercontent.com/${repo}/${branch || appConfig.GITHUB_BRANCH}/${repoPath || p}`;
+            const pagesBase = pagesBaseForRepository(repo);
+            const rawSourcePath = String(repoPath || p || '').replace(/^\/+/, '');
+            const sourcePath = repoPath
+                ? rawSourcePath
+                : (repoName && rawSourcePath.startsWith(`${repoName}/`) ? rawSourcePath.slice(repoName.length + 1) : rawSourcePath);
+            return pagesBase
+                ? `${pagesBase}${sourcePath}`
+                : `https://raw.githubusercontent.com/${repo}/${branch || appConfig.GITHUB_BRANCH}/${sourcePath}`;
         }
         const pagesUrl = buildPagesUrl(p);
         if (pagesUrl) {
@@ -1182,10 +1197,23 @@ async function fetchFileContent(path, filename, container, winElement = null) {
     const fetchUrlWithFallback = async (p) => {
         if (repo) {
             const rawUrl = fetchUrl(p);
-            const response = await fetch(rawUrl);
-            if (!response.ok)
-                throw new Error(`HTTP ${response.status}`);
-            return await response.text();
+            try {
+                const response = await fetch(rawUrl, { cache: 'no-store' });
+                if (response.ok)
+                    return await response.text();
+            }
+            catch (error) {
+                console.warn('[file] Pages file read failed:', error);
+            }
+            const rawSourcePath = String(repoPath || p || '').replace(/^\/+/, '');
+            const sourcePath = repoPath
+                ? rawSourcePath
+                : (repoName && rawSourcePath.startsWith(`${repoName}/`) ? rawSourcePath.slice(repoName.length + 1) : rawSourcePath);
+            const cdnUrl = `https://cdn.jsdelivr.net/gh/${repo}@${branch || appConfig.GITHUB_BRANCH || 'main'}/${sourcePath}`;
+            const cdnResponse = await fetch(cdnUrl, { cache: 'no-store' });
+            if (!cdnResponse.ok)
+                throw new Error(`HTTP ${cdnResponse.status}`);
+            return await cdnResponse.text();
         }
         const pagesUrl = buildPagesUrl(p);
         if (pagesUrl) {
@@ -1268,10 +1296,7 @@ async function fetchFileContent(path, filename, container, winElement = null) {
         }
         else {
             try {
-                const response = await fetch(resolveRawUrl());
-                if (!response.ok)
-                    throw new Error(`HTTP ${response.status}`);
-                const text = await response.text();
+                const text = await fetchUrlWithFallback(path);
                 container.innerHTML = `<pre style="margin:0;white-space:pre-wrap;font-family:Consolas,monospace;font-size:13px;line-height:1.5">${escapeHTML(text)}</pre>`;
             }
             catch (error) {

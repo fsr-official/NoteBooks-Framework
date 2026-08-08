@@ -55,10 +55,10 @@ async function serveLocalFile(filePath, res) {
     }
 }
 async function handler(req, res) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         return res.status(204).end();
     }
     if (req.method !== 'GET') {
@@ -76,6 +76,12 @@ async function handler(req, res) {
         }
         const { owner, repo } = repoCfg;
         let repoPath = filePath;
+        const configuredRepoName = repoCfg.repo.toLowerCase();
+        const configuredRepoFolder = configuredRepoName.split('/').pop() || '';
+        const requestedParts = repoPath.split('/').filter(Boolean);
+        if (requestedParts.length > 1 && configuredRepoFolder && requestedParts[0].toLowerCase() === configuredRepoFolder.toLowerCase()) {
+            repoPath = requestedParts.slice(1).join('/');
+        }
         const rawMatch = filePath.match(/^https?:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+\/(.+)$/);
         if (rawMatch) {
             repoPath = rawMatch[1];

@@ -73,7 +73,21 @@ function createApp() {
     (0, auth_1.assertAuthConfig)();
     const app = (0, express_1.default)();
     const projectDir = path_1.default.resolve(process.cwd());
-    app.use((0, helmet_1.default)());
+    app.use((0, helmet_1.default)({
+        contentSecurityPolicy: {
+            directives: {
+                connectSrc: [
+                    "'self'",
+                    'https://*.github.io',
+                    'https://cdn.jsdelivr.net',
+                    'https://raw.githubusercontent.com'
+                ],
+                imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
+                mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
+                frameSrc: ["'self'", 'https://docs.google.com', 'https://*.github.io']
+            }
+        }
+    }));
     app.use(express_1.default.json({ limit: '25mb' }));
     app.use(express_1.default.urlencoded({ extended: true }));
     app.get('/health', (_req, res) => {

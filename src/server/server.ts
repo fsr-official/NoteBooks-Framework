@@ -39,7 +39,21 @@ export function createApp() {
   const app = express();
   const projectDir = path.resolve(process.cwd());
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        connectSrc: [
+          "'self'",
+          'https://*.github.io',
+          'https://cdn.jsdelivr.net',
+          'https://raw.githubusercontent.com'
+        ],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
+        mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
+        frameSrc: ["'self'", 'https://docs.google.com', 'https://*.github.io']
+      }
+    }
+  }));
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ extended: true }));
 

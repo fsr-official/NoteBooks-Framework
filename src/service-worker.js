@@ -4,7 +4,7 @@
 //   - files.json → Network-first (always fresh)
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
-const CACHE_VERSION = 'webman-v5';
+const CACHE_VERSION = 'webman-v6';
 const OFFLINE_PAGE = 'offline.html';
 const APP_SHELL = [
     './',
