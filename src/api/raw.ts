@@ -87,7 +87,7 @@ export default async function handler(req: Request, res: Response) {
     return res.status(204).end();
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 

@@ -117,15 +117,36 @@ export function createApp() {
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'blob:',
+          'https://cdn.jsdelivr.net',
+          'https://cdnjs.cloudflare.com',
+          'https://www.google.com'
+        ],
+        scriptSrcAttr: ["'unsafe-inline'"],
+        scriptSrcElem: [
+          "'self'",
+          'blob:',
+          'https://cdn.jsdelivr.net',
+          'https://cdnjs.cloudflare.com',
+          'https://www.google.com'
+        ],
+        workerSrc: ["'self'", 'blob:'],
         connectSrc: [
           "'self'",
           'https://*.github.io',
           'https://cdn.jsdelivr.net',
-          'https://raw.githubusercontent.com'
+          'https://raw.githubusercontent.com',
+          'https://www.google.com',
+          'https://cdnjs.cloudflare.com'
         ],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
         mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
-        frameSrc: ["'self'", 'https://docs.google.com', 'https://*.github.io']
+        frameSrc: ["'self'", 'https://docs.google.com', 'https://*.github.io'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com', 'https://www.google.com']
       }
     }
   }));

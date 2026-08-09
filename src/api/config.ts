@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 
 export default function handler(req: Request, res: Response) {
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
