@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 
 export default function handler(req: Request, res: Response) {
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -11,6 +11,7 @@ export default function handler(req: Request, res: Response) {
     GITHUB_BRANCH: process.env.GITHUB_BRANCH || 'main',
     APP_URL: process.env.APP_URL || '',
     GITPAGE_URL: process.env.GITPAGE_URL || 'https://fsr-science.github.io/NCERT-Science/',
-    RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || ''
+    RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY || '',
+    WORKSPACE: process.env.WORKSPACE || ''
   });
 }

@@ -31,6 +31,27 @@ const MIME_TYPES: Record<string, string> = {
   json: 'application/json'
 };
 
+function normalizeRequestedPath(rawPath: string) {
+  return String(rawPath || '').replace(/^\/+/, '').replace(/\\/g, '/');
+}
+
+function getRepoRelativePath(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) {
+  let normalizedPath = normalizeRequestedPath(filePath);
+  const repoFolder = String(repoCfg.repo).split('/').pop()?.toLowerCase() || '';
+  const rootPrefix = normalizeRequestedPath(repoCfg.root || '');
+  const prefixes = [repoFolder, rootPrefix].filter(Boolean);
+
+  for (const prefix of prefixes) {
+    const lowerPrefix = prefix.toLowerCase();
+    if (normalizedPath.toLowerCase().startsWith(`${lowerPrefix}/`)) {
+      normalizedPath = normalizedPath.slice(prefix.length + 1);
+      break;
+    }
+  }
+
+  return normalizedPath;
+}
+
 async function serveLocalFile(filePath: string, res: Response) {
   const projectRoot = process.cwd();
   const normalizedPath = normalize(filePath).replace(/^(\.\.(\/|\\|$))+/g, '');
@@ -66,11 +87,11 @@ export default async function handler(req: Request, res: Response) {
     return res.status(204).end();
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const filePath = req.query.path as string | undefined;
+  const filePath = normalizeRequestedPath(String(req.query.path || ''));
   if (!filePath) {
     return res.status(400).json({ error: 'Missing path query parameter' });
   }
@@ -84,17 +105,15 @@ export default async function handler(req: Request, res: Response) {
     const { owner, repo } = repoCfg;
 
     let repoPath = filePath;
-    const configuredRepoName = repoCfg.repo.toLowerCase();
-    const configuredRepoFolder = configuredRepoName.split('/').pop() || '';
-    const requestedParts = repoPath.split('/').filter(Boolean);
-    if (requestedParts.length > 1 && configuredRepoFolder && requestedParts[0].toLowerCase() === configuredRepoFolder.toLowerCase()) {
-      repoPath = requestedParts.slice(1).join('/');
-    }
     const rawMatch = filePath.match(/^https?:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+\/(.+)$/);
     if (rawMatch) {
       repoPath = rawMatch[1];
-    } else if (filePath.startsWith('http')) {
+    }
+    else if (filePath.startsWith('http')) {
       return res.status(400).json({ error: 'Unsupported URL format for path parameter' });
+    }
+    else {
+      repoPath = getRepoRelativePath(filePath, repoCfg);
     }
 
     const branch = repoCfg.branch || process.env.GITHUB_BRANCH || 'main';
@@ -119,7 +138,8 @@ export default async function handler(req: Request, res: Response) {
 
     let buffer: Buffer;
     if (downloadUrl) {
-      const rawRes = await fetch(downloadUrl);
+      const authToken = (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
+      const rawRes = await fetch(downloadUrl, authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : undefined);
       if (!rawRes.ok) {
         return res.status(rawRes.status).json({ error: 'Failed to fetch raw file' });
       }
