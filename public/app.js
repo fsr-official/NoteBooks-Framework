@@ -1453,7 +1453,6 @@ async function fetchFileContent(path, filename, container, winElement = null, re
                 // Continue to local/API fallback.
             }
         }
-        const directUrl = `${window.location.origin}/${p}`;
         const apiUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(p)}`;
         const directUrl = localFileUrl(p);
         try {

@@ -124,15 +124,18 @@ export function createApp() {
           'blob:',
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
-          'https://www.google.com'
+          'https://www.google.com',
+          'https://www.gstatic.com'
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         scriptSrcElem: [
           "'self'",
+          "'unsafe-inline'",
           'blob:',
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
-          'https://www.google.com'
+          'https://www.google.com',
+          'https://www.gstatic.com'
         ],
         workerSrc: ["'self'", 'blob:'],
         connectSrc: [
@@ -141,12 +144,14 @@ export function createApp() {
           'https://cdn.jsdelivr.net',
           'https://raw.githubusercontent.com',
           'https://www.google.com',
+          'https://www.gstatic.com',
           'https://cdnjs.cloudflare.com'
         ],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
         mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
-        frameSrc: ["'self'", 'https://docs.google.com', 'https://*.github.io'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com', 'https://www.google.com']
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        frameSrc: ["'self'", 'https://docs.google.com', 'https://*.github.io', 'https://www.google.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com', 'https://www.google.com', 'https://fonts.googleapis.com']
       }
     }
   }));
@@ -199,6 +204,14 @@ export function createApp() {
 
   app.get('/index.html', (_req, res) => {
     res.sendFile(path.join(projectDir, 'index.html'));
+  });
+
+  app.get('/manifest.json', (_req, res) => {
+    res.sendFile(path.join(projectDir, 'manifest.json'));
+  });
+
+  app.get('/favicon.png', (_req, res) => {
+    res.sendFile(path.join(projectDir, 'favicon.png'));
   });
 
   // Serve public static assets under /public and also as the root public directory.
