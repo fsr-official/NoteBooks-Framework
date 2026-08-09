@@ -1,4 +1,5 @@
 import argparse
+import concurrent.futures
 import fnmatch
 import hashlib
 import json
@@ -7,6 +8,8 @@ from pathlib import Path
 
 EXCLUDED_ROOT_FILES = {
     "*.json",
+    "dist",
+    "api",
     "fmtree.py",
     "index.html",
     "favicon.png",
@@ -36,6 +39,8 @@ EXCLUDED_ROOT_DIRS = {
     "public",
     "tests",
 }
+
+ALLOWED_EXTENSIONS = {'.md', '.txt', '.pdf'}
 
 def parse_registry(markdown_path):
     """Convert the repository table in GITHUB-REPOSITORIES.md to JSON."""
@@ -69,7 +74,7 @@ def parse_registry(markdown_path):
 def file_sha256(path):
     digest = hashlib.sha256()
     with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+        for chunk in iter(lambda: stream.read(4 * 1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
 
@@ -78,33 +83,54 @@ def is_excluded_root_file(name):
     return any(fnmatch.fnmatch(name, pattern) for pattern in EXCLUDED_ROOT_FILES)
 
 
-def build_tree(path, rel_path=""):
-    tree = []
-    for name in sorted(os.listdir(path)):
-        if name.startswith('.'):
-            continue  # skip hidden
-        full_path = os.path.join(path, name)
-        rel_file_path = os.path.join(rel_path, name).replace("\\", "/")
+def is_allowed_file(name):
+    return Path(name).suffix.lower() in ALLOWED_EXTENSIONS
 
-        if os.path.isdir(full_path):
-            if rel_path == "" and name in EXCLUDED_ROOT_DIRS:
+
+def build_tree(path, rel_path="", executor=None):
+    tree = []
+    with os.scandir(path) as it:
+        entries = [entry for entry in it if not entry.name.startswith('.')]
+
+    for entry in sorted(entries, key=lambda e: e.name):
+        full_path = entry.path
+        rel_file_path = os.path.join(rel_path, entry.name).replace("\\", "/")
+
+        if entry.is_dir(follow_symlinks=False):
+            if rel_path == "" and entry.name in EXCLUDED_ROOT_DIRS:
                 continue  # skip root-level directory exclusions
             tree.append({
                 "type": "folder",
-                "name": name,
+                "name": entry.name,
                 "path": rel_file_path,
-                "children": build_tree(full_path, rel_file_path)
+                "children": build_tree(full_path, rel_file_path, executor)
             })
-        else:
-            if rel_path == "" and is_excluded_root_file(name):
-                continue  # skip root-level file exclusions
-            tree.append({
+        elif entry.is_file(follow_symlinks=False):
+            if not is_allowed_file(entry.name):
+                continue  # only include allowed file types
+            node = {
                 "type": "file",
-                "name": name,
+                "name": entry.name,
                 "path": rel_file_path,
-                "sha": file_sha256(Path(full_path)),
-            })
+                "sha": None,
+            }
+            if executor is not None:
+                node["_sha_future"] = executor.submit(file_sha256, Path(full_path))
+            else:
+                node["sha"] = file_sha256(Path(full_path))
+            tree.append(node)
     return tree
+
+
+def resolve_file_hashes(tree):
+    for node in tree:
+        if node["type"] == "folder":
+            resolve_file_hashes(node["children"])
+        elif node["type"] == "file":
+            future = node.pop("_sha_future", None)
+            if future is not None:
+                node["sha"] = future.result()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate the local files manifest and repo registry.")
@@ -114,12 +140,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     root_dir = Path(args.root).resolve()
-    tree = {
-        "type": "folder",
-        "name": root_dir.name,
-        "path": "",
-        "children": build_tree(root_dir)
-    }
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
+        tree = {
+            "type": "folder",
+            "name": root_dir.name,
+            "path": "",
+            "children": build_tree(root_dir, executor=executor)
+        }
+        resolve_file_hashes(tree["children"])
+
     Path(args.output).write_text(json.dumps(tree, indent=2) + "\n", encoding="utf-8")
 
     registry = parse_registry(root_dir / "GITHUB-REPOSITORIES.md")
