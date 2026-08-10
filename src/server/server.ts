@@ -13,6 +13,7 @@ import * as prReview from '../api/pr-review';
 import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal';
 import desmosHandler from '../api/desmos';
 import authHandler, { assertAuthConfig } from '../api/auth';
+import createForumRouter from '../api/forum';
 import { buildLocalFilesManifest } from '../api/files-manifest';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -312,6 +313,7 @@ export function createApp() {
   app.use('/api/auth', authLimiter);
   app.all('/api/auth', authHandler);
   app.all('/api/auth.js', authHandler);
+  app.use('/api/forum', createForumRouter());
   app.post('/api/gh', ghHandler);
   app.post('/api/gh.js', ghHandler);
   app.post('/api/blob', blobHandler);
