@@ -12,7 +12,5 @@ bin/**/*.js
 !bin/tikzjax/
 !bin/fonts/
 community.zip
-memories/
-tests/
 dist/
 .vercel
