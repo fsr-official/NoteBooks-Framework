@@ -392,8 +392,17 @@
     </div>
   </div>
 
-  <div class="app-shell">
-    <aside class="app-sidebar" id="appSidebar">
+<div class="workspace-utility-bar" role="toolbar" aria-label="Workspace controls">
+  <div class="utility-brand"><span class="utility-mark">N</span><div><strong id="utilityWorkspaceTitle">NoteBooks</strong><span>Markdown workspace</span></div></div>
+  <div class="utility-status" id="workspaceStatus" role="status" aria-live="polite">Ready</div>
+  <div class="utility-actions">
+    <button class="utility-button" type="button" onclick="refreshFiles()">Refresh</button>
+    <button class="utility-button" type="button" onclick="showUploadScreen()">Upload</button>
+    <button class="utility-button utility-button--accent" type="button" onclick="showLoginScreen()">Account</button>
+  </div>
+</div>
+<div class="app-shell">
+  <aside class="app-sidebar legacy-sidebar" id="appSidebar">
       <div class="sidebar-brand">
         <div class="brand-mark">N</div>
         <div>
@@ -478,9 +487,15 @@
         <div class="sidebar-tree" id="sidebarTree" role="tree" aria-label="Repository files and folders">
           <div class="sidebar-tree-empty">Loading file tree…</div>
         </div>
-        <div class="tree-hover-details" id="treeHoverDetails" role="tooltip" aria-live="polite" hidden></div>
-      </div>
-    </aside>
+  <div class="tree-hover-details" id="treeHoverDetails" role="tooltip" aria-live="polite" hidden></div>
+  </div>
+  <section class="theme-panel" aria-labelledby="themePanelTitle">
+    <div class="theme-panel-heading"><div><span class="tree-rail-kicker">Appearance</span><h2 id="themePanelTitle">Theme studio</h2></div></div>
+    <label class="theme-field">Preset<select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic tech</option><option value="contrast">Dark contrast</option><option value="neon">Neon</option><option value="professional">Professional</option><option value="classic">Classic / GitHub</option><option value="custom">Custom</option></select></label>
+    <div class="theme-grid"><label class="theme-field">Accent<input id="themeAccent" type="color" value="#34d399" onchange="updateCustomTheme('accent', this.value)"></label><label class="theme-field">Surface<input id="themeSurface" type="color" value="#0f172a" onchange="updateCustomTheme('surface', this.value)"></label><label class="theme-field">Text<input id="themeText" type="color" value="#e2e8f0" onchange="updateCustomTheme('text', this.value)"></label><label class="theme-field">Code<input id="themeCode" type="color" value="#020617" onchange="updateCustomTheme('code', this.value)"></label></div>
+    <label class="theme-field">Type<select id="themeFont" onchange="updateCustomTheme('font', this.value)"><option value="Inter">Inter</option><option value="system-ui">System UI</option><option value="Georgia">Georgia</option><option value="JetBrains Mono">JetBrains Mono</option></select></label>
+  </section>
+  </aside>
   </div>
 
   <div class="context-menu" id="contextMenu">

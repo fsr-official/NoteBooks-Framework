@@ -61,6 +61,17 @@ window.initializeMarkdownRenderer = function () {
         },
         resolveTag: function (tag) { return '#tag-' + encodeURIComponent(tag); }
     });
+    /* Keep fence metadata honest: unlabeled fences stay neutral and never receive an inferred language. */
+    md.renderer.rules.fence = function (tokens, idx, options, env, self) {
+        var token = tokens[idx];
+        var info = String(token.info || '').trim();
+        var language = info.split(/\s+/)[0] || '';
+        var safeLanguage = language.replace(/[^a-zA-Z0-9_-]/g, '');
+        var className = safeLanguage ? ' class="language-' + safeLanguage + '"' : '';
+        var label = language ? '<span class="code-language-label">' + language.replace(/[&<>"']/g, function (c) { return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]; }) + '</span>' : '';
+        var code = token.content.replace(/[&<>"']/g, function (c) { return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]; });
+        return '<div class="code-block-shell">' + label + '<pre><code' + className + '>' + code + '</code></pre></div>\n';
+    };
     /* Inject companion CSS once */
     if (!document.getElementById('obsidian-plugin-css') && typeof window.obsidianGetCSS === 'function') {
         var styleEl = document.createElement('style');
