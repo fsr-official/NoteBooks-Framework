@@ -459,7 +459,7 @@ async function createTopic(req: Request, res: Response) {
 
 /** GET /api/forum/topics/:id */
 async function getTopic(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const topic = await kvGet<ForumTopic>(`forum:topic:${id}`, memTopics);
   if (!topic) return res.status(404).json({ error: 'Topic not found' });
 
@@ -505,7 +505,7 @@ async function createReply(req: Request, res: Response) {
   const user = requireAuth(req, res);
   if (!user) return;
 
-  const { id: topicId } = req.params;
+  const topicId = req.params.id as string;
   const { body, parentReplyId, quotedText } = req.body as {
     body?: string; parentReplyId?: string; quotedText?: string;
   };
@@ -632,7 +632,7 @@ async function toggleReaction(req: Request, res: Response) {
 
 /** GET /api/forum/users/:email */
 async function getUserProfile(req: Request, res: Response) {
-  const { email } = req.params;
+  const email = req.params.email as string;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
   const profile = await getOrCreateProfile(email);
@@ -729,12 +729,12 @@ async function deleteTopic(req: Request, res: Response) {
     const user = verifyToken(req);
     if (!user) return res.status(401).json({ error: 'Authentication required' });
     
-    const topic = await kvGet<ForumTopic>(`forum:topic:${req.params.id}`, memTopics);
+    const topic = await kvGet<ForumTopic>(`forum:topic:${req.params.id as string}`, memTopics);
     if (!topic) return res.status(404).json({ error: 'Topic not found' });
     if (topic.authorEmail !== user.email) return res.status(403).json({ error: 'Admin access required' });
   }
 
-  const { id } = req.params;
+  const id = req.params.id as string;
   const topic = await kvGet<ForumTopic>(`forum:topic:${id}`, memTopics);
   if (!topic) return res.status(404).json({ error: 'Topic not found' });
 
@@ -775,7 +775,7 @@ async function deleteReply(req: Request, res: Response) {
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Authentication required' });
 
-  const { id } = req.params;
+  const id = req.params.id as string;
   const reply = await kvGet<ForumReply>(`forum:reply:${id}`, memReplies);
   if (!reply) return res.status(404).json({ error: 'Reply not found' });
 
@@ -810,7 +810,7 @@ async function deleteReply(req: Request, res: Response) {
 async function togglePin(req: Request, res: Response) {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Admin access required' });
 
-  const { id } = req.params;
+  const id = req.params.id as string;
   const topic = await kvGet<ForumTopic>(`forum:topic:${id}`, memTopics);
   if (!topic) return res.status(404).json({ error: 'Topic not found' });
 
@@ -824,7 +824,7 @@ async function togglePin(req: Request, res: Response) {
 async function toggleLock(req: Request, res: Response) {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Admin access required' });
 
-  const { id } = req.params;
+  const id = req.params.id as string;
   const topic = await kvGet<ForumTopic>(`forum:topic:${id}`, memTopics);
   if (!topic) return res.status(404).json({ error: 'Topic not found' });
 
