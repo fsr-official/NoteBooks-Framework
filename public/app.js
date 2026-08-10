@@ -1472,6 +1472,38 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             throw new Error(`HTTP ${apiResponse.status}`);
         return await apiResponse.text();
     };
+    const resolvePdfPreviewUrl = async (p) => {
+        const cleanedPath = String(p || '').replace(/^\/+/, '');
+        const directUrl = localFileUrl(cleanedPath);
+        try {
+            const response = await fetch(directUrl, { method: 'HEAD', cache: 'no-store' });
+            if (response.ok) {
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/pdf')) {
+                    return directUrl;
+                }
+                if (!contentType.includes('text/html')) {
+                    return directUrl;
+                }
+            }
+        }
+        catch (e) {
+            // ignore and fallback to API or pages
+        }
+
+        const apiUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`;
+        try {
+            const response = await fetch(apiUrl, { method: 'HEAD', cache: 'no-store' });
+            if (response.ok) {
+                return apiUrl;
+            }
+        }
+        catch (e) {
+            // ignore and fallback to static/raw path
+        }
+
+        return fetchUrl(cleanedPath);
+    };
     const rawUrl = fetchUrl(path);
     try {
         if (/\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(filename)) {
@@ -1497,7 +1529,7 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             const targetPath = repo ? (repoPath || path) : path;
             const proxied = repo
                 ? `${window.location.origin}/api/raw?path=${encodeURIComponent(targetPath)}`
-                : localFileUrl(targetPath);
+                : await resolvePdfPreviewUrl(targetPath);
             container.innerHTML = `<iframe src="${proxied}" style="flex:1;min-height:0;width:100%;border:none;display:block;"></iframe>`;
         }
         else if (ext === 'md' || ext === 'markdown') {
