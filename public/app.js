@@ -32,20 +32,20 @@ let treeInteractionStarted = false;
 const expandedTreePaths = new Set();
 const THEME_KEY = 'notebooks-theme-session';
 const THEME_PRESETS = {
-    futuristic: { accent: '#34d399', surface: '#0f172a', text: '#e2e8f0', code: '#020617', font: 'Inter' },
-    contrast: { accent: '#f8fafc', surface: '#050505', text: '#ffffff', code: '#000000', font: 'system-ui' },
-    neon: { accent: '#f472b6', surface: '#17112d', text: '#fdf4ff', code: '#0b0618', font: 'JetBrains Mono' },
-    professional: { accent: '#60a5fa', surface: '#172033', text: '#e5edf8', code: '#0d1524', font: 'Inter' },
-    classic: { accent: '#0969da', surface: '#ffffff', text: '#1f2328', code: '#f6f8fa', font: 'system-ui' }
+    futuristic: { accent: '#34d399', surface: '#0f172a', text: '#e2e8f0', code: '#020617', font: 'Inter', bg: '#07111f', panel: '#102337', border: '#24445a', radius: '14px', density: '1', shadow: '0 18px 55px rgba(0,0,0,.28)', texture: 'grid', heading: 'Inter' },
+    contrast: { accent: '#f8fafc', surface: '#050505', text: '#ffffff', code: '#000000', font: 'system-ui', bg: '#000000', panel: '#0a0a0a', border: '#5b5b5b', radius: '2px', density: '.92', shadow: '0 0 0 transparent', texture: 'none', heading: 'system-ui' },
+    neon: { accent: '#f472b6', surface: '#17112d', text: '#fdf4ff', code: '#0b0618', font: 'JetBrains Mono', bg: '#0b0618', panel: '#21143b', border: '#8b5cf6', radius: '22px', density: '1.12', shadow: '0 0 28px rgba(244,114,182,.24)', texture: 'scanlines', heading: 'JetBrains Mono' },
+    professional: { accent: '#60a5fa', surface: '#172033', text: '#e5edf8', code: '#0d1524', font: 'Inter', bg: '#111827', panel: '#1f2937', border: '#334155', radius: '8px', density: '.98', shadow: '0 10px 28px rgba(0,0,0,.2)', texture: 'none', heading: 'Inter' },
+    classic: { accent: '#0969da', surface: '#ffffff', text: '#1f2328', code: '#f6f8fa', font: 'system-ui', bg: '#f6f8fa', panel: '#ffffff', border: '#d0d7de', radius: '6px', density: '.94', shadow: '0 1px 2px rgba(31,35,40,.08)', texture: 'none', heading: 'system-ui' }
 };
 function applyTheme(theme) {
     const root = document.documentElement;
     const values = { ...THEME_PRESETS.futuristic, ...theme };
-    root.style.setProperty('--accent', values.accent); root.style.setProperty('--item', values.surface);
-    root.style.setProperty('--fg', values.text); root.style.setProperty('--code-bg', values.code);
-    root.style.setProperty('--font-sans', values.font + ', Inter, sans-serif');
+    root.dataset.theme = values.texture || 'none';
+    Object.entries({ '--accent': values.accent, '--item': values.surface, '--fg': values.text, '--code-bg': values.code, '--bg': values.bg, '--panel': values.panel, '--border': values.border, '--radius': values.radius, '--density': values.density, '--shadow': values.shadow, '--font-sans': values.font + ', Inter, sans-serif', '--font-heading': values.heading + ', sans-serif' }).forEach(([key, value]) => root.style.setProperty(key, value));
     ['themeAccent','themeSurface','themeText','themeCode'].forEach((id, index) => { const el = document.getElementById(id); if (el) el.value = [values.accent, values.surface, values.text, values.code][index]; });
     const font = document.getElementById('themeFont'); if (font) font.value = values.font;
+    const preset = document.getElementById('themePreset'); if (preset) preset.value = Object.keys(THEME_PRESETS).find((name) => JSON.stringify(THEME_PRESETS[name]) === JSON.stringify(values)) || 'custom';
     sessionStorage.setItem(THEME_KEY, JSON.stringify(values));
 }
 function applyThemePreset(name) { applyTheme(THEME_PRESETS[name] || THEME_PRESETS.futuristic); }
