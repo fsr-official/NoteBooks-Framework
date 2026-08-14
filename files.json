@@ -28,9 +28,21 @@
       "children": [
         {
           "type": "file",
+          "name": "ARCHITECTURE.md",
+          "path": "docs/ARCHITECTURE.md",
+          "sha": "3f30696ff849cb8416131d7c7cf992fb1dcdbb8fbaad9e736bea64efb09c0f6f"
+        },
+        {
+          "type": "file",
           "name": "CACHE_SYSTEM.md",
           "path": "docs/CACHE_SYSTEM.md",
           "sha": "b23fc55fc0ee6962aabcd76f60cca9a906bb9bfd1bcaf8e5f0ba4138df8e032b"
+        },
+        {
+          "type": "file",
+          "name": "PHASE-PLANS.md",
+          "path": "docs/PHASE-PLANS.md",
+          "sha": "a446aeb2773206f727d1675fac769eac099806ae738ca4da8f8745f9681bf351"
         },
         {
           "type": "file",
