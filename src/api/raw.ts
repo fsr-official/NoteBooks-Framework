@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { resolve, normalize } from 'path';
-import { getOctokit, getRepoConfig } from './_shared';
+import { getRepoConfig } from './_shared';
 
 const MIME_TYPES: Record<string, string> = {
   doc: 'application/msword',
@@ -33,6 +33,22 @@ const MIME_TYPES: Record<string, string> = {
 
 function normalizeRequestedPath(rawPath: string) {
   return String(rawPath || '').replace(/^\/+/, '').replace(/\\/g, '/');
+}
+
+export function buildRawGithubUrl(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) {
+  const rawPath = normalizeRequestedPath(filePath || '');
+  const rawMatch = rawPath.match(/^https?:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+\/(.+)$/);
+  const unresolvedPath = rawMatch ? rawMatch[1] : rawPath;
+  const repoFolder = String(repoCfg.repo).split('/').pop() || '';
+  let repoRelativePath = unresolvedPath;
+
+  if (repoFolder && repoRelativePath.toLowerCase().startsWith(`${repoFolder.toLowerCase()}/`)) {
+    repoRelativePath = repoRelativePath.slice(repoFolder.length + 1);
+  }
+
+  const cleanedPath = repoRelativePath.replace(/^\/+/, '');
+  const branch = repoCfg.branch || process.env.GITHUB_BRANCH || 'main';
+  return `https://raw.githubusercontent.com/${repoCfg.owner}/${repoCfg.repo}/${branch}/${cleanedPath}`;
 }
 
 function getRepoRelativePath(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) {
@@ -97,35 +113,17 @@ export default async function handler(req: Request, res: Response) {
   }
 
   try {
-    const octokit = await getOctokit({ allowUnauthenticated: true });
     const repoCfg = await getRepoConfig();
     if (!repoCfg) {
       return serveLocalFile(filePath, res);
     }
-    const { owner, repo } = repoCfg;
 
-    let repoPath = filePath;
-    const rawMatch = filePath.match(/^https?:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+\/(.+)$/);
-    if (rawMatch) {
-      repoPath = rawMatch[1];
-    }
-    else if (filePath.startsWith('http')) {
+    if (filePath.startsWith('http') && !/^https?:\/\/raw\.githubusercontent\.com\//.test(filePath)) {
       return res.status(400).json({ error: 'Unsupported URL format for path parameter' });
     }
-    else {
-      repoPath = getRepoRelativePath(filePath, repoCfg);
-    }
 
-    const branch = repoCfg.branch || process.env.GITHUB_BRANCH || 'main';
-    const data = await octokit.repos.getContent({ owner, repo, path: repoPath, ref: branch });
-    const content = Array.isArray(data.data) ? data.data[0] : data.data;
-    const downloadUrl = (content as any)?.download_url || null;
-    const contentUrl = (content as any)?.url || null;
-
-    if (!downloadUrl && !contentUrl) {
-      return res.status(404).json({ error: 'File not found or not downloadable' });
-    }
-
+    const rawUrl = buildRawGithubUrl(filePath, repoCfg);
+    const repoPath = normalizeRequestedPath(filePath);
     const ext = repoPath.split('.').pop()?.toLowerCase() || '';
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
@@ -136,28 +134,20 @@ export default async function handler(req: Request, res: Response) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
-    let buffer: Buffer;
-    if (downloadUrl) {
-      const authToken = (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
-      const rawRes = await fetch(downloadUrl, authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : undefined);
-      if (!rawRes.ok) {
-        return res.status(rawRes.status).json({ error: 'Failed to fetch raw file' });
+    const rawRes = await fetch(rawUrl, {
+      headers: {
+        Accept: '*/*'
       }
-      buffer = Buffer.from(await rawRes.arrayBuffer());
-    } else {
-      const rawRes = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-        owner,
-        repo,
-        path: repoPath,
-        ref: branch,
-        headers: { 'X-GitHub-Api-Version': '2022-11-28' }
-      });
-      const fileData = Array.isArray(rawRes.data) ? rawRes.data[0] : rawRes.data as any;
-      const encoded = fileData?.content || '';
-      buffer = Buffer.from(encoded, 'base64');
+    });
+
+    if (!rawRes.ok) {
+      if (rawRes.status === 404) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      return res.status(rawRes.status).json({ error: 'Failed to fetch raw file' });
     }
 
-    return res.status(200).send(buffer);
+    return res.status(200).send(Buffer.from(await rawRes.arrayBuffer()));
   } catch (error: any) {
     if (error?.status === 404) {
       return res.status(404).json({ error: 'File not found' });
