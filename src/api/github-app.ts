@@ -9,8 +9,22 @@ export async function mergePrHandler(req: Request, res: Response) {
   try {
     const { prNumber, mergeMethod } = req.body || {};
     if (!prNumber) return res.status(400).json({ error: 'Missing prNumber' });
-    const cfg = await getRepoConfig();
-    if (!cfg) return res.status(500).json({ error: 'Repo not configured' });
+    const issuesTarget = process.env.GITHUB_ISSUES_REPO || process.env.GITHUB_REPO || '';
+    let owner: string | undefined;
+    let repo: string | undefined;
+    if (issuesTarget) {
+      const parts = (issuesTarget || '').split('/').filter(Boolean);
+      if (parts.length === 2) {
+        owner = parts[0];
+        repo = parts[1];
+      }
+    }
+    if (!owner || !repo) {
+      const cfg = await getRepoConfig();
+      if (!cfg) return res.status(500).json({ error: 'Repo not configured' });
+      owner = cfg.owner;
+      repo = cfg.repo;
+    }
     // Audit log the merge attempt
     try {
       const user = (req as any).auth?.email || 'unknown';
@@ -22,7 +36,7 @@ export async function mergePrHandler(req: Request, res: Response) {
       // ignore logging errors
     }
     try {
-      const merged = await gha.mergePr(cfg.owner, cfg.repo, Number(prNumber), mergeMethod || 'merge');
+      const merged = await gha.mergePr(owner as string, repo as string, Number(prNumber), mergeMethod || 'merge');
       const okEntry = { at: new Date().toISOString(), result: 'ok', prNumber: Number(prNumber) };
       try { fs.appendFileSync(path.join(process.cwd(), 'logs', 'admin-actions.log'), JSON.stringify(okEntry) + '\n'); } catch (e) {}
       return res.status(200).json({ success: true, merged });

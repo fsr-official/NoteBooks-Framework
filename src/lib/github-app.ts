@@ -39,21 +39,50 @@ export async function createDiscussionForRepo(owner: string, repo: string, title
 }
 
 export async function createPrFromContent(owner: string, repo: string, baseBranch: string, branchName: string, filePath: string, contentBase64: string, commitMessage: string, prTitle: string, prBody: string) {
-  const octokit = await getInstallationOctokitForRepo(owner, repo);
-  // Create ref
-  const mainRef = await octokit.git.getRef({ owner, repo, ref: `heads/${baseBranch}` });
-  await octokit.git.createRef({ owner, repo, ref: `refs/heads/${branchName}`, sha: mainRef.data.object.sha });
-  // Create file
-  await octokit.repos.createOrUpdateFileContents({ owner, repo, path: filePath, message: commitMessage, content: contentBase64, branch: branchName });
-  // Create PR
-  const pr = await octokit.pulls.create({ owner, repo, title: prTitle, body: prBody, head: branchName, base: baseBranch });
-  return pr.data;
+  const maxAttempts = 3;
+  let attempt = 0;
+  let lastErr: any = null;
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    try {
+      const octokit = await getInstallationOctokitForRepo(owner, repo);
+      // Create ref
+      const mainRef = await octokit.git.getRef({ owner, repo, ref: `heads/${baseBranch}` });
+      await octokit.git.createRef({ owner, repo, ref: `refs/heads/${branchName}`, sha: mainRef.data.object.sha });
+      // Create file
+      await octokit.repos.createOrUpdateFileContents({ owner, repo, path: filePath, message: commitMessage, content: contentBase64, branch: branchName });
+      // Create PR
+      const pr = await octokit.pulls.create({ owner, repo, title: prTitle, body: prBody, head: branchName, base: baseBranch });
+      return pr.data;
+    } catch (err: any) {
+      lastErr = err;
+      // If we are on the last attempt, rethrow
+      if (attempt >= maxAttempts) throw lastErr;
+      const backoff = 200 * 2 ** (attempt - 1);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+  }
+  throw lastErr;
 }
 
 export async function mergePr(owner: string, repo: string, prNumber: number, mergeMethod: 'merge' | 'squash' | 'rebase' = 'merge') {
-  const octokit = await getInstallationOctokitForRepo(owner, repo);
-  const res = await octokit.pulls.merge({ owner, repo, pull_number: prNumber, merge_method: mergeMethod });
-  return res.data;
+  const maxAttempts = 3;
+  let attempt = 0;
+  let lastErr: any = null;
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    try {
+      const octokit = await getInstallationOctokitForRepo(owner, repo);
+      const res = await octokit.pulls.merge({ owner, repo, pull_number: prNumber, merge_method: mergeMethod });
+      return res.data;
+    } catch (err: any) {
+      lastErr = err;
+      if (attempt >= maxAttempts) throw lastErr;
+      const backoff = 200 * 2 ** (attempt - 1);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+  }
+  throw lastErr;
 }
 
 export default {

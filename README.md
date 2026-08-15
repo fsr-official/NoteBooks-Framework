@@ -1,7 +1,17 @@
-# NoteBooks-Framework
+# NoteBooks Framework
 
-> A modern, structured knowledge management system for the Science Administration Department
-> Designed by the **Federation of Socialist Republics (FSR)** to centralize, organize, and democratize academic study materials
+This repository powers the NoteBooks content + community framework.
+
+Start here: [docs/DEVELOPER-ONBOARDING.md](docs/DEVELOPER-ONBOARDING.md)
+
+Quick commands:
+
+```bash
+npm ci
+node src/scripts/migrate-db.js
+npm test
+npm run dev
+```
 
 ---
 

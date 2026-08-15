@@ -435,6 +435,32 @@ export function createApp() {
   app.post('/api/submit-pr.js', permissions.requireTotpEnrolled, submitPrHandler);
   app.post('/api/refresh-signal', refreshSignalHandler);
   app.get('/api/refresh-signal', refreshSignalHandler);
+  // Subject-scoped endpoints: community posts and issues
+  app.post('/api/subject/:subject/community/post', permissions.requireAuth, (req, res) => {
+    // delegate to community handler with subject in params
+    return import('../api/community').then((m) => m.createPost(req, res));
+  });
+  app.post('/api/subject/:subject/community/post/:id/approve', permissions.requireRole('admin'), (req, res) => {
+    return import('../api/community').then((m) => m.approvePost(req, res));
+  });
+  app.post('/api/subject/:subject/issues/create', permissions.requireAuth, async (req, res) => {
+    const subject = String(req.params.subject || req.query.subject || '').trim();
+    const title = (req.body && req.body.title) || req.body.title || req.query.title;
+    const body = (req.body && req.body.body) || req.body.body || req.query.body;
+    if (!title || !body) return res.status(400).json({ error: 'Missing title or body' });
+    try {
+      const issuesTarget = process.env.GITHUB_ISSUES_REPO || '';
+      if (!issuesTarget) return res.status(500).json({ error: 'Issues repo not configured' });
+      const [owner, repo] = issuesTarget.split('/').filter(Boolean);
+      const oct = await import('../api/_shared').then((m) => m.getOctokit({ allowUnauthenticated: false }));
+      const issueBody = subject ? `[${subject}]\n\n${body}` : body;
+      const issue = await oct.issues.create({ owner, repo, title, body: issueBody }).catch((e:any) => { throw e; });
+      return res.status(201).json({ issue: issue.data });
+    } catch (err:any) {
+      console.error('[subject-issues] create failed', err);
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
+  });
   // Community endpoints (Phase 3)
   app.get('/api/community/posts', communityHandler.listPosts);
   app.post('/api/community/post', permissions.requireAuth, communityHandler.createPost);
@@ -454,6 +480,9 @@ export function createApp() {
   });
   // Admin PR listing
   app.get('/api/admin', permissions.requireRole('admin'), (req, res) => {
+    return import('../api/admin').then((m) => m.default(req, res));
+  });
+  app.post('/api/admin', permissions.requireRole('admin'), (req, res) => {
     return import('../api/admin').then((m) => m.default(req, res));
   });
   app.get('/api/latest-commit', (_req, res) => {

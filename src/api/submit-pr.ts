@@ -121,11 +121,26 @@ export default async function handler(req: Request, res: Response) {
       return res.status(503).json({ success: false, error: 'No GitHub write credentials configured. Set a PAT or GitHub App credentials.' });
     }
 
-    const repoCfg = await getRepoConfig();
-    if (!repoCfg) {
-      return res.status(500).json({ success: false, error: 'GITHUB_REPO is not configured' });
+    // Determine content repo: prefer subject-specific mapping, then configured repo registry
+    const subject = String(body.subject || '').trim() || undefined;
+    let owner: string | undefined;
+    let repo: string | undefined;
+    if (subject) {
+      const subjRepo = getSubjectRepo(subject as string);
+      if (subjRepo) {
+        owner = subjRepo.owner;
+        repo = subjRepo.repo;
+      }
     }
-    const { owner, repo } = repoCfg;
+
+    if (!owner || !repo) {
+      const repoCfg = await getRepoConfig();
+      if (!repoCfg) {
+        return res.status(500).json({ success: false, error: 'GITHUB_REPO is not configured' });
+      }
+      owner = repoCfg.owner;
+      repo = repoCfg.repo;
+    }
     // Enforce a hard cap on open PRs per account to avoid unreviewed backlog
     const maxOpenPerAccount = Number(process.env.MAX_OPEN_PRS_PER_ACCOUNT || '3');
     if (maxOpenPerAccount > 0) {
@@ -200,6 +215,14 @@ export default async function handler(req: Request, res: Response) {
       head: branchName,
       base: mainBranch
     });
+
+    try {
+      const logDir = path.join(process.cwd(), 'logs');
+      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+      fs.appendFileSync(path.join(logDir, 'admin-actions.log'), JSON.stringify({ at: new Date().toISOString(), action: 'submit-pr', owner, repo, pr: pr.data.html_url || pr.data.number }) + '\n');
+    } catch (e) {
+      // ignore logging errors
+    }
 
     return res.status(200).json({ success: true, prUrl: pr.data.html_url, prNumber: pr.data.number });
   } catch (error: any) {

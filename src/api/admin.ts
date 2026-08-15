@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db';
 import fs from 'fs';
 import path from 'path';
+import permissions from '../lib/permissions';
 import { getUser, setUser } from './auth';
 
 function appendAdminLog(entry: any) {
@@ -27,6 +28,11 @@ export async function listPrs(req: Request, res: Response) {
 }
 
 export default async function handler(req: Request, res: Response) {
+  // Enforce admin role for all admin actions as a safety net
+  const decoded = permissions.parseAuthToken(req);
+  if (!decoded || decoded.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   const action = Array.isArray(req.query.action) ? req.query.action[0] : req.query.action;
   switch (action) {
     case 'list-prs':

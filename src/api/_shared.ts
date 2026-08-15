@@ -143,3 +143,18 @@ export async function readRepoFile(filePath: string, branch?: string) {
     downloadUrl: item?.download_url || null
   };
 }
+
+export function getSubjectRepo(subject?: string) {
+  const raw = process.env.SUBJECT_REPOS || '';
+  if (!raw || !subject) return null;
+  const map = raw.split(',').map(s => s.trim()).filter(Boolean).reduce((acc: Record<string,string>, pair) => {
+    const [k,v] = pair.split('=').map(x => (x||'').trim());
+    if (k && v) acc[k] = v;
+    return acc;
+  }, {} as Record<string,string>);
+  const repo = map[subject];
+  if (!repo) return null;
+  const parts = repo.split('/').filter(Boolean);
+  if (parts.length !== 2) return null;
+  return { owner: parts[0], repo: parts[1] };
+}

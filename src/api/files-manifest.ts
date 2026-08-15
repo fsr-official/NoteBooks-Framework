@@ -70,12 +70,30 @@ export async function buildLocalFilesManifest(rootDir: string): Promise<FileMani
     const childrenBySubject: FileManifestNode[] = pairs.map(p => {
       const [key, repo] = p.split('=').map(x => (x || '').trim());
       const repoName = repo ? repo.split('/').pop() || repo : 'repo';
+      const subjectKey = normalizePath(key || repoName);
       return {
         type: 'folder',
-        name: key || repoName,
-        path: normalizePath(key || repoName),
+        name: subjectKey,
+        path: subjectKey,
         children: [
-          { type: 'folder', name: repoName, path: normalizePath(repo || repoName), children: [] }
+          {
+            type: 'folder',
+            name: repoName,
+            path: normalizePath(`${subjectKey}/${repoName}`),
+            children: []
+          },
+          {
+            type: 'folder',
+            name: 'community',
+            path: normalizePath(`${subjectKey}/community`),
+            children: []
+          },
+          {
+            type: 'folder',
+            name: 'issues',
+            path: normalizePath(`${subjectKey}/issues`),
+            children: []
+          }
         ]
       };
     });
