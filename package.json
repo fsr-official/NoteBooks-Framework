@@ -13,6 +13,8 @@
     "backend": "node dist/server/server/server.js",
     "setup": "npm run dev",
     "test": "vitest run",
+    "pretest": "node src/scripts/migrate-db.js || true",
+    "migrate": "node src/scripts/migrate-db.js",
     "typecheck": "tsc --noEmit -p tsconfig.server.json"
   },
   "devDependencies": {
@@ -38,5 +40,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.3",
     "resend": "^6.12.4"
+    ,
+    "otplib": "^12.0.1"
   }
 }

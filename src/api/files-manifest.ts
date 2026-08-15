@@ -55,12 +55,51 @@ async function walkDirectory(baseDir: string, relDir = ''): Promise<FileManifest
 export async function buildLocalFilesManifest(rootDir: string): Promise<FileManifestNode> {
   const resolvedRoot = path.resolve(rootDir);
   const children = await walkDirectory(resolvedRoot);
-  return {
+  const baseManifest: FileManifestNode = {
     type: 'folder',
     name: path.basename(resolvedRoot) || 'root',
     path: '',
     children
   };
+
+  // If SUBJECT_REPOS is provided, return a manifest that maps subjects to repo identifiers.
+  // Format: SUBJECT_REPOS="science=fsr-science/NCERT-Science,commerce=fsr-commerce/NCERT-Commerce"
+  const subj = process.env.SUBJECT_REPOS || '';
+  if (subj) {
+    const pairs = subj.split(',').map(s => s.trim()).filter(Boolean);
+    const childrenBySubject: FileManifestNode[] = pairs.map(p => {
+      const [key, repo] = p.split('=').map(x => (x || '').trim());
+      const repoName = repo ? repo.split('/').pop() || repo : 'repo';
+      return {
+        type: 'folder',
+        name: key || repoName,
+        path: normalizePath(key || repoName),
+        children: [
+          { type: 'folder', name: repoName, path: normalizePath(repo || repoName), children: [] }
+        ]
+      };
+    });
+
+    return {
+      type: 'folder',
+      name: path.basename(resolvedRoot) || 'root',
+      path: '',
+      children: childrenBySubject
+    };
+  }
+
+  const mountPrefix = process.env.MOUNT_PREFIX || process.env.APP_BASE_PATH || '';
+  if (mountPrefix) {
+    const normalized = normalizePath(mountPrefix);
+    return {
+      type: 'folder',
+      name: normalized,
+      path: normalized,
+      children: [baseManifest]
+    };
+  }
+
+  return baseManifest;
 }
 
 export async function writeFilesJson(rootDir: string, outputPath: string) {

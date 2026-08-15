@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import type { Request, Response } from 'express';
 import { getOctokit, getRepoConfig } from './_shared';
+import { validateBlocks, sanitizeBlocks } from '../lib/ai-markdown';
 
 const cooldownState = new Map<string, { attempts: number; lastAttempt: number; violations: number; bannedUntil?: number }>();
 
@@ -88,6 +89,14 @@ export default async function handler(req: Request, res: Response) {
       return res.status(400).json({ error: 'Missing filePath or content' });
     }
 
+    // Validate AI-assisted interactive blocks in content
+    const v = validateBlocks(content);
+    if (!v.ok) return res.status(400).json({ success: false, error: 'Invalid interactive blocks', details: v.errors });
+
+    // Sanitize interactive blocks to remove any scripts/HTML
+    const sanitized = sanitizeBlocks(content || '');
+    const finalContent = sanitized.sanitized || content;
+
     const bearerToken = getBearerToken(req);
     let decodedIdentity: { email: string; role?: string };
 
@@ -143,7 +152,7 @@ export default async function handler(req: Request, res: Response) {
       sha: mainRef.data.object.sha
     });
 
-    const fileContent = Buffer.from(content).toString('base64');
+    const fileContent = Buffer.from(finalContent).toString('base64');
 
     try {
       const existingFile = await octokit.repos.getContent({ owner, repo, path: filePath, ref: branchName });

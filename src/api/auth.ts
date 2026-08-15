@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Resend } from 'resend';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db';
 
 interface UserRecord {
   email: string;
@@ -71,6 +72,17 @@ function getAuthBody(req: Request): AuthRequestBody {
 
 // Helper to get user from Redis or memory
 async function getUser(email: string): Promise<UserRecord | undefined> {
+  if (isDbConfigured()) {
+    try {
+      const res = await dbQuery('SELECT email, password_hash as password, role, totp_secret, backup_codes, created_at, password_reset_at, github_id, google_id FROM users WHERE email = $1', [email]);
+      if (res.rows.length) return res.rows[0] as any as UserRecord;
+      return undefined;
+    } catch (err) {
+      console.error('[auth][db] getUser error', err);
+      return undefined;
+    }
+  }
+
   const client = await getRedisClient();
   if (client) {
     return await client.get(`user:${email}`);
@@ -80,6 +92,18 @@ async function getUser(email: string): Promise<UserRecord | undefined> {
 
 // Helper to set user in Redis or memory
 async function setUser(email: string, userData: UserRecord): Promise<void> {
+  if (isDbConfigured()) {
+    try {
+      await dbQuery(`INSERT INTO users (email, password_hash, role, totp_secret, backup_codes, created_at, password_reset_at, github_id, google_id)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, totp_secret = EXCLUDED.totp_secret, backup_codes = EXCLUDED.backup_codes, password_reset_at = EXCLUDED.password_reset_at, github_id = EXCLUDED.github_id, google_id = EXCLUDED.google_id`,
+        [email, (userData as any).password || (userData as any).password_hash, userData.role, (userData as any).totp_secret || null, (userData as any).backup_codes || null, userData.createdAt || new Date().toISOString(), (userData as any).passwordResetAt || null, (userData as any).github_id || null, (userData as any).google_id || null]);
+      return;
+    } catch (err) {
+      console.error('[auth][db] setUser error', err);
+    }
+  }
+
   const client = await getRedisClient();
   if (client) {
     await client.set(`user:${email}`, userData, { ex: 60 * 60 * 24 * 365 }); // 1 year
@@ -88,8 +112,21 @@ async function setUser(email: string, userData: UserRecord): Promise<void> {
   }
 }
 
+// Exported helpers for other modules (fallback in-memory storage)
+export { getUser, setUser };
+
 // Helper to get reset token
 async function getResetToken(token: string): Promise<string | undefined> {
+  if (isDbConfigured()) {
+    try {
+      const res = await dbQuery('SELECT email FROM reset_tokens WHERE token = $1 AND expires_at > now()', [token]);
+      if (res.rows.length) return res.rows[0].email;
+      return undefined;
+    } catch (err) {
+      console.error('[auth][db] getResetToken error', err);
+      return undefined;
+    }
+  }
   const client = await getRedisClient();
   if (client) {
     return await client.get(`reset:${token}`);
@@ -99,6 +136,14 @@ async function getResetToken(token: string): Promise<string | undefined> {
 
 // Helper to set reset token
 async function setResetToken(token: string, email: string, expiryMinutes = 15): Promise<void> {
+  if (isDbConfigured()) {
+    try {
+      await dbQuery("INSERT INTO reset_tokens(token,email,expires_at) VALUES($1,$2, now() + ($3 * interval '1 minute') ) ON CONFLICT (token) DO UPDATE SET email = EXCLUDED.email, expires_at = EXCLUDED.expires_at", [token, email, expiryMinutes]);
+      return;
+    } catch (err) {
+      console.error('[auth][db] setResetToken error', err);
+    }
+  }
   const client = await getRedisClient();
   if (client) {
     await client.set(`reset:${token}`, email, { ex: expiryMinutes * 60 });
@@ -109,6 +154,14 @@ async function setResetToken(token: string, email: string, expiryMinutes = 15): 
 
 // Helper to delete reset token
 async function deleteResetToken(token: string): Promise<void> {
+  if (isDbConfigured()) {
+    try {
+      await dbQuery('DELETE FROM reset_tokens WHERE token = $1', [token]);
+      return;
+    } catch (err) {
+      console.error('[auth][db] deleteResetToken error', err);
+    }
+  }
   const client = await getRedisClient();
   if (client) {
     await client.del(`reset:${token}`);
@@ -119,6 +172,15 @@ async function deleteResetToken(token: string): Promise<void> {
 
 // Helper to check password reset cooldown
 async function checkResetCooldown(email: string): Promise<boolean> {
+  if (isDbConfigured()) {
+    try {
+      const res = await dbQuery('SELECT expires_at FROM reset_cooldowns WHERE email = $1 AND expires_at > now()', [email]);
+      return res.rows.length === 0;
+    } catch (err) {
+      console.error('[auth][db] checkResetCooldown error', err);
+      return true;
+    }
+  }
   const client = await getRedisClient();
   if (client) {
     const cooldown = await client.get(`reset_cooldown:${email}`);
@@ -130,6 +192,14 @@ async function checkResetCooldown(email: string): Promise<boolean> {
 
 // Helper to set password reset cooldown
 async function setResetCooldown(email: string): Promise<void> {
+  if (isDbConfigured()) {
+    try {
+      await dbQuery("INSERT INTO reset_cooldowns(email,expires_at) VALUES($1, now() + (15 * interval '1 minute')) ON CONFLICT (email) DO UPDATE SET expires_at = EXCLUDED.expires_at", [email]);
+      return;
+    } catch (err) {
+      console.error('[auth][db] setResetCooldown error', err);
+    }
+  }
   const client = await getRedisClient();
   if (client) {
     await client.set(`reset_cooldown:${email}`, '1', { ex: 15 * 60 }); // 15 minutes
@@ -210,6 +280,11 @@ export async function handleRegister(req: Request, res: Response) {
     // Generate JWT token
     const token = jwt.sign({ email }, getJwtSecret(), { expiresIn: '30d' });
 
+    // Optionally set secure cookie
+    if (process.env.USE_SESSION_COOKIE === 'true') {
+      res.cookie('session', token, { httpOnly: true, secure: process.env.COOKIE_SECURE !== 'false', sameSite: 'strict', path: '/' });
+    }
+
     return res.status(201).json({
       success: true,
       token,
@@ -256,6 +331,10 @@ export async function handleLogin(req: Request, res: Response) {
 
     // Generate JWT token
     const token = jwt.sign({ email, role: user.role }, getJwtSecret(), { expiresIn: '30d' });
+
+    if (process.env.USE_SESSION_COOKIE === 'true') {
+      res.cookie('session', token, { httpOnly: true, secure: process.env.COOKIE_SECURE !== 'false', sameSite: 'strict', path: '/' });
+    }
 
     return res.status(200).json({
       success: true,

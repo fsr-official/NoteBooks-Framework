@@ -298,6 +298,32 @@ Each chapter contains 4 standard sections:
 
    Create a `.env.local` file in the project root:
 
+```
+# Required for all environments
+JWT_SECRET=your_jwt_secret_here
+
+# Optional Postgres DB for persistent identity storage (recommended)
+# If set, run `npm run migrate` to apply schema changes
+DATABASE_URL=postgres://user:password@host:5432/dbname
+
+# OAuth client credentials (optional but recommended)
+GITHUB_OAUTH_CLIENT_ID=your_github_client_id
+GITHUB_OAUTH_CLIENT_SECRET=your_github_client_secret
+GOOGLE_OAUTH_CLIENT_ID=your_google_client_id
+GOOGLE_OAUTH_CLIENT_SECRET=your_google_client_secret
+
+# Optional: use secure HttpOnly session cookie
+USE_SESSION_COOKIE=true
+COOKIE_SECURE=true
+
+# Optional: enforce CSRF checks on write requests (double-submit)
+ENFORCE_CSRF=false
+
+# Optional: enable write logging
+ENABLE_WRITE_LOGS=false
+
+```
+
    ```
    RECAPTCHA_SITE_KEY=your_google_recaptcha_v3_site_key
    RECAPTCHA_SECRET_KEY=your_google_recaptcha_v3_secret_key

@@ -13,7 +13,10 @@ import * as prReview from '../api/pr-review';
 import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal';
 import desmosHandler from '../api/desmos';
 import authHandler, { assertAuthConfig } from '../api/auth';
+import oauthHandler from '../api/oauth';
 import { buildLocalFilesManifest } from '../api/files-manifest';
+import permissions from '../lib/permissions';
+import * as communityHandler from '../api/community';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
@@ -112,6 +115,33 @@ export function createApp() {
   assertAuthConfig();
 
   const app = express();
+  // CSRF enforcement (double-submit) for state-changing API routes when enabled
+  const enforceCsrf = process.env.ENFORCE_CSRF === 'true';
+  if (enforceCsrf) {
+    app.use((req, res, next) => {
+      const method = req.method.toUpperCase();
+      if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return next();
+      // Exempt refresh-signal which is server-to-server
+      if (req.path === '/api/refresh-signal') return next();
+      const cookieToken = req.cookies?.csrf || req.headers['x-csrf-cookie'];
+      const header = req.headers['x-csrf-token'];
+      if (!cookieToken || !header || header !== cookieToken) {
+        return res.status(403).json({ error: 'CSRF token missing or invalid' });
+      }
+      return next();
+    });
+  }
+
+  // Write-path request logging when enabled
+  if (process.env.ENABLE_WRITE_LOGS === 'true') {
+    app.use((req, _res, next) => {
+      const method = req.method.toUpperCase();
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        console.log('[write-log]', method, req.path, req.ip);
+      }
+      next();
+    });
+  }
   const projectDir = path.resolve(process.cwd());
 
   app.use(helmet({
@@ -161,10 +191,88 @@ export function createApp() {
       (req as any).rawBody = buf?.toString('utf8') || '';
     }
   }));
+  // Minimal metrics middleware
+  try {
+    // Use require to synchronously load the lightweight metrics module so createApp() remains sync
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const metrics = require('../lib/metrics');
+    // Request timing and basic error counters
+    app.use((req, res, next) => {
+      const start = Date.now();
+      res.on('finish', () => {
+        const dur = Date.now() - start;
+        try {
+          metrics.incCounter('requests_total');
+          metrics.incCounter(`requests_method_${req.method.toLowerCase()}`, 1);
+          metrics.incCounter('request_duration_ms_sum', dur);
+          metrics.incCounter('request_duration_ms_count', 1);
+          if (res.statusCode >= 500) metrics.incCounter('request_errors_total', 1);
+        } catch (e) {
+          // swallow metric errors
+        }
+      });
+      next();
+    });
+    app.get('/metrics', (req, res) => {
+      const format = String(req.query.format || '').toLowerCase();
+      if (format === 'prometheus' || req.headers.accept === 'text/plain') {
+        const text = metrics.getPrometheusText ? metrics.getPrometheusText() : '';
+        res.setHeader('Content-Type', 'text/plain; version=0.0.4');
+        return res.status(200).send(text);
+      }
+      const m = metrics.getMetrics();
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).json(m);
+    });
+  } catch (err) {
+    console.warn('metrics module not available', err);
+  }
   app.use(express.urlencoded({ extended: true }));
 
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok' });
+    app.get('/health', async (_req, res) => {
+    const health: any = { status: 'ok', checks: {} };
+    // DB check
+    try {
+      // lazy import to avoid touching DB in environments without DATABASE_URL
+      const db = await import('../lib/db');
+      if (db.isConfigured()) {
+        try {
+          await db.query('SELECT 1');
+          health.checks.database = { ok: true };
+        } catch (err) {
+          health.status = 'degraded';
+          health.checks.database = { ok: false, error: String(err) };
+        }
+      } else {
+        health.checks.database = { ok: false, reason: 'DATABASE_URL not configured' };
+      }
+    } catch (err) {
+      health.checks.database = { ok: false, error: String(err) };
+    }
+
+    // GitHub auth check
+    try {
+      const sh = await import('../api/_shared');
+      try {
+        // request an authenticated client; if not configured this will throw
+        const oct = await sh.getOctokit({ allowUnauthenticated: false } as any);
+        // if we have a client, try a minimal call that doesn't require scopes
+        // prefer apps.getAuthenticated when available
+        const apps = (oct as any).apps;
+        if (apps && typeof apps.getAuthenticated === 'function') {
+          await apps.getAuthenticated();
+        }
+        health.checks.github = { ok: true };
+      } catch (err) {
+        health.status = health.status === 'degraded' ? 'degraded' : 'degraded';
+        health.checks.github = { ok: false, error: String(err) };
+      }
+    } catch (err) {
+      health.checks.github = { ok: false, error: String(err) };
+    }
+
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json(health);
   });
 
   app.get('/api/version', (_req, res) => {
@@ -195,6 +303,8 @@ export function createApp() {
   });
 
   app.get('/private/files.json', async (_req, res) => await sendManifestResponse(res));
+
+  app.post('/api/oauth', oauthHandler);
 
   app.get('/private/config', configHandler);
 
@@ -312,19 +422,40 @@ export function createApp() {
   app.use('/api/auth', authLimiter);
   app.all('/api/auth', authHandler);
   app.all('/api/auth.js', authHandler);
-  app.post('/api/gh', ghHandler);
-  app.post('/api/gh.js', ghHandler);
-  app.post('/api/blob', blobHandler);
-  app.post('/api/blob.js', blobHandler);
+  app.post('/api/gh', permissions.requireAuth, ghHandler);
+  app.post('/api/gh.js', permissions.requireAuth, ghHandler);
+  app.post('/api/blob', permissions.requireTotpEnrolled, blobHandler);
+  app.post('/api/blob.js', permissions.requireTotpEnrolled, blobHandler);
   app.get('/api/raw', rawHandler);
   app.get('/api/raw.js', rawHandler);
   app.options('/api/raw', rawHandler);
   app.options('/api/raw.js', rawHandler);
   app.use('/api/submit-pr', submitPrLimiter);
-  app.post('/api/submit-pr', submitPrHandler);
-  app.post('/api/submit-pr.js', submitPrHandler);
+  app.post('/api/submit-pr', permissions.requireTotpEnrolled, submitPrHandler);
+  app.post('/api/submit-pr.js', permissions.requireTotpEnrolled, submitPrHandler);
   app.post('/api/refresh-signal', refreshSignalHandler);
   app.get('/api/refresh-signal', refreshSignalHandler);
+  // Community endpoints (Phase 3)
+  app.get('/api/community/posts', communityHandler.listPosts);
+  app.post('/api/community/post', permissions.requireAuth, communityHandler.createPost);
+  app.post('/api/community/post/:id/approve', permissions.requireRole('admin'), communityHandler.approvePost);
+  app.post('/api/community/post/:id/reject', permissions.requireRole('admin'), communityHandler.rejectPost);
+  // GitHub App administrative actions
+  app.post('/api/github-app', permissions.requireRole('admin'), (req, res) => {
+    // delegate to handler module
+    return import('../api/github-app').then((m) => m.default(req, res));
+  });
+  // GitHub App webhook receiver (no auth; validate with webhook secret in front proxy if needed)
+  app.post('/api/webhooks/github-app', express.json(), (req, res) => {
+    return import('../api/webhooks/github-app').then((m) => m.default(req, res));
+  });
+  app.get('/api/webhooks/github-app', permissions.requireRole('admin'), (req, res) => {
+    return import('../api/webhooks/github-app').then((m) => m.default(req, res));
+  });
+  // Admin PR listing
+  app.get('/api/admin', permissions.requireRole('admin'), (req, res) => {
+    return import('../api/admin').then((m) => m.default(req, res));
+  });
   app.get('/api/latest-commit', (_req, res) => {
     const latest = getLatestSignal();
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -342,8 +473,8 @@ export function createApp() {
       timestamp: Date.now()
     });
   });
-  app.post('/api/pr-review/accept', prReview.acceptHandler);
-  app.post('/api/pr-review/reject', prReview.rejectHandler);
+  app.post('/api/pr-review/accept', permissions.requireRole('admin'), prReview.acceptHandler);
+  app.post('/api/pr-review/reject', permissions.requireRole('admin'), prReview.rejectHandler);
   app.get('/api/desmos', desmosHandler);
   app.get('/api/desmos.js', desmosHandler);
 
@@ -354,11 +485,15 @@ export function startServer(port: number = PORT) {
   // Check for env vars but provide defaults for development
   const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production';
   const GITHUB_REPO = process.env.GITHUB_REPO || 'fsr-science/NCERT-Science';
+  const GITHUB_COMMUNITY_REPO = process.env.GITHUB_COMMUNITY_REPO || 'fsr-official/NoteBooks-Community';
+  const GITHUB_ISSUES_REPO = process.env.GITHUB_ISSUES_REPO || 'fsr-official/NoteBooks-Issues';
   
   if (!process.env.JWT_SECRET || !process.env.GITHUB_REPO) {
     console.warn('[server] Using default environment variables for development. Ensure they are set in production.');
     process.env.JWT_SECRET = JWT_SECRET;
     process.env.GITHUB_REPO = GITHUB_REPO;
+    process.env.GITHUB_COMMUNITY_REPO = process.env.GITHUB_COMMUNITY_REPO || GITHUB_COMMUNITY_REPO;
+    process.env.GITHUB_ISSUES_REPO = process.env.GITHUB_ISSUES_REPO || GITHUB_ISSUES_REPO;
   }
 
   const app = createApp();

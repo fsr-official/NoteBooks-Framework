@@ -1,6 +1,36 @@
 name: CI
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: npm ci
+      - name: Run DB migrations (best-effort)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node src/scripts/migrate-db.js || true
+      - name: Run tests
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
+          # Store the private key as an environment secret (multiline allowed)
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+        run: npm test -- --run
+name: CI
+
+on:
   pull_request:
   push:
     branches: [main]

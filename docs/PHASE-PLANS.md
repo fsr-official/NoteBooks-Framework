@@ -86,6 +86,33 @@ Goal: cut over only when each layer is stable under real traffic.
 
 Acceptance gate: launch is backed by operational evidence, monitoring, and rollback procedures.
 
+---
+
+## Progress Snapshot (automatically maintained by the developer agent)
+
+- **Completed:** Phase 1 (File Service stabilization), Phase 2 (identity & auth foundation), Phase 3 (Community initial), core GitHub App helper and wiring.
+- **In-progress:** Phase 4 (Volunteer/admin submission pipeline) — PR intake automation and safe merge paths; staging deploy wiring.
+- **Pending / Next:** Phase 4 completing PR persistence and webhook verification (this change), Phase 5 (interactive content), Phase 6 (hardening & launch).
+
+## Unified TODO (short actionable list)
+
+- [x] Phase 1: File Service stabilization — implemented and tested.
+- [x] Phase 2: Shared identity and session foundation — implemented and tested.
+- [x] Phase 3: Community endpoints, moderation, and basic GitHub App helpers — implemented and tested.
+- [x] Add GitHub App helper library and basic automation wiring.
+- [x] Add webhook receiver to persist installations.
+- [x] Add CI workflows and staging docs.
+- [x] Add webhook signature verification (this PR) — implemented.
+- [x] Persist PR metadata in DB when creating PRs from community posts (this PR) — implemented.
+- [ ] Persist installation IDs and add webhook handler to handle updates/removed events (expand).
+- [ ] Add webhook signature verification for other webhook types and verify delivery retries.
+- [ ] Add DB-backed PR metadata indexing and admin UI for PR review/merge history.
+- [ ] Add mocked integration tests for GitHub App flows (Octokit mocks).
+- [ ] Add production CI secrets and rotateable key management instructions.
+- [ ] Deploy staging with read-only File Service and test GitHub App flows in staging.
+
+Notes: the repository contains `docs/phases/*` skeletons with per-phase checklists to guide further work.
+
 ## Recommended delivery order
 
 1. Phase 0 — architecture freeze

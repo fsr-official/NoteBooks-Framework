@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin PRs</title>
+    <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:2rem}</style>
+  </head>
+  <body>
+    <h1>PRs from Community Posts</h1>
+    <div id="content">Loading...</div>
+    <script>
+      async function load(){
+        const r = await fetch('/api/admin?action=list-prs',{credentials:'same-origin'});
+        if (!r.ok) { document.getElementById('content').innerText = 'Failed to load'; return; }
+        const j = await r.json();
+        const rows = j.prs || [];
+        if (!rows.length) { document.getElementById('content').innerText = 'No PRs found'; return; }
+        const ul = document.createElement('ul');
+        // build logs map by prNumber
+        const logsByPr = {};
+        if (Array.isArray(logsJson && logsJson.logs)) {
+          for (const lg of logsJson.logs) {
+            const prn = lg && (lg.prNumber || lg.pr_number);
+            if (!prn) continue;
+            logsByPr[prn] = logsByPr[prn] || [];
+            logsByPr[prn].push(lg);
+          }
+        }
+
+        rows.forEach(p => {
+          const li = document.createElement('li');
+          const mergedText = p.pr_merged ? '✅' : '❌';
+          const mergedAt = p.pr_merged_at ? ` (merged at ${p.pr_merged_at})` : '';
+          li.innerHTML = `<strong>${p.title}</strong> — PR <a href="${p.pr_url}" target="_blank">${p.pr_number}</a> by ${p.author_email} — merged: ${mergedText}${mergedAt}`;
+          if (!p.pr_merged) {
+            const btn = document.createElement('button');
+            btn.textContent = 'Merge PR';
+            btn.style.marginLeft = '1rem';
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+                // include CSRF token if available in cookie
+                const cookieMatch = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrf='));
+                const csrf = cookieMatch ? cookieMatch.split('=')[1] : null;
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrf) {
+                  headers['x-csrf-token'] = csrf;
+                  headers['x-csrf-cookie'] = csrf;
+                }
+                const res = await fetch(`/api/github-app?action=merge-pr`, { method: 'POST', credentials: 'same-origin', headers, body: JSON.stringify({ prNumber: p.pr_number, mergeMethod: 'merge' }) });
+              if (res.ok) {
+                alert('Merge requested');
+                window.location.reload();
+              } else {
+                const j = await res.json().catch(() => ({}));
+                alert('Merge failed: ' + (j.error || res.statusText));
+                btn.disabled = false;
+              }
+            });
+                  <script>
+                    function getCsrfHeaders() {
+                      const cookieMatch = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrf='));
+                      const csrf = cookieMatch ? cookieMatch.split('=')[1] : null;
+                      const headers = { 'Content-Type': 'application/json' };
+                      if (csrf) {
+                        headers['x-csrf-token'] = csrf;
+                        headers['x-csrf-cookie'] = csrf;
+                      }
+                      return headers;
+                    }
+
+                    async function apiMerge(prNumber, btn) {
+                      try {
+                        btn.disabled = true;
+                        const orig = btn.textContent;
+                        btn.textContent = 'Merging...';
+                        const res = await fetch(`/api/github-app?action=merge-pr`, { method: 'POST', credentials: 'same-origin', headers: getCsrfHeaders(), body: JSON.stringify({ prNumber, mergeMethod: 'merge' }) });
+                        if (!res.ok) {
+                          const j = await res.json().catch(() => ({}));
+                          btn.textContent = orig;
+                          btn.disabled = false;
+                          alert('Merge failed: ' + (j.error || res.statusText));
+                          return false;
+                        }
+                        btn.textContent = 'Merged';
+                        return true;
+                      } catch (err) {
+                        btn.textContent = 'Retry';
+                        btn.disabled = false;
+                        alert('Merge error: ' + String(err));
+                        return false;
+                      }
+                    }
+
+                    async function load(){
+                      const [prsRes, logsRes] = await Promise.all([
+                        fetch('/api/admin?action=list-prs',{credentials:'same-origin'}),
+                        fetch('/api/admin?action=logs',{credentials:'same-origin'})
+                      ]);
+                      if (!prsRes.ok) { document.getElementById('content').innerText = 'Failed to load PRs'; return; }
+                      const j = await prsRes.json();
+                      const rows = j.prs || [];
+                      const logsJson = await logsRes.json().catch(() => ({}));
+                      const ul = document.createElement('ul');
+
+                      // build logs map by prNumber
+                      const logsByPr = {};
+                      if (Array.isArray(logsJson && logsJson.logs)) {
+                        for (const lg of logsJson.logs) {
+                          const prn = lg && (lg.prNumber || lg.pr_number);
+                          if (!prn) continue;
+                          logsByPr[prn] = logsByPr[prn] || [];
+                          logsByPr[prn].push(lg);
+                        }
+                      }
+
+                      rows.forEach(p => {
+                        const li = document.createElement('li');
+                        const mergedText = p.pr_merged ? '✅' : '❌';
+                        const mergedAt = p.pr_merged_at ? ` (merged at ${p.pr_merged_at})` : '';
+                        li.innerHTML = `<strong>${p.title}</strong> — PR <a href="${p.pr_url}" target="_blank">${p.pr_number}</a> by ${p.author_email} — merged: ${mergedText}${mergedAt}`;
+                        if (!p.pr_merged) {
+                          const btn = document.createElement('button');
+                          btn.textContent = 'Merge PR';
+                          btn.style.marginLeft = '1rem';
+                          btn.addEventListener('click', async () => {
+                            const ok = await apiMerge(p.pr_number, btn);
+                            if (ok) {
+                              // optimistic update
+                              const statusText = li.querySelector('strong');
+                              // reload list to get fresh status from server
+                              setTimeout(() => load(), 800);
+                            }
+                          });
+                          li.appendChild(btn);
+                        }
+                        ul.appendChild(li);
+                        // attach recent logs for this PR if any
+                        const prLogs = logsByPr[p.pr_number] || [];
+                        if (prLogs.length) {
+                          const sub = document.createElement('ul');
+                          sub.style.marginTop = '0.5rem';
+                          sub.style.marginBottom = '0.5rem';
+                          prLogs.forEach(lg => {
+                            const sli = document.createElement('li');
+                            sli.textContent = `${lg.at || ''} ${lg.user || ''} ${lg.action || ''} ${lg.result || ''} ${lg.error ? ': ' + lg.error : ''}`;
+                            sub.appendChild(sli);
+                          });
+                          li.appendChild(sub);
+                        }
+                      });
+
+                      const controls = document.createElement('div');
+                      const refresh = document.createElement('button');
+                      refresh.textContent = 'Refresh';
+                      refresh.style.marginBottom = '1rem';
+                      refresh.addEventListener('click', () => {
+                        refresh.disabled = true;
+                        load().finally(() => { refresh.disabled = false; });
+                      });
+                      controls.appendChild(refresh);
+
+                      document.getElementById('content').innerHTML = '';
+                      document.getElementById('content').appendChild(controls);
+                      document.getElementById('content').appendChild(ul);
+                    }
+                    load();
+                  </script>
