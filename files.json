@@ -13,7 +13,7 @@
       "type": "file",
       "name": "README.md",
       "path": "README.md",
-      "sha": "b5b26512894bb22b1e3ae3dca6d9960499938e4e2073ddffcd123a3676addaa7"
+      "sha": "7d37450585b77f012c228355ae202429c2484a98ae4c78883d75c882fc3a6140"
     },
     {
       "type": "folder",
@@ -34,21 +34,88 @@
         },
         {
           "type": "file",
+          "name": "BACKEND-REPOS.md",
+          "path": "docs/BACKEND-REPOS.md",
+          "sha": "898b421b7588224f2a965cfa926b70a5785a9032e15be43e4d54b5d2ef808725"
+        },
+        {
+          "type": "file",
           "name": "CACHE_SYSTEM.md",
           "path": "docs/CACHE_SYSTEM.md",
           "sha": "b23fc55fc0ee6962aabcd76f60cca9a906bb9bfd1bcaf8e5f0ba4138df8e032b"
         },
         {
           "type": "file",
+          "name": "CI_KEY_ROTATION.md",
+          "path": "docs/CI_KEY_ROTATION.md",
+          "sha": "5da75c25bfd7afa30ce541da2e4ecc695d6212084f22e8946fb634b4466ba05d"
+        },
+        {
+          "type": "file",
+          "name": "GITHUB_APP_SETUP.md",
+          "path": "docs/GITHUB_APP_SETUP.md",
+          "sha": "d903b5bec86fdf3391be090c3ed9fd59a8119d64a3be205d6671248b5524ff90"
+        },
+        {
+          "type": "file",
           "name": "PHASE-PLANS.md",
           "path": "docs/PHASE-PLANS.md",
-          "sha": "a446aeb2773206f727d1675fac769eac099806ae738ca4da8f8745f9681bf351"
+          "sha": "d8eeec3ba9c0f252c72ea9aa9745e0ccce16f2af3011fd7e497a42d94106f46a"
+        },
+        {
+          "type": "file",
+          "name": "STAGING.md",
+          "path": "docs/STAGING.md",
+          "sha": "b132138891b10f16ad10e81df4504a9cb9972a0c15f0975096aad78ada67fbf4"
         },
         {
           "type": "file",
           "name": "WEBHOOK_SETUP.md",
           "path": "docs/WEBHOOK_SETUP.md",
           "sha": "ebc6915787fe7676222aab5ba73b0928a14d7d37e77d1cb440234d0e8bd35088"
+        },
+        {
+          "type": "folder",
+          "name": "phases",
+          "path": "docs/phases",
+          "children": [
+            {
+              "type": "file",
+              "name": "phase-1.md",
+              "path": "docs/phases/phase-1.md",
+              "sha": "8c639cd5bf6a730e3627cfda1cc5a9439ac576470456871349e83bdfddab14ea"
+            },
+            {
+              "type": "file",
+              "name": "phase-2.md",
+              "path": "docs/phases/phase-2.md",
+              "sha": "df2eb9c584ab5e52cac771fe0ff5906aa82a1df4ce7acdb4c16a2fce66c31d6d"
+            },
+            {
+              "type": "file",
+              "name": "phase-3.md",
+              "path": "docs/phases/phase-3.md",
+              "sha": "76398b6d678f550469067a0a63fe03ca1c58a27ee887fffd386359745db5d4dd"
+            },
+            {
+              "type": "file",
+              "name": "phase-4.md",
+              "path": "docs/phases/phase-4.md",
+              "sha": "2c323a5b08e0dc87ce2bbded8f360b76575e37648d355152894689c683bf6fc2"
+            },
+            {
+              "type": "file",
+              "name": "phase-5.md",
+              "path": "docs/phases/phase-5.md",
+              "sha": "6a3421656540cdef0d0b92d64da212a45abeef291d824d7ccf69de151a47a141"
+            },
+            {
+              "type": "file",
+              "name": "phase-6.md",
+              "path": "docs/phases/phase-6.md",
+              "sha": "ddbed47c58db59989a5f14788b72ed1b3ac41442ab3e67ebb088e198cb88dc37"
+            }
+          ]
         }
       ]
     }
