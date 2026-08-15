@@ -13,7 +13,7 @@
       "type": "file",
       "name": "README.md",
       "path": "README.md",
-      "sha": "7d37450585b77f012c228355ae202429c2484a98ae4c78883d75c882fc3a6140"
+      "sha": "a58c64e775155a713674fa2f55f0d77c84e255b6d2caea930835d42b7d7ad606"
     },
     {
       "type": "folder",
@@ -52,6 +52,12 @@
         },
         {
           "type": "file",
+          "name": "DEVELOPER-ONBOARDING.md",
+          "path": "docs/DEVELOPER-ONBOARDING.md",
+          "sha": "439ae9036643de9016feb1458cb72563631a533571eba360112b47317511fb57"
+        },
+        {
+          "type": "file",
           "name": "GITHUB_APP_SETUP.md",
           "path": "docs/GITHUB_APP_SETUP.md",
           "sha": "d903b5bec86fdf3391be090c3ed9fd59a8119d64a3be205d6671248b5524ff90"
@@ -73,6 +79,61 @@
           "name": "WEBHOOK_SETUP.md",
           "path": "docs/WEBHOOK_SETUP.md",
           "sha": "ebc6915787fe7676222aab5ba73b0928a14d7d37e77d1cb440234d0e8bd35088"
+        },
+        {
+          "type": "folder",
+          "name": "archive",
+          "path": "docs/archive",
+          "children": [
+            {
+              "type": "file",
+              "name": "ARCHITECTURE.md",
+              "path": "docs/archive/ARCHITECTURE.md",
+              "sha": "902d8b333749d19e58439b8e7f3fee04f3ea286c5ebe4380079f4dbec6b1c0e4"
+            },
+            {
+              "type": "file",
+              "name": "BACKEND-REPOS.md",
+              "path": "docs/archive/BACKEND-REPOS.md",
+              "sha": "2104ebd57a858d5705ea424cbbd99959eff290932991c6ea71150c621bf50f51"
+            },
+            {
+              "type": "file",
+              "name": "CACHE_SYSTEM.md",
+              "path": "docs/archive/CACHE_SYSTEM.md",
+              "sha": "5e7b9655111676b41dd44e787c1485be6f5dbe31581028ad2ed10bb755a96474"
+            },
+            {
+              "type": "file",
+              "name": "CI_KEY_ROTATION.md",
+              "path": "docs/archive/CI_KEY_ROTATION.md",
+              "sha": "be2980e3fcc6dd4a15c3fc4bc5d183aea00ec4b93a1cfd6ffef24239a52856c1"
+            },
+            {
+              "type": "file",
+              "name": "GITHUB_APP_SETUP.md",
+              "path": "docs/archive/GITHUB_APP_SETUP.md",
+              "sha": "f2aaf97d273bacc4bd3ff761153901c627010a996f81da54764bdd1efe4eae52"
+            },
+            {
+              "type": "file",
+              "name": "PHASE-PLANS.md",
+              "path": "docs/archive/PHASE-PLANS.md",
+              "sha": "35cb69d8bfc7f293d971595999c384a6eb10bb3ecc6b7a341df491f599a764ab"
+            },
+            {
+              "type": "file",
+              "name": "STAGING.md",
+              "path": "docs/archive/STAGING.md",
+              "sha": "670c1ee842fcda16a91b646dd4631e975bc81cb657a8690bb9b6e276e866a335"
+            },
+            {
+              "type": "file",
+              "name": "WEBHOOK_SETUP.md",
+              "path": "docs/archive/WEBHOOK_SETUP.md",
+              "sha": "f19ffe6ca93274e922b46b5f6254970f4cd0e6c80796c9240b82f58698c840e3"
+            }
+          ]
         },
         {
           "type": "folder",
@@ -118,6 +179,12 @@
           ]
         }
       ]
+    },
+    {
+      "type": "folder",
+      "name": "logs",
+      "path": "logs",
+      "children": []
     }
   ]
 }
