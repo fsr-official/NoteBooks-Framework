@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>NoteBooks</title>
+  <title>NoteBooks — Learn, contribute, and grow together</title>
+  <meta name="description" content="NoteBooks is a collaborative learning workspace for clear subject notes, thoughtful discussion, and trusted contributions." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="recaptcha-sitekey" content="6LeI4QgtAAAAAIHR7fZ2uCoPNqNe3LBFLCuCBBZH" />
   <link rel="manifest" href="manifest.json">
@@ -60,68 +61,42 @@
 <body>
   <div id="splash"><img src="favicon.png" alt="Loading..." /></div>
 
+  <nav class="global-nav" aria-label="Primary navigation">
+    <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
+    <div class="global-nav-links">
+      <a href="/" data-nav="home">Home</a><a href="/science" data-nav="science">Science</a><a href="/commerce" data-nav="commerce">Commerce</a><a href="/humanities" data-nav="humanities">Humanities</a><a href="/community" data-nav="community">Community</a><a href="/issues" data-nav="issues">Issues</a><a href="/volunteers" data-nav="volunteers">Volunteers</a><a href="/accounts" data-nav="accounts">Account</a><a href="/about" data-nav="about">About</a>
+    </div>
+    <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+  </nav>
+
   <div id="subjectLanding" class="subject-landing" aria-live="polite">
     <div class="landing-hero">
-      <div class="landing-kicker">NoteBooks</div>
-      <h1>Learn by subject, build by community.</h1>
-      <p>NoteBooks is a collaborative learning and publishing platform for subject knowledge, open discussion, trusted contributions, and contributor onboarding across science, commerce, humanities, accounts, community, issues, and volunteering.</p>
-      <div class="landing-actions">
-        <a class="landing-primary" href="/science">Open Science</a>
-        <a class="landing-secondary" href="/community">Community</a>
-        <a class="landing-secondary" href="/volunteers">Volunteers</a>
+      <div class="landing-kicker">A calmer way to build knowledge</div>
+      <h1>Study deeply. Share clearly. Leave the shelf better.</h1>
+      <p class="hero-copy"><span>NoteBooks is where notes stop being static.</span> <span>Diagrams that show how ideas connect, callouts that catch what matters before you miss it, and a structure built to survive the second read — not just the first.</span> <span>Study a concept once, and the page is still useful the tenth time you come back to it.</span></p>
+      <div class="landing-actions" aria-label="Primary journeys">
+        <a class="landing-primary" href="/science">Start learning <span aria-hidden="true">→</span></a>
+        <a class="landing-secondary" href="/community">Join the conversation</a>
+        <a class="landing-secondary" href="/volunteers">Contribute to NoteBooks</a>
+      </div>
+      <div class="landing-signals" aria-label="NoteBooks principles">
+        <span><strong>01</strong> Browse by subject</span>
+        <span><strong>02</strong> Read without noise</span>
+        <span><strong>03</strong> Improve together</span>
       </div>
     </div>
 
     <div class="portal-grid">
-      <section class="portal-panel portal-panel--wide">
-        <div class="portal-panel-header">
-          <span>Project hub</span>
-          <strong>Start here</strong>
-        </div>
-        <div class="portal-doc-links">
-          <a href="/README.md" target="_blank" rel="noreferrer">📘 README</a>
-          <a href="/LICENSE" target="_blank" rel="noreferrer">📜 License</a>
-          <a href="/science">🧪 Science</a>
-          <a href="/commerce">💼 Commerce</a>
-          <a href="/humanities">📚 Humanities</a>
-          <a href="/community">💬 Community</a>
-          <a href="/issues">🛠️ Issues</a>
-          <a href="/accounts">🔐 Accounts</a>
-          <a href="/volunteers">🤝 Volunteers</a>
-        </div>
+      <section class="portal-panel portal-panel--wide live-activity-panel" data-reveal>
+        <div class="portal-panel-header"><span>Live activity</span><strong>What the community is improving</strong></div>
+        <div class="feed-switcher" role="group" aria-label="Activity sorting"><button type="button" class="feed-switch is-active" data-feed-sort="latest">Latest</button><button type="button" class="feed-switch" data-feed-sort="trending">Trending</button></div>
+        <div class="portal-feed" id="homeFeed" role="status" aria-live="polite"><p class="feed-loading">Loading live activity…</p></div>
       </section>
 
-      <section class="portal-panel">
-        <div class="portal-panel-header">
-          <span>Workspace</span>
-          <strong>Theme studio</strong>
-        </div>
-        <div class="mini-theme-panel">
-          <label>Preset
-            <select id="themePreset" onchange="applyThemePreset(this.value)">
-              <option value="futuristic">Futuristic tech</option>
-              <option value="contrast">Dark contrast</option>
-              <option value="neon">Neon</option>
-              <option value="professional">Professional</option>
-              <option value="classic">Classic / GitHub</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
-          <div class="mini-theme-grid">
-            <label>Accent<input id="themeAccent" type="color" value="#34d399" onchange="updateCustomTheme('accent', this.value)"></label>
-            <label>Surface<input id="themeSurface" type="color" value="#0f172a" onchange="updateCustomTheme('surface', this.value)"></label>
-            <label>Text<input id="themeText" type="color" value="#e2e8f0" onchange="updateCustomTheme('text', this.value)"></label>
-            <label>Code<input id="themeCode" type="color" value="#020617" onchange="updateCustomTheme('code', this.value)"></label>
-          </div>
-          <label>Type
-            <select id="themeFont" onchange="updateCustomTheme('font', this.value)">
-              <option value="Inter">Inter</option>
-              <option value="system-ui">System UI</option>
-              <option value="Georgia">Georgia</option>
-              <option value="JetBrains Mono">JetBrains Mono</option>
-            </select>
-          </label>
-        </div>
+      <section class="portal-panel portal-panel--mission">
+        <div class="portal-panel-header"><span>Why NoteBooks</span><strong>Learning that compounds</strong></div>
+        <div class="mission-points"><p class="mission-copy"><strong>Built for understanding.</strong> Notes are organized for study, revision, and returning to difficult ideas without losing context.</p><p class="mission-copy"><strong>Improved in public.</strong> Contributions move through validation, review, and the project’s GitHub workflow before they become part of the shared shelf.</p><p class="mission-copy"><strong>Connected by conversation.</strong> Community discussions and Issues turn questions, gaps, and corrections into visible next steps.</p></div>
+        <a class="portal-inline-link" href="/about">Read our mission →</a>
       </section>
     </div>
 
@@ -129,38 +104,19 @@
       <a class="subject-card" href="/science">
         <span class="subject-icon">🧪</span>
         <strong>Science</strong>
-        <small>NCERT, concepts, experiments, and revision pathways</small>
+        <small>NCERT-oriented notes, concepts, diagrams, and revision pathways</small>
       </a>
       <a class="subject-card" href="/commerce">
         <span class="subject-icon">💼</span>
         <strong>Commerce</strong>
-        <small>Business, accounting, and economic understanding</small>
+        <small>Business, accounting, economics, and worked-example study</small>
       </a>
       <a class="subject-card" href="/humanities">
         <span class="subject-icon">📚</span>
         <strong>Humanities</strong>
-        <small>History, civics, culture, and critical thinking</small>
+        <small>History, civics, culture, and context-rich critical reading</small>
       </a>
-      <a class="subject-card" href="/community">
-        <span class="subject-icon">💬</span>
-        <strong>Community</strong>
-        <small>Discussions, peer learning, and moderated posts</small>
-      </a>
-      <a class="subject-card" href="/issues">
-        <span class="subject-icon">🛠️</span>
-        <strong>Issues</strong>
-        <small>Feature requests, corrections, and project feedback</small>
-      </a>
-      <a class="subject-card" href="/accounts">
-        <span class="subject-icon">🔐</span>
-        <strong>Accounts</strong>
-        <small>Profiles, verified access, and secure sign-in flow</small>
-      </a>
-      <a class="subject-card" href="/volunteers">
-        <span class="subject-icon">🤝</span>
-        <strong>Volunteers</strong>
-        <small>Reference books, AI support, moderation, and coding work</small>
-      </a>
+
     </div>
   </div>
 
@@ -595,9 +551,9 @@
   </div>
   <section class="theme-panel" aria-labelledby="themePanelTitle">
     <div class="theme-panel-heading"><div><span class="tree-rail-kicker">Appearance</span><h2 id="themePanelTitle">Theme studio</h2></div></div>
-    <label class="theme-field">Preset<select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic tech</option><option value="contrast">Dark contrast</option><option value="neon">Neon</option><option value="professional">Professional</option><option value="classic">Classic / GitHub</option><option value="custom">Custom</option></select></label>
-    <div class="theme-grid"><label class="theme-field">Accent<input id="themeAccent" type="color" value="#34d399" onchange="updateCustomTheme('accent', this.value)"></label><label class="theme-field">Surface<input id="themeSurface" type="color" value="#0f172a" onchange="updateCustomTheme('surface', this.value)"></label><label class="theme-field">Text<input id="themeText" type="color" value="#e2e8f0" onchange="updateCustomTheme('text', this.value)"></label><label class="theme-field">Code<input id="themeCode" type="color" value="#020617" onchange="updateCustomTheme('code', this.value)"></label></div>
-    <label class="theme-field">Type<select id="themeFont" onchange="updateCustomTheme('font', this.value)"><option value="Inter">Inter</option><option value="system-ui">System UI</option><option value="Georgia">Georgia</option><option value="JetBrains Mono">JetBrains Mono</option></select></label>
+    <label class="theme-field">Preset<select id="themePresetRail" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic tech</option><option value="contrast">Dark contrast</option><option value="neon">Neon</option><option value="professional">Professional</option><option value="classic">Classic / GitHub</option><option value="custom">Custom</option></select></label>
+    <div class="theme-grid"><label class="theme-field">Accent<input id="themeAccentRail" type="color" value="#34d399" onchange="updateCustomTheme('accent', this.value)"></label><label class="theme-field">Surface<input id="themeSurfaceRail" type="color" value="#0f172a" onchange="updateCustomTheme('surface', this.value)"></label><label class="theme-field">Text<input id="themeTextRail" type="color" value="#e2e8f0" onchange="updateCustomTheme('text', this.value)"></label><label class="theme-field">Code<input id="themeCodeRail" type="color" value="#020617" onchange="updateCustomTheme('code', this.value)"></label></div>
+    <label class="theme-field">Type<select id="themeFontRail" onchange="updateCustomTheme('font', this.value)"><option value="Inter">Inter</option><option value="system-ui">System UI</option><option value="Georgia">Georgia</option><option value="JetBrains Mono">JetBrains Mono</option></select></label>
   </section>
   </aside>
   </div>
@@ -620,7 +576,15 @@
     </div>
   </div>
   
-  <div id="status"></div>
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <section id="accountSettings" class="account-settings" hidden aria-labelledby="accountSettingsTitle">
+    <div class="account-settings-card"><button class="overlay-close" type="button" data-close-settings>×</button><span class="tree-rail-kicker">Personalize</span><h2 id="accountSettingsTitle">Reading room settings</h2><p>Theme choices are shared across NoteBooks and saved to this browser.</p>
+      <label class="theme-field">Preset<select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic tech</option><option value="contrast">Dark contrast</option><option value="neon">Neon</option><option value="professional">Professional</option><option value="classic">Classic / GitHub</option><option value="custom">Custom</option></select></label>
+      <div class="mini-theme-grid"><label>Accent<input id="themeAccent" type="color" value="#34d399" onchange="updateCustomTheme('accent', this.value)"></label><label>Surface<input id="themeSurface" type="color" value="#08111d" onchange="updateCustomTheme('surface', this.value)"></label><label>Text<input id="themeText" type="color" value="#dbe7e5" onchange="updateCustomTheme('text', this.value)"></label><label>Code<input id="themeCode" type="color" value="#02050a" onchange="updateCustomTheme('code', this.value)"></label></div>
+      <label class="theme-field">Type<select id="themeFont" onchange="updateCustomTheme('font', this.value)"><option value="Inter">Inter</option><option value="system-ui">System UI</option><option value="Georgia">Georgia</option><option value="JetBrains Mono">JetBrains Mono</option></select></label>
+    </div>
+  </section>
 
   <!-- ===== ADMIN TERMINAL ===== -->
   <div id="terminalOverlay" class="full-overlay" style="display:none">

@@ -329,7 +329,7 @@ export function createApp() {
     res.sendFile(path.join(projectDir, 'LICENSE'));
   });
 
-  app.get(/^\/(science|commerce|humanities|community|issues|accounts|volunteers)(?:\/.+)?$/, (_req, res) => {
+  app.get(/^\/(science|commerce|humanities|community|issues|accounts|volunteers|about)(?:\/.+)?$/, (_req, res) => {
     res.sendFile(path.join(projectDir, 'index.html'));
   });
 
@@ -482,8 +482,10 @@ export function createApp() {
       return res.status(500).json({ error: String(err?.message || err) });
     }
   });
-  // Community endpoints (Phase 3)
+  // Community and issues feed endpoints
+  app.get('/api/community/feed', communityHandler.listFeed);
   app.get('/api/community/posts', communityHandler.listPosts);
+  app.get('/api/issues/feed', communityHandler.listFeed);
   app.post('/api/community/post', permissions.requireAuth, communityHandler.createPost);
   app.post('/api/community/post/:id/approve', permissions.requireRole('admin'), communityHandler.approvePost);
   app.post('/api/community/post/:id/reject', permissions.requireRole('admin'), communityHandler.rejectPost);

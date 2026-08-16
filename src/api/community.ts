@@ -8,6 +8,31 @@ import { getOctokit, getRepoConfig, getSubjectRepo } from './_shared.js';
 
 const inMemoryPosts: Array<any> = [];
 
+function normalizeFeedItem(item: any, source = 'Community') {
+  const created = item.created_at || item.createdAt || item.updated_at || new Date().toISOString();
+  return { id: item.id || item.number || item.github_discussion_id, title: item.title || 'Untitled activity', source, url: item.url || item.html_url || '#', excerpt: String(item.body || item.excerpt || '').replace(/\s+/g, ' ').slice(0, 180), created_at: created, updated_at: item.updated_at || created, reply_count: item.reply_count ?? item.comments ?? null, reaction_count: item.reaction_count ?? item.reactions ?? null, status: item.status || item.state || null };
+}
+function rankFeed(items: any[], sort = 'latest') {
+  return items.slice().sort((a, b) => {
+    if (sort === 'trending') {
+      const score = (item: any) => (Number(item.reply_count) || 0) * 3 + (Number(item.reaction_count) || 0) * 2 - Math.max(0, (Date.now() - new Date(item.updated_at || item.created_at).getTime()) / 86400000);
+      return score(b) - score(a);
+    }
+    return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+  });
+}
+export async function listFeed(req: Request, res: Response) {
+  try {
+    const sort = String(req.query.sort || 'latest');
+    const source = String(req.query.source || 'community') === 'issues' ? 'Issues' : 'Community';
+    const result = isDbConfigured() && source === 'Community' ? await dbQuery('SELECT id, title, body, subject, status, created_at, created_at AS updated_at FROM community_posts ORDER BY created_at DESC') : { rows: inMemoryPosts.slice().reverse() };
+    return res.status(200).json({ items: rankFeed(result.rows.map((item: any) => normalizeFeedItem(item, source)), sort), sort, source });
+  } catch (err) {
+    console.error('[community] feed error', err);
+    return res.status(500).json({ error: 'Live activity is unavailable' });
+  }
+}
+
 export async function listPosts(req: Request, res: Response) {
   try {
     if (isDbConfigured()) {

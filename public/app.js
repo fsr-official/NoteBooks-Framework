@@ -30,27 +30,35 @@ let workspaceLocationMarker = null;
 let activeTreePath = '';
 let treeInteractionStarted = false;
 const expandedTreePaths = new Set();
-const THEME_KEY = 'notebooks-theme-session';
+const THEME_KEY = 'notebooks-theme-global';
 const THEME_PRESETS = {
-    futuristic: { accent: '#34d399', surface: '#0f172a', text: '#e2e8f0', code: '#020617', font: 'Inter', bg: '#07111f', panel: '#102337', border: '#24445a', radius: '14px', density: '1', shadow: '0 18px 55px rgba(0,0,0,.28)', texture: 'grid', heading: 'Inter' },
+    futuristic: { accent: '#34d399', surface: '#08111d', text: '#dbe7e5', code: '#02050a', font: 'Inter', bg: '#030811', panel: '#091827', border: '#183449', radius: '14px', density: '1', shadow: '0 18px 55px rgba(0,0,0,.38)', texture: 'grid', heading: 'Inter' },
     contrast: { accent: '#f8fafc', surface: '#050505', text: '#ffffff', code: '#000000', font: 'system-ui', bg: '#000000', panel: '#0a0a0a', border: '#5b5b5b', radius: '2px', density: '.92', shadow: '0 0 0 transparent', texture: 'none', heading: 'system-ui' },
     neon: { accent: '#f472b6', surface: '#17112d', text: '#fdf4ff', code: '#0b0618', font: 'JetBrains Mono', bg: '#0b0618', panel: '#21143b', border: '#8b5cf6', radius: '22px', density: '1.12', shadow: '0 0 28px rgba(244,114,182,.24)', texture: 'scanlines', heading: 'JetBrains Mono' },
     professional: { accent: '#60a5fa', surface: '#172033', text: '#e5edf8', code: '#0d1524', font: 'Inter', bg: '#111827', panel: '#1f2937', border: '#334155', radius: '8px', density: '.98', shadow: '0 10px 28px rgba(0,0,0,.2)', texture: 'none', heading: 'Inter' },
     classic: { accent: '#0969da', surface: '#ffffff', text: '#1f2328', code: '#f6f8fa', font: 'system-ui', bg: '#f6f8fa', panel: '#ffffff', border: '#d0d7de', radius: '6px', density: '.94', shadow: '0 1px 2px rgba(31,35,40,.08)', texture: 'none', heading: 'system-ui' }
 };
-function applyTheme(theme) {
+function themeControls(id) {
+    return Array.from(document.querySelectorAll(`#${id}, #${id}Rail`));
+}
+function readSavedTheme() {
+    try { return JSON.parse(localStorage.getItem(THEME_KEY) || 'null'); } catch (_) { return null; }
+}
+function applyTheme(theme, options = {}) {
     const root = document.documentElement;
     const values = { ...THEME_PRESETS.futuristic, ...theme };
     root.dataset.theme = values.texture || 'none';
     Object.entries({ '--accent': values.accent, '--item': values.surface, '--fg': values.text, '--code-bg': values.code, '--bg': values.bg, '--panel': values.panel, '--border': values.border, '--radius': values.radius, '--density': values.density, '--shadow': values.shadow, '--font-sans': values.font + ', Inter, sans-serif', '--font-heading': values.heading + ', sans-serif' }).forEach(([key, value]) => root.style.setProperty(key, value));
-    ['themeAccent','themeSurface','themeText','themeCode'].forEach((id, index) => { const el = document.getElementById(id); if (el) el.value = [values.accent, values.surface, values.text, values.code][index]; });
-    const font = document.getElementById('themeFont'); if (font) font.value = values.font;
-    const preset = document.getElementById('themePreset'); if (preset) preset.value = Object.keys(THEME_PRESETS).find((name) => JSON.stringify(THEME_PRESETS[name]) === JSON.stringify(values)) || 'custom';
-    sessionStorage.setItem(THEME_KEY, JSON.stringify(values));
+    [['themeAccent', values.accent], ['themeSurface', values.surface], ['themeText', values.text], ['themeCode', values.code]].forEach(([id, value]) => themeControls(id).forEach((el) => { el.value = value; }));
+    themeControls('themeFont').forEach((el) => { el.value = values.font; });
+    const selectedPreset = Object.keys(THEME_PRESETS).find((name) => JSON.stringify(THEME_PRESETS[name]) === JSON.stringify(values)) || 'custom';
+    themeControls('themePreset').forEach((el) => { el.value = selectedPreset; });
+    if (!options.skipPersist) localStorage.setItem(THEME_KEY, JSON.stringify(values));
 }
 function applyThemePreset(name) { applyTheme(THEME_PRESETS[name] || THEME_PRESETS.futuristic); }
-function updateCustomTheme(key, value) { const saved = JSON.parse(sessionStorage.getItem(THEME_KEY) || '{}'); applyTheme({ ...saved, [key]: value }); const preset = document.getElementById('themePreset'); if (preset) preset.value = 'custom'; }
-function restoreTheme() { try { applyTheme(JSON.parse(sessionStorage.getItem(THEME_KEY) || 'null') || THEME_PRESETS.futuristic); } catch (_) { applyTheme(THEME_PRESETS.futuristic); } }
+function updateCustomTheme(key, value) { applyTheme({ ...readSavedTheme(), [key]: value }); themeControls('themePreset').forEach((el) => { el.value = 'custom'; }); }
+function restoreTheme() { applyTheme(readSavedTheme() || THEME_PRESETS.futuristic, { skipPersist: true }); }
+window.addEventListener('storage', (event) => { if (event.key === THEME_KEY && event.newValue) applyTheme(JSON.parse(event.newValue), { skipPersist: true }); });
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
 let appConfig = {
@@ -123,19 +131,74 @@ const SUBJECT_PAGES = {
     community: { icon: '💬', title: 'Community', description: 'Discuss concepts, share ideas, and collaborate.' },
     issues: { icon: '🛠️', title: 'Issues', description: 'Request changes, flag gaps, and improve the portal.' },
     accounts: { icon: '🔐', title: 'Accounts', description: 'Authentication, profiles, and access management.' },
-    volunteers: { icon: '🤝', title: 'Volunteers', description: 'Verified contributor opportunities and onboarding.' }
+    volunteers: { icon: '🤝', title: 'Volunteers', description: 'Verified contributor opportunities and onboarding.' },
+about: { icon: '◌', title: 'About NoteBooks', description: 'A shared shelf for clearer, kinder learning.' }
 };
 
 function getCurrentSubjectRoute() {
     const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0] || '';
     return SUBJECT_PAGES[slug] ? slug : '';
 }
+function initGlobalNav() {
+    const current = getCurrentSubjectRoute() || (window.location.pathname === '/' ? 'home' : '');
+    document.querySelectorAll('.global-nav-links a').forEach((link) => {
+        const active = link.dataset.nav === current;
+        link.classList.toggle('is-current', active);
+        if (active) link.setAttribute('aria-current', 'page');
+    });
+    const toggle = document.querySelector('.global-nav-toggle');
+    const links = document.querySelector('.global-nav-links');
+    toggle?.addEventListener('click', () => { const open = links.classList.toggle('is-open'); toggle.setAttribute('aria-expanded', String(open)); });
+    document.querySelector('[data-nav="accounts"]')?.addEventListener('click', () => { setTimeout(() => { if (window.location.hash === '#settings') document.getElementById('accountSettings')?.removeAttribute('hidden'); }, 0); });
+    document.querySelector('[data-close-settings]')?.addEventListener('click', () => document.getElementById('accountSettings')?.setAttribute('hidden', ''));
+}
+
+function renderPublicPortal(subject) {
+    const landing = document.getElementById('subjectLanding');
+    if (!landing || !subject || subject === 'science' || subject === 'commerce' || subject === 'humanities') return;
+    const pages = {
+        community: { kicker: 'Open discussion', title: 'A thoughtful place to ask, answer, and compare notes.', copy: 'Community conversations are grounded in the three subject libraries and surfaced from the existing GitHub-backed feed.', primary: 'Start a thread', links: [{ label: 'Latest discussions', href: '/community?sort=latest' }, { label: 'Trending now', href: '/community?sort=trending' }] },
+        issues: { kicker: 'Improve the shelf', title: 'Spot a gap. Make a clear request. Help the library get better.', copy: 'Issues turn reader friction into visible, actionable work for the NoteBooks community.', primary: 'Submit an issue', links: [{ label: 'Latest issues', href: '/issues?sort=latest' }, { label: 'Active work', href: '/issues?status=open' }] },
+        volunteers: { kicker: 'Contribute your craft', title: 'There is more than one way to leave the shelf better.', copy: 'Help with reference books, AI support, moderation, or coding. The page is public; applications continue through your account.', primary: 'Get started', links: [{ label: 'Reference books', href: '/accounts' }, { label: 'Moderation and coding', href: '/accounts' }] },
+        accounts: { kicker: 'Your NoteBooks account', title: 'Keep your learning room close at hand.', copy: 'Sign in to contribute, apply for volunteer work, upload notes, and manage your shared reading-room preferences.', primary: 'Sign in or register', links: [{ label: 'Open settings', href: '#settings' }, { label: 'Contribution access', href: '/volunteers' }] },
+        about: { kicker: 'The NoteBooks mission', title: 'Knowledge becomes more useful when it is easier to enter and easier to improve.', copy: 'NoteBooks is for learners, contributors, reviewers, and maintainers who want subject libraries that are readable, structured, and open to careful improvement. Notes move through submission, validation, review, and GitHub publication; Community and Issues keep questions and gaps visible along the way.', primary: 'Start learning', links: [{ label: 'Browse subjects', href: '/science' }, { label: 'Contribute', href: '/volunteers' }] }
+    };
+    const page = pages[subject];
+    if (!page) return;
+    landing.innerHTML = `<div class="portal-page"><div class="landing-hero"><div class="landing-kicker">${page.kicker}</div><h1>${page.title}</h1><p>${page.copy}</p><div class="landing-actions"><a class="landing-primary" href="${subject === 'accounts' ? '#login' : subject === 'community' || subject === 'issues' ? '#community' : subject === 'volunteers' ? '/accounts' : '/science'}">${page.primary} <span aria-hidden="true">→</span></a><a class="landing-secondary" href="/">Back to home</a></div></div><div class="portal-grid"><section class="portal-panel portal-panel--wide"><div class="portal-panel-header"><span>${page.icon || 'NoteBooks'}</span><strong>Explore this space</strong></div><div class="portal-doc-links">${page.links.map((link) => `<a href="${link.href}">${link.label}</a>`).join('')}</div>${subject === 'community' || subject === 'issues' ? `<div class="feed-switcher" role="group" aria-label="Activity sorting"><button type="button" class="feed-switch" data-portal-sort="latest">Latest</button><button type="button" class="feed-switch" data-portal-sort="trending">Trending</button></div><div class="portal-feed" id="portalFeed" role="status" aria-live="polite">Loading the latest activity…</div>` : ''}</section><section class="portal-panel"><div class="portal-panel-header"><span>Next step</span><strong>Keep moving</strong></div><p class="mission-copy">Choose one small action. Read a page, ask a question, or make a contribution that another learner can build on.</p></section></div></div>`;
+    if (subject === 'community' || subject === 'issues') {
+        const initialSort = new URLSearchParams(window.location.search).get('sort') || 'latest';
+        document.querySelectorAll('[data-portal-sort]').forEach((button) => { button.classList.toggle('is-active', button.dataset.portalSort === initialSort); button.addEventListener('click', () => { document.querySelectorAll('[data-portal-sort]').forEach((item) => item.classList.toggle('is-active', item === button)); loadPortalFeed(subject, 'portalFeed', button.dataset.portalSort || 'latest'); }); });
+        loadPortalFeed(subject, 'portalFeed', initialSort);
+    }
+}
+
+async function loadPortalFeed(subject, targetId = 'portalFeed', sort = 'latest') {
+    const feed = document.getElementById(targetId);
+    if (!feed) return;
+    feed.innerHTML = '<p class="feed-loading">Loading live activity…</p>';
+    try {
+        const source = subject === 'issues' ? 'issues' : 'community';
+        const response = await fetch(`/api/${source}/feed?source=${encodeURIComponent(source)}&sort=${encodeURIComponent(sort)}`, { headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(`Feed unavailable (${response.status})`);
+        const data = await response.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        feed.innerHTML = items.length ? items.slice(0, 6).map((item) => `<a class="feed-item" href="${escapeHtml(item.url || '#')}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title || 'Untitled activity')}</strong><span>${escapeHtml(item.source || source)}${item.reply_count != null ? ` · ${item.reply_count} replies` : ''}${item.reaction_count != null ? ` · ${item.reaction_count} reactions` : ''} · ${formatFeedDate(item.updated_at || item.created_at)}</span><small>${escapeHtml(item.excerpt || '')}</small></a>`).join('') : '<p class="feed-empty">Nothing here yet — be the first to contribute.</p>';
+    } catch (error) {
+        feed.innerHTML = '<p class="feed-empty">Live activity is unavailable right now. You can still browse the subject libraries.</p>';
+    }
+}
+function formatFeedDate(value) { const date = value ? new Date(value) : null; return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Recently'; }
+function initHomeFeed() { const feed = document.getElementById('homeFeed'); if (!feed) return; document.querySelectorAll('[data-feed-sort]').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('[data-feed-sort]').forEach((item) => item.classList.toggle('is-active', item === button)); loadPortalFeed('community', 'homeFeed', button.dataset.feedSort || 'latest'); })); loadPortalFeed('community', 'homeFeed', 'latest'); }
+function initPortalMotion() { const targets = document.querySelectorAll('[data-reveal], .subject-card'); if (!('IntersectionObserver' in window)) { targets.forEach((target) => target.classList.add('is-visible')); return; } const observer = new IntersectionObserver((entries, instance) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); instance.unobserve(entry.target); } }), { threshold: 0.12 }); targets.forEach((target) => observer.observe(target)); }
+function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
 
 function syncSubjectLandingState() {
     const landing = document.getElementById('subjectLanding');
     const shell = document.querySelector('.app-shell');
     const subject = getCurrentSubjectRoute();
-    const isPortalRoute = ['accounts', 'volunteers'].includes(subject) || window.location.pathname === '/';
+    const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(subject) || window.location.pathname === '/';
+    renderPublicPortal(subject);
 
     if (!landing || !shell) {
         return;
@@ -143,6 +206,14 @@ function syncSubjectLandingState() {
 
     landing.style.display = isPortalRoute ? 'block' : 'none';
     shell.style.display = isPortalRoute ? 'none' : 'flex';
+
+    document.querySelectorAll('#subjectGrid a, .portal-doc-links a').forEach((link) => {
+        const href = link.getAttribute('href') || '';
+        const active = subject && href === `/${subject}`;
+        link.classList.toggle('is-current', Boolean(active));
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+    });
 
     if (subject && SUBJECT_PAGES[subject]) {
         const meta = SUBJECT_PAGES[subject];
@@ -178,7 +249,7 @@ const EXCLUDED_ROOT_FILES = [
 const FILE_ICONS = {
     folder: "📁",
     md: "📝",
-    markdown: "📝",
+    markdown: "��",
     pdf: "📕",
     txt: "📄",
     json: "🔧",
@@ -896,7 +967,8 @@ async function fetchTree() {
         fontPromise.then(() => {
             splash.style.opacity = 0;
             setTimeout(() => { splash.style.display = 'none'; }, 600);
-            showStatus("Files loaded successfully!");
+            const workspaceStatus = document.getElementById('workspaceStatus');
+        if (workspaceStatus) workspaceStatus.textContent = 'Ready';
         });
     }
     catch (error) {
@@ -1860,6 +1932,9 @@ window.addEventListener("DOMContentLoaded", async () => {
         });
     }
   restoreTheme();
+  initGlobalNav();
+  initHomeFeed();
+  initPortalMotion();
   await fetchConfig();
   applyWorkspaceBranding();
   syncSubjectLandingState();
