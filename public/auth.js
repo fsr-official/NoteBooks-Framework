@@ -1,4 +1,26 @@
 // ===== MODERN EMAIL + PASSWORD AUTH SYSTEM =====
+function getDecodedAuthRole() {
+    try {
+        const token = window.ModernAuthInstance && window.ModernAuthInstance.getToken ? window.ModernAuthInstance.getToken() : '';
+        if (!token || typeof token !== 'string') {
+            return 'user';
+        }
+        const payloadPart = token.split('.')[1];
+        if (!payloadPart) {
+            return 'user';
+        }
+        const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+        const payload = JSON.parse(atob(padded));
+        return payload && payload.role ? payload.role : 'user';
+    }
+    catch (_err) {
+        return 'user';
+    }
+}
+function isCurrentUserAdmin() {
+    return Boolean(window.ModernAuthInstance && window.ModernAuthInstance.isLoggedIn && window.ModernAuthInstance.isLoggedIn()) && getDecodedAuthRole() === 'admin';
+}
 // Initialize reCAPTCHA and auth system on page load
 document.addEventListener('DOMContentLoaded', function () {
     void loadRecaptchaConfig();
@@ -156,6 +178,10 @@ function attemptModernLogout() {
 }
 // ===== UPDATE AUTH UI =====
 function showAdminPanel() {
+    if (!isCurrentUserAdmin()) {
+        showStatus('Admin access required');
+        return;
+    }
     const overlay = document.getElementById('adminOverlay');
     if (!overlay)
         return;
@@ -184,7 +210,7 @@ function updateShellSidebar() {
     const email = window.ModernAuthInstance.getEmail();
     if (loggedIn) {
         nameEl.textContent = email || 'Signed in';
-        metaEl.textContent = 'Authenticated and ready';
+        metaEl.textContent = isCurrentUserAdmin() ? 'Admin access enabled' : 'Authenticated and ready';
         avatarEl.textContent = (email || 'U').charAt(0).toUpperCase();
         if (loginBtn) {
             loginBtn.textContent = '👤 Account';
@@ -193,12 +219,13 @@ function updateShellSidebar() {
         }
         if (sidebarLoginBtn)
             sidebarLoginBtn.textContent = '👤 Account';
+        const showAdminControls = isCurrentUserAdmin();
         if (sidebarAdminBtn)
-            sidebarAdminBtn.style.display = 'flex';
+            sidebarAdminBtn.style.display = showAdminControls ? 'flex' : 'none';
         if (adminToolbarBtn)
-            adminToolbarBtn.style.display = 'flex';
+            adminToolbarBtn.style.display = showAdminControls ? 'flex' : 'none';
         if (mobileAdminBtn)
-            mobileAdminBtn.style.display = 'block';
+            mobileAdminBtn.style.display = showAdminControls ? 'block' : 'none';
     }
     else {
         nameEl.textContent = 'Sign in';

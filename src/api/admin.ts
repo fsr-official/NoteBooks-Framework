@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
-import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db';
+import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
 import fs from 'fs';
 import path from 'path';
-import permissions from '../lib/permissions';
-import { getUser, setUser } from './auth';
+import permissions from '../lib/permissions.js';
+import { getUser, setUser } from './auth.js';
 
 function appendAdminLog(entry: any) {
   try {

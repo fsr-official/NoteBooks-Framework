@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { fetchPagesManifest, resolvePagesBaseUrl } from './pages-fetch';
+import { fetchPagesManifest, resolvePagesBaseUrl } from './pages-fetch.js';
 
 export interface RepoRegistryEntry {
   name: string;

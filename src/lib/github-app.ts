@@ -34,7 +34,11 @@ export async function getInstallationOctokitForRepo(owner: string, repo: string)
 
 export async function createDiscussionForRepo(owner: string, repo: string, title: string, body: string, categoryName = 'Community') {
   const octokit = await getInstallationOctokitForRepo(owner, repo);
-  const discussion = await octokit.rest.discussions.create({ owner, repo, title, body, category_name: categoryName as any });
+  const discussionsApi = (octokit as any).rest?.discussions;
+  if (!discussionsApi || typeof discussionsApi.create !== 'function') {
+    throw new Error('GitHub Discussions API is not available for this installation');
+  }
+  const discussion = await discussionsApi.create({ owner, repo, title, body, category_name: categoryName });
   return discussion.data;
 }
 

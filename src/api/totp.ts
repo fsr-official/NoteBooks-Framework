@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { authenticator } from 'otplib';
-import { getUser, setUser } from './auth';
+import { getUser, setUser } from './auth.js';
 
 function generateBackupCodes(count = 8) {
   const codes: string[] = [];

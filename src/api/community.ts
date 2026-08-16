@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express';
-import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db';
-import { getUser } from './auth';
-import { validateBlocks, sanitizeBlocks } from '../lib/ai-markdown';
-import { getOctokit } from './_shared';
+import fs from 'fs';
+import path from 'path';
+import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
+import { getUser } from './auth.js';
+import { validateBlocks, sanitizeBlocks } from '../lib/ai-markdown.js';
+import { getOctokit, getRepoConfig, getSubjectRepo } from './_shared.js';
 
 const inMemoryPosts: Array<any> = [];
 
@@ -48,7 +50,7 @@ export async function createPost(req: Request, res: Response) {
           const octokit = await getOctokit({ allowUnauthenticated: false });
           const [owner, repo] = repoCfg;
           const discussionBody = subject ? `[${subject}]\n\n${finalBody}` : finalBody;
-          const discussion = await octokit.rest.discussions.create({ owner, repo, title, body: discussionBody, category_name: 'Community' as any }).catch(() => null);
+          const discussion = await (octokit as any).rest.discussions.create({ owner, repo, title, body: discussionBody, category_name: 'Community' as any }).catch(() => null);
           if (discussion && discussion.data && discussion.data.html_url) {
             discussionId = String(discussion.data.id || discussion.data.node_id || discussion.data.html_url);
           }
@@ -99,7 +101,7 @@ export async function approvePost(req: Request, res: Response) {
           if (repoCfg.length === 2) {
             const [owner, repo] = repoCfg;
             try {
-              const gh = await import('../lib/github-app');
+              const gh = await import('../lib/github-app.js');
               const discussionBody = post.subject ? `[${post.subject}]\n\n${post.body}` : post.body;
               const discussion = await gh.createDiscussionForRepo(owner, repo, post.title, discussionBody, 'Community');
               if (discussion) discussionId = String(discussion.id || discussion.node_id || discussion.html_url);
@@ -115,7 +117,7 @@ export async function approvePost(req: Request, res: Response) {
           let owner: string | undefined;
           let repo: string | undefined;
           if (post.subject) {
-            const subjRepo = await import('./_shared').then((m) => m.getSubjectRepo(post.subject)).catch(() => null);
+            const subjRepo = await import('./_shared.js').then((m) => m.getSubjectRepo(post.subject)).catch(() => null);
             if (subjRepo) {
               owner = subjRepo.owner;
               repo = subjRepo.repo;
@@ -130,7 +132,7 @@ export async function approvePost(req: Request, res: Response) {
           }
           if (owner && repo) {
           try {
-            const gh = await import('../lib/github-app');
+            const gh = await import('../lib/github-app.js');
             const baseBranch = process.env.GITHUB_REPO_BASE || 'main';
             const branchName = `community/post-${id}-${Date.now()}`;
             const filePath = process.env.COMMUNITY_CONTENT_PATH || `community/posts/post-${id}.md`;

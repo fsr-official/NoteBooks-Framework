@@ -3,20 +3,20 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs';
-import repoRegistryHandler from '../api/repo-registry';
-import configHandler from '../api/config';
-import ghHandler from '../api/gh';
-import blobHandler from '../api/blob';
-import rawHandler from '../api/raw';
-import submitPrHandler from '../api/submit-pr';
-import * as prReview from '../api/pr-review';
-import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal';
-import desmosHandler from '../api/desmos';
-import authHandler, { assertAuthConfig } from '../api/auth';
-import oauthHandler from '../api/oauth';
-import { buildLocalFilesManifest } from '../api/files-manifest';
-import permissions from '../lib/permissions';
-import * as communityHandler from '../api/community';
+import repoRegistryHandler from '../api/repo-registry.js';
+import configHandler from '../api/config.js';
+import ghHandler from '../api/gh.js';
+import blobHandler from '../api/blob.js';
+import rawHandler from '../api/raw.js';
+import submitPrHandler from '../api/submit-pr.js';
+import * as prReview from '../api/pr-review.js';
+import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal.js';
+import desmosHandler from '../api/desmos.js';
+import authHandler, { assertAuthConfig } from '../api/auth.js';
+import oauthHandler from '../api/oauth.js';
+import { buildLocalFilesManifest } from '../api/files-manifest.js';
+import permissions from '../lib/permissions.js';
+import * as communityHandler from '../api/community.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
@@ -234,7 +234,7 @@ export function createApp() {
     // DB check
     try {
       // lazy import to avoid touching DB in environments without DATABASE_URL
-      const db = await import('../lib/db');
+      const db = await import('../lib/db.js');
       if (db.isConfigured()) {
         try {
           await db.query('SELECT 1');
@@ -252,7 +252,7 @@ export function createApp() {
 
     // GitHub auth check
     try {
-      const sh = await import('../api/_shared');
+      const sh = await import('../api/_shared.js');
       try {
         // request an authenticated client; if not configured this will throw
         const oct = await sh.getOctokit({ allowUnauthenticated: false } as any);
@@ -316,8 +316,24 @@ export function createApp() {
     res.sendFile(path.join(projectDir, 'index.html'));
   });
 
+  app.get('/README.md', (_req, res) => {
+    res.sendFile(path.join(projectDir, 'README.md'));
+  });
+
+  app.get('/LICENSE', (_req, res) => {
+    res.sendFile(path.join(projectDir, 'LICENSE'));
+  });
+
+  app.get(/^\/(science|commerce|humanities|community|issues|accounts|volunteers)(?:\/.+)?$/, (_req, res) => {
+    res.sendFile(path.join(projectDir, 'index.html'));
+  });
+
   app.get('/manifest.json', (_req, res) => {
     res.sendFile(path.join(projectDir, 'manifest.json'));
+  });
+
+  app.get('/service-worker.js', (_req, res) => {
+    res.sendFile(path.join(projectDir, 'service-worker.js'));
   });
 
   app.get('/favicon.png', (_req, res) => {
@@ -438,10 +454,10 @@ export function createApp() {
   // Subject-scoped endpoints: community posts and issues
   app.post('/api/subject/:subject/community/post', permissions.requireAuth, (req, res) => {
     // delegate to community handler with subject in params
-    return import('../api/community').then((m) => m.createPost(req, res));
+    return import('../api/community.js').then((m) => m.createPost(req, res));
   });
   app.post('/api/subject/:subject/community/post/:id/approve', permissions.requireRole('admin'), (req, res) => {
-    return import('../api/community').then((m) => m.approvePost(req, res));
+    return import('../api/community.js').then((m) => m.approvePost(req, res));
   });
   app.post('/api/subject/:subject/issues/create', permissions.requireAuth, async (req, res) => {
     const subject = String(req.params.subject || req.query.subject || '').trim();
@@ -452,7 +468,7 @@ export function createApp() {
       const issuesTarget = process.env.GITHUB_ISSUES_REPO || '';
       if (!issuesTarget) return res.status(500).json({ error: 'Issues repo not configured' });
       const [owner, repo] = issuesTarget.split('/').filter(Boolean);
-      const oct = await import('../api/_shared').then((m) => m.getOctokit({ allowUnauthenticated: false }));
+      const oct = await import('../api/_shared.js').then((m) => m.getOctokit({ allowUnauthenticated: false }));
       const issueBody = subject ? `[${subject}]\n\n${body}` : body;
       const issue = await oct.issues.create({ owner, repo, title, body: issueBody }).catch((e:any) => { throw e; });
       return res.status(201).json({ issue: issue.data });
@@ -468,22 +484,21 @@ export function createApp() {
   app.post('/api/community/post/:id/reject', permissions.requireRole('admin'), communityHandler.rejectPost);
   // GitHub App administrative actions
   app.post('/api/github-app', permissions.requireRole('admin'), (req, res) => {
-    // delegate to handler module
-    return import('../api/github-app').then((m) => m.default(req, res));
+    return import('../api/github-app.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
   // GitHub App webhook receiver (no auth; validate with webhook secret in front proxy if needed)
   app.post('/api/webhooks/github-app', express.json(), (req, res) => {
-    return import('../api/webhooks/github-app').then((m) => m.default(req, res));
+    return import('../api/webhooks/github-app.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
   app.get('/api/webhooks/github-app', permissions.requireRole('admin'), (req, res) => {
-    return import('../api/webhooks/github-app').then((m) => m.default(req, res));
+    return import('../api/webhooks/github-app.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
   // Admin PR listing
   app.get('/api/admin', permissions.requireRole('admin'), (req, res) => {
-    return import('../api/admin').then((m) => m.default(req, res));
+    return import('../api/admin.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
   app.post('/api/admin', permissions.requireRole('admin'), (req, res) => {
-    return import('../api/admin').then((m) => m.default(req, res));
+    return import('../api/admin.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
   app.get('/api/latest-commit', (_req, res) => {
     const latest = getLatestSignal();

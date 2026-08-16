@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import * as gha from '../lib/github-app';
-import { getRepoConfig } from './_shared';
+import * as gha from '../lib/github-app.js';
+import { getRepoConfig } from './_shared.js';
 import fs from 'fs';
 import path from 'path';
 

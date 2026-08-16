@@ -49,7 +49,8 @@ export function validateBlocks(markdown: string) {
         }
       }
     } catch (e) {
-      errors.push(`interactive block ${b.type} contains invalid JSON: ${String(e?.message || e)}`);
+      const message = e instanceof Error ? e.message : String(e);
+      errors.push(`interactive block ${b.type} contains invalid JSON: ${message}`);
     }
   }
   return { ok: errors.length === 0, errors, blocks };

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getUser } from '../api/auth';
+import { getUser } from '../api/auth.js';
 
 function getJwtSecret() {
   return process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production';

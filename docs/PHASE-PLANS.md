@@ -1,3 +1,5 @@
+con
+
 # Phase Plan: Staged Upgrade to the Unified Architecture
 
 This document turns the architecture summary in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) into a practical delivery sequence. The platform is split into a public read-only File Service and a set of account-bearing write-path services, and the rollout should respect that trust boundary.
@@ -96,20 +98,20 @@ Acceptance gate: launch is backed by operational evidence, monitoring, and rollb
 
 ## Unified TODO (short actionable list)
 
-- [x] Phase 1: File Service stabilization — implemented and tested.
-- [x] Phase 2: Shared identity and session foundation — implemented and tested.
-- [x] Phase 3: Community endpoints, moderation, and basic GitHub App helpers — implemented and tested.
-- [x] Add GitHub App helper library and basic automation wiring.
-- [x] Add webhook receiver to persist installations.
-- [x] Add CI workflows and staging docs.
-- [x] Add webhook signature verification (this PR) — implemented.
-- [x] Persist PR metadata in DB when creating PRs from community posts (this PR) — implemented.
-- [ ] Persist installation IDs and add webhook handler to handle updates/removed events (expand).
-- [ ] Add webhook signature verification for other webhook types and verify delivery retries.
-- [ ] Add DB-backed PR metadata indexing and admin UI for PR review/merge history.
-- [ ] Add mocked integration tests for GitHub App flows (Octokit mocks).
-- [ ] Add production CI secrets and rotateable key management instructions.
-- [ ] Deploy staging with read-only File Service and test GitHub App flows in staging.
+- [X]  Phase 1: File Service stabilization — implemented and tested.
+- [X]  Phase 2: Shared identity and session foundation — implemented and tested.
+- [X]  Phase 3: Community endpoints, moderation, and basic GitHub App helpers — implemented and tested.
+- [X]  Add GitHub App helper library and basic automation wiring.
+- [X]  Add webhook receiver to persist installations.
+- [X]  Add CI workflows and staging docs.
+- [X]  Add webhook signature verification (this PR) — implemented.
+- [X]  Persist PR metadata in DB when creating PRs from community posts (this PR) — implemented.
+- [ ]  Persist installation IDs and add webhook handler to handle updates/removed events (expand).
+- [ ]  Add webhook signature verification for other webhook types and verify delivery retries.
+- [ ]  Add DB-backed PR metadata indexing and admin UI for PR review/merge history.
+- [ ]  Add mocked integration tests for GitHub App flows (Octokit mocks).
+- [ ]  Add production CI secrets and rotateable key management instructions.
+- [ ]  Deploy staging with read-only File Service and test GitHub App flows in staging.
 
 Notes: the repository contains `docs/phases/*` skeletons with per-phase checklists to guide further work.
 

@@ -1,167 +1,169 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Admin PRs</title>
-    <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:2rem}</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Console</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+      h1 { margin-bottom: 1.5rem; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+      .card { background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 1rem; }
+      form { display: grid; gap: 0.75rem; }
+      label { display: grid; gap: 0.35rem; font-size: 0.9rem; color: #cbd5e1; }
+      input, select, button { font: inherit; }
+      input, select { padding: 0.7rem 0.8rem; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.4); background: rgba(15, 23, 42, 0.9); color: #f8fafc; }
+      button { cursor: pointer; border: 0; background: #2563eb; color: white; border-radius: 8px; padding: 0.7rem 1rem; font-weight: 600; }
+      button.secondary { background: #334155; }
+      ul { margin: 0; padding-left: 1.1rem; }
+      li { margin-bottom: 0.5rem; }
+      .status { margin-top: 0.75rem; min-height: 1.25rem; color: #93c5fd; }
+      .muted { color: #94a3b8; }
+    </style>
   </head>
   <body>
-    <h1>PRs from Community Posts</h1>
-    <div id="content">Loading...</div>
+    <div class="wrap">
+      <h1>Admin Console</h1>
+      <div class="grid">
+        <section class="card">
+          <h2>Role Management</h2>
+          <form id="assign-role-form">
+            <label>Email<input name="email" type="email" required /></label>
+            <label>Role<select name="role"><option value="admin">admin</option><option value="moderator">moderator</option><option value="user">user</option></select></label>
+            <button type="submit">Assign role</button>
+          </form>
+          <div class="status" id="assign-role-status"></div>
+          <form id="revoke-role-form" style="margin-top:1rem;">
+            <label>Email<input name="email" type="email" required /></label>
+            <button class="secondary" type="submit">Revoke role</button>
+          </form>
+          <div class="status" id="revoke-role-status"></div>
+        </section>
+        <section class="card">
+          <h2>Ban / Unban</h2>
+          <form id="ban-form">
+            <label>Email<input name="email" type="email" required /></label>
+            <label>Until<input name="until" type="datetime-local" /></label>
+            <button type="submit">Ban user</button>
+          </form>
+          <div class="status" id="ban-status"></div>
+          <form id="unban-form" style="margin-top:1rem;">
+            <label>Email<input name="email" type="email" required /></label>
+            <button class="secondary" type="submit">Unban user</button>
+          </form>
+          <div class="status" id="unban-status"></div>
+        </section>
+        <section class="card">
+          <h2>Recent Audit Log</h2>
+          <ul id="logs-list"></ul>
+        </section>
+        <section class="card">
+          <h2>Open PRs</h2>
+          <ul id="prs-list"></ul>
+        </section>
+      </div>
+    </div>
     <script>
-      async function load(){
-        const r = await fetch('/api/admin?action=list-prs',{credentials:'same-origin'});
-        if (!r.ok) { document.getElementById('content').innerText = 'Failed to load'; return; }
-        const j = await r.json();
-        const rows = j.prs || [];
-        if (!rows.length) { document.getElementById('content').innerText = 'No PRs found'; return; }
-        const ul = document.createElement('ul');
-        // build logs map by prNumber
-        const logsByPr = {};
-        if (Array.isArray(logsJson && logsJson.logs)) {
-          for (const lg of logsJson.logs) {
-            const prn = lg && (lg.prNumber || lg.pr_number);
-            if (!prn) continue;
-            logsByPr[prn] = logsByPr[prn] || [];
-            logsByPr[prn].push(lg);
-          }
+      function getCsrfHeaders() {
+        const cookieMatch = document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith('csrf='));
+        const csrf = cookieMatch ? cookieMatch.split('=')[1] : null;
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrf) {
+          headers['x-csrf-token'] = csrf;
+          headers['x-csrf-cookie'] = csrf;
         }
+        return headers;
+      }
 
-        rows.forEach(p => {
-          const li = document.createElement('li');
-          const mergedText = p.pr_merged ? '✅' : '❌';
-          const mergedAt = p.pr_merged_at ? ` (merged at ${p.pr_merged_at})` : '';
-          li.innerHTML = `<strong>${p.title}</strong> — PR <a href="${p.pr_url}" target="_blank">${p.pr_number}</a> by ${p.author_email} — merged: ${mergedText}${mergedAt}`;
-          if (!p.pr_merged) {
-            const btn = document.createElement('button');
-            btn.textContent = 'Merge PR';
-            btn.style.marginLeft = '1rem';
-            btn.addEventListener('click', async () => {
-              btn.disabled = true;
-                // include CSRF token if available in cookie
-                const cookieMatch = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrf='));
-                const csrf = cookieMatch ? cookieMatch.split('=')[1] : null;
-                const headers = { 'Content-Type': 'application/json' };
-                if (csrf) {
-                  headers['x-csrf-token'] = csrf;
-                  headers['x-csrf-cookie'] = csrf;
-                }
-                const res = await fetch(`/api/github-app?action=merge-pr`, { method: 'POST', credentials: 'same-origin', headers, body: JSON.stringify({ prNumber: p.pr_number, mergeMethod: 'merge' }) });
-              if (res.ok) {
-                alert('Merge requested');
-                window.location.reload();
-              } else {
-                const j = await res.json().catch(() => ({}));
-                alert('Merge failed: ' + (j.error || res.statusText));
-                btn.disabled = false;
-              }
-            });
-                  <script>
-                    function getCsrfHeaders() {
-                      const cookieMatch = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrf='));
-                      const csrf = cookieMatch ? cookieMatch.split('=')[1] : null;
-                      const headers = { 'Content-Type': 'application/json' };
-                      if (csrf) {
-                        headers['x-csrf-token'] = csrf;
-                        headers['x-csrf-cookie'] = csrf;
-                      }
-                      return headers;
-                    }
+      async function callAdmin(action, payload, statusEl) {
+        statusEl.textContent = 'Working...';
+        try {
+          const res = await fetch(`/api/admin?action=${action}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: getCsrfHeaders(),
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(json.error || res.statusText || 'Request failed');
+          }
+          statusEl.textContent = 'Success';
+          await Promise.all([loadLogs(), loadPrs()]);
+          return true;
+        } catch (err) {
+          statusEl.textContent = String(err.message || err);
+          return false;
+        }
+      }
 
-                    async function apiMerge(prNumber, btn) {
-                      try {
-                        btn.disabled = true;
-                        const orig = btn.textContent;
-                        btn.textContent = 'Merging...';
-                        const res = await fetch(`/api/github-app?action=merge-pr`, { method: 'POST', credentials: 'same-origin', headers: getCsrfHeaders(), body: JSON.stringify({ prNumber, mergeMethod: 'merge' }) });
-                        if (!res.ok) {
-                          const j = await res.json().catch(() => ({}));
-                          btn.textContent = orig;
-                          btn.disabled = false;
-                          alert('Merge failed: ' + (j.error || res.statusText));
-                          return false;
-                        }
-                        btn.textContent = 'Merged';
-                        return true;
-                      } catch (err) {
-                        btn.textContent = 'Retry';
-                        btn.disabled = false;
-                        alert('Merge error: ' + String(err));
-                        return false;
-                      }
-                    }
+      async function loadLogs() {
+        const list = document.getElementById('logs-list');
+        try {
+          const res = await fetch('/api/admin?action=logs', { credentials: 'same-origin' });
+          if (!res.ok) throw new Error('Failed to load logs');
+          const json = await res.json();
+          const logs = Array.isArray(json.logs) ? json.logs : [];
+          list.innerHTML = logs.length
+            ? logs.map((entry) => `<li>${JSON.stringify(entry)}</li>`).join('')
+            : '<li class="muted">No audit entries yet.</li>';
+        } catch (err) {
+          list.innerHTML = `<li class="muted">${String(err.message || err)}</li>`;
+        }
+      }
 
-                    async function load(){
-                      const [prsRes, logsRes] = await Promise.all([
-                        fetch('/api/admin?action=list-prs',{credentials:'same-origin'}),
-                        fetch('/api/admin?action=logs',{credentials:'same-origin'})
-                      ]);
-                      if (!prsRes.ok) { document.getElementById('content').innerText = 'Failed to load PRs'; return; }
-                      const j = await prsRes.json();
-                      const rows = j.prs || [];
-                      const logsJson = await logsRes.json().catch(() => ({}));
-                      const ul = document.createElement('ul');
+      async function loadPrs() {
+        const list = document.getElementById('prs-list');
+        try {
+          const res = await fetch('/api/admin?action=list-prs', { credentials: 'same-origin' });
+          if (!res.ok) throw new Error('Failed to load PR list');
+          const json = await res.json();
+          const prs = Array.isArray(json.prs) ? json.prs : [];
+          list.innerHTML = prs.length
+            ? prs.map((pr) => `<li><strong>${pr.title}</strong> — <a href="${pr.pr_url}" target="_blank">#${pr.pr_number}</a> by ${pr.author_email}</li>`).join('')
+            : '<li class="muted">No PRs found.</li>';
+        } catch (err) {
+          list.innerHTML = `<li class="muted">${String(err.message || err)}</li>`;
+        }
+      }
 
-                      // build logs map by prNumber
-                      const logsByPr = {};
-                      if (Array.isArray(logsJson && logsJson.logs)) {
-                        for (const lg of logsJson.logs) {
-                          const prn = lg && (lg.prNumber || lg.pr_number);
-                          if (!prn) continue;
-                          logsByPr[prn] = logsByPr[prn] || [];
-                          logsByPr[prn].push(lg);
-                        }
-                      }
+      document.getElementById('assign-role-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const data = Object.fromEntries(new FormData(form).entries());
+        await callAdmin('assign-role', { email: data.email, role: data.role }, document.getElementById('assign-role-status'));
+        form.reset();
+      });
 
-                      rows.forEach(p => {
-                        const li = document.createElement('li');
-                        const mergedText = p.pr_merged ? '✅' : '❌';
-                        const mergedAt = p.pr_merged_at ? ` (merged at ${p.pr_merged_at})` : '';
-                        li.innerHTML = `<strong>${p.title}</strong> — PR <a href="${p.pr_url}" target="_blank">${p.pr_number}</a> by ${p.author_email} — merged: ${mergedText}${mergedAt}`;
-                        if (!p.pr_merged) {
-                          const btn = document.createElement('button');
-                          btn.textContent = 'Merge PR';
-                          btn.style.marginLeft = '1rem';
-                          btn.addEventListener('click', async () => {
-                            const ok = await apiMerge(p.pr_number, btn);
-                            if (ok) {
-                              // optimistic update
-                              const statusText = li.querySelector('strong');
-                              // reload list to get fresh status from server
-                              setTimeout(() => load(), 800);
-                            }
-                          });
-                          li.appendChild(btn);
-                        }
-                        ul.appendChild(li);
-                        // attach recent logs for this PR if any
-                        const prLogs = logsByPr[p.pr_number] || [];
-                        if (prLogs.length) {
-                          const sub = document.createElement('ul');
-                          sub.style.marginTop = '0.5rem';
-                          sub.style.marginBottom = '0.5rem';
-                          prLogs.forEach(lg => {
-                            const sli = document.createElement('li');
-                            sli.textContent = `${lg.at || ''} ${lg.user || ''} ${lg.action || ''} ${lg.result || ''} ${lg.error ? ': ' + lg.error : ''}`;
-                            sub.appendChild(sli);
-                          });
-                          li.appendChild(sub);
-                        }
-                      });
+      document.getElementById('revoke-role-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const email = new FormData(form).get('email');
+        await callAdmin('revoke-role', { email }, document.getElementById('revoke-role-status'));
+        form.reset();
+      });
 
-                      const controls = document.createElement('div');
-                      const refresh = document.createElement('button');
-                      refresh.textContent = 'Refresh';
-                      refresh.style.marginBottom = '1rem';
-                      refresh.addEventListener('click', () => {
-                        refresh.disabled = true;
-                        load().finally(() => { refresh.disabled = false; });
-                      });
-                      controls.appendChild(refresh);
+      document.getElementById('ban-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const data = Object.fromEntries(new FormData(form).entries());
+        await callAdmin('ban', { email: data.email, until: data.until || null }, document.getElementById('ban-status'));
+        form.reset();
+      });
 
-                      document.getElementById('content').innerHTML = '';
-                      document.getElementById('content').appendChild(controls);
-                      document.getElementById('content').appendChild(ul);
-                    }
-                    load();
-                  </script>
+      document.getElementById('unban-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const email = new FormData(form).get('email');
+        await callAdmin('unban', { email }, document.getElementById('unban-status'));
+        form.reset();
+      });
+
+      loadLogs();
+      loadPrs();
+    </script>
+  </body>
+</html>
+

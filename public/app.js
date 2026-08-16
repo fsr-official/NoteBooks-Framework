@@ -116,6 +116,50 @@ function applyWorkspaceBranding() {
     }
 }
 
+const SUBJECT_PAGES = {
+    science: { icon: '🧪', title: 'Science', description: 'Structured notes, experiments, and concept reviews.' },
+    commerce: { icon: '💼', title: 'Commerce', description: 'Business, economics, and practical career knowledge.' },
+    humanities: { icon: '📚', title: 'Humanities', description: 'History, civics, culture, and critical essays.' },
+    community: { icon: '💬', title: 'Community', description: 'Discuss concepts, share ideas, and collaborate.' },
+    issues: { icon: '🛠️', title: 'Issues', description: 'Request changes, flag gaps, and improve the portal.' },
+    accounts: { icon: '🔐', title: 'Accounts', description: 'Authentication, profiles, and access management.' },
+    volunteers: { icon: '🤝', title: 'Volunteers', description: 'Verified contributor opportunities and onboarding.' }
+};
+
+function getCurrentSubjectRoute() {
+    const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0] || '';
+    return SUBJECT_PAGES[slug] ? slug : '';
+}
+
+function syncSubjectLandingState() {
+    const landing = document.getElementById('subjectLanding');
+    const shell = document.querySelector('.app-shell');
+    const subject = getCurrentSubjectRoute();
+    const isPortalRoute = ['accounts', 'volunteers'].includes(subject) || window.location.pathname === '/';
+
+    if (!landing || !shell) {
+        return;
+    }
+
+    landing.style.display = isPortalRoute ? 'block' : 'none';
+    shell.style.display = isPortalRoute ? 'none' : 'flex';
+
+    if (subject && SUBJECT_PAGES[subject]) {
+        const meta = SUBJECT_PAGES[subject];
+        document.title = `${meta.title} · NoteBooks`;
+        if (window.location.pathname === `/${subject}`) {
+            const workspaceHeader = document.getElementById('workspaceHeader');
+            if (workspaceHeader) {
+                workspaceHeader.textContent = `${meta.icon} ${meta.title}`;
+            }
+            const utilityTitle = document.getElementById('utilityWorkspaceTitle');
+            if (utilityTitle) {
+                utilityTitle.textContent = `${meta.title}`;
+            }
+        }
+    }
+}
+
 async function fetchConfig() {
     try {
         const res = await fetch('/api/config');
@@ -1818,9 +1862,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   restoreTheme();
   await fetchConfig();
   applyWorkspaceBranding();
+  syncSubjectLandingState();
   const utilityTitle = document.getElementById('utilityWorkspaceTitle');
   if (utilityTitle) utilityTitle.textContent = document.getElementById('workspaceHeader')?.textContent || 'NoteBooks';
+  if (window.location.pathname === '/' || getCurrentSubjectRoute()) {
     await startUpdatePolling();
     await fetchTree();
-    maybeShowVercelPopup();
+  }
+  maybeShowVercelPopup();
 });

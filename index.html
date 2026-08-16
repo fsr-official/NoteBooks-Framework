@@ -60,6 +60,110 @@
 <body>
   <div id="splash"><img src="favicon.png" alt="Loading..." /></div>
 
+  <div id="subjectLanding" class="subject-landing" aria-live="polite">
+    <div class="landing-hero">
+      <div class="landing-kicker">NoteBooks</div>
+      <h1>Learn by subject, build by community.</h1>
+      <p>NoteBooks is a collaborative learning and publishing platform for subject knowledge, open discussion, trusted contributions, and contributor onboarding across science, commerce, humanities, accounts, community, issues, and volunteering.</p>
+      <div class="landing-actions">
+        <a class="landing-primary" href="/science">Open Science</a>
+        <a class="landing-secondary" href="/community">Community</a>
+        <a class="landing-secondary" href="/volunteers">Volunteers</a>
+      </div>
+    </div>
+
+    <div class="portal-grid">
+      <section class="portal-panel portal-panel--wide">
+        <div class="portal-panel-header">
+          <span>Project hub</span>
+          <strong>Start here</strong>
+        </div>
+        <div class="portal-doc-links">
+          <a href="/README.md" target="_blank" rel="noreferrer">📘 README</a>
+          <a href="/LICENSE" target="_blank" rel="noreferrer">📜 License</a>
+          <a href="/science">🧪 Science</a>
+          <a href="/commerce">💼 Commerce</a>
+          <a href="/humanities">📚 Humanities</a>
+          <a href="/community">💬 Community</a>
+          <a href="/issues">🛠️ Issues</a>
+          <a href="/accounts">🔐 Accounts</a>
+          <a href="/volunteers">🤝 Volunteers</a>
+        </div>
+      </section>
+
+      <section class="portal-panel">
+        <div class="portal-panel-header">
+          <span>Workspace</span>
+          <strong>Theme studio</strong>
+        </div>
+        <div class="mini-theme-panel">
+          <label>Preset
+            <select id="themePreset" onchange="applyThemePreset(this.value)">
+              <option value="futuristic">Futuristic tech</option>
+              <option value="contrast">Dark contrast</option>
+              <option value="neon">Neon</option>
+              <option value="professional">Professional</option>
+              <option value="classic">Classic / GitHub</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <div class="mini-theme-grid">
+            <label>Accent<input id="themeAccent" type="color" value="#34d399" onchange="updateCustomTheme('accent', this.value)"></label>
+            <label>Surface<input id="themeSurface" type="color" value="#0f172a" onchange="updateCustomTheme('surface', this.value)"></label>
+            <label>Text<input id="themeText" type="color" value="#e2e8f0" onchange="updateCustomTheme('text', this.value)"></label>
+            <label>Code<input id="themeCode" type="color" value="#020617" onchange="updateCustomTheme('code', this.value)"></label>
+          </div>
+          <label>Type
+            <select id="themeFont" onchange="updateCustomTheme('font', this.value)">
+              <option value="Inter">Inter</option>
+              <option value="system-ui">System UI</option>
+              <option value="Georgia">Georgia</option>
+              <option value="JetBrains Mono">JetBrains Mono</option>
+            </select>
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <div class="subject-grid" id="subjectGrid">
+      <a class="subject-card" href="/science">
+        <span class="subject-icon">🧪</span>
+        <strong>Science</strong>
+        <small>NCERT, concepts, experiments, and revision pathways</small>
+      </a>
+      <a class="subject-card" href="/commerce">
+        <span class="subject-icon">💼</span>
+        <strong>Commerce</strong>
+        <small>Business, accounting, and economic understanding</small>
+      </a>
+      <a class="subject-card" href="/humanities">
+        <span class="subject-icon">📚</span>
+        <strong>Humanities</strong>
+        <small>History, civics, culture, and critical thinking</small>
+      </a>
+      <a class="subject-card" href="/community">
+        <span class="subject-icon">💬</span>
+        <strong>Community</strong>
+        <small>Discussions, peer learning, and moderated posts</small>
+      </a>
+      <a class="subject-card" href="/issues">
+        <span class="subject-icon">🛠️</span>
+        <strong>Issues</strong>
+        <small>Feature requests, corrections, and project feedback</small>
+      </a>
+      <a class="subject-card" href="/accounts">
+        <span class="subject-icon">🔐</span>
+        <strong>Accounts</strong>
+        <small>Profiles, verified access, and secure sign-in flow</small>
+      </a>
+      <a class="subject-card" href="/volunteers">
+        <span class="subject-icon">🤝</span>
+        <strong>Volunteers</strong>
+        <small>Reference books, AI support, moderation, and coding work</small>
+      </a>
+    </div>
+  </div>
+
   <!-- ===== FIRST-TIME GUIDANCE ===== -->
   <div id="guidanceOverlay" class="full-overlay">
     <div class="overlay-card">

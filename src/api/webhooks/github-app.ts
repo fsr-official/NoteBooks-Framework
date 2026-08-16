@@ -1,68 +1,110 @@
 import type { Request, Response } from 'express';
-import { query as dbQuery, isConfigured as isDbConfigured } from '../../lib/db';
+import { query as dbQuery, isConfigured as isDbConfigured } from '../../lib/db.js';
 import crypto from 'crypto';
 
-// Webhook handler notes:
-// - Validates `x-hub-signature-256` HMAC if `GITHUB_WEBHOOK_SECRET` is set.
-// - Persists `installation.created` events into `github_installations` when DB is configured.
-// - Provides an admin `list` action to inspect stored installations.
+function getRawBodyString(req: Request): string {
+  const rawBody = (req as any).rawBody;
+  if (typeof rawBody === 'string') return rawBody;
+  if (Buffer.isBuffer(rawBody)) return rawBody.toString('utf8');
+  if (typeof req.body === 'string') return req.body;
+  if (req.body && typeof req.body === 'object') return JSON.stringify(req.body);
+  return '';
+}
 
 function verifySignature(req: Request) {
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
   if (!secret) return { ok: true, warn: 'No webhook secret configured; skipping verification' };
-  const sigHeader = (req.headers['x-hub-signature-256'] || '') as string;
-  if (!sigHeader.startsWith('sha256=')) return { ok: false, message: 'Missing signature' };
-  const expected = sigHeader.replace('sha256=', '');
-  // Prefer the raw body preserved by the express.json verify handler, otherwise fallback to stringified body
-  const raw = (req as any).rawBody || (req.body && typeof req.body === 'object' ? JSON.stringify(req.body) : (req.body || ''));
-  const hmac = crypto.createHmac('sha256', secret).update(raw).digest('hex');
-  const a = Buffer.from(hmac, 'hex');
-  const b = Buffer.from(expected, 'hex');
-  if (a.length !== b.length) return { ok: false, message: 'Signature length mismatch' };
-  const ok = crypto.timingSafeEqual(a, b);
-  return { ok };
+
+  const headers = req.headers;
+  const sigHeader = (headers['x-hub-signature-256'] || headers['x-hub-signature'] || '') as string;
+  if (!sigHeader) return { ok: false, message: 'Missing signature' };
+
+  const raw = getRawBodyString(req);
+  if (!raw) return { ok: false, message: 'Missing request body for signature verification' };
+
+  if (sigHeader.startsWith('sha256=')) {
+    const expected = sigHeader.replace('sha256=', '');
+    const actual = crypto.createHmac('sha256', secret).update(raw, 'utf8').digest('hex');
+    const a = Buffer.from(actual, 'hex');
+    const b = Buffer.from(expected, 'hex');
+    if (a.length !== b.length) return { ok: false, message: 'Signature length mismatch' };
+    return { ok: crypto.timingSafeEqual(a, b) };
+  }
+
+  if (sigHeader.startsWith('sha1=')) {
+    const expected = sigHeader.replace('sha1=', '');
+    const actual = crypto.createHmac('sha1', secret).update(raw, 'utf8').digest('hex');
+    const a = Buffer.from(actual, 'hex');
+    const b = Buffer.from(expected, 'hex');
+    if (a.length !== b.length) return { ok: false, message: 'Signature length mismatch' };
+    return { ok: crypto.timingSafeEqual(a, b) };
+  }
+
+  return { ok: false, message: 'Unsupported signature format' };
 }
 
 export async function handleGithubAppWebhook(req: Request, res: Response) {
-  // Verify signature if secret configured
   try {
     const verify = verifySignature(req);
     if (!verify.ok) return res.status(401).json({ error: 'Invalid signature', detail: verify.message || undefined });
 
-    // Dedupe by delivery id to support retries. When DB is configured we store delivery ids
-    // in `webhook_deliveries`. When not configured we use an in-memory Set for this process.
     const deliveryId = (req.headers['x-github-delivery'] || '') as string;
     if (deliveryId) {
       if (isDbConfigured()) {
-        const ins = await dbQuery('INSERT INTO webhook_deliveries(delivery_id, event_type) VALUES($1,$2) ON CONFLICT (delivery_id) DO NOTHING RETURNING id', [deliveryId, req.headers['x-github-event'] || null]);
-        if (!ins || ins.rowCount === 0) {
-          // Already processed
+        const result = await dbQuery(
+          'INSERT INTO webhook_deliveries(delivery_id, event_type) VALUES($1,$2) ON CONFLICT (delivery_id) DO NOTHING RETURNING id',
+          [deliveryId, req.headers['x-github-event'] || null]
+        );
+        if (!result || result.rowCount === 0) {
           return res.status(200).json({ ok: true, skipped: true, reason: 'duplicate delivery' });
         }
       } else {
-        // lightweight in-memory dedupe; not persistent across restarts
-        if ((global as any).__seen_webhook_deliveries__ === undefined) (global as any).__seen_webhook_deliveries__ = new Set();
+        if ((global as any).__seen_webhook_deliveries__ === undefined) {
+          (global as any).__seen_webhook_deliveries__ = new Set();
+        }
         const set: Set<string> = (global as any).__seen_webhook_deliveries__;
-        if (set.has(deliveryId)) return res.status(200).json({ ok: true, skipped: true, reason: 'duplicate delivery' });
+        if (set.has(deliveryId)) {
+          return res.status(200).json({ ok: true, skipped: true, reason: 'duplicate delivery' });
+        }
         set.add(deliveryId);
       }
     }
 
     const evt = req.headers['x-github-event'] as string | undefined;
     const body = req.body || {};
-    // Handle installation created/updated/deleted and repository events as needed
+
+    if (evt === 'ping') {
+      return res.status(200).json({ ok: true, message: 'pong' });
+    }
+
     if (evt === 'installation' && body.action && ['created', 'deleted', 'suspended', 'unsuspended'].includes(body.action)) {
       const install = body.installation;
       if (install && isDbConfigured()) {
         const installationId = Number(install.id);
         const accountLogin = install.account?.login || null;
         const accountType = install.account?.type || null;
-        const repository = Array.isArray(body.repositories) && body.repositories[0] ? `${body.repositories[0].owner.login}/${body.repositories[0].name}` : null;
-        await dbQuery('INSERT INTO github_installations(installation_id, account_login, account_type, repository) VALUES($1,$2,$3,$4) ON CONFLICT (installation_id) DO UPDATE SET account_login = EXCLUDED.account_login, account_type = EXCLUDED.account_type, repository = EXCLUDED.repository', [installationId, accountLogin, accountType, repository]);
+        const repository = Array.isArray(body.repositories) && body.repositories[0]
+          ? `${body.repositories[0].owner.login}/${body.repositories[0].name}`
+          : null;
+        await dbQuery(
+          'INSERT INTO github_installations(installation_id, account_login, account_type, repository) VALUES($1,$2,$3,$4) ON CONFLICT (installation_id) DO UPDATE SET account_login = EXCLUDED.account_login, account_type = EXCLUDED.account_type, repository = EXCLUDED.repository',
+          [installationId, accountLogin, accountType, repository]
+        );
       }
     }
-    // TODO: handle `installation_repositories` events to update repository lists, and other event types (push, pull_request) as needed.
-    return res.status(200).json({ ok: true });
+
+    if (evt === 'installation_repositories' && Array.isArray(body.repositories)) {
+      if (isDbConfigured() && body.installation?.id) {
+        const installationId = Number(body.installation.id);
+        const repository = body.repositories[0] ? `${body.repositories[0].owner.login}/${body.repositories[0].name}` : null;
+        await dbQuery(
+          'UPDATE github_installations SET repository = $1 WHERE installation_id = $2',
+          [repository, installationId]
+        );
+      }
+    }
+
+    return res.status(200).json({ ok: true, event: evt || 'unknown' });
   } catch (err) {
     console.error('[webhook] github app handler error', err);
     return res.status(500).json({ error: 'webhook handler error' });

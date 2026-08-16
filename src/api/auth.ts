@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { Resend } from 'resend';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db';
+import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
 
 interface UserRecord {
   email: string;

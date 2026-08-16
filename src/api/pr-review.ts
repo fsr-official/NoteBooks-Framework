@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { getOctokit, getRepoConfig } from './_shared';
+import { getOctokit, getRepoConfig } from './_shared.js';
 
 function getBearerToken(req: Request) {
   const authHeader = req.get('authorization') || '';

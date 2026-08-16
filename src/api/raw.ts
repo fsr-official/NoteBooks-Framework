@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { resolve, normalize } from 'path';
-import { getRepoConfig } from './_shared';
+import { getRepoConfig } from './_shared.js';
 
 const MIME_TYPES: Record<string, string> = {
   doc: 'application/msword',

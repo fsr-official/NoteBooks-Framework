@@ -380,7 +380,69 @@ function hideAdminTerminal() {
     }, 380);
 }
 // Export
+const SSHAuth = {
+    getSession() {
+        const auth = window.ModernAuthInstance;
+        const email = auth && auth.getEmail ? auth.getEmail() : 'guest';
+        const token = auth && auth.getToken ? auth.getToken() : null;
+        let role = 'user';
+        try {
+            if (token && token.includes('.')) {
+                const payloadPart = token.split('.')[1];
+                const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+                const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+                const payload = JSON.parse(atob(padded));
+                if (payload && payload.role) {
+                    role = payload.role;
+                }
+            }
+        }
+        catch (_err) {
+            role = 'user';
+        }
+        return {
+            username: email || 'guest',
+            role,
+            permissions: role === 'admin' ? ['admin', 'manage_users', 'manage_logs'] : ['read'],
+            fingerprint: null,
+            expiresAt: null,
+            id: 'local-session'
+        };
+    },
+    isAdmin() {
+        return this.getSession().role === 'admin';
+    },
+    getUsers() {
+        return [];
+    },
+    getAdmins() {
+        return [];
+    },
+    getLogs() {
+        return [];
+    },
+    clearLogs() {
+        return;
+    },
+    log() {
+        return;
+    },
+    revokeUser() {
+        return;
+    },
+    revokeAdmin() {
+        return;
+    },
+    rotateKey() {
+        return Promise.resolve({ fingerprint: 'n/a', privateKey: 'n/a' });
+    },
+    registerAdmin() {
+        return Promise.resolve({ fingerprint: 'n/a', privateKey: 'n/a' });
+    }
+};
+
 if (typeof window !== 'undefined') {
+    window.SSHAuth = SSHAuth;
     window.showAdminTerminal = showAdminTerminal;
     window.hideAdminTerminal = hideAdminTerminal;
 }

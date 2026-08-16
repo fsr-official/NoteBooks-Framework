@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 import type { Request, Response } from 'express';
-import { getOctokit, getRepoConfig } from './_shared';
-import { validateBlocks, sanitizeBlocks } from '../lib/ai-markdown';
+import { getOctokit, getRepoConfig, getSubjectRepo } from './_shared.js';
+import { validateBlocks, sanitizeBlocks } from '../lib/ai-markdown.js';
 
 const cooldownState = new Map<string, { attempts: number; lastAttempt: number; violations: number; bannedUntil?: number }>();
 

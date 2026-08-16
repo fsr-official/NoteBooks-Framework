@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { getUser as getMemoryUser, setUser as setMemoryUser } from './auth';
+import { getUser as getMemoryUser, setUser as setMemoryUser } from './auth.js';
 import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
 
 function getJwtSecret(): string {
@@ -51,18 +51,18 @@ async function exchangeGitHub(code: string) {
     headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, code })
   });
-  const tokenJson = await tokenRes.json();
+  const tokenJson = (await tokenRes.json()) as Record<string, any>;
   const accessToken = tokenJson.access_token;
   if (!accessToken) throw new Error('Failed to obtain GitHub access token');
 
   const userRes = await fetch('https://api.github.com/user', { headers: { Authorization: `token ${accessToken}`, Accept: 'application/json' } });
-  const profile = await userRes.json();
+  const profile = await userRes.json() as any;
 
   // try to fetch primary email
-  let email = profile.email;
+  let email = profile?.email;
   if (!email) {
     const emailsRes = await fetch('https://api.github.com/user/emails', { headers: { Authorization: `token ${accessToken}`, Accept: 'application/json' } });
-    const emails = await emailsRes.json();
+    const emails = await emailsRes.json() as any[];
     const primary = Array.isArray(emails) && emails.find((e: any) => e.primary) || emails[0];
     email = primary?.email;
   }
@@ -87,13 +87,13 @@ async function exchangeGoogle(code: string, redirectUri?: string) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString()
   });
-  const tokenJson = await tokenRes.json();
+  const tokenJson = (await tokenRes.json()) as Record<string, any>;
   const accessToken = tokenJson.access_token;
   if (!accessToken) throw new Error('Failed to obtain Google access token');
 
   const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${accessToken}` } });
-  const profile = await userRes.json();
-  const email = profile.email;
+  const profile = await userRes.json() as any;
+  const email = profile?.email;
   return { email, providerId: profile.id, profile };
 }
 

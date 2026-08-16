@@ -13,8 +13,8 @@
     "backend": "node dist/server/server/server.js",
     "setup": "npm run dev",
     "test": "vitest run",
-    "pretest": "node src/scripts/migrate-db.js || true",
-    "migrate": "node src/scripts/migrate-db.js",
+    "pretest": "node --experimental-strip-types src/scripts/migrate-db.js || true",
+    "migrate": "node --experimental-strip-types src/scripts/migrate-db.js",
     "typecheck": "tsc --noEmit -p tsconfig.server.json"
   },
   "devDependencies": {
@@ -22,6 +22,7 @@
     "@types/express": "^5.0.1",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/node": "^22.10.1",
+    "@types/pg": "^8.21.0",
     "serve": "^14.2.0",
     "supertest": "^7.0.3",
     "ts-node": "^10.9.2",
@@ -39,8 +40,8 @@
     "express-rate-limit": "^7.0.0",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.3",
+    "otplib": "^12.0.1",
+    "pg": "^8.23.0",
     "resend": "^6.12.4"
-    ,
-    "otplib": "^12.0.1"
   }
 }
