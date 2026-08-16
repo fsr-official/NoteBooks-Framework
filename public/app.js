@@ -31,6 +31,7 @@ let activeTreePath = '';
 let treeInteractionStarted = false;
 const expandedTreePaths = new Set();
 const THEME_KEY = 'notebooks-theme-global';
+const THEME_COOKIE = 'notebooks-theme';
 const THEME_PRESETS = {
     futuristic: { accent: '#34d399', surface: '#08111d', text: '#dbe7e5', code: '#02050a', font: 'Inter', bg: '#030811', panel: '#091827', border: '#183449', radius: '14px', density: '1', shadow: '0 18px 55px rgba(0,0,0,.38)', texture: 'grid', heading: 'Inter' },
     contrast: { accent: '#f8fafc', surface: '#050505', text: '#ffffff', code: '#000000', font: 'system-ui', bg: '#000000', panel: '#0a0a0a', border: '#5b5b5b', radius: '2px', density: '.92', shadow: '0 0 0 transparent', texture: 'none', heading: 'system-ui' },
@@ -41,8 +42,27 @@ const THEME_PRESETS = {
 function themeControls(id) {
     return Array.from(document.querySelectorAll(`#${id}, #${id}Rail`));
 }
+function getCookie(name) {
+    const m = document.cookie.match('(?:^|; )' + name.replace(/([.$?*|{}()\[\]\\/+^])/g, '\\$1') + '=([^;]*)');
+    return m ? decodeURIComponent(m[1]) : null;
+}
+
+function setCookie(name, value, days = 365) {
+    const d = new Date();
+    d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax; expires=${d.toUTCString()}`;
+}
+
 function readSavedTheme() {
-    try { return JSON.parse(localStorage.getItem(THEME_KEY) || 'null'); } catch (_) { return null; }
+    try {
+        const local = localStorage.getItem(THEME_KEY);
+        if (local) return JSON.parse(local);
+    } catch (_) { /* ignore */ }
+    try {
+        const cookie = getCookie(THEME_COOKIE);
+        if (cookie) return JSON.parse(cookie);
+    } catch (_) { /* ignore */ }
+    return null;
 }
 function applyTheme(theme, options = {}) {
     const root = document.documentElement;
@@ -53,7 +73,10 @@ function applyTheme(theme, options = {}) {
     themeControls('themeFont').forEach((el) => { el.value = values.font; });
     const selectedPreset = Object.keys(THEME_PRESETS).find((name) => JSON.stringify(THEME_PRESETS[name]) === JSON.stringify(values)) || 'custom';
     themeControls('themePreset').forEach((el) => { el.value = selectedPreset; });
-    if (!options.skipPersist) localStorage.setItem(THEME_KEY, JSON.stringify(values));
+    if (!options.skipPersist) {
+        try { localStorage.setItem(THEME_KEY, JSON.stringify(values)); } catch (_) { }
+        try { setCookie(THEME_COOKIE, JSON.stringify(values), 365); } catch (_) { }
+    }
 }
 function applyThemePreset(name) { applyTheme(THEME_PRESETS[name] || THEME_PRESETS.futuristic); }
 function updateCustomTheme(key, value) { applyTheme({ ...readSavedTheme(), [key]: value }); themeControls('themePreset').forEach((el) => { el.value = 'custom'; }); }
