@@ -1938,6 +1938,33 @@ window.addEventListener("DOMContentLoaded", async () => {
   await fetchConfig();
   applyWorkspaceBranding();
   syncSubjectLandingState();
+    // If the current route is a subject (science/commerce/humanities/community/volunteers/admin),
+    // load the static subject fragment into the main app shell so the paths work immediately.
+    async function loadSubjectFragmentIfNeeded() {
+        const slug = getCurrentSubjectRoute();
+        if (!slug) return;
+        const shell = document.querySelector('.app-shell');
+        if (!shell) return;
+        try {
+            const res = await fetch(`/public/subjects/${slug}.html`);
+            if (!res.ok) return;
+            const html = await res.text();
+            shell.innerHTML = html;
+            if (!document.querySelector('link[data-subjects-css]')) {
+                const l = document.createElement('link');
+                l.rel = 'stylesheet';
+                l.setAttribute('data-subjects-css', '1');
+                l.href = '/public/subjects/subjects.css';
+                document.head.appendChild(l);
+            }
+            // Initialize markdown/renderers if available
+            if (window.markdownToHTML) markdownToHTML(shell);
+            if (window.initMarkdownFeatures) initMarkdownFeatures(shell);
+        } catch (err) {
+            console.warn('[subjects] could not load fragment', err);
+        }
+    }
+    await loadSubjectFragmentIfNeeded();
   const utilityTitle = document.getElementById('utilityWorkspaceTitle');
   if (utilityTitle) utilityTitle.textContent = document.getElementById('workspaceHeader')?.textContent || 'NoteBooks';
   if (window.location.pathname === '/' || getCurrentSubjectRoute()) {

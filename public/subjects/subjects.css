@@ -1,0 +1,26 @@
+/* Subjects shared styles */
+.subject-page {
+  max-width: 980px;
+  margin: 32px auto;
+  padding: 16px;
+}
+.subject-page header h1 {
+  font-size: 28px;
+  margin: 0 0 8px 0;
+}
+.subject-lead {
+  color: #555;
+  margin: 0 0 16px 0;
+}
+#subject-content {
+  background: #fff;
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+.placeholder {
+  color: #666;
+}
+.admin-shell #subject-content {
+  background: #fafafa;
+}
