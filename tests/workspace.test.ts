@@ -56,4 +56,13 @@ describe('workspace env routing', () => {
       expect(raw.length).toBeGreaterThan(20);
     }
   });
+
+  it('serves TikZJax assets with the headers required for the worker to initialize', async () => {
+    const app = createApp();
+    const res = await request(app).get('/public/tikzjax/output/tikzjax.js');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['cross-origin-opener-policy']).toBe('same-origin');
+    expect(res.headers['cross-origin-embedder-policy']).toBe('credentialless');
+  });
 });

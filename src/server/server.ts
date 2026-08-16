@@ -17,6 +17,8 @@ import oauthHandler from '../api/oauth.js';
 import { buildLocalFilesManifest } from '../api/files-manifest.js';
 import permissions from '../lib/permissions.js';
 import * as communityHandler from '../api/community.js';
+import * as metrics from '../lib/metrics.js';
+import { assertRuntimeConfig } from '../lib/runtime-config.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
@@ -112,9 +114,20 @@ const submitPrLimiter = rateLimit({
 });
 
 export function createApp() {
+  assertRuntimeConfig();
   assertAuthConfig();
 
   const app = express();
+
+  // TikZJax and other WASM/WebWorker features require the page and its assets to be
+  // cross-origin isolated. Setting this at the app layer guarantees the document and
+  // static assets inherit the required COOP/COEP policies regardless of route type.
+  app.use((_req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+    next();
+  });
+
   // CSRF enforcement (double-submit) for state-changing API routes when enabled
   const enforceCsrf = process.env.ENFORCE_CSRF === 'true';
   if (enforceCsrf) {
@@ -192,41 +205,33 @@ export function createApp() {
     }
   }));
   // Minimal metrics middleware
-  try {
-    // Use require to synchronously load the lightweight metrics module so createApp() remains sync
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const metrics = require('../lib/metrics');
-    // Request timing and basic error counters
-    app.use((req, res, next) => {
-      const start = Date.now();
-      res.on('finish', () => {
-        const dur = Date.now() - start;
-        try {
-          metrics.incCounter('requests_total');
-          metrics.incCounter(`requests_method_${req.method.toLowerCase()}`, 1);
-          metrics.incCounter('request_duration_ms_sum', dur);
-          metrics.incCounter('request_duration_ms_count', 1);
-          if (res.statusCode >= 500) metrics.incCounter('request_errors_total', 1);
-        } catch (e) {
-          // swallow metric errors
-        }
-      });
-      next();
-    });
-    app.get('/metrics', (req, res) => {
-      const format = String(req.query.format || '').toLowerCase();
-      if (format === 'prometheus' || req.headers.accept === 'text/plain') {
-        const text = metrics.getPrometheusText ? metrics.getPrometheusText() : '';
-        res.setHeader('Content-Type', 'text/plain; version=0.0.4');
-        return res.status(200).send(text);
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const dur = Date.now() - start;
+      try {
+        metrics.incCounter('requests_total');
+        metrics.incCounter(`requests_method_${req.method.toLowerCase()}`, 1);
+        metrics.incCounter('request_duration_ms_sum', dur);
+        metrics.incCounter('request_duration_ms_count', 1);
+        if (res.statusCode >= 500) metrics.incCounter('request_errors_total', 1);
+      } catch (e) {
+        // swallow metric errors
       }
-      const m = metrics.getMetrics();
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(200).json(m);
     });
-  } catch (err) {
-    console.warn('metrics module not available', err);
-  }
+    next();
+  });
+  app.get('/metrics', (req, res) => {
+    const format = String(req.query.format || '').toLowerCase();
+    if (format === 'prometheus' || req.headers.accept === 'text/plain') {
+      const text = metrics.getPrometheusText ? metrics.getPrometheusText() : '';
+      res.setHeader('Content-Type', 'text/plain; version=0.0.4');
+      return res.status(200).send(text);
+    }
+    const m = metrics.getMetrics();
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).json(m);
+  });
   app.use(express.urlencoded({ extended: true }));
 
     app.get('/health', async (_req, res) => {
@@ -526,18 +531,18 @@ export function createApp() {
 }
 
 export function startServer(port: number = PORT) {
-  // Check for env vars but provide defaults for development
-  const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production';
-  const GITHUB_REPO = process.env.GITHUB_REPO || 'fsr-science/NCERT-Science';
-  const GITHUB_COMMUNITY_REPO = process.env.GITHUB_COMMUNITY_REPO || 'fsr-official/NoteBooks-Community';
-  const GITHUB_ISSUES_REPO = process.env.GITHUB_ISSUES_REPO || 'fsr-official/NoteBooks-Issues';
-  
-  if (!process.env.JWT_SECRET || !process.env.GITHUB_REPO) {
-    console.warn('[server] Using default environment variables for development. Ensure they are set in production.');
-    process.env.JWT_SECRET = JWT_SECRET;
-    process.env.GITHUB_REPO = GITHUB_REPO;
-    process.env.GITHUB_COMMUNITY_REPO = process.env.GITHUB_COMMUNITY_REPO || GITHUB_COMMUNITY_REPO;
-    process.env.GITHUB_ISSUES_REPO = process.env.GITHUB_ISSUES_REPO || GITHUB_ISSUES_REPO;
+  if (process.env.NODE_ENV !== 'production') {
+    const envDefaults = {
+      JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production',
+      GITHUB_REPO: process.env.GITHUB_REPO || 'fsr-science/NCERT-Science',
+      GITHUB_COMMUNITY_REPO: process.env.GITHUB_COMMUNITY_REPO || 'fsr-official/NoteBooks-Community',
+      GITHUB_ISSUES_REPO: process.env.GITHUB_ISSUES_REPO || 'fsr-official/NoteBooks-Issues',
+      WORKSPACE: process.env.WORKSPACE || 'NoteBooks-Framework',
+    };
+
+    Object.entries(envDefaults).forEach(([key, value]) => {
+      if (!process.env[key]) process.env[key] = value;
+    });
   }
 
   const app = createApp();

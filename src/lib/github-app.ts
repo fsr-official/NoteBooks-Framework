@@ -50,17 +50,19 @@ export async function createPrFromContent(owner: string, repo: string, baseBranc
     attempt += 1;
     try {
       const octokit = await getInstallationOctokitForRepo(owner, repo);
-      // Create ref
+      const existingPrs = await octokit.pulls.list({ owner, repo, state: 'open', base: baseBranch, head: `${owner}:${branchName}` }).catch(() => ({ data: [] }));
+      const existingPr = existingPrs?.data?.[0];
+      if (existingPr) {
+        return { ...existingPr, alreadyExists: true };
+      }
+
       const mainRef = await octokit.git.getRef({ owner, repo, ref: `heads/${baseBranch}` });
       await octokit.git.createRef({ owner, repo, ref: `refs/heads/${branchName}`, sha: mainRef.data.object.sha });
-      // Create file
       await octokit.repos.createOrUpdateFileContents({ owner, repo, path: filePath, message: commitMessage, content: contentBase64, branch: branchName });
-      // Create PR
       const pr = await octokit.pulls.create({ owner, repo, title: prTitle, body: prBody, head: branchName, base: baseBranch });
-      return pr.data;
+      return { ...pr.data, alreadyExists: false };
     } catch (err: any) {
       lastErr = err;
-      // If we are on the last attempt, rethrow
       if (attempt >= maxAttempts) throw lastErr;
       const backoff = 200 * 2 ** (attempt - 1);
       await new Promise((r) => setTimeout(r, backoff));
@@ -77,8 +79,12 @@ export async function mergePr(owner: string, repo: string, prNumber: number, mer
     attempt += 1;
     try {
       const octokit = await getInstallationOctokitForRepo(owner, repo);
+      const prStatus = await octokit.pulls.get({ owner, repo, pull_number: prNumber }).catch(() => null);
+      if (prStatus?.data && (prStatus.data.merged || prStatus.data.state === 'closed')) {
+        return { ...prStatus.data, merged: true, alreadyMerged: true };
+      }
       const res = await octokit.pulls.merge({ owner, repo, pull_number: prNumber, merge_method: mergeMethod });
-      return res.data;
+      return { ...res.data, merged: Boolean(res.data?.merged), alreadyMerged: false };
     } catch (err: any) {
       lastErr = err;
       if (attempt >= maxAttempts) throw lastErr;

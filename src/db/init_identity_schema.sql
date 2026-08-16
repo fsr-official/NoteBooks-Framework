@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS community_posts (
   author_email TEXT NOT NULL,
   title TEXT NOT NULL,
   body TEXT NOT NULL,
+  subject TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
   github_discussion_id TEXT,
   -- PR metadata: optionally populated when the community post creates a PR via the GitHub App
@@ -75,3 +76,5 @@ CREATE TABLE IF NOT EXISTS community_posts (
   pr_merged_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_community_posts_subject ON community_posts (subject);

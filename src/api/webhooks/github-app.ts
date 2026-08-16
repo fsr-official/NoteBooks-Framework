@@ -43,6 +43,51 @@ function verifySignature(req: Request) {
   return { ok: false, message: 'Unsupported signature format' };
 }
 
+function normalizeRepoValue(payload: any): string | null {
+  const repositories = Array.isArray(payload?.repositories)
+    ? payload.repositories
+    : Array.isArray(payload?.repositories_added)
+      ? payload.repositories_added
+      : Array.isArray(payload?.repositories_removed)
+        ? payload.repositories_removed
+        : [];
+
+  const first = repositories[0];
+  if (!first) return null;
+
+  const ownerLogin = first.owner?.login ?? first.owner?.name ?? null;
+  const repoName = first.name ?? null;
+  if (!ownerLogin || !repoName) return null;
+  return `${ownerLogin}/${repoName}`;
+}
+
+async function persistInstallationRecord(installation: any, repository: string | null | undefined, action?: string) {
+  if (!installation || !isDbConfigured()) return;
+
+  const installationId = Number(installation.id);
+  if (!Number.isFinite(installationId)) return;
+
+  const accountLogin = installation.account?.login || null;
+  const accountType = installation.account?.type || null;
+
+  if (action === 'removed' || action === 'deleted') {
+    await dbQuery(
+      `INSERT INTO github_installations(installation_id, account_login, account_type, repository)
+       VALUES($1,$2,$3,$4)
+       ON CONFLICT (installation_id) DO UPDATE SET account_login = EXCLUDED.account_login, account_type = EXCLUDED.account_type, repository = EXCLUDED.repository`,
+      [installationId, accountLogin, accountType, repository ?? null]
+    );
+    return;
+  }
+
+  await dbQuery(
+    `INSERT INTO github_installations(installation_id, account_login, account_type, repository)
+     VALUES($1,$2,$3,$4)
+     ON CONFLICT (installation_id) DO UPDATE SET account_login = EXCLUDED.account_login, account_type = EXCLUDED.account_type, repository = EXCLUDED.repository`,
+    [installationId, accountLogin, accountType, repository ?? null]
+  );
+}
+
 export async function handleGithubAppWebhook(req: Request, res: Response) {
   try {
     const verify = verifySignature(req);
@@ -77,30 +122,25 @@ export async function handleGithubAppWebhook(req: Request, res: Response) {
       return res.status(200).json({ ok: true, message: 'pong' });
     }
 
-    if (evt === 'installation' && body.action && ['created', 'deleted', 'suspended', 'unsuspended'].includes(body.action)) {
+    if (evt === 'installation') {
       const install = body.installation;
-      if (install && isDbConfigured()) {
-        const installationId = Number(install.id);
-        const accountLogin = install.account?.login || null;
-        const accountType = install.account?.type || null;
-        const repository = Array.isArray(body.repositories) && body.repositories[0]
-          ? `${body.repositories[0].owner.login}/${body.repositories[0].name}`
-          : null;
-        await dbQuery(
-          'INSERT INTO github_installations(installation_id, account_login, account_type, repository) VALUES($1,$2,$3,$4) ON CONFLICT (installation_id) DO UPDATE SET account_login = EXCLUDED.account_login, account_type = EXCLUDED.account_type, repository = EXCLUDED.repository',
-          [installationId, accountLogin, accountType, repository]
-        );
+      const action = body.action;
+      if (install && ['created', 'deleted', 'removed', 'suspended', 'unsuspended'].includes(action || '')) {
+        const repository = normalizeRepoValue(body);
+        await persistInstallationRecord(install, repository, action);
       }
     }
 
-    if (evt === 'installation_repositories' && Array.isArray(body.repositories)) {
-      if (isDbConfigured() && body.installation?.id) {
-        const installationId = Number(body.installation.id);
-        const repository = body.repositories[0] ? `${body.repositories[0].owner.login}/${body.repositories[0].name}` : null;
-        await dbQuery(
-          'UPDATE github_installations SET repository = $1 WHERE installation_id = $2',
-          [repository, installationId]
-        );
+    if (evt === 'installation_repositories') {
+      const install = body.installation;
+      if (install && body.action && ['added', 'removed', 'deleted'].includes(body.action)) {
+        const repository = normalizeRepoValue(body);
+        await persistInstallationRecord(install, repository, body.action);
+      }
+
+      if (install && Array.isArray(body.repositories)) {
+        const repository = normalizeRepoValue(body);
+        await persistInstallationRecord(install, repository, body.action || 'updated');
       }
     }
 

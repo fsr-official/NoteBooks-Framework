@@ -11,7 +11,7 @@ const inMemoryPosts: Array<any> = [];
 export async function listPosts(req: Request, res: Response) {
   try {
     if (isDbConfigured()) {
-      const r = await dbQuery('SELECT id, author_email, title, body, status, github_discussion_id, created_at FROM community_posts ORDER BY created_at DESC');
+      const r = await dbQuery('SELECT id, author_email, title, body, subject, status, github_discussion_id, created_at FROM community_posts ORDER BY created_at DESC');
       return res.status(200).json({ posts: r.rows });
     }
     return res.status(200).json({ posts: inMemoryPosts.slice().reverse() });
@@ -76,7 +76,7 @@ export async function createPost(req: Request, res: Response) {
 
 export async function findPostById(id: number) {
   if (isDbConfigured()) {
-    const r = await dbQuery('SELECT id, author_email, title, body, status, github_discussion_id, created_at FROM community_posts WHERE id = $1', [id]);
+    const r = await dbQuery('SELECT id, author_email, title, body, subject, status, github_discussion_id, created_at FROM community_posts WHERE id = $1', [id]);
     return r.rows[0];
   }
   return inMemoryPosts.find((p) => p.id === id);
