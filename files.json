@@ -34,6 +34,12 @@
         },
         {
           "type": "file",
+          "name": "MARKDOWN-RENDERER.md",
+          "path": "docs/MARKDOWN-RENDERER.md",
+          "sha": "742b9d1460cc5bd86bfeeabcf15e758902034dadbbd10495e7bbf20b3d276eed"
+        },
+        {
+          "type": "file",
           "name": "PHASE-PLANS.md",
           "path": "docs/PHASE-PLANS.md",
           "sha": "87b002207de9b84de10631e8f727672ebb474fed66b69a0f0a198a57100bacb2"
