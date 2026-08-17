@@ -18,6 +18,7 @@
   },
   "include": [
     "src/server/**/*.ts",
+    "src/types/**/*.d.ts",
     "src/api/auth.ts",
     "src/api/blob.ts",
     "src/api/config.ts",

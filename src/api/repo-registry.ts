@@ -16,6 +16,7 @@ async function ensurePagesFetchLoaded() {
     resolvePagesBaseUrl = m.resolvePagesBaseUrl || m.default?.resolvePagesBaseUrl;
   } catch (e) {
     // fallback to TypeScript source when running under ts-node
+    // @ts-ignore allow importing the TS source when ts-node is registered
     const m = await import('./pages-fetch.ts');
     fetchPagesManifest = m.fetchPagesManifest;
     resolvePagesBaseUrl = m.resolvePagesBaseUrl;

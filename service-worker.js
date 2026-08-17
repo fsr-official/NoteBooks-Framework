@@ -41,6 +41,61 @@ const COOP_COEP_HEADERS = {
   'Cross-Origin-Embedder-Policy': 'credentialless',
 };
 
+// In-memory subject trees loaded at install time. Format: { subject: { repos: [...] } }
+const SUBJECT_TREES = {};
+
+async function loadSubjectTrees() {
+  const subjects = ['science', 'commerce', 'humanities'];
+  await Promise.all(subjects.map(async (s) => {
+    try {
+      const res = await fetch(`/public/${s}-tree.json`);
+      if (!res.ok) throw new Error(`no ${s}-tree`);
+      SUBJECT_TREES[s] = await res.json();
+    } catch (e) {
+      SUBJECT_TREES[s] = null;
+      // don't fail install on missing subject trees
+      console.warn('[service-worker] could not load subject tree for', s, e?.message || e);
+    }
+  }));
+}
+
+function normalizePath(p) {
+  return String(p || '').replace(/^\/+/, '').replace(/\/g, '/');
+}
+
+function findFileInNode(node, targetPath) {
+  if (!node) return null;
+  if (node.type === 'file' && normalizePath(node.path) === normalizePath(targetPath)) return node;
+  if (!Array.isArray(node.children)) return null;
+  for (const c of node.children) {
+    const found = findFileInNode(c, targetPath);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findFileForSubject(subject, subpath) {
+  const idx = SUBJECT_TREES[subject];
+  if (!idx || !Array.isArray(idx.repos)) return null;
+  const normalized = normalizePath(subpath);
+  for (const repoEntry of idx.repos) {
+    const repoRootName = String(repoEntry.tree?.name || '').replace(/^\/+/, '');
+    // If subpath begins with repoRootName, strip it; else try matching directly
+    let candidatePath = normalized;
+    if (repoRootName && normalized.startsWith(repoRootName + '/')) {
+      candidatePath = normalized.slice(repoRootName.length + 1);
+    }
+    // Try direct match and repo-root-prefixed match
+    let file = findFileInNode(repoEntry.tree, candidatePath);
+    if (!file) file = findFileInNode(repoEntry.tree, normalized);
+    if (file) {
+      // Ensure raw URL present
+      if (file.raw) return { file, repoEntry };
+    }
+  }
+  return null;
+}
+
 function withExtraHeaders(response, extra) {
   const headers = new Headers(response.headers);
   for (const [k, v] of Object.entries(extra)) {
@@ -55,9 +110,12 @@ function withExtraHeaders(response, extra) {
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then(cache =>
-      Promise.allSettled(APP_SHELL.map(url => cache.add(url).catch(() => {})))
-    )
+    (async () => {
+      const cache = await caches.open(CACHE_VERSION);
+      await Promise.allSettled(APP_SHELL.map(url => cache.add(url).catch(() => {})));
+      // Load subject trees into memory so fetch handler can resolve subject files
+      try { await loadSubjectTrees(); } catch (e) { /* ignore */ }
+    })()
   );
   self.skipWaiting();
 });
@@ -109,6 +167,37 @@ self.addEventListener('fetch', event => {
         )
     );
     return;
+  }
+
+  // Subject-specific routing: map requests under /science/, /commerce/, /humanities/
+  try {
+    const pathname = url.pathname || '';
+    const subjectMatch = pathname.match(/^\/(science|commerce|humanities)\/(.*)$/);
+    if (subjectMatch && request.method === 'GET') {
+      const subject = subjectMatch[1];
+      const subpath = subjectMatch[2] || '';
+      const resolved = findFileForSubject(subject, subpath);
+      if (resolved && resolved.file && resolved.file.raw) {
+        event.respondWith(
+          fetch(resolved.file.raw)
+            .then((r) => {
+              // Return response with COOP/COEP headers
+              const patched = withExtraHeaders(r, COOP_COEP_HEADERS);
+              // Cache the raw asset for offline fallback
+              if (r.ok) {
+                const clone = r.clone();
+                caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+              }
+              return patched;
+            })
+            .catch(() => caches.match(request).then(cached => cached || caches.match(OFFLINE_PAGE)))
+        );
+        return;
+      }
+    }
+  } catch (e) {
+    // ignore lookup errors and fallthrough to normal handling
+    console.warn('[service-worker] subject routing error', e?.message || e);
   }
 
   if (APP_SHELL.includes(request.url) || APP_SHELL.includes(url.pathname.replace(/^\//, ''))) {
