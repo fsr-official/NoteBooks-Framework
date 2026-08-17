@@ -16,3 +16,4 @@ dist/
 .vercel
 *.sh
 *.zip
+zip/

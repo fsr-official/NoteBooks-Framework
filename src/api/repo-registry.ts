@@ -1,5 +1,26 @@
 import type { Request, Response } from 'express';
-import { fetchPagesManifest, resolvePagesBaseUrl } from './pages-fetch.js';
+
+// Defer importing pages-fetch so the module can be executed from TypeScript
+// during build-time (ts-node) or from compiled JavaScript (dist). Try the
+// runtime JS import first, then fall back to the TS source when running
+// directly.
+let fetchPagesManifest: any;
+let resolvePagesBaseUrl: any;
+
+async function ensurePagesFetchLoaded() {
+  if (fetchPagesManifest && resolvePagesBaseUrl) return;
+  try {
+    // runtime compiled shape
+    const m = await import('./pages-fetch.js');
+    fetchPagesManifest = m.fetchPagesManifest || m.default?.fetchPagesManifest;
+    resolvePagesBaseUrl = m.resolvePagesBaseUrl || m.default?.resolvePagesBaseUrl;
+  } catch (e) {
+    // fallback to TypeScript source when running under ts-node
+    const m = await import('./pages-fetch.ts');
+    fetchPagesManifest = m.fetchPagesManifest;
+    resolvePagesBaseUrl = m.resolvePagesBaseUrl;
+  }
+}
 
 export interface RepoRegistryEntry {
   name: string;
@@ -101,6 +122,7 @@ function prefixRepoPaths(node: TreeNode, prefix: string, repo: string, branch: s
 }
 
 export async function buildRegistryTree(entries: RepoRegistryEntry[]) {
+  await ensurePagesFetchLoaded();
   const normalizedEntries = entries
     .map(normalizeRepoEntry)
     .filter((entry) => entry.enabled)

@@ -1,6 +1,7 @@
 import express, { type Request } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 import repoRegistryHandler from '../api/repo-registry.js';
@@ -127,6 +128,9 @@ export function createApp() {
     res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
     next();
   });
+
+  // Parse cookies so `req.cookies` is available for CSRF, theme endpoints, etc.
+  app.use(cookieParser());
 
   // CSRF enforcement (double-submit) for state-changing API routes when enabled
   const enforceCsrf = process.env.ENFORCE_CSRF === 'true';
