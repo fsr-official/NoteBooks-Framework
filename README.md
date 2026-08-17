@@ -334,7 +334,7 @@ ENABLE_WRITE_LOGS=false
 
 ```
 
-   ```
+```
    RECAPTCHA_SITE_KEY=your_google_recaptcha_v3_site_key
    RECAPTCHA_SECRET_KEY=your_google_recaptcha_v3_secret_key
    RESEND_API_KEY=your_resend_email_api_key
@@ -342,14 +342,15 @@ ENABLE_WRITE_LOGS=false
    APP_URL=http://localhost:3000
    UPSTASH_REDIS_REST_URL=your_upstash_redis_url
    UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
-   ```
+```
 
    **Getting the Keys:**
 
-   - **reCAPTCHA Keys** — [Google reCAPTCHA Console](https://www.google.com/recaptcha/admin)
-   - **Resend API Key** — [Resend Dashboard](https://resend.com)
-   - **JWT Secret** — Generate with `openssl rand -base64 32`
-   - **Upstash Redis** — [Upstash Console](https://console.upstash.com/)
+- **reCAPTCHA Keys** — [Google reCAPTCHA Console](https://www.google.com/recaptcha/admin)
+- **Resend API Key** — [Resend Dashboard](https://resend.com)
+- **JWT Secret** — Generate with `openssl rand -base64 32`
+- **Upstash Redis** — [Upstash Console](https://console.upstash.com/)
+
 4. **Start development server**
 
    ```bash
@@ -427,12 +428,12 @@ We welcome contributions from the FSR community. See [CONTRIBUTING.md](CONTRIBUT
 
 ### Roadmap
 
-- [ ] Discussion forums (NotePad integration)
-- [ ] Content moderation dashboard
-- [ ] Advanced search and filtering
-- [ ] Progress tracking and bookmarks
-- [ ] Offline mode support
-- [ ] Mobile app (React Native)
+- [ ]  Discussion forums (NotePad integration)
+- [ ]  Content moderation dashboard
+- [ ]  Advanced search and filtering
+- [ ]  Progress tracking and bookmarks
+- [ ]  Offline mode support
+- [ ]  Mobile app (React Native)
 
 ---
 
