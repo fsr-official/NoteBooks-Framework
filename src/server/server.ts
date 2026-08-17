@@ -540,6 +540,33 @@ export function createApp() {
   app.get('/api/desmos', desmosHandler);
   app.get('/api/desmos.js', desmosHandler);
 
+  // Theme preference API — sets a cookie with the chosen theme JSON.
+  app.post('/api/theme', express.json(), (req, res) => {
+    try {
+      const theme = req.body && req.body.theme ? req.body.theme : null;
+      if (!theme) return res.status(400).json({ error: 'Missing theme in request body' });
+      const json = JSON.stringify(theme);
+      // set cookie for theme (same-site lax)
+      res.cookie('notebooks-theme', json, { httpOnly: false, sameSite: 'lax', path: '/', maxAge: 365 * 24 * 60 * 60 * 1000 });
+      return res.status(200).json({ ok: true });
+    } catch (err:any) {
+      console.warn('[theme] set failed', err);
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
+  });
+
+  app.get('/api/theme', (req, res) => {
+    try {
+      const cookie = req.cookies && req.cookies['notebooks-theme'];
+      if (!cookie) return res.status(204).end();
+      let parsed = null;
+      try { parsed = JSON.parse(cookie); } catch (_) { parsed = null; }
+      return parsed ? res.status(200).json({ theme: parsed }) : res.status(204).end();
+    } catch (err:any) {
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
+  });
+
   return app;
 }
 

@@ -7,7 +7,7 @@ describe('frontend subject fragments', () => {
     const app = createApp();
     const frag = await request(app).get('/public/subjects/science.html');
     expect(frag.status).toBe(200);
-    expect(frag.text).toContain('Science subject content placeholder');
+    expect(frag.text).toContain('Science');
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);
