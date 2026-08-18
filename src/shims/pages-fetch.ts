@@ -1,3 +1,4 @@
+// TypeScript shim for pages manifest helpers (single, clean implementation)
 const FETCH_TIMEOUT_MS = 5000;
 const DEFAULT_BRANCH = 'main';
 
@@ -26,14 +27,10 @@ export interface RepoEntry {
   repo?: string;
 }
 
-/**
- * A raw manifest payload can either be a flat array of entries to be turned
- * into a tree, or an already-built folder node (e.g. `{ type: 'folder', children: [...] }`).
- */
 type RawManifestPayload = ManifestEntry[] | FolderNode | unknown;
 
 function normalizePath(input: unknown): string {
-  return String(input || '').replace(/^\/\/+|\/\/+$/g, '').replace(/\\/g, '/');
+  return String(input || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
 }
 
 export function resolvePagesBaseUrl(entry: RepoEntry | null | undefined): string {
@@ -46,24 +43,19 @@ export function resolvePagesBaseUrl(entry: RepoEntry | null | undefined): string
   return `https://${owner}.github.io/${repoName}/`;
 }
 
-export function buildPagesTreeFromManifest(
-  repoName: string,
-  manifest: ManifestEntry[] | undefined
-): TreeNode[] {
+export function buildPagesTreeFromManifest(repoName: string, manifest: ManifestEntry[] | undefined): TreeNode[] {
   const root: FolderNode = { type: 'folder', name: repoName, children: [] };
 
   for (const entry of manifest || []) {
-    const normalizedPath = normalizePath(entry.path || '');
-    if (!normalizedPath) continue;
-    const parts = normalizedPath.split('/');
-    const fileName = parts[parts.length - 1];
+    const p = normalizePath(entry.path || '');
+    if (!p) continue;
+    const parts = p.split('/');
+    const fileName = parts[parts.length - 1] || entry.name || 'file';
 
     let node: FolderNode = root;
-    for (let index = 0; index < parts.length - 1; index += 1) {
-      const part = parts[index];
-      let next = (node.children || []).find(
-        (child): child is FolderNode => child.type === 'folder' && child.name === part
-      );
+    for (let i = 0; i < parts.length - 1; i += 1) {
+      const part = parts[i];
+      let next = node.children.find((c) => c.type === 'folder' && c.name === part) as FolderNode | undefined;
       if (!next) {
         next = { type: 'folder', name: part, children: [] };
         node.children.push(next);
@@ -71,12 +63,7 @@ export function buildPagesTreeFromManifest(
       node = next;
     }
 
-    node.children.push({
-      type: 'file',
-      name: fileName || entry.name || 'file',
-      path: normalizedPath,
-      size: entry.size,
-    });
+    node.children.push({ type: 'file', name: fileName, path: p, size: entry.size });
   }
 
   return root.children || [];
@@ -89,32 +76,21 @@ async function fetchManifestFromUrl(url: string, repoName: string): Promise<Tree
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) throw new Error(`Manifest fetch failed with ${res.status}`);
     const manifest = (await res.json()) as RawManifestPayload;
-    if (
-      !Array.isArray(manifest) &&
-      manifest &&
-      typeof manifest === 'object' &&
-      (manifest as FolderNode).type === 'folder' &&
-      Array.isArray((manifest as FolderNode).children)
-    ) {
+    if (!Array.isArray(manifest) && manifest && typeof manifest === 'object' && (manifest as FolderNode).type === 'folder') {
       return (manifest as FolderNode).children;
     }
-    const normalizedManifest: ManifestEntry[] = Array.isArray(manifest) ? manifest : [];
-    return buildPagesTreeFromManifest(repoName, normalizedManifest);
+    const normalized: ManifestEntry[] = Array.isArray(manifest) ? manifest : [];
+    return buildPagesTreeFromManifest(repoName, normalized);
   } finally {
     clearTimeout(timeoutId);
   }
 }
 
-export function buildRawManifestUrl(repo: string, branch: string): string {
-  return `https://raw.githubusercontent.com/${repo}/${branch}/files.json`;
+export function buildRawManifestUrl(repo: string, branch?: string): string {
+  return `https://raw.githubusercontent.com/${repo}/${branch || DEFAULT_BRANCH}/files.json`;
 }
 
-export async function fetchRepoManifest(
-  repo: string,
-  repoName: string,
-  branch: string | undefined,
-  pagesBase: string | undefined
-): Promise<TreeNode[]> {
+export async function fetchRepoManifest(repo: string, repoName: string, branch?: string, pagesBase?: string): Promise<TreeNode[]> {
   const rawUrl = buildRawManifestUrl(repo, branch || DEFAULT_BRANCH);
   try {
     return await fetchManifestFromUrl(rawUrl, repoName);
@@ -123,11 +99,7 @@ export async function fetchRepoManifest(
       try {
         return await fetchManifestFromUrl(`${String(pagesBase).replace(/\/$/, '')}/files.json`, repoName);
       } catch (pagesError) {
-        throw new Error(
-          `Both raw.githubusercontent.com and GitHub Pages manifest fetches failed for ${repo}: ` +
-            `raw=${rawError instanceof Error ? rawError.message : String(rawError)}; ` +
-            `pages=${pagesError instanceof Error ? pagesError.message : String(pagesError)}`
-        );
+        throw new Error(`Both raw.githubusercontent.com and GitHub Pages manifest fetches failed for ${repo}: raw=${rawError instanceof Error ? rawError.message : String(rawError)}; pages=${pagesError instanceof Error ? pagesError.message : String(pagesError)}`);
       }
     }
     throw rawError;
