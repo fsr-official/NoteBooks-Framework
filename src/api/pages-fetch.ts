@@ -12,7 +12,7 @@ export interface PagesRegistryEntryLike {
 }
 
 function normalizePath(input: string) {
-  return String(input || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+  return String(input || '').replace(/^/+|/+$/g, '').replace(/\\/g, '/');
 }
 
 export function resolvePagesBaseUrl(entry: PagesRegistryEntryLike) {
@@ -51,21 +51,18 @@ export function buildPagesTreeFromManifest(repoName: string, manifest: PagesMani
       path: normalizedPath,
       size: entry.size
     });
+
   }
 
   return root.children || [];
 }
 
-export async function fetchPagesManifest(pagesBase: string, repoName: string) {
-  const url = `${String(pagesBase).replace(/\/$/, '')}/files.json`;
-  
-  // Add a 5-second timeout for Pages manifest fetch to prevent hanging
+async function fetchManifestFromUrl(url: string, repoName: string) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 5000);
-  
   try {
     const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) throw new Error(`Pages manifest fetch failed with ${res.status}`);
+    if (!res.ok) throw new Error(`Manifest fetch failed with ${res.status}`);
     const manifest: any = await res.json();
     if (!Array.isArray(manifest) && manifest?.type === 'folder' && Array.isArray(manifest.children)) {
       return manifest.children;
@@ -75,4 +72,50 @@ export async function fetchPagesManifest(pagesBase: string, repoName: string) {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+/**
+
+- Build the raw.githubusercontent.com manifest URL for a repo, per the
+- documented content-delivery architecture (docs/archive/ARCHITECTURE.md §4.2):
+- https://raw.githubusercontent.com/{owner}/{repo}/{branch}/files.json
+- This is the primary read path — it works for any repo regardless of
+- whether GitHub Pages is enabled, and mirrors what src/api/raw.ts already
+- uses for individual file reads.
+*/
+export function buildRawManifestUrl(repo: string, branch: string) {
+  return `https://raw.githubusercontent.com/${repo}/${branch}/files.json`;
+}
+
+/**
+
+- Fetch a repo's files.json manifest. Tries raw.githubusercontent.com first
+- (works for any repo, no GitHub Pages required), and falls back to the
+- GitHub Pages-hosted copy only if the repo is explicitly marked pages-enabled
+- and the raw fetch fails. Previously this only had the Pages path, which
+- meant any repo whose Pages deployment was missing or stale silently
+- resolved to an empty folder with no visible error.
+*/
+export async function fetchRepoManifest(repo: string, repoName: string, branch: string, pagesBase: string) {
+  const rawUrl = buildRawManifestUrl(repo, branch || 'main');
+  try {
+    return await fetchManifestFromUrl(rawUrl, repoName);
+  } catch (rawError) {
+    if (pagesBase) {
+      try {
+        return await fetchManifestFromUrl(`${String(pagesBase).replace(/\/$/, '')}/files.json`, repoName);
+      } catch (pagesError) {
+        throw new Error(
+          `Both raw.githubusercontent.com and GitHub Pages manifest fetches failed for ${repo}: ` +
+          `raw=${(rawError as Error).message}; pages=${(pagesError as Error).message}`
+        );
+      }
+    }
+    throw rawError;
+  }
+}
+
+/** @deprecated use fetchRepoManifest, which tries raw.githubusercontent.com first */
+export async function fetchPagesManifest(pagesBase: string, repoName: string) {
+  return fetchManifestFromUrl(`${String(pagesBase).replace(/\/$/, '')}/files.json`, repoName);
 }

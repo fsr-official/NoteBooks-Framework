@@ -58,6 +58,23 @@
   <link rel="stylesheet" href="/public/css/theme.css">
   <script src="/public/md-init.js"></script>
   <script src="/public/markdown-editor.js"></script>
+  <script>
+  (function(){
+    const m = location.pathname.match(/^\/(science|commerce|humanities|community|volunteers|admin)(?:\/|$)/);
+    if (!m) return;
+    const slug = m[1];
+    // Load the subjects client script if not already loaded and invoke the initializer
+    function ensureAndInit() {
+      if (window.initSubjectShell) return window.initSubjectShell(slug);
+      const s = document.createElement('script');
+      s.src = '/public/client/subjects.js';
+      s.defer = true;
+      s.onload = () => { if (window.initSubjectShell) window.initSubjectShell(slug); };
+      document.head.appendChild(s);
+    }
+    ensureAndInit();
+  })();
+  </script>
 </head>
 <body>
   <div id="splash"><img src="favicon.png" alt="Loading..." /></div>
@@ -617,5 +634,6 @@
 <script src="/public/auth.js"></script>
 <script src="/public/upload.js"></script>
   <script src="/public/mobile.js"></script>
+  <script src="/client/subjects.js" defer></script>
   <script src="/client/main.js" defer></script>
 </body>

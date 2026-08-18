@@ -1,27 +1,5 @@
 import type { Request, Response } from 'express';
-
-// Defer importing pages-fetch so the module can be executed from TypeScript
-// during build-time (ts-node) or from compiled JavaScript (dist). Try the
-// runtime JS import first, then fall back to the TS source when running
-// directly.
-let fetchPagesManifest: any;
-let resolvePagesBaseUrl: any;
-
-async function ensurePagesFetchLoaded() {
-  if (fetchPagesManifest && resolvePagesBaseUrl) return;
-  try {
-    // runtime compiled shape
-    const m = await import('./pages-fetch.js');
-    fetchPagesManifest = m.fetchPagesManifest || m.default?.fetchPagesManifest;
-    resolvePagesBaseUrl = m.resolvePagesBaseUrl || m.default?.resolvePagesBaseUrl;
-  } catch (e) {
-    // fallback to TypeScript source when running under ts-node
-    // @ts-ignore allow importing the TS source when ts-node is registered
-    const m = await import('./pages-fetch.ts');
-    fetchPagesManifest = m.fetchPagesManifest;
-    resolvePagesBaseUrl = m.resolvePagesBaseUrl;
-  }
-}
+import { fetchRepoManifest, resolvePagesBaseUrl } from './pages-fetch.js';
 
 export interface RepoRegistryEntry {
   name: string;
@@ -123,7 +101,6 @@ function prefixRepoPaths(node: TreeNode, prefix: string, repo: string, branch: s
 }
 
 export async function buildRegistryTree(entries: RepoRegistryEntry[]) {
-  await ensurePagesFetchLoaded();
   const normalizedEntries = entries
     .map(normalizeRepoEntry)
     .filter((entry) => entry.enabled)
@@ -153,16 +130,14 @@ export async function buildRegistryTree(entries: RepoRegistryEntry[]) {
       const pagesBaseUrl = usePagesPath ? resolvePagesBaseUrl(entry) : '';
       let children: TreeNode[] = [];
 
-      if (usePagesPath && pagesBaseUrl) {
-        try {
-          console.log(`[repo-registry] Using Pages read-path for ${entry.repo}`);
-          const pagesChildren = await fetchPagesManifest(pagesBaseUrl, repoName);
-          children = pagesChildren.map((child: TreeNode) => prefixRepoPaths(child, repoName, entry.repo, entry.branch || 'main', priority));
-        } catch (error) {
-          console.warn(`[repo-registry] Pages manifest failed for ${entry.repo}; skipping without GitHub API recursion:`, error);
-        }
-      } else {
-        console.warn(`[repo-registry] Skipping ${entry.repo}; pages: true is required for the non-recursive read path.`);
+      try {
+        // raw.githubusercontent.com is tried first regardless of the `pages`
+        // flag (it needs no GitHub Pages deployment at all); the Pages URL,
+        // when configured, is used only as a fallback if that fails.
+        const rawChildren = await fetchRepoManifest(entry.repo, repoName, entry.branch || 'main', pagesBaseUrl);
+        children = rawChildren.map((child: TreeNode) => prefixRepoPaths(child, repoName, entry.repo, entry.branch || 'main', priority));
+      } catch (error) {
+        console.warn(`[repo-registry] Manifest fetch failed for ${entry.repo}; showing as empty:`, error);
       }
 
       repoNode.children = children;
