@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { fetchRepoManifest, resolvePagesBaseUrl } from './pages-fetch.js';
+import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js';
 
 export interface RepoRegistryEntry {
   name: string;
