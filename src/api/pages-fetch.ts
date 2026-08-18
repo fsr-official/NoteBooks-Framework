@@ -12,7 +12,7 @@ export interface PagesRegistryEntryLike {
 }
 
 function normalizePath(input: string) {
-  return String(input || '').replace(/^/+|/+$/g, '').replace(/\\/g, '/');
+  return String(input || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
 }
 
 export function resolvePagesBaseUrl(entry: PagesRegistryEntryLike) {
