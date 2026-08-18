@@ -1980,8 +1980,8 @@ window.addEventListener("DOMContentLoaded", async () => {
                 l.href = '/public/subjects/subjects.css';
                 document.head.appendChild(l);
             }
-            // Initialize markdown/renderers if available
-            if (window.markdownToHTML) markdownToHTML(shell);
+            // The subject fragment is already HTML; only initialize its interactive
+            // markdown features. markdownToHTML expects a string, not this DOM mount.
             if (window.initMarkdownFeatures) initMarkdownFeatures(shell);
         } catch (err) {
             console.warn('[subjects] could not load fragment', err);

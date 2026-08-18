@@ -230,7 +230,9 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
 }
 
 async function initSubjectShell(slug: string): Promise<void> {
-  const target = document.querySelector<HTMLElement>('#subjectLanding') || document.querySelector<HTMLElement>('.app-shell') || document.body;
+  // The full app shell is the visible mount for subject routes. Keep #subjectLanding
+    // as the fallback for standalone subject-fragment pages that have no shell.
+    const target = document.querySelector<HTMLElement>('.app-shell') || document.querySelector<HTMLElement>('#subjectLanding') || document.body;
   try {
     const res = await fetch(`/public/subjects/${slug}.html`);
     if (!res.ok) throw new Error('Subject fragment not found');
@@ -248,7 +250,8 @@ async function initSubjectShell(slug: string): Promise<void> {
     }
 
     const w = window as any;
-    if (typeof w.markdownToHTML === 'function') w.markdownToHTML(target);
+    // The subject fragment is already HTML. markdownToHTML expects a string,
+    // so only initialize interactive markdown behavior on the mounted fragment.
     if (typeof w.initMarkdownFeatures === 'function') w.initMarkdownFeatures(target);
 
     // Populate the Contents tree and wire sample links to the real file explorer.

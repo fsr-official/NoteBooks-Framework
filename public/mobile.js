@@ -1,9 +1,9 @@
 // ===== MOBILE OVERFLOW MENU =====
 function toggleMobOverflow() {
-    document.getElementById('mobOverflowMenu').classList.toggle('open');
+    document.getElementById('mobOverflowMenu')?.classList.toggle('open');
 }
 function closeMobOverflow() {
-    document.getElementById('mobOverflowMenu').classList.remove('open');
+    document.getElementById('mobOverflowMenu')?.classList.remove('open');
 }
 // Close overflow menu on outside tap
 document.addEventListener('click', e => {
