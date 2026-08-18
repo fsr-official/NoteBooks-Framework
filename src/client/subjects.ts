@@ -166,13 +166,6 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
   const treeBody = container.querySelector<HTMLElement>('#subject-tree .tree-body');
   if (!treeBody) return;
 
-  const repoMap = await getSubjectRepoMap();
-  const repo = repoMap[slug];
-  if (!repo) {
-    treeBody.innerHTML = '<p class="subject-tree-empty">No content repository is configured for this subject yet.</p>';
-    return;
-  }
-
   treeBody.innerHTML = '<p class="subject-tree-loading">Loading contents…</p>';
 
   try {
@@ -192,7 +185,10 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
     }
 
     if (payload && Array.isArray(payload.repos) && payload.repos.length > 0) {
-      const repoMap = await getSubjectRepoMap();
+      // Prefer a configured repo if available, otherwise pick the first repo in the
+      // generated payload. This branch works even when the SUBJECT_REPOS config
+      // is missing — giving the build-generated trees a chance to display.
+      const repoMap = await getSubjectRepoMap().catch(() => ({} as Record<string, string>));
       const configuredRepo = repoMap[slug];
       let repoEntry = null;
       if (configuredRepo) {
@@ -214,6 +210,10 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
     const res = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Registry fetch failed: ${res.status}`);
     const tree: SubjectTreeNode = await res.json();
+    // Respect a configured SUBJECT_REPOS mapping if present; otherwise fall
+    // back to using the passed-in slug's repo mapping (may be undefined).
+    const repoMap2 = await getSubjectRepoMap().catch(() => ({} as Record<string, string>));
+    const repo = repoMap2[slug];
     const repoNode = findRepoNode(tree, repo);
 
     if (!repoNode || !Array.isArray(repoNode.children) || repoNode.children.length === 0) {

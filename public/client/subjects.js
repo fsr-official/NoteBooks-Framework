@@ -152,12 +152,6 @@ async function populateSubjectTree(container, slug) {
     const treeBody = container.querySelector('#subject-tree .tree-body');
     if (!treeBody)
         return;
-    const repoMap = await getSubjectRepoMap();
-    const repo = repoMap[slug];
-    if (!repo) {
-        treeBody.innerHTML = '<p class="subject-tree-empty">No content repository is configured for this subject yet.</p>';
-        return;
-    }
     treeBody.innerHTML = '<p class="subject-tree-loading">Loading contents…</p>';
     try {
         // Try generated subject tree JSON first (created during build). Falls back to /api/registry
@@ -177,7 +171,10 @@ async function populateSubjectTree(container, slug) {
             }
         }
         if (payload && Array.isArray(payload.repos) && payload.repos.length > 0) {
-            const repoMap = await getSubjectRepoMap();
+            // Prefer a configured repo if available, otherwise pick the first repo in the
+            // generated payload. This branch works even when the SUBJECT_REPOS config
+            // is missing — giving the build-generated trees a chance to display.
+            const repoMap = await getSubjectRepoMap().catch(() => ({}));
             const configuredRepo = repoMap[slug];
             let repoEntry = null;
             if (configuredRepo) {
@@ -198,6 +195,10 @@ async function populateSubjectTree(container, slug) {
         if (!res.ok)
             throw new Error(`Registry fetch failed: ${res.status}`);
         const tree = await res.json();
+        // Respect a configured SUBJECT_REPOS mapping if present; otherwise fall
+        // back to using the passed-in slug's repo mapping (may be undefined).
+        const repoMap2 = await getSubjectRepoMap().catch(() => ({}));
+        const repo = repoMap2[slug];
         const repoNode = findRepoNode(tree, repo);
         if (!repoNode || !Array.isArray(repoNode.children) || repoNode.children.length === 0) {
             treeBody.innerHTML = '<p class="subject-tree-empty">No content is available yet.</p>';

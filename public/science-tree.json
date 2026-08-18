@@ -1,4 +1,26 @@
 {
   "subject": "science",
-  "repos": []
+  "repos": [
+    {
+      "repo": "fsr-science/NCERT-Science",
+      "branch": "main",
+      "pagesBase": "https://fsr-science.github.io/NCERT-Science/",
+      "tree": {
+        "type": "folder",
+        "name": "NCERT-Science",
+        "children": [
+          {
+            "type": "file",
+            "name": "README.md",
+            "path": "README.md",
+            "mime": "text/markdown",
+            "repo": "fsr-science/NCERT-Science",
+            "branch": "main",
+            "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/README.md",
+            "size": null
+          }
+        ]
+      }
+    }
+  ]
 }
