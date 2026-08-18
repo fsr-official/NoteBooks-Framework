@@ -15,8 +15,8 @@
     "backend": "node dist/server/server/server.js",
     "setup": "npm run dev",
     "test": "vitest run",
-    "pretest": "node --experimental-strip-types src/scripts/migrate-db.js || true",
-    "migrate": "node --experimental-strip-types src/scripts/migrate-db.js",
+    "pretest": "node src/scripts/migrate-db.js || true",
+    "migrate": "node src/scripts/migrate-db.js",
     "typecheck": "tsc --noEmit -p tsconfig.server.json"
   },
   "devDependencies": {

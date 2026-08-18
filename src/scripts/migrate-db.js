@@ -3,14 +3,26 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-// If we're not already running with --experimental-strip-types, attempt to
-// re-run this script under node with that flag so TS imports work when CI
-// invokes `node src/scripts/migrate-db.js` directly.
+const scriptPath = path.resolve(process.cwd(), 'src/scripts/migrate-db.js');
+const nodeMajorVersion = Number((process.versions.node || '0').split('.')[0]);
+const supportsStripTypes = nodeMajorVersion >= 22;
+
+// Re-run this script with a TS-aware Node loader when CI invokes the JS file
+// directly. Node 20 does not support --experimental-strip-types, while Node 22+
+// does. We prefer the native flag when available and fall back to the tsx
+// loader otherwise.
 if (!process.execArgv.includes('--experimental-strip-types') && !process.env.__MIGRATE_DB_STRIPPED) {
   const nodeBin = process.execPath;
-  const args = ['--experimental-strip-types', path.resolve(process.cwd(), 'src/scripts/migrate-db.js')];
+  const args = supportsStripTypes
+    ? ['--experimental-strip-types', scriptPath]
+    : ['--import', 'tsx', scriptPath];
+
   const env = { ...process.env, __MIGRATE_DB_STRIPPED: '1' };
   const res = spawnSync(nodeBin, args, { stdio: 'inherit', env });
+  if (res.error) {
+    console.error('Failed to launch migration runner:', res.error);
+    process.exit(1);
+  }
   process.exit(res.status ?? 1);
 }
 
