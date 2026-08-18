@@ -176,6 +176,41 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
   treeBody.innerHTML = '<p class="subject-tree-loading">Loading contents…</p>';
 
   try {
+    // Try generated subject tree JSON first (created during build). Falls back to /api/registry
+    // if the generated file is unavailable.
+    let payload: any = null;
+    const candidateUrls = [`/${slug}-tree.json`, `/public/subjects/${slug}-tree.json`, `/public/${slug}-tree.json`];
+    for (const u of candidateUrls) {
+      try {
+        const r = await fetch(`${u}?_=${Date.now()}`, { cache: 'no-store' });
+        if (!r.ok) continue;
+        payload = await r.json();
+        break;
+      } catch (e) {
+        // try next
+      }
+    }
+
+    if (payload && Array.isArray(payload.repos) && payload.repos.length > 0) {
+      const repoMap = await getSubjectRepoMap();
+      const configuredRepo = repoMap[slug];
+      let repoEntry = null;
+      if (configuredRepo) {
+        repoEntry = payload.repos.find((r: any) => String(r.repo).toLowerCase() === String(configuredRepo).toLowerCase());
+      }
+      if (!repoEntry) repoEntry = payload.repos[0];
+
+      if (!repoEntry || !repoEntry.tree || !Array.isArray(repoEntry.tree.children) || repoEntry.tree.children.length === 0) {
+        treeBody.innerHTML = '<p class="subject-tree-empty">No content is available yet.</p>';
+        return;
+      }
+
+      renderSubjectTree(treeBody, repoEntry.tree.children);
+      wireSubjectSampleLinks(container, repoEntry.repo, repoEntry.branch || 'main');
+      return;
+    }
+
+    // Fallback: query the live registry and use the configured repo as before
     const res = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Registry fetch failed: ${res.status}`);
     const tree: SubjectTreeNode = await res.json();

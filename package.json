@@ -7,7 +7,7 @@
     "clean:src": "npm run clean",
     "dev": "npm run clean && npm run build && node dist/server/server/server.js",
     "start": "node dist/server/server/server.js",
-    "build": "npm run clean && node src/scripts/generate-version.js && npm run generate:registry && npm run build:client && npm run build:server",
+    "build": "npm run clean && node src/scripts/generate-version.js && npm run generate:registry && npm run generate:subject-trees && npm run build:client && npm run build:server",
     "generate:registry": "node src/scripts/generate-registry-runner.js",
     "generate:subject-trees": "node src/scripts/generate-subject-trees-runner.js",
     "build:client": "tsc -p tsconfig.client.json",
