@@ -147,6 +147,62 @@ function applyWorkspaceBranding() {
     }
 }
 
+function switchGuideTab(tab) {
+    const desktop = document.getElementById('guideDesktop');
+    const mobile = document.getElementById('guideMobile');
+    const tabs = document.querySelectorAll('#guideTabDesktop, #guideTabMobile');
+
+    if (desktop) {
+        desktop.style.display = tab === 'desktop' ? '' : 'none';
+    }
+    if (mobile) {
+        mobile.style.display = tab === 'mobile' ? '' : 'none';
+    }
+
+    tabs.forEach((button) => {
+        const active = button.id === (tab === 'desktop' ? 'guideTabDesktop' : 'guideTabMobile');
+        button.classList.toggle('active', active);
+    });
+}
+
+function showGuidance() {
+    const overlay = document.getElementById('guidanceOverlay');
+    if (!overlay)
+        return;
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => overlay.classList.add('active'));
+}
+
+function dismissGuidance() {
+    const overlay = document.getElementById('guidanceOverlay');
+    if (!overlay)
+        return;
+    overlay.classList.remove('active');
+    setTimeout(() => { overlay.style.display = 'none'; }, 380);
+}
+
+function hideGuidance() {
+    const overlay = document.getElementById('guidanceOverlay');
+    if (!overlay)
+        return;
+    overlay.classList.remove('active');
+    overlay.style.display = 'none';
+}
+
+function initialGuideState() {
+    const overlay = document.getElementById('guidanceOverlay');
+    if (!overlay)
+        return;
+    overlay.style.display = 'none';
+    overlay.classList.remove('active');
+    switchGuideTab('desktop');
+}
+
+window.switchGuideTab = switchGuideTab;
+window.dismissGuidance = dismissGuidance;
+window.showGuidance = showGuidance;
+window.hideGuidance = hideGuidance;
+
 const SUBJECT_PAGES = {
     science: { icon: '🧪', title: 'Science', description: 'Structured notes, experiments, and concept reviews.' },
     commerce: { icon: '💼', title: 'Commerce', description: 'Business, economics, and practical career knowledge.' },
@@ -1955,39 +2011,23 @@ window.addEventListener("DOMContentLoaded", async () => {
         });
     }
   restoreTheme();
+  initialGuideState();
   initGlobalNav();
   initHomeFeed();
   initPortalMotion();
   await fetchConfig();
   applyWorkspaceBranding();
   syncSubjectLandingState();
-    // If the current route is a subject (science/commerce/humanities/community/volunteers/admin),
-    // load the static subject fragment into the main app shell so the paths work immediately.
-    async function loadSubjectFragmentIfNeeded() {
-        const slug = getCurrentSubjectRoute();
-        if (!slug) return;
-        const shell = document.querySelector('.app-shell');
-        if (!shell) return;
-        try {
-            const res = await fetch(`/public/subjects/${slug}.html`);
-            if (!res.ok) return;
-            const html = await res.text();
-            shell.innerHTML = html;
-            if (!document.querySelector('link[data-subjects-css]')) {
-                const l = document.createElement('link');
-                l.rel = 'stylesheet';
-                l.setAttribute('data-subjects-css', '1');
-                l.href = '/public/subjects/subjects.css';
-                document.head.appendChild(l);
-            }
-            // The subject fragment is already HTML; only initialize its interactive
-            // markdown features. markdownToHTML expects a string, not this DOM mount.
-            if (window.initMarkdownFeatures) initMarkdownFeatures(shell);
-        } catch (err) {
-            console.warn('[subjects] could not load fragment', err);
-        }
+    // Subject pages are rendered into the dedicated content mount in the shared app shell.
+    // We intentionally do not replace the whole app shell here, because that destroys
+    // the existing navigation and workspace state and causes the placeholder issue.
+    const subjectContentRoot = document.getElementById('subjectContentRoot');
+    if (subjectContentRoot && getCurrentSubjectRoute()) {
+        subjectContentRoot.hidden = false;
+        const landing = document.getElementById('subjectLanding');
+        if (landing)
+            landing.hidden = true;
     }
-    await loadSubjectFragmentIfNeeded();
   const utilityTitle = document.getElementById('utilityWorkspaceTitle');
   if (utilityTitle) utilityTitle.textContent = document.getElementById('workspaceHeader')?.textContent || 'NoteBooks';
   if (window.location.pathname === '/' || getCurrentSubjectRoute()) {
