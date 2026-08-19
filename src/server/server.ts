@@ -333,19 +333,17 @@ export function createApp() {
     res.sendFile(path.join(projectDir, 'LICENSE'));
   });
 
-  // Explicit subject routes so client-side routing works reliably when
-  // navigating directly to `/science`, `/commerce`, etc. Some proxies
-  // or static middleware can interfere with regex routes, so register
-  // explicit handlers to guarantee the app shell is returned.
+  // Subject and content routes use the focused subject shell rather than the
+  // marketing landing page. This keeps the legacy workspace as the only visible
+  // rendering surface on subject routes.
   const SUBJECT_ROUTES = ['science', 'commerce', 'humanities', 'community', 'volunteers', 'accounts', 'issues', 'about'];
   SUBJECT_ROUTES.forEach((s) => {
-    app.get(`/${s}`, (_req, res) => res.sendFile(path.join(projectDir, 'index.html')));
-    app.get(`/${s}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'index.html')));
+  app.get(`/${s}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'subjects.html')));
+  app.get(`/${s}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'subjects.html')));
   });
-
-  // Fallback regex for any other subject-like routes that may be added later
+  
   app.get(/^\/(science|commerce|humanities|community|issues|accounts|volunteers|about)(?:\/.+)?$/, (_req, res) => {
-    res.sendFile(path.join(projectDir, 'index.html'));
+  res.sendFile(path.join(projectDir, 'public', 'subjects.html'));
   });
 
   app.get('/manifest.json', (_req, res) => {

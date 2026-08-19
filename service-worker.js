@@ -49,7 +49,10 @@ async function loadSubjectTrees() {
   const subjects = ['science', 'commerce', 'humanities'];
   await Promise.all(subjects.map(async (s) => {
     try {
-      const res = await fetch(`/public/${s}-tree.json`);
+      const jsonUrl = `/public/json/${s}-tree.json`;
+      const rootUrl = `/public/${s}-tree.json`;
+      let res = await fetch(jsonUrl);
+      if (!res.ok) res = await fetch(rootUrl);
       if (!res.ok) throw new Error(`no ${s}-tree`);
       SUBJECT_TREES[s] = await res.json();
     } catch (e) {

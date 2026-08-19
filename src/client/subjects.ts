@@ -1,13 +1,7 @@
-// Subject landing pages (Science, Commerce, Humanities, Community, Volunteers, Admin).
-// Fetches the static subject fragment from public/subjects/<slug>.html, injects it into
-// the #subjectLanding mount point, then wires up its Contents tree and sample links to the
-// SAME file-preview system the main workspace explorer uses (openPreview / fetchFileContent
-// / markdownToHTML, all defined globally by public/app.js and public/markdown.js). No
-// separate/duplicate file explorer is built here — this reuses the real one.
-//
-// Plain script, not an ES module: this file is loaded via a normal <script> tag alongside
-// app.js, so nothing here should use `export`/`import` (module output is not wired into
-// index.html and browsers have no `exports` global).
+// Subject route bootstrap. The focused subjects.html document owns the workspace;
+// this script only resolves the route slug and preserves the Science tree behavior.
+// Plain script, not an ES module: loaded via a normal script tag.
+
 
 interface SubjectTreeNode {
   type: 'folder' | 'file';
@@ -169,10 +163,12 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
   treeBody.innerHTML = '<p class="subject-tree-loading">Loading contents…</p>';
 
   try {
-    // Try generated subject tree JSON first (created during build). Falls back to /api/registry
-    // if the generated file is unavailable.
+    // Science must use its generated science-tree.json artifact. Other standalone
+    // subject pages retain the generated subject-specific candidates.
     let payload: any = null;
-    const candidateUrls = [`/${slug}-tree.json`, `/public/subjects/${slug}-tree.json`, `/public/${slug}-tree.json`];
+    const candidateUrls = slug === 'science'
+      ? ['/science-tree.json']
+      : [`/${slug}-tree.json`, `/public/subjects/${slug}-tree.json`, `/public/${slug}-tree.json`];
     for (const u of candidateUrls) {
       try {
         const r = await fetch(`${u}?_=${Date.now()}`, { cache: 'no-store' });
@@ -229,41 +225,8 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
   }
 }
 
-async function initSubjectShell(slug: string): Promise<void> {
-  // The full app shell is the visible mount for subject routes. Keep #subjectLanding
-    // as the fallback for standalone subject-fragment pages that have no shell.
-    const target = document.querySelector<HTMLElement>('.app-shell') || document.querySelector<HTMLElement>('#subjectLanding') || document.body;
-  try {
-    const res = await fetch(`/public/subjects/${slug}.html`);
-    if (!res.ok) throw new Error('Subject fragment not found');
-    const html = await res.text();
-    if (!target) return;
-
-    target.innerHTML = html;
-
-    if (!document.querySelector('link[data-subjects-css]')) {
-      const l = document.createElement('link');
-      l.rel = 'stylesheet';
-      l.setAttribute('data-subjects-css', '1');
-      l.href = '/public/subjects/subjects.css';
-      document.head.appendChild(l);
-    }
-
-    const w = window as any;
-    // The subject fragment is already HTML. markdownToHTML expects a string,
-    // so only initialize interactive markdown behavior on the mounted fragment.
-    if (typeof w.initMarkdownFeatures === 'function') w.initMarkdownFeatures(target);
-
-    // Populate the Contents tree and wire sample links to the real file explorer.
-    // Only subjects with a #subject-tree mount (science/commerce/humanities today)
-    // have one; community/volunteers/admin fragments don't, so this is a no-op there.
-    if (target.querySelector('#subject-tree')) {
-      void populateSubjectTree(target, slug);
-    }
-  } catch (err) {
-    console.error('[subjects] failed to load subject shell', err);
-    if (target) target.innerHTML = '<div class="subject-page"><p>Could not load subject.</p></div>';
-  }
+function initSubjectShell(slug: string): void {
+  document.body.dataset.subject = slug;
 }
 
 function subjectSlugFromPath(pathname: string): string | null {
@@ -273,7 +236,7 @@ function subjectSlugFromPath(pathname: string): string | null {
 
 function bootstrapSubjectRouting(): void {
   const slug = subjectSlugFromPath(window.location.pathname);
-  if (slug) void initSubjectShell(slug);
+  if (slug) initSubjectShell(slug);
 }
 
 document.addEventListener('DOMContentLoaded', bootstrapSubjectRouting);

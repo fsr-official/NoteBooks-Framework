@@ -85,8 +85,7 @@ window.addEventListener('storage', (event) => { if (event.key === THEME_KEY && e
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
 // Runtime configuration. Avoid hardcoded repo/page defaults; load per-subject trees at runtime.
-// Prefer window.appConfig populated by /public/js/config.js if present.
-let appConfig = window.appConfig || {
+let appConfig = {
     GITHUB_REPO: '',
     GITHUB_BRANCH: 'main',
     APP_URL: '',
@@ -126,12 +125,7 @@ async function loadSubjectTree() {
 }
 
 // Start loading immediately (best-effort). Other boot code may await or re-read `appConfig.REPOS`.
-// If a global loader exists (config.js), prefer that to avoid duplicate fetches.
-if (typeof window.loadSubjectTree === 'function') {
-    window.loadSubjectTree().then((m) => { if (m) subjectTreeManifest = m; }).catch(()=>{});
-} else {
-    loadSubjectTree();
-}
+loadSubjectTree();
 function formatWorkspaceLabel(rawValue) {
     if (!rawValue) {
         return 'Workspace';

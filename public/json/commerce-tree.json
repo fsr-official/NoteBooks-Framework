@@ -1,0 +1,17 @@
+{
+  "subject": "commerce",
+  "repos": [
+    {
+      "repo": "fsr-commerce/NCERT-Commerce",
+      "branch": "main",
+      "pagesBase": "https://fsr-commerce.github.io/NCERT-Commerce/",
+      "tree": {
+        "type": "folder",
+        "name": "NCERT-Commerce",
+        "path": "NCERT-Commerce",
+        "repo": "fsr-commerce/NCERT-Commerce",
+        "children": []
+      }
+    }
+  ]
+}
