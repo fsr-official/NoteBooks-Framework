@@ -110,7 +110,7 @@ window.addEventListener('storage', (event) => { if (event.key === THEME_KEY && e
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
 // Runtime configuration. Avoid hardcoded repo/page defaults; load per-subject trees at runtime.
-let appConfig = {
+const appConfig = window.appConfig || {
     GITHUB_REPO: '',
     GITHUB_BRANCH: 'main',
     APP_URL: '',
@@ -118,39 +118,46 @@ let appConfig = {
     WORKSPACE: '',
     REPOS: [] // populated from <subject>-tree.json when available
 };
+window.appConfig = appConfig;
 
 // Subject-level manifest loaded from /public/<subject>-tree.json (generated)
 let subjectTreeManifest = null;
-async function loadSubjectTree() {
-    try {
-        const subject = (window.CURRENT_SUBJECT || (window.location.pathname.split('/').filter(Boolean)[0]) || 'science').toLowerCase();
-        // Prefer organized json folder, fall back to root public JSON
-        const jsonUrl = `/public/json/${subject}-tree.json`;
-        const rootUrl = `/public/${subject}-tree.json`;
-        let res = await fetch(jsonUrl, { cache: 'no-store' });
-        if (!res.ok) res = await fetch(rootUrl, { cache: 'no-store' });
-        if (!res.ok) {
-            console.debug('No subject-tree manifest at', jsonUrl, 'or', rootUrl, 'status', res.status);
-            return;
-        }
-        subjectTreeManifest = await res.json();
-        if (subjectTreeManifest && Array.isArray(subjectTreeManifest.repos)) {
-            appConfig.REPOS = subjectTreeManifest.repos;
-            if (subjectTreeManifest.repos.length > 0) {
-                const primary = subjectTreeManifest.repos[0];
-                if (primary.repo) appConfig.GITHUB_REPO = primary.repo;
-                if (primary.branch) appConfig.GITHUB_BRANCH = primary.branch;
-                if (primary.pagesBase) appConfig.GITPAGE_URL = primary.pagesBase;
+let subjectTreeLoadPromise = null;
+function loadSubjectTree() {
+    if (subjectTreeLoadPromise) return subjectTreeLoadPromise;
+    subjectTreeLoadPromise = (async () => {
+        try {
+            const subject = (window.CURRENT_SUBJECT || (window.location.pathname.split('/').filter(Boolean)[0]) || '').toLowerCase();
+            if (!subject || !WORKSPACE_SUBJECTS.has(subject)) return null;
+            // Prefer organized json folder, fall back to root public JSON.
+            const jsonUrl = `/public/json/${subject}-tree.json`;
+            const rootUrl = `/public/${subject}-tree.json`;
+            let res = await fetch(jsonUrl, { cache: 'no-store' });
+            if (!res.ok) res = await fetch(rootUrl, { cache: 'no-store' });
+            if (!res.ok) {
+                console.debug('No subject-tree manifest at', jsonUrl, 'or', rootUrl, 'status', res.status);
+                return null;
             }
-            console.debug('Loaded subject tree for', subject, subjectTreeManifest.repos.length, 'repos');
+            subjectTreeManifest = await res.json();
+            if (subjectTreeManifest && Array.isArray(subjectTreeManifest.repos)) {
+                appConfig.REPOS = subjectTreeManifest.repos;
+                if (subjectTreeManifest.repos.length > 0) {
+                    const primary = subjectTreeManifest.repos[0];
+                    if (primary.repo) appConfig.GITHUB_REPO = primary.repo;
+                    if (primary.branch) appConfig.GITHUB_BRANCH = primary.branch;
+                    if (primary.pagesBase) appConfig.GITPAGE_URL = primary.pagesBase;
+                }
+                console.debug('Loaded subject tree for', subject, subjectTreeManifest.repos.length, 'repos');
+            }
+            return subjectTreeManifest;
+        } catch (err) {
+            console.warn('Failed to load subject tree manifest:', err);
+            return null;
         }
-    } catch (err) {
-        console.warn('Failed to load subject tree manifest:', err);
-    }
+    })();
+    return subjectTreeLoadPromise;
 }
-
-// Start loading immediately (best-effort). Other boot code may await or re-read `appConfig.REPOS`.
-loadSubjectTree();
+window.loadSubjectTree = loadSubjectTree;
 function formatWorkspaceLabel(rawValue) {
     if (!rawValue) {
         return 'Workspace';
@@ -274,24 +281,59 @@ const SUBJECT_PAGES = {
 about: { icon: '◌', title: 'About NoteBooks', description: 'A shared shelf for clearer, kinder learning.' }
 };
 
+const WORKSPACE_SUBJECTS = new Set(['science', 'commerce', 'humanities']);
 function getCurrentSubjectRoute() {
     // Prefer explicit runtime subject set by the shell
     if (window.CURRENT_SUBJECT) return window.CURRENT_SUBJECT;
     const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0] || '';
     return slug || '';
 }
-function initGlobalNav() {
+function updateNavigationState() {
     const current = getCurrentSubjectRoute() || (window.location.pathname === '/' ? 'home' : '');
     document.querySelectorAll('.global-nav-links a').forEach((link) => {
         const active = link.dataset.nav === current;
         link.classList.toggle('is-current', active);
         if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
     });
+}
+async function navigateToRoute(href, { replace = false } = {}) {
+    const url = new URL(href, window.location.href);
+    if (url.origin !== window.location.origin || !url.pathname.startsWith('/')) return;
+    if (replace) window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    else window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
+
+    const slug = url.pathname.replace(/^\/+|\/+$/g, '').split('/')[0]?.toLowerCase() || '';
+    window.CURRENT_SUBJECT = slug;
+    document.body.dataset.subject = slug;
+    subjectTreeManifest = null;
+    subjectTreeLoadPromise = null;
+    appConfig.REPOS = [];
+    updateNavigationState();
+    syncSubjectLandingState();
+
+    const shouldLoadWorkspace = url.pathname === '/' || WORKSPACE_SUBJECTS.has(slug);
+    if (shouldLoadWorkspace) {
+        await fetchTree();
+    }
+}
+function initGlobalNav() {
+    updateNavigationState();
     const toggle = document.querySelector('.global-nav-toggle');
     const links = document.querySelector('.global-nav-links');
     toggle?.addEventListener('click', () => { const open = links.classList.toggle('is-open'); toggle.setAttribute('aria-expanded', String(open)); });
     document.querySelector('[data-nav="accounts"]')?.addEventListener('click', () => { setTimeout(() => { if (window.location.hash === '#settings') document.getElementById('accountSettings')?.removeAttribute('hidden'); }, 0); });
     document.querySelector('[data-close-settings]')?.addEventListener('click', () => document.getElementById('accountSettings')?.setAttribute('hidden', ''));
+    document.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const link = target?.closest('a[data-nav], a.subject-card, a.landing-primary, a.landing-secondary, a.portal-inline-link, .portal-doc-links a');
+        if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#')) return;
+        event.preventDefault();
+        navigateToRoute(href).catch((error) => console.warn('[navigation] route transition failed', error));
+    });
+    window.addEventListener('popstate', () => navigateToRoute(window.location.href, { replace: true }).catch((error) => console.warn('[navigation] history transition failed', error)));
 }
 
 function renderPublicPortal(subject) {
@@ -330,7 +372,14 @@ async function loadPortalFeed(subject, targetId = 'portalFeed', sort = 'latest')
     }
 }
 function formatFeedDate(value) { const date = value ? new Date(value) : null; return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Recently'; }
-function initHomeFeed() { const feed = document.getElementById('homeFeed'); if (!feed) return; document.querySelectorAll('[data-feed-sort]').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('[data-feed-sort]').forEach((item) => item.classList.toggle('is-active', item === button)); loadPortalFeed('community', 'homeFeed', button.dataset.feedSort || 'latest'); })); loadPortalFeed('community', 'homeFeed', 'latest'); }
+function initHomeFeed() {
+    const feed = document.getElementById('homeFeed');
+    if (!feed) return;
+    document.querySelectorAll('[data-feed-sort]').forEach((button) => button.addEventListener('click', () => {
+        document.querySelectorAll('[data-feed-sort]').forEach((item) => item.classList.toggle('is-active', item === button));
+        loadPortalFeed('community', 'homeFeed', button.dataset.feedSort || 'latest');
+    }));
+}
 function initPortalMotion() { const targets = document.querySelectorAll('[data-reveal], .subject-card'); if (!('IntersectionObserver' in window)) { targets.forEach((target) => target.classList.add('is-visible')); return; } const observer = new IntersectionObserver((entries, instance) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); instance.unobserve(entry.target); } }), { threshold: 0.12 }); targets.forEach((target) => observer.observe(target)); }
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
 
@@ -1037,32 +1086,22 @@ function toggleSidebar() {
   showStatus("Loading files...", true);
   try {
     let tree = null;
-    const subjectSlug = (window.CURRENT_SUBJECT || document.body?.dataset.subject || window.location.pathname.replace(/^\/+/, '').split('/')[0])?.toLowerCase();
+    const requestedSlug = (window.CURRENT_SUBJECT || document.body?.dataset.subject || window.location.pathname.replace(/^\/+/, '').split('/')[0])?.toLowerCase() || '';
+    const subjectSlug = WORKSPACE_SUBJECTS.has(requestedSlug) ? requestedSlug : '';
     if (subjectSlug) {
         try {
-            const jsonUrl = `/public/json/${subjectSlug}-tree.json?${Date.now()}`;
-            const rootUrl = `/public/${subjectSlug}-tree.json?${Date.now()}`;
-            let subjectTreeRes = await fetch(jsonUrl, { cache: 'no-store' });
-            if (!subjectTreeRes.ok) subjectTreeRes = await fetch(rootUrl, { cache: 'no-store' });
-            if (subjectTreeRes.ok) {
-                const subjectPayload = await subjectTreeRes.json();
-                const repoEntry = Array.isArray(subjectPayload?.repos) ? subjectPayload.repos[0] : null;
-                if (repoEntry?.tree) {
-                    tree = repoEntry.tree;
-                    // populate appConfig from manifest if available
-                    appConfig.REPOS = Array.isArray(subjectPayload.repos) ? subjectPayload.repos : [];
-                    if (repoEntry.repo) appConfig.GITHUB_REPO = repoEntry.repo;
-                    if (repoEntry.branch) appConfig.GITHUB_BRANCH = repoEntry.branch;
-                    if (repoEntry.pagesBase) appConfig.GITPAGE_URL = repoEntry.pagesBase;
-                    console.info('[tree] Loaded', subjectSlug, 'workspace from', `/${subjectSlug}-tree.json`);
-                }
+            const subjectPayload = subjectTreeManifest || await loadSubjectTree();
+            const repoEntry = Array.isArray(subjectPayload?.repos) ? subjectPayload.repos[0] : null;
+            if (repoEntry?.tree) {
+                tree = repoEntry.tree;
+                console.info('[tree] Reused loaded', subjectSlug, 'workspace manifest');
             }
         } catch (subjectTreeError) {
             console.warn('[tree] Subject tree unavailable, continuing with normal registry loading:', subjectTreeError);
         }
     }
   const isGitHubPagesHost = window.location.hostname.endsWith('github.io');
-        if (!isGitHubPagesHost) {
+        if (!tree && !isGitHubPagesHost) {
             try {
                 const registryRes = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
                 if (registryRes.ok) {
@@ -2125,7 +2164,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   const utilityTitle = document.getElementById('utilityWorkspaceTitle');
   if (utilityTitle) utilityTitle.textContent = document.getElementById('workspaceHeader')?.textContent || 'NoteBooks';
-  if (window.location.pathname === '/' || getCurrentSubjectRoute()) {
+  const activeRoute = getCurrentSubjectRoute();
+  const shouldLoadWorkspace = window.location.pathname === '/' || WORKSPACE_SUBJECTS.has(activeRoute);
+  if (shouldLoadWorkspace) {
+    await loadSubjectTree();
     await startUpdatePolling();
     await fetchTree();
   }
