@@ -68,7 +68,32 @@ function applyTheme(theme, options = {}) {
     const root = document.documentElement;
     const values = { ...THEME_PRESETS.futuristic, ...theme };
     root.dataset.theme = values.texture || 'none';
-    Object.entries({ '--accent': values.accent, '--item': values.surface, '--fg': values.text, '--code-bg': values.code, '--bg': values.bg, '--panel': values.panel, '--border': values.border, '--radius': values.radius, '--density': values.density, '--shadow': values.shadow, '--font-sans': values.font + ', Inter, sans-serif', '--font-heading': values.heading + ', sans-serif' }).forEach(([key, value]) => root.style.setProperty(key, value));
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', values.bg);
+    // theme.css owns the fallback contract; runtime presets override the same tokens as one batch.
+    const tokenValues = {
+        '--accent': values.accent,
+        '--accent-hover': values.accentHover || values.accent,
+        '--accent-subtle': values.accentSubtle || `color-mix(in srgb, ${values.accent} 14%, transparent)`,
+        '--item': values.surface,
+        '--panel': values.panel,
+        '--surface-muted': values.surfaceMuted || `color-mix(in srgb, ${values.surface} 86%, ${values.bg})`,
+        '--fg': values.text,
+        '--text-muted': values.textMuted || `color-mix(in srgb, ${values.text} 64%, transparent)`,
+        '--code-bg': values.code,
+        '--bg': values.bg,
+        '--hover': values.hover || values.surface,
+        '--selected': values.selected || `color-mix(in srgb, ${values.accent} 18%, transparent)`,
+        '--btn-bg': values.btnBg || values.panel,
+        '--btn-hover': values.btnHover || values.surface,
+        '--border': values.border,
+        '--border-subtle': values.borderSubtle || `color-mix(in srgb, ${values.border} 48%, transparent)`,
+        '--radius': values.radius,
+        '--density': values.density,
+        '--shadow': values.shadow,
+        '--font-sans': values.font + ', Inter, sans-serif',
+        '--font-heading': values.heading + ', sans-serif'
+    };
+    Object.entries(tokenValues).forEach(([key, value]) => root.style.setProperty(key, value));
     [['themeAccent', values.accent], ['themeSurface', values.surface], ['themeText', values.text], ['themeCode', values.code]].forEach(([id, value]) => themeControls(id).forEach((el) => { el.value = value; }));
     themeControls('themeFont').forEach((el) => { el.value = values.font; });
     const selectedPreset = Object.keys(THEME_PRESETS).find((name) => JSON.stringify(THEME_PRESETS[name]) === JSON.stringify(values)) || 'custom';

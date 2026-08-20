@@ -218,30 +218,7 @@
 /* ===== MODERN DESIGN SYSTEM - NoteBooks-Science ===== */
 /* Color Palette: Slate backgrounds, Emerald accents, Clean neutrals */
 
-:root {
-  /* Primary colors */
-  --bg: #f8fafc;
-  --fg: #0f172a;
-  --item: #ffffff;
-  --hover: #f1f5f9;
-  --accent: #10b981;
-  --accent-hover: #059669;
-  --accent-subtle: rgba(16, 185, 129, 0.1);
-  --btn-bg: #f1f5f9;
-  --btn-hover: #e2e8f0;
-  --selected: rgba(16, 185, 129, 0.12);
-  --border: #e2e8f0;
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --radius: 14px;
-  --radius-sm: 10px;
-  --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 14px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 4px 20px rgba(15, 23, 42, 0.1), 0 8px 32px rgba(15, 23, 42, 0.08);
-  
-  /* Typography */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
-  --font-serif: "TiemposText", Georgia, "Times New Roman", serif;
-}
+/* Global tokens are defined centrally in theme.css. */
 
 /* ===== FULL-VIEWPORT NAVIGATOR / WORKSPACE SHELL ===== */
 .app-shell {
@@ -513,24 +490,7 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-      --bg: #020617;
-      --fg: #f8fafc;
-      --item: #0f172a;
-      --hover: #172554;
-      --accent: #34d399;
-      --accent-hover: #10b981;
-      --accent-subtle: rgba(52, 211, 153, 0.14);
-      --selected: rgba(52, 211, 153, 0.18);
-      --btn-bg: #1e293b;
-      --btn-hover: #334155;
-      --border: #1e293b;
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --shadow: 0 1px 3px rgba(2, 6, 23, 0.45), 0 8px 24px rgba(2, 6, 23, 0.35);
-      --shadow-lg: 0 8px 28px rgba(2, 6, 23, 0.45), 0 16px 40px rgba(2, 6, 23, 0.35);
-  }
-}
+/* Theme variants are defined centrally in theme.css. */
 
 /* ===== BASE STYLES ===== */
 *, *::before, *::after {
@@ -1984,12 +1944,8 @@ body { background:var(--bg); color:var(--fg); font-size:calc(16px * var(--densit
 .account-settings-card h2 { margin: 8px 0; }
 .account-settings-card p { color: var(--text-muted); line-height: 1.6; }
 
+/* Global polish tokens are defined centrally in theme.css. */
 /* ===== PRODUCT POLISH LAYER ===== */
-:root {
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
-  --surface-muted: color-mix(in srgb, var(--item) 86%, var(--bg));
-  --text-muted: color-mix(in srgb, var(--fg) 64%, transparent);
-}
 
 :where(a, button, input, select, textarea):focus-visible {
   outline: 2px solid var(--accent);
@@ -3329,27 +3285,11 @@ body {
   }
 }
 
-/* Legacy workspace presentation: dense desktop chrome with a persistent navigator. */
-:root {
-  --bg: #07111f;
-  --fg: #d9e4ee;
-  --item: #0d1728;
-  --hover: #10243a;
-  --accent: #5eead4;
-  --accent-hover: #99f6e4;
-  --accent-subtle: rgba(94, 234, 212, .12);
-  --btn-bg: #162438;
-  --btn-hover: #1b3048;
-  --selected: rgba(14, 116, 144, .28);
-  --border: #27435d;
-  --border-subtle: rgba(126, 167, 198, .18);
-  --radius: 10px;
-  --radius-sm: 6px;
-}
+/* Legacy workspace presentation now consumes the global theme contract. */
 
 body {
-  background: #07111f;
-  color: #d9e4ee;
+  background: var(--bg);
+  color: var(--fg);
   font-family: var(--font-sans);
 }
 
