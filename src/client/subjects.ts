@@ -163,12 +163,14 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
   treeBody.innerHTML = '<p class="subject-tree-loading">Loading contents…</p>';
 
   try {
-    // Science must use its generated science-tree.json artifact. Other standalone
-    // subject pages retain the generated subject-specific candidates.
+    // The runtime system endpoint is authoritative; static files remain a compatibility fallback.
     let payload: any = null;
-    const candidateUrls = slug === 'science'
-      ? ['/science-tree.json']
-      : [`/public/json/${slug}-tree.json`, `/public/${slug}-tree.json`, `/${slug}-tree.json`];
+    const candidateUrls = [
+      `/api/system/${slug}`,
+      `/public/json/${slug}-tree.json`,
+      `/public/${slug}-tree.json`,
+      `/${slug}-tree.json`
+    ];
     for (const u of candidateUrls) {
       try {
         const r = await fetch(`${u}?_=${Date.now()}`, { cache: 'no-store' });
@@ -180,7 +182,11 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
       }
     }
 
-    if (payload && Array.isArray(payload.repos) && payload.repos.length > 0) {
+    if (payload && Array.isArray(payload.repos)) {
+      if (payload.repos.length === 0) {
+        treeBody.innerHTML = '<p class="subject-tree-empty">No content is available yet.</p>';
+        return;
+      }
       // Prefer a configured repo if available, otherwise pick the first repo in the
       // generated payload. This branch works even when the SUBJECT_REPOS config
       // is missing — giving the build-generated trees a chance to display.
@@ -202,23 +208,7 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
       return;
     }
 
-    // Fallback: query the live registry and use the configured repo as before
-    const res = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Registry fetch failed: ${res.status}`);
-    const tree: SubjectTreeNode = await res.json();
-    // Respect a configured SUBJECT_REPOS mapping if present; otherwise fall
-    // back to using the passed-in slug's repo mapping (may be undefined).
-    const repoMap2 = await getSubjectRepoMap().catch(() => ({} as Record<string, string>));
-    const repo = repoMap2[slug];
-    const repoNode = findRepoNode(tree, repo);
-
-    if (!repoNode || !Array.isArray(repoNode.children) || repoNode.children.length === 0) {
-      treeBody.innerHTML = '<p class="subject-tree-empty">No content is available yet.</p>';
-      return;
-    }
-
-    renderSubjectTree(treeBody, repoNode.children);
-    wireSubjectSampleLinks(container, repo, repoNode.children[0]?.branch || 'main');
+    treeBody.innerHTML = '<p class="subject-tree-empty">No subject content is available yet.</p>';
   } catch (error) {
     console.error('[subjects] failed to load contents tree', error);
     treeBody.innerHTML = '<p class="subject-tree-empty">Could not load contents. Try refreshing.</p>';

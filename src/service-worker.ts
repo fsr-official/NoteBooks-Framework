@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v6';
+const CACHE_VERSION = 'webman-v8';
 const OFFLINE_PAGE  = 'offline.html';
 
 const APP_SHELL = [
@@ -85,7 +85,27 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 2. files.json → network first (must always be fresh)
+  // 2. Runtime subject trees → network first with cached fallback. Refresh POSTs never cache.
+  if (url.pathname.startsWith('/api/system/')) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      event.respondWith(fetch(request));
+      return;
+    }
+    event.respondWith(
+      fetch(request)
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // 3. files.json → network first (must always be fresh)
   if (url.pathname.endsWith('files.json')) {
     event.respondWith(
       fetch(request)
@@ -99,7 +119,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 3. Top-level navigation → network first, inject COOP/COEP, fallback offline page
+  // 4. Top-level navigation → network first, inject COOP/COEP, fallback offline page
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -120,7 +140,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 4. App shell assets → cache first + background update
+  // 5. App shell assets → cache first + background update
   if (APP_SHELL.includes(request.url) || APP_SHELL.includes(url.pathname.replace(/^\//, ''))) {
     event.respondWith(
       caches.match(request).then(cached => {
@@ -139,7 +159,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 5. Everything else → network first, then cache, then offline
+  // 6. Everything else → network first, then cache, then offline
   event.respondWith(
     fetch(request)
       .then(res => {

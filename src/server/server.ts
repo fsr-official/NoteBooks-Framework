@@ -13,6 +13,7 @@ import submitPrHandler from '../api/submit-pr.js';
 import * as prReview from '../api/pr-review.js';
 import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal.js';
 import desmosHandler from '../api/desmos.js';
+import systemHandler from '../api/system.js';
 import authHandler from '../api/auth.js';
 import oauthHandler from '../api/oauth.js';
 import { buildLocalFilesManifest } from '../api/files-manifest.js';
@@ -141,7 +142,7 @@ export function createApp() {
       const method = req.method.toUpperCase();
       if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return next();
       // Exempt refresh-signal which is server-to-server
-      if (req.path === '/api/refresh-signal') return next();
+      if (req.path === '/api/refresh-signal' || req.path.startsWith('/api/system/')) return next();
       const cookieToken = req.cookies?.csrf || req.headers['x-csrf-cookie'];
       const header = req.headers['x-csrf-token'];
       if (!cookieToken || !header || header !== cookieToken) {
@@ -451,6 +452,9 @@ export function createApp() {
   app.get('/api/config.js', configHandler);
   app.get('/api/registry', repoRegistryHandler);
   app.get('/api/registry.js', repoRegistryHandler);
+  app.get('/api/system/:subject', systemHandler);
+  app.head('/api/system/:subject', systemHandler);
+  app.post('/api/system/:subject/refresh', systemHandler);
   app.get('/api/files', repoRegistryHandler);
   app.get('/api/files.js', repoRegistryHandler);
   app.get('/api/pr-review', prReview.listHandler);

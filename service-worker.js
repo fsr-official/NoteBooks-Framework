@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v7';
+const CACHE_VERSION = 'webman-v8';
 const OFFLINE_PAGE = 'offline.html';
 
 const APP_SHELL = [
@@ -51,10 +51,12 @@ async function loadSubjectTrees() {
   const subjects = ['science', 'commerce', 'humanities'];
   await Promise.all(subjects.map(async (s) => {
     try {
+      const runtimeUrl = `/api/system/${s}`;
       const jsonUrl = `/public/json/${s}-tree.json`;
       const rootUrl = `/public/${s}-tree.json`;
-      let res = await fetch(jsonUrl);
-      if (!res.ok) res = await fetch(rootUrl);
+      let res = await fetch(runtimeUrl, { cache: 'no-store' });
+      if (!res.ok) res = await fetch(jsonUrl, { cache: 'no-store' });
+      if (!res.ok) res = await fetch(rootUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error(`no ${s}-tree`);
       SUBJECT_TREES[s] = await res.json();
     } catch (e) {
@@ -140,6 +142,25 @@ self.addEventListener('fetch', event => {
 
   if (url.hostname === 'api.github.com' || url.hostname.endsWith('.githubusercontent.com')) {
     event.respondWith(fetch(request));
+    return;
+  }
+
+  if (url.pathname.startsWith('/api/system/')) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      event.respondWith(fetch(request));
+      return;
+    }
+    event.respondWith(
+      fetch(request)
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(request))
+    );
     return;
   }
 

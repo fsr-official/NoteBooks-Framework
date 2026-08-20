@@ -129,10 +129,12 @@ function loadSubjectTree() {
         try {
             const subject = (window.CURRENT_SUBJECT || (window.location.pathname.split('/').filter(Boolean)[0]) || '').toLowerCase();
             if (!subject || !WORKSPACE_SUBJECTS.has(subject)) return null;
-            // Prefer organized json folder, fall back to root public JSON.
+            // Runtime system API is authoritative; static manifests remain a compatibility fallback.
+            const runtimeUrl = `/api/system/${subject}`;
             const jsonUrl = `/public/json/${subject}-tree.json`;
             const rootUrl = `/public/${subject}-tree.json`;
-            let res = await fetch(jsonUrl, { cache: 'no-store' });
+            let res = await fetch(runtimeUrl, { cache: 'no-store' });
+            if (!res.ok) res = await fetch(jsonUrl, { cache: 'no-store' });
             if (!res.ok) res = await fetch(rootUrl, { cache: 'no-store' });
             if (!res.ok) {
                 console.debug('No subject-tree manifest at', jsonUrl, 'or', rootUrl, 'status', res.status);
