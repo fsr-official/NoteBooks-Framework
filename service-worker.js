@@ -66,7 +66,7 @@ async function loadSubjectTrees() {
 }
 
 function normalizePath(p) {
-  return String(p || '').replace(/^\/+/, '').replace(/\/g, '/');
+  return String(p || '').replace(/^\/+/, '').replace(/\\/g, '/');
 }
 
 function findFileInNode(node, targetPath) {

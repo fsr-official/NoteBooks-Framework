@@ -13,13 +13,12 @@ import submitPrHandler from '../api/submit-pr.js';
 import * as prReview from '../api/pr-review.js';
 import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal.js';
 import desmosHandler from '../api/desmos.js';
-import authHandler, { assertAuthConfig } from '../api/auth.js';
+import authHandler from '../api/auth.js';
 import oauthHandler from '../api/oauth.js';
 import { buildLocalFilesManifest } from '../api/files-manifest.js';
 import permissions from '../lib/permissions.js';
 import * as communityHandler from '../api/community.js';
 import * as metrics from '../lib/metrics.js';
-import { assertRuntimeConfig } from '../lib/runtime-config.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
@@ -115,8 +114,11 @@ const submitPrLimiter = rateLimit({
 });
 
 export function createApp() {
-  assertRuntimeConfig();
-  assertAuthConfig();
+    // Do not fail the entire serverless function during module initialization when
+  // optional/public endpoints are requested. Sensitive operations validate their
+  // own required configuration when they are invoked.
+
+
 
   const app = express();
 
