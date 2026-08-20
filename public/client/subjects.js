@@ -1,5 +1,5 @@
 "use strict";
-// Subject route bootstrap. The focused streams.html document owns the workspace;
+// Subject route bootstrap. The focused subjects.html document owns the workspace;
 // this script only resolves the route slug and preserves the Science tree behavior.
 // Plain script, not an ES module: loaded via a normal script tag.
 const SUBJECT_SLUGS = ['science', 'commerce', 'humanities', 'community', 'volunteers', 'admin', 'accounts'];
@@ -126,7 +126,7 @@ function openSubjectFile(node) {
     else {
         // Fallback: the main workspace explorer script hasn't loaded (shouldn't happen —
         // app.js is loaded on every page) — surface this clearly instead of doing nothing.
-        console.error('[streams] openPreview is unavailable; the main file explorer script did not load');
+        console.error('[subjects] openPreview is unavailable; the main file explorer script did not load');
     }
 }
 /** Wires an "Open example" style link so it opens through the preview system too. */
@@ -194,7 +194,7 @@ async function populateSubjectTree(container, slug) {
         treeBody.innerHTML = '<p class="subject-tree-empty">No subject content is available yet.</p>';
     }
     catch (error) {
-        console.error('[streams] failed to load contents tree', error);
+        console.error('[subjects] failed to load contents tree', error);
         treeBody.innerHTML = '<p class="subject-tree-empty">Could not load contents. Try refreshing.</p>';
     }
 }

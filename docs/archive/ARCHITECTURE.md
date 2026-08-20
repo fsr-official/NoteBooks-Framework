@@ -114,8 +114,8 @@ consolidating the four write-path sections under one domain/path scheme.
 
 Each subject's File Service does its own multi-repo aggregation across that subject's content
 repos (e.g. Science merges Biology + Chemistry + Physics + Geology) but never aggregates across
-streams. Community/Issues/Volunteers/Admin remain single, unified deployments shared across
-all three streams — that's the one place a "one deployment, not three" goal actually lives.
+subjects. Community/Issues/Volunteers/Admin remain single, unified deployments shared across
+all three subjects — that's the one place a "one deployment, not three" goal actually lives.
 
 ---
 
@@ -363,7 +363,7 @@ print/export-to-PDF via `window.print()`.
 ### 4.7 Deployment Shape
 
 **Three separate deployments, one per subject** (Science, Commerce, Humanities) — each does its
-own internal multi-repo aggregation across that subject's content repos, never across streams.
+own internal multi-repo aggregation across that subject's content repos, never across subjects.
 This is the one place the "one platform" framing was deliberately reversed: it holds one level
 up, at Community/Issues/Volunteers/Admin, not here.
 
@@ -583,7 +583,7 @@ Humanities, peers under it, each scoped to their own subject's content review an
 assignment) and Technical Admin (a parallel, non-ranked lane handling infra — LFS/sharding,
 deployments, bot/service health — rather than content).
 
-**Capabilities:** PR review/merge (all streams for Overall Admin, own subject for Subject
+**Capabilities:** PR review/merge (all subjects for Overall Admin, own subject for Subject
 Admins, including their `notebooks-project-skills` folder per §7.3); volunteer task assignment
 (§7.1); repo auto-creation (§7.4); forum/issue moderation escalation beyond what a Moderator can
 do.
@@ -681,7 +681,7 @@ disputes, and how takedowns get resolved — a product/governance call, not an a
 ### 10.6 Minimal Testing Before Cutover
 
 - Smoke-test the refresh pipeline end-to-end (§4.4) against one real content repo before
-  relying on it for all three streams.
+  relying on it for all three subjects.
 - Smoke-test the auth + 2FA enrollment flow once, since that's the one path with no fallback
   if it's broken at launch (a volunteer literally can't submit anything without it).
 - No need to build out a full test suite before launch at this project's scale — these two

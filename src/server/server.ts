@@ -344,12 +344,12 @@ export function createApp() {
   // rendering surface on subject routes.
   const SUBJECT_ROUTES = ['science', 'commerce', 'humanities', 'community', 'volunteers', 'accounts', 'issues', 'about'];
   SUBJECT_ROUTES.forEach((s) => {
-  app.get(`/${s}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
-  app.get(`/${s}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
+  app.get(`/${s}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'subjects.html')));
+  app.get(`/${s}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'subjects.html')));
   });
   
   app.get(/^\/(science|commerce|humanities|community|issues|accounts|volunteers|about)(?:\/.+)?$/, (_req, res) => {
-  res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html'));
+  res.sendFile(path.join(projectDir, 'public', 'html', 'subjects.html'));
   });
 
   app.get('/manifest.json', (_req, res) => {

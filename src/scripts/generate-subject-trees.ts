@@ -1,5 +1,3 @@
-// generate-streams-tree.ts
-
 import path from 'path';
 import { promises as fs } from 'fs';
 
@@ -54,7 +52,7 @@ async function main() {
 
     const entries = await loadRepoRegistry();
     // Subject targets
-    const streams = ['science', 'commerce', 'humanities'];
+    const subjects = ['science', 'commerce', 'humanities'];
     const trees: Record<string, any[]> = { science: [], commerce: [], humanities: [] };
 
     for (const entry of entries || []) {
@@ -138,7 +136,7 @@ async function main() {
     }
 
     // Write out per-subject JSON files under public/
-    for (const s of streams) {
+    for (const s of subjects) {
       const out = path.resolve(process.cwd(), 'public', `${s}-tree.json`);
       const outJson = path.resolve(process.cwd(), 'public', 'json', `${s}-tree.json`);
       try {
