@@ -16,7 +16,7 @@ const APP_SHELL = [
   'favicon.png',
   'public/css/style.css',
   'public/js/app.js',
-  'public/client/subjects.js',
+  'public/client/streams.js',
   'public/js/auth.js',
   'public/js/upload.js',
   'public/js/mobile.js',
@@ -48,8 +48,8 @@ const COOP_COEP_HEADERS = {
 const SUBJECT_TREES = {};
 
 async function loadSubjectTrees() {
-  const subjects = ['science', 'commerce', 'humanities'];
-  await Promise.all(subjects.map(async (s) => {
+  const streams = ['science', 'commerce', 'humanities'];
+  await Promise.all(streams.map(async (s) => {
     try {
       const runtimeUrl = `/api/system/${s}`;
       const jsonUrl = `/public/json/${s}-tree.json`;

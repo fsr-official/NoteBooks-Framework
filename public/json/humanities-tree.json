@@ -1,17 +1,4 @@
 {
   "subject": "humanities",
-  "repos": [
-    {
-      "repo": "fsr-humanities/NCERT-Humanities",
-      "branch": "main",
-      "pagesBase": "https://fsr-humanities.github.io/NCERT-Humanities/",
-      "tree": {
-        "type": "folder",
-        "name": "NCERT-Humanities",
-        "path": "NCERT-Humanities",
-        "repo": "fsr-humanities/NCERT-Humanities",
-        "children": []
-      }
-    }
-  ]
+  "repos": []
 }

@@ -6,7 +6,7 @@ describe('frontend subject shell', () => {
   it('serves the canonical subject shell and subject routes', async () => {
     const app = createApp();
 
-    const shell = await request(app).get('/public/html/subjects.html');
+    const shell = await request(app).get('/public/html/streams.html');
     expect(shell.status).toBe(200);
     expect(shell.text).toContain('class="subject-shell-page"');
     expect(shell.text).toContain('/public/js/app.js');

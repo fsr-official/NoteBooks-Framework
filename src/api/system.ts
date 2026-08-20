@@ -4,7 +4,7 @@ import { loadRepoRegistry } from './repo-registry.js';
 import { getSubjectRepo } from './_shared.js';
 import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
 
-const SUBJECTS = new Set(['science', 'commerce', 'humanities']);
+const streams = new Set(['science', 'commerce', 'humanities']);
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const FETCHABLE_EXTENSIONS = /\.(?:md|mdx|markdown|pdf)$/i;
 
@@ -29,7 +29,7 @@ const inFlight = new Map<string, Promise<CacheEntry>>();
 
 function normalizeSubject(value: unknown): string | null {
   const subject = String(value || '').trim().toLowerCase();
-  return SUBJECTS.has(subject) ? subject : null;
+  return streams.has(subject) ? subject : null;
 }
 
 function normalizePath(value: unknown): string {
