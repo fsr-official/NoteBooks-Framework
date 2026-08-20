@@ -1092,10 +1092,13 @@ function toggleSidebar() {
     if (subjectSlug) {
         try {
             const subjectPayload = subjectTreeManifest || await loadSubjectTree();
-            const repoEntry = Array.isArray(subjectPayload?.repos) ? subjectPayload.repos[0] : null;
-            if (repoEntry?.tree) {
-                tree = repoEntry.tree;
-                console.info('[tree] Reused loaded', subjectSlug, 'workspace manifest');
+            const hasSubjectManifest = Boolean(subjectPayload && Array.isArray(subjectPayload.repos));
+            const repoEntry = hasSubjectManifest ? subjectPayload.repos[0] : null;
+            if (hasSubjectManifest) {
+                // An empty subject manifest is still authoritative: do not leak the
+                // combined registry into another subject workspace.
+                tree = repoEntry?.tree || { type: 'folder', name: subjectSlug, children: [] };
+                console.info('[tree] Reused subject-scoped', subjectSlug, 'workspace manifest');
             }
         } catch (subjectTreeError) {
             console.warn('[tree] Subject tree unavailable, continuing with normal registry loading:', subjectTreeError);
