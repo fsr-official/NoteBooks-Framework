@@ -1,3 +1,5 @@
+// repo-registry.ts
+
 import type { Request, Response } from 'express';
 import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js';
 
@@ -229,6 +231,10 @@ export async function loadRepoRegistry(): Promise<RepoRegistryEntry[]> {
     return parseRepoRegistryMarkdown(data);
   } catch (error: any) {
     if (error?.code === 'ENOENT') {
+      // Deprecated fallback: a hand-maintained list of registry ENTRIES, not
+      // to be confused with the generated OUTPUT tree — see generate-registry.ts,
+      // which now writes its output exclusively to public/json/repo-registry.json
+      // to avoid ever colliding with this filename.
       const fallbackPath = path.resolve(process.cwd(), 'repo-registry.json');
       try {
         const fallbackData = await fs.readFile(fallbackPath, 'utf8');
@@ -240,6 +246,38 @@ export async function loadRepoRegistry(): Promise<RepoRegistryEntry[]> {
       }
     }
     throw error;
+  }
+}
+
+/**
+ * Builds the full tree served by the API: the local files.json manifest
+ * (if present) merged with the remote registry tree assembled from every
+ * repo in GITHUB-REPOSITORIES.md. This is the single source of truth for
+ * "what does the registry look like" — both the live handler below and
+ * scripts/generate-registry.ts call this so they can never drift apart.
+ */
+export async function buildFullRegistryTree(): Promise<TreeNode> {
+  const entries = await loadRepoRegistry();
+  const remoteTree = await buildRegistryTree(entries);
+
+  const fs = await import('fs/promises');
+  const path = await import('path');
+  const manifestPath = path.resolve(process.cwd(), 'files.json');
+
+  try {
+    const manifestText = await fs.readFile(manifestPath, 'utf8');
+    const localTree = JSON.parse(manifestText) as TreeNode;
+    return {
+      ...localTree,
+      name: 'root',
+      children: [
+        ...(Array.isArray(localTree.children) ? localTree.children : []),
+        ...(Array.isArray(remoteTree.children) ? remoteTree.children : [])
+      ]
+    };
+  } catch {
+    // No local files.json (or it's malformed) — the remote registry tree stands alone.
+    return remoteTree;
   }
 }
 
@@ -256,76 +294,45 @@ export default async function handler(req: Request, res: Response) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const cacheKey = getRefreshCacheKey(req);
+  const cached = refreshCache.get(cacheKey);
+  const now = Date.now();
+
+  // Return cached result if fresh (30 seconds)
+  if (cached && now - cached.cachedAt < 30_000) {
+    return res.status(200).json(cached.value);
+  }
+
+  // If a build is already in progress, return the last successful build
+  // immediately to avoid piling up concurrent requests
+  if (buildInProgress && lastSuccessfulBuild) {
+    console.log('[repo-registry] Build in progress, returning cached result');
+    return res.status(200).json(lastSuccessfulBuild.value);
+  }
+
+  buildInProgress = true;
   try {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    const manifestPath = path.resolve(process.cwd(), 'files.json');
+    // Set a 9-second timeout (Vercel limit is 10s for Hobby)
+    const timeoutPromise = new Promise<never>((_resolve, reject) => {
+      setTimeout(() => reject(new Error('Registry build timeout - returning cached data')), 9000);
+    });
 
-    try {
-      const manifestText = await fs.readFile(manifestPath, 'utf8');
-      const localTree = JSON.parse(manifestText) as TreeNode;
-      const entries = await loadRepoRegistry();
-      const remoteTree = await buildRegistryTree(entries);
-      const combinedTree: TreeNode = {
-        ...localTree,
-        name: 'root',
-        children: [
-          ...(Array.isArray(localTree.children) ? localTree.children : []),
-          ...(Array.isArray(remoteTree.children) ? remoteTree.children : [])
-        ]
-      };
-      return res.status(200).json(combinedTree);
-    } catch {
-      const cacheKey = getRefreshCacheKey(req);
-      const cached = refreshCache.get(cacheKey);
-      const now = Date.now();
-
-      // Return cached result if fresh (30 seconds)
-      if (cached && now - cached.cachedAt < 30_000) {
-        return res.status(200).json(cached.value);
-      }
-
-      // If build is already in progress, return last successful build immediately
-      // to avoid timeout on concurrent requests
-      if (buildInProgress && lastSuccessfulBuild) {
-        console.log('[repo-registry] Build in progress, returning cached result');
-        return res.status(200).json(lastSuccessfulBuild.value);
-      }
-
-      // Start new build with a timeout to prevent Vercel function timeout
-      buildInProgress = true;
-      try {
-        const buildPromise = (async () => {
-          const entries = await loadRepoRegistry();
-          const tree = await buildRegistryTree(entries);
-          return tree;
-        })();
-
-        // Set a 9-second timeout (Vercel limit is 10s for Hobby)
-        const timeoutPromise = new Promise<never>((_resolve, reject) => {
-          setTimeout(() => reject(new Error('Registry build timeout - returning cached data')), 9000);
-        });
-
-        const tree = await Promise.race([buildPromise, timeoutPromise]);
-        const cacheEntry = { cachedAt: now, value: tree };
-        refreshCache.set(cacheKey, cacheEntry);
-        lastSuccessfulBuild = cacheEntry;
-        console.log('[repo-registry] Successfully built registry');
-        return res.status(200).json(tree);
-      } catch (buildError: any) {
-        console.warn('[repo-registry] Build failed:', buildError.message);
-        // If build fails/times out and we have a previous successful build, return it
-        if (lastSuccessfulBuild) {
-          console.log('[repo-registry] Returning last successful build due to timeout/error');
-          return res.status(200).json(lastSuccessfulBuild.value);
-        }
-        throw buildError;
-      } finally {
-        buildInProgress = false;
-      }
+    const tree = await Promise.race([buildFullRegistryTree(), timeoutPromise]);
+    const cacheEntry = { cachedAt: now, value: tree };
+    refreshCache.set(cacheKey, cacheEntry);
+    lastSuccessfulBuild = cacheEntry;
+    console.log('[repo-registry] Successfully built registry');
+    return res.status(200).json(tree);
+  } catch (buildError: any) {
+    console.warn('[repo-registry] Build failed:', buildError.message);
+    // If the build failed/timed out and we have a previous successful build, return it
+    if (lastSuccessfulBuild) {
+      console.log('[repo-registry] Returning last successful build due to timeout/error');
+      return res.status(200).json(lastSuccessfulBuild.value);
     }
-  } catch (error: any) {
-    console.error('[api/repo-registry]', error);
-    return res.status(500).json({ error: error?.message || 'Failed to build repo registry index' });
+    console.error('[api/repo-registry]', buildError);
+    return res.status(500).json({ error: buildError?.message || 'Failed to build repo registry index' });
+  } finally {
+    buildInProgress = false;
   }
 }

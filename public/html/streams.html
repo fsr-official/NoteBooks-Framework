@@ -68,11 +68,11 @@
         let subject = url.searchParams.get('subject');
         if (!subject) {
           const segs = url.pathname.split('/').filter(Boolean);
-          // If path is like /science or /subjects/science
+          // If path is like /science or /streams/science
           if (segs.length) {
             subject = segs[0];
-            // handle /subjects/science.html variations
-            if (subject === 'subjects' && segs[1]) subject = segs[1];
+            // handle /streams/science.html variations
+            if (subject === 'streams' && segs[1]) subject = segs[1];
           }
         }
         if (!subject) subject = 'science';

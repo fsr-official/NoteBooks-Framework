@@ -8,66 +8,16 @@
       "tree": {
         "type": "folder",
         "name": "NCERT-Science",
-        "path": "NCERT-Science",
-        "repo": "fsr-science/NCERT-Science",
         "children": [
           {
-            "type": "folder",
-            "name": ".github",
-            "children": [
-              {
-                "type": "folder",
-                "name": "workflows",
-                "children": [
-                  {
-                    "type": "file",
-                    "name": "fmmupdate.yaml",
-                    "path": "NCERT-Science/.github/workflows/fmmupdate.yaml",
-                    "sha": "44978b7eb83d63cb73c5aa752fb4965761080590",
-                    "mime": "application/yaml",
-                    "repo": "fsr-science/NCERT-Science",
-                    "branch": "main",
-                    "priority": 1,
-                    "repoPath": ".github/workflows/fmmupdate.yaml",
-                    "isCanonical": true
-                  },
-                  {
-                    "type": "file",
-                    "name": "pages.yaml",
-                    "path": "NCERT-Science/.github/workflows/pages.yaml",
-                    "sha": "8e8f95960d0228113ee56d835dfe629e451b4056",
-                    "mime": "application/yaml",
-                    "repo": "fsr-science/NCERT-Science",
-                    "branch": "main",
-                    "priority": 1,
-                    "repoPath": ".github/workflows/pages.yaml",
-                    "isCanonical": true
-                  },
-                  {
-                    "type": "file",
-                    "name": "static.yml",
-                    "path": "NCERT-Science/.github/workflows/static.yml",
-                    "sha": "460f782006e8bb929c92b9357c59c8b1d73f18c7",
-                    "mime": "application/yaml",
-                    "repo": "fsr-science/NCERT-Science",
-                    "branch": "main",
-                    "priority": 1,
-                    "repoPath": ".github/workflows/static.yml",
-                    "isCanonical": true
-                  }
-                ],
-                "path": "NCERT-Science",
-                "repo": "fsr-science/NCERT-Science",
-                "branch": "main",
-                "priority": 1,
-                "isCanonical": true
-              }
-            ],
-            "path": "NCERT-Science",
+            "type": "file",
+            "name": "README.md",
+            "path": "README.md",
+            "mime": "text/markdown",
             "repo": "fsr-science/NCERT-Science",
             "branch": "main",
-            "priority": 1,
-            "isCanonical": true
+            "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/README.md",
+            "size": null
           }
         ]
       }

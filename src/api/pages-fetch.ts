@@ -1,3 +1,5 @@
+// pages-fetch.ts
+
 export interface PagesManifestEntry {
   path: string;
   name: string;

@@ -62,7 +62,7 @@ export async function buildLocalFilesManifest(rootDir: string): Promise<FileMani
     children
   };
 
-  // If SUBJECT_REPOS is provided, return a manifest that maps subjects to repo identifiers.
+  // If SUBJECT_REPOS is provided, return a manifest that maps streams to repo identifiers.
   // Format: SUBJECT_REPOS="science=fsr-science/NCERT-Science,commerce=fsr-commerce/NCERT-Commerce"
   const subj = process.env.SUBJECT_REPOS || '';
   if (subj) {
