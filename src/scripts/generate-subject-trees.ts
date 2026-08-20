@@ -120,12 +120,17 @@ async function main() {
     // Write out per-subject JSON files under public/
     for (const s of subjects) {
       const out = path.resolve(process.cwd(), 'public', `${s}-tree.json`);
+      const outJson = path.resolve(process.cwd(), 'public', 'json', `${s}-tree.json`);
       try {
         await fs.mkdir(path.dirname(out), { recursive: true });
         // Use the format: { subject, repos: [ { repo, branch, pagesBase, tree } ] }
         const payload = { subject: s, repos: (trees as any)[s] };
         await fs.writeFile(out, JSON.stringify(payload, null, 2), 'utf8');
         console.log(`[subject-trees] wrote ${out} (${(trees as any)[s].length} repo entries)`);
+        // Also write to organized public/json folder for runtime consumption
+        await fs.mkdir(path.dirname(outJson), { recursive: true });
+        await fs.writeFile(outJson, JSON.stringify(payload, null, 2), 'utf8');
+        console.log(`[subject-trees] wrote ${outJson} (${(trees as any)[s].length} repo entries)`);
       } catch (e) {
         console.warn(`[subject-trees] failed to write ${out}:`, e?.message || e);
       }

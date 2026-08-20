@@ -22,6 +22,7 @@ async function main() {
 
     const outPath = path.resolve(process.cwd(), 'repo-registry.json');
     const publicOutPath = path.resolve(process.cwd(), 'public', 'repo-registry.json');
+    const publicJsonOutPath = path.resolve(process.cwd(), 'public', 'json', 'repo-registry.json');
 
     await fs.writeFile(outPath, JSON.stringify(tree, null, 2), 'utf8');
     console.log(`[generate-registry] Wrote ${outPath}`);
@@ -30,8 +31,12 @@ async function main() {
       await fs.mkdir(path.dirname(publicOutPath), { recursive: true });
       await fs.writeFile(publicOutPath, JSON.stringify(tree, null, 2), 'utf8');
       console.log(`[generate-registry] Wrote ${publicOutPath}`);
+      // Also write into public/json for organized runtime lookup
+      await fs.mkdir(path.dirname(publicJsonOutPath), { recursive: true });
+      await fs.writeFile(publicJsonOutPath, JSON.stringify(tree, null, 2), 'utf8');
+      console.log(`[generate-registry] Wrote ${publicJsonOutPath}`);
     } catch (e) {
-      console.warn('[generate-registry] Could not write public copy:', e?.message || e);
+      console.warn('[generate-registry] Could not write public copy(s):', e?.message || e);
     }
 
     console.log('[generate-registry] Registry generation complete');
