@@ -1755,9 +1755,9 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             const sourcePath = repoPath
                 ? rawSourcePath
                 : (repoName && rawSourcePath.startsWith(`${repoName}/`) ? rawSourcePath.slice(repoName.length + 1) : rawSourcePath);
-            return pagesBase
-                ? `${pagesBase}${sourcePath}`
-                : `https://raw.githubusercontent.com/${repo}/${branch || appConfig.GITHUB_BRANCH}/${sourcePath}`;
+            // Subject-tree nodes already identify their source repository. Use the
+            // canonical raw URL first; Pages and jsDelivr remain fallbacks below.
+            return `https://raw.githubusercontent.com/${repo}/${branch || appConfig.GITHUB_BRANCH || 'main'}/${sourcePath}`;
         }
         const pagesUrl = buildPagesUrl(p);
         if (pagesUrl) {
@@ -1771,24 +1771,29 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     // Fallback to API if direct file access fails (for Vercel deployments with private repos)
     const fetchUrlWithFallback = async (p) => {
         if (repo) {
-            const rawUrl = fetchUrl(p);
-            try {
-                const response = await fetch(rawUrl, { cache: 'no-store' });
-                if (response.ok)
-                    return await response.text();
-            }
-            catch (error) {
-                console.warn('[file] Pages file read failed:', error);
-            }
             const rawSourcePath = String(repoPath || p || '').replace(/^\/+/, '');
             const sourcePath = repoPath
                 ? rawSourcePath
                 : (repoName && rawSourcePath.startsWith(`${repoName}/`) ? rawSourcePath.slice(repoName.length + 1) : rawSourcePath);
-            const cdnUrl = `https://cdn.jsdelivr.net/gh/${repo}@${branch || appConfig.GITHUB_BRANCH || 'main'}/${sourcePath}`;
-            const cdnResponse = await fetch(cdnUrl, { cache: 'no-store' });
-            if (!cdnResponse.ok)
-                throw new Error(`HTTP ${cdnResponse.status}`);
-            return await cdnResponse.text();
+            const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
+            const pagesBase = pagesBaseForRepository(repo);
+            const candidates = [
+                `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`,
+                ...(pagesBase ? [`${pagesBase}${sourcePath}`] : []),
+                `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`
+            ];
+            let lastError = null;
+            for (const candidate of candidates) {
+                try {
+                    const response = await fetch(candidate, { cache: 'no-store' });
+                    if (response.ok) return await response.text();
+                    lastError = new Error(`HTTP ${response.status}`);
+                }
+                catch (error) {
+                    lastError = error;
+                }
+            }
+            throw lastError || new Error('Source file unavailable');
         }
         const pagesUrl = buildPagesUrl(p);
         if (pagesUrl) {
@@ -1834,35 +1839,38 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     };
     const resolvePdfPreviewUrl = async (p) => {
         const cleanedPath = String(p || '').replace(/^\/+/, '');
-        const directUrl = localFileUrl(cleanedPath);
-        try {
-            const response = await fetch(directUrl, { method: 'HEAD', cache: 'no-store' });
-            if (response.ok) {
-                const contentType = response.headers.get('content-type') || '';
-                if (contentType.includes('application/pdf')) {
-                    return directUrl;
-                }
-                if (!contentType.includes('text/html')) {
-                    return directUrl;
+        const candidates = [];
+        if (repo) {
+            const sourcePath = String(repoPath || cleanedPath).replace(/^\/+/, '');
+            const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
+            const pagesBase = pagesBaseForRepository(repo);
+            if (pagesBase)
+                candidates.push(`${pagesBase}${sourcePath}`);
+            candidates.push(`https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`);
+            candidates.push(`https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`);
+        }
+        else {
+            candidates.push(localFileUrl(cleanedPath));
+            const apiUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`;
+            candidates.push(apiUrl);
+            const pagesUrl = buildPagesUrl(cleanedPath);
+            if (pagesUrl)
+                candidates.push(pagesUrl);
+        }
+        for (const candidate of candidates) {
+            try {
+                const response = await fetch(candidate, { method: 'HEAD', cache: 'no-store' });
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/pdf') || !contentType.includes('text/html'))
+                        return candidate;
                 }
             }
-        }
-        catch (e) {
-            // ignore and fallback to API or pages
-        }
-
-        const apiUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`;
-        try {
-            const response = await fetch(apiUrl, { method: 'HEAD', cache: 'no-store' });
-            if (response.ok) {
-                return apiUrl;
+            catch (e) {
+                // Continue to the next subject-aware source.
             }
         }
-        catch (e) {
-            // ignore and fallback to static/raw path
-        }
-
-        return fetchUrl(cleanedPath);
+        return repo ? fetchUrl(cleanedPath) : candidates[0];
     };
     const rawUrl = fetchUrl(path);
     try {

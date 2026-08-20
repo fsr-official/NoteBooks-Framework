@@ -123,7 +123,7 @@ document.addEventListener('click', (e) => {
     }
 });
 // ===== OVERRIDE openPreview FOR MOBILE MINIMIZE SUPPORT =====
-function openPreview(path, filename) {
+function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     const id = 'preview-' + (++previewId);
     const win = document.createElement('div');
     win.className = 'floating-window';
@@ -148,7 +148,7 @@ function openPreview(path, filename) {
     <div class="preview-body" id="${id}-body">Loading...</div>`;
     previewContainer.appendChild(win);
     windows[id] = win;
-    fetchFileContent(path, filename, document.getElementById(id + '-body'));
+    fetchFileContent(path, filename, document.getElementById(id + '-body'), null, repo, branch, repoPath);
     if (!isMobile) {
         updateTaskbar();
         if (['md', 'markdown', 'pdf', 'html', 'htm', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext))
@@ -158,7 +158,7 @@ function openPreview(path, filename) {
 // ===== OVERRIDE handlePreview — always use openPreview (handles mobile internally) =====
 function handlePreview() {
     if (selected && selected.type === 'file')
-        openPreview(selected.path, selected.name);
+        openPreview(selected.path, selected.name, selected.repo || '', selected.branch || '', selected.repoPath || selected.path);
     contextMenu.style.display = 'none';
 }
 // ===== OVERRIDE closeWindow — handle mobile min stack =====
