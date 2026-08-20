@@ -426,7 +426,8 @@ async function fetchConfig() {
         const res = await fetch('/api/config');
         if (res.ok) {
             const data = await res.json();
-            appConfig = { ...appConfig, ...data };
+            Object.assign(appConfig, data);
+            window.appConfig = appConfig;
         }
     }
     catch (e) {
