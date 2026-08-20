@@ -9,11 +9,11 @@ async function loadHelpers() {
   try {
     const rr = await import('../api/repo-registry.js');
     const pf = await import('../api/pages-fetch.js');
-    return { loadRepoRegistry: rr.loadRepoRegistry || rr.default?.loadRepoRegistry, resolvePagesBaseUrl: pf.resolvePagesBaseUrl || pf.default?.resolvePagesBaseUrl, fetchRepoManifest: pf.fetchRepoManifest || pf.default?.fetchRepoManifest };
+    return { loadRepoRegistry: rr.loadRepoRegistry || rr.default?.loadRepoRegistry, resolvePagesBaseUrl: pf.resolvePagesBaseUrl || pf.default?.resolvePagesBaseUrl, fetchPagesManifest: pf.fetchPagesManifest || pf.default?.fetchPagesManifest };
   } catch (e) {
     const rr = await import('../api/repo-registry.ts');
     const pf = await import('../api/pages-fetch.ts');
-    return { loadRepoRegistry: (rr as any).loadRepoRegistry, resolvePagesBaseUrl: (pf as any).resolvePagesBaseUrl, fetchRepoManifest: (pf as any).fetchRepoManifest };
+    return { loadRepoRegistry: (rr as any).loadRepoRegistry, resolvePagesBaseUrl: (pf as any).resolvePagesBaseUrl, fetchPagesManifest: (pf as any).fetchPagesManifest };
   }
 }
 
@@ -47,31 +47,10 @@ function inferSubjectFromRepository(repo: string): string | null {
   return null;
 }
 
-const FETCHABLE_EXTENSIONS = /\.(?:md|mdx|markdown|pdf)$/i;
-
-async function fetchGithubTreeManifest(repo: string, branch: string) {
-  const token = String(process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
-  const headers: Record<string, string> = {
-    Accept: 'application/vnd.github+json',
-    'User-Agent': 'NoteBooks-subject-tree-generator'
-  };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const response = await fetch(`https://api.github.com/repos/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, { headers });
-  if (!response.ok) throw new Error(`GitHub tree fetch failed with ${response.status}`);
-  const payload: any = await response.json();
-  return (Array.isArray(payload?.tree) ? payload.tree : [])
-    .filter((entry: any) => entry?.type === 'blob' && FETCHABLE_EXTENSIONS.test(String(entry.path || '')))
-    .map((entry: any) => {
-      const filePath = String(entry.path || '').replace(/^\/+/, '');
-      return { path: filePath, name: filePath.split('/').pop() || filePath, size: entry.size || null };
-    });
-}
-
 async function main() {
   try {
-    const { loadRepoRegistry, resolvePagesBaseUrl, fetchRepoManifest } = await loadHelpers();
-    if (typeof loadRepoRegistry !== 'function' || typeof fetchRepoManifest !== 'function') throw new Error('registry or manifest helpers not available');
+    const { loadRepoRegistry, resolvePagesBaseUrl, fetchPagesManifest } = await loadHelpers();
+    if (typeof loadRepoRegistry !== 'function') throw new Error('loadRepoRegistry not available');
 
     const entries = await loadRepoRegistry();
     // Subject targets
@@ -95,22 +74,15 @@ async function main() {
       }
 
       try {
-        const [owner, repoName] = repo.split('/');
-        const branch = entry.branch || 'main';
-        let manifest: any[];
-        try {
-          manifest = await fetchRepoManifest(repo, repoName || '', branch, pagesBase);
-          console.log(`[subject-trees] loaded files.json for ${repo}`);
-        } catch (manifestError: any) {
-          console.warn(`[subject-trees] files.json unavailable for ${repo}; using GitHub tree fallback:`, manifestError?.message || manifestError);
-          manifest = await fetchGithubTreeManifest(repo, branch);
-        }
+        const manifest = await fetchPagesManifest(pagesBase, (repo.split('/')[1] || ''));
         if (!Array.isArray(manifest) || manifest.length === 0) {
-          console.log(`[subject-trees] repository tree empty for ${repo}; skipping`);
+          console.log(`[subject-trees] pages manifest empty for ${repo}; skipping`);
           continue;
         }
 
-        
+        const [owner, repoName] = repo.split('/');
+        const branch = entry.branch || 'main';
+
         // Ensure a repo node exists for this subject
         let repoNode = (trees as any)[subjectKey].find((r: any) => r.repo === repo);
         if (!repoNode) {
@@ -160,7 +132,7 @@ async function main() {
           node.children.push(fileEntry);
         }
       } catch (err: any) {
-        console.warn(`[subject-trees] failed to build tree for ${repo}:`, err?.message || err);
+        console.warn(`[subject-trees] failed to fetch pages manifest for ${repo}:`, err?.message || err);
         continue;
       }
     }
