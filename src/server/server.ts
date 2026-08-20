@@ -241,7 +241,7 @@ export function createApp() {
   });
   app.use(express.urlencoded({ extended: true }));
 
-    app.get('/health', async (_req, res) => {
+    const healthHandler = async (_req: express.Request, res: express.Response) => {
     const health: any = { status: 'ok', checks: {} };
     // DB check
     try {
@@ -285,7 +285,10 @@ export function createApp() {
 
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json(health);
-  });
+  };
+
+  app.get('/health', healthHandler);
+  app.get('/api/health', healthHandler);
 
   app.get('/api/version', (_req, res) => {
     const versionPath = path.join(projectDir, 'version.json');
