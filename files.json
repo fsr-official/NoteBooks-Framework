@@ -19,7 +19,14 @@
       "type": "folder",
       "name": "api",
       "path": "api",
-      "children": []
+      "children": [
+        {
+          "type": "folder",
+          "name": "community",
+          "path": "api/community",
+          "children": []
+        }
+      ]
     },
     {
       "type": "folder",
