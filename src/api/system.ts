@@ -3,9 +3,12 @@ import type { Request, Response } from 'express';
 import { loadRepoRegistry } from './repo-registry.js';
 import { getSubjectRepo } from './_shared.js';
 import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
+import { sharedDelete, sharedGetJson, sharedSetJson } from '../lib/shared-cache.js';
 
 const SUBJECTS = new Set(['science', 'commerce', 'humanities']);
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const SHARED_CACHE_TTL_SECONDS = Math.floor(CACHE_TTL_MS / 1000);
+const SHARED_CACHE_KEY_PREFIX = 'notebooks:subject-tree:v1';
 const FETCHABLE_EXTENSIONS = /\.(?:md|mdx|markdown|pdf)$/i;
 
 type SubjectTreePayload = {
@@ -26,6 +29,10 @@ type CacheEntry = {
 
 const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<CacheEntry>>();
+
+function subjectCacheKey(subject: string): string {
+  return `${SHARED_CACHE_KEY_PREFIX}:${subject}`;
+}
 
 function normalizeSubject(value: unknown): string | null {
   const subject = String(value || '').trim().toLowerCase();
@@ -186,15 +193,27 @@ async function buildSubjectTree(subject: string): Promise<CacheEntry> {
 }
 
 async function getSubjectTree(subject: string, forceRefresh = false): Promise<CacheEntry> {
-  const cached = cache.get(subject);
-  if (!forceRefresh && cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) return cached;
+  const localCached = cache.get(subject);
+  if (!forceRefresh && localCached && Date.now() - localCached.cachedAt < CACHE_TTL_MS) return localCached;
+
+  let sharedCached: CacheEntry | null = null;
+  try {
+    sharedCached = await sharedGetJson<CacheEntry>(subjectCacheKey(subject));
+    if (!forceRefresh && sharedCached?.payload && typeof sharedCached.cachedAt === 'number') {
+      cache.set(subject, sharedCached);
+      if (Date.now() - sharedCached.cachedAt < CACHE_TTL_MS) return sharedCached;
+    }
+  } catch {
+    // Shared-cache failures must never prevent the local rebuild path.
+  }
 
   const existing = inFlight.get(subject);
   if (existing) return existing;
 
   const build = buildSubjectTree(subject)
-    .then((entry) => {
+    .then(async (entry) => {
       cache.set(subject, entry);
+      await sharedSetJson(subjectCacheKey(subject), entry, SHARED_CACHE_TTL_SECONDS);
       return entry;
     })
     .finally(() => inFlight.delete(subject));
@@ -203,14 +222,16 @@ async function getSubjectTree(subject: string, forceRefresh = false): Promise<Ca
   try {
     return await build;
   } catch (error) {
-    if (cached) return cached;
+    if (localCached) return localCached;
+    if (sharedCached) return sharedCached;
     throw error;
   }
 }
 
-export function invalidateSubjectTree(subject?: string): void {
-  if (subject) cache.delete(subject);
-  else cache.clear();
+export async function invalidateSubjectTree(subject?: string): Promise<void> {
+  const subjects = subject ? [subject] : Array.from(SUBJECTS);
+  for (const value of subjects) cache.delete(value);
+  await Promise.all(subjects.map((value) => sharedDelete(subjectCacheKey(value))));
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -256,7 +277,7 @@ export default async function handler(req: Request, res: Response) {
 
   if (req.method === 'POST' && String(req.path || '').endsWith('/refresh')) {
     if (!verifyRefreshSignature(req)) return res.status(401).json({ error: 'Invalid refresh signature' });
-    invalidateSubjectTree(subject);
+    await invalidateSubjectTree(subject);
     try {
       const result = await getSubjectTree(subject, true);
       return res.status(200).json({

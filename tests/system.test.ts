@@ -5,11 +5,11 @@ import { createApp } from '../src/server/server.ts';
 import { invalidateSubjectTree } from '../src/api/system.ts';
 
 describe('runtime subject system API', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret';
     process.env.WEBHOOK_SECRET = 'webhook-secret';
     delete process.env.SUBJECT_REPOS;
-    invalidateSubjectTree();
+    await invalidateSubjectTree();
   });
 
   afterEach(() => {
