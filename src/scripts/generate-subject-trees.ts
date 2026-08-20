@@ -28,6 +28,23 @@ function rawUrlFor(owner: string, repoName: string, branch: string, filePath: st
   return `https://raw.githubusercontent.com/${owner}/${repoName}/${branch}/${normalized}`;
 }
 
+function subjectFromStream(stream: unknown): string | null {
+  const normalized = String(stream || '').trim().toLowerCase();
+  if (normalized === 'science' || normalized === 'commerce' || normalized === 'humanities') {
+    return normalized;
+  }
+  if (normalized === 'humanity' || normalized === 'arts') return 'humanities';
+  return null;
+}
+
+function inferSubjectFromRepository(repo: string): string | null {
+  const normalized = repo.toLowerCase();
+  if (normalized.includes('science')) return 'science';
+  if (normalized.includes('commerce')) return 'commerce';
+  if (normalized.includes('humanities') || normalized.includes('humanity') || normalized.includes('arts')) return 'humanities';
+  return null;
+}
+
 async function main() {
   try {
     const { loadRepoRegistry, resolvePagesBaseUrl, fetchPagesManifest } = await loadHelpers();
@@ -40,12 +57,13 @@ async function main() {
 
     for (const entry of entries || []) {
       const repo = String(entry.repo || '');
-      const lc = repo.toLowerCase();
-      let subjectKey: string | null = null;
-      if (lc.includes('science')) subjectKey = 'science';
-      else if (lc.includes('commerce')) subjectKey = 'commerce';
-      else if (lc.includes('humanities') || lc.includes('humanity') || lc.includes('arts')) subjectKey = 'humanities';
-      if (!subjectKey) continue;
+      const subjectKey = entry.stream
+        ? subjectFromStream(entry.stream)
+        : inferSubjectFromRepository(repo);
+      if (!subjectKey) {
+        console.warn(`[subject-trees] skipping ${repo} — invalid or missing STREAM mapping`);
+        continue;
+      }
 
       const pagesBase = resolvePagesBaseUrl ? resolvePagesBaseUrl(entry) : '';
       if (!pagesBase) {

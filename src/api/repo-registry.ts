@@ -3,6 +3,7 @@ import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js'
 
 export interface RepoRegistryEntry {
   name: string;
+  stream?: string;
   repo: string;
   branch?: string;
   root?: string;
@@ -27,6 +28,7 @@ export interface TreeNode {
 function normalizeRepoEntry(entry: RepoRegistryEntry): RepoRegistryEntry {
   return {
     name: entry.name || entry.repo,
+    stream: entry.stream ? String(entry.stream).trim().toLowerCase() : undefined,
     repo: entry.repo,
     branch: entry.branch || process.env.GITHUB_BRANCH || 'main',
     root: entry.root || '',
@@ -43,19 +45,29 @@ export function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntry[]
     return [];
   }
 
-  const rows = tableLines.slice(2);
+  const headers = tableLines[0]
+    .split('|')
+    .slice(1, -1)
+    .map((cell) => cell.trim().toLowerCase());
+  const indexOf = (name: string) => headers.indexOf(name);
+  const valueOf = (cells: string[], name: string) => {
+    const index = indexOf(name);
+    return index >= 0 ? cells[index] || '' : '';
+  };
 
-  return rows
+  return tableLines.slice(2)
     .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
-    .filter((cells) => cells.length >= 6 && cells[0] && cells[1])
+    .filter((cells) => cells.length >= 2 && valueOf(cells, 'name') && valueOf(cells, 'repo'))
     .map((cells) => {
-      const [name, repo, branch, root, enabled, priority, pages] = cells;
+      const priority = valueOf(cells, 'priority');
+      const pages = valueOf(cells, 'pages');
       return {
-        name,
-        repo,
-        branch,
-        root,
-        enabled: enabled.toLowerCase() !== 'false',
+        name: valueOf(cells, 'name'),
+        stream: valueOf(cells, 'stream').toLowerCase() || undefined,
+        repo: valueOf(cells, 'repo'),
+        branch: valueOf(cells, 'branch') || undefined,
+        root: valueOf(cells, 'root'),
+        enabled: valueOf(cells, 'enabled').toLowerCase() !== 'false',
         priority: Number(priority),
         pages: pages ? pages.toLowerCase() === 'true' : false
       };

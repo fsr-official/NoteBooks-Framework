@@ -4,6 +4,7 @@ import path from 'path';
 
 interface RepoRegistryEntryLike {
   name?: string;
+  stream?: string;
   repo?: string;
   branch?: string;
   root?: string;
@@ -18,17 +19,28 @@ function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntryLike[] {
     return [];
   }
 
+  const headers = tableLines[0]
+    .split('|')
+    .slice(1, -1)
+    .map((cell) => cell.trim().toLowerCase());
+  const indexOf = (name: string) => headers.indexOf(name);
+  const valueOf = (cells: string[], name: string) => {
+    const index = indexOf(name);
+    return index >= 0 ? cells[index] || '' : '';
+  };
+
   return tableLines.slice(2)
     .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
-    .filter((cells) => cells.length >= 6 && cells[0] && cells[1])
+    .filter((cells) => cells.length >= 2 && valueOf(cells, 'name') && valueOf(cells, 'repo'))
     .map((cells) => {
-      const [name, repo, branch, root, enabled, priority] = cells;
+      const priority = valueOf(cells, 'priority');
       return {
-        name,
-        repo,
-        branch,
-        root,
-        enabled: enabled.toLowerCase() !== 'false',
+        name: valueOf(cells, 'name'),
+        stream: valueOf(cells, 'stream').toLowerCase() || undefined,
+        repo: valueOf(cells, 'repo'),
+        branch: valueOf(cells, 'branch') || undefined,
+        root: valueOf(cells, 'root'),
+        enabled: valueOf(cells, 'enabled').toLowerCase() !== 'false',
         priority: Number(priority)
       };
     })

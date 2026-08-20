@@ -120,9 +120,19 @@ async function fetchGithubTree(repo: string, branch: string): Promise<any> {
   }
 }
 
+function normalizeStream(value: unknown): string | null {
+  const stream = String(value || '').trim().toLowerCase();
+  if (stream === 'science' || stream === 'commerce' || stream === 'humanities') return stream;
+  if (stream === 'humanity' || stream === 'arts') return 'humanities';
+  return null;
+}
+
 function subjectEntries(subject: string, entries: any[]): any[] {
-  const configured = getSubjectRepo(subject);
   const enabled = (entries || []).filter((entry) => entry?.enabled !== false && entry?.repo);
+  const explicitStreamEntries = enabled.filter((entry) => normalizeStream(entry.stream) === subject);
+  if (explicitStreamEntries.length > 0) return explicitStreamEntries;
+
+  const configured = getSubjectRepo(subject);
   if (configured) {
     const exact = enabled.find((entry) => String(entry.repo).toLowerCase() === `${configured.owner}/${configured.repo}`.toLowerCase());
     return exact ? [exact] : [{ repo: `${configured.owner}/${configured.repo}`, branch: process.env.GITHUB_BRANCH || 'main', pages: true }];
