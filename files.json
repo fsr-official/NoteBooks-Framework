@@ -155,12 +155,6 @@
       "name": "logs",
       "path": "logs",
       "children": []
-    },
-    {
-      "type": "file",
-      "name": "txt.txt",
-      "path": "txt.txt",
-      "sha": "38317c3e95f86e80263d11e1bbd8d1d8638978cef10d79f209740e3605994d79"
     }
   ]
 }
