@@ -2,18 +2,17 @@ import request from 'supertest';
 import { describe, it, expect } from 'vitest';
 import createApp from '../src/server/server';
 
-describe('frontend subject fragments', () => {
-it('serves the science subject fragment and /science page', async () => {
-const app = createApp();
-const frag = await request(app).get('/public/subjects/science.html');
-expect(frag.status).toBe(200);
-expect(frag.text).toContain('id="subject-tree"');
-expect(frag.text).toContain('class="tree-body"');
+describe('frontend subject shell', () => {
+  it('serves the canonical subject shell and subject routes', async () => {
+    const app = createApp();
 
-const page = await request(app).get('/science');
-expect(page.status).toBe(200);
-// page should include the app shell so the client loader can inject the fragment
-expect(page.text.length).toBeGreaterThan(200);
+    const shell = await request(app).get('/public/html/subjects.html');
+    expect(shell.status).toBe(200);
+    expect(shell.text).toContain('class="subject-shell-page"');
+    expect(shell.text).toContain('/public/js/app.js');
 
-});
+    const page = await request(app).get('/science');
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('class="subject-shell-page"');
+  });
 });

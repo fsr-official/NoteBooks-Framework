@@ -168,7 +168,7 @@ async function populateSubjectTree(container: HTMLElement, slug: string): Promis
     let payload: any = null;
     const candidateUrls = slug === 'science'
       ? ['/science-tree.json']
-      : [`/${slug}-tree.json`, `/public/subjects/${slug}-tree.json`, `/public/${slug}-tree.json`];
+      : [`/public/json/${slug}-tree.json`, `/public/${slug}-tree.json`, `/${slug}-tree.json`];
     for (const u of candidateUrls) {
       try {
         const r = await fetch(`${u}?_=${Date.now()}`, { cache: 'no-store' });

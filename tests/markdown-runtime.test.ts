@@ -66,8 +66,8 @@ function createContext() {
 describe('markdown runtime bootstrap', () => {
   it('reports missing dependencies instead of crashing the preview renderer', () => {
     const context = createContext();
-    loadScript('public/md-init.js', context);
-    loadScript('public/markdown.js', context);
+    loadScript('public/js/md-init.js', context);
+    loadScript('public/js/markdown.js', context);
 
     context.window.obsidianParseFrontmatter = (raw: string) => ({ content: raw });
 

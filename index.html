@@ -6,7 +6,7 @@
   <meta name="description" content="NoteBooks is a collaborative learning workspace for clear subject notes, thoughtful discussion, and trusted contributions." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="recaptcha-sitekey" content="6LeI4QgtAAAAAIHR7fZ2uCoPNqNe3LBFLCuCBBZH" />
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/public/manifest.json">
   <meta name="theme-color" content="#0f172a">
   <link rel="icon" href="favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,9 +35,9 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <!-- TikZJax — TikZ/PGF diagram rendering (```tikz blocks) -->
-  <!-- Engine lives in public/tikzjax/output/; fonts in public/tikzjax/css/ -->
-  <link rel="stylesheet" href="/public/tikzjax/css/fonts.css">
-  <script src="/public/tikzjax/output/tikzjax.js"></script>
+  <!-- Engine lives in public/bin/tikzjax/output/; fonts in public/bin/tikzjax/css/ -->
+  <link rel="stylesheet" href="/public/bin/tikzjax/css/fonts.css">
+  <script src="/public/bin/tikzjax/output/tikzjax.js"></script>
   <!-- highlight.js — syntax highlighting for code blocks -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css"
         media="(prefers-color-scheme: light)">
@@ -599,7 +599,7 @@
 <!-- gh-proxy.js archived → archive/removed-public-js/gh-proxy.js (DEPRECATED) -->
 <script src="/public/js/markdown.js"></script>
 <script src="/public/js/config.js"></script>
-<script src="/public/app.js?v=20260808-pathfix"></script>
+<script src="/public/js/app.js?v=20260808-pathfix"></script>
 
 <div id="updateNotice" style="display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--item); color: var(--fg); padding: 12px 20px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2); z-index: 9999; align-items: center; gap: 12px;">
   <span>Update detected. Refresh now to apply changes.</span>
