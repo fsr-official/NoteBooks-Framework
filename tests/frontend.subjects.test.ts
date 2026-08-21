@@ -17,10 +17,14 @@ describe('frontend subject shell', () => {
     expect(appJs.status).toBe(200);
     expect(appJs.text).toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
+    expect(appJs.text).toContain('const sourceCandidates = (p) => {');
+    expect(appJs.text).toContain('const rawUrl = await resolveSourceUrl(path);');
+    expect(appJs.text).toContain('const targetPath = repo ? (repoPath || path) : path;');
 
     const mobileJs = await request(app).get('/public/js/mobile.js');
     expect(mobileJs.status).toBe(200);
     expect(mobileJs.text).toContain('Edit existing Markdown file');
+    expect(mobileJs.text).toContain("selected.repo || ''");
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);

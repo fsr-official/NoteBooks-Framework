@@ -46,7 +46,7 @@ function mobSheetAction(action) {
         if (!selected)
             return;
         if (action === 'preview') {
-            openMobilePreview(selected.path, selected.name);
+            openMobilePreview(selected.path, selected.name, selected.repo || '', selected.branch || '', selected.repoPath || selected.path);
             return;
         }
         if (action === 'download') {

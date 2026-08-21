@@ -1806,140 +1806,78 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         const cleanedPath = String(p || '').replace(/^\/+/, '');
         return `${window.location.origin}/files/${cleanedPath.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`;
     };
-    const fetchUrl = (p) => {
-        if (repo) {
-            const pagesBase = pagesBaseForRepository(repo);
-            const rawSourcePath = String(repoPath || p || '').replace(/^\/+/, '');
-            const sourcePath = repoPath
-                ? rawSourcePath
-                : (repoName && rawSourcePath.startsWith(`${repoName}/`) ? rawSourcePath.slice(repoName.length + 1) : rawSourcePath);
-            // Subject-tree nodes already identify their source repository. Use the
-            // canonical raw URL first; Pages and jsDelivr remain fallbacks below.
-            return `https://raw.githubusercontent.com/${repo}/${branch || appConfig.GITHUB_BRANCH || 'main'}/${sourcePath}`;
-        }
-        const pagesUrl = buildPagesUrl(p);
-        if (pagesUrl) {
-            return pagesUrl;
-        }
-        if (isGitHubPages) {
-            return `https://raw.githubusercontent.com/${appConfig.GITHUB_REPO}/${appConfig.GITHUB_BRANCH}/${p}`;
-        }
-        return localFileUrl(p);
+    const sourcePathForRepository = (p) => {
+        const rawSourcePath = String(repoPath || p || '').replace(/^\/+/, '');
+        const lowerPath = rawSourcePath.toLowerCase();
+        const lowerRepoName = repoName.toLowerCase();
+        return lowerRepoName && lowerPath.startsWith(`${lowerRepoName}/`)
+            ? rawSourcePath.slice(repoName.length + 1)
+            : rawSourcePath;
     };
-    // Fallback to API if direct file access fails (for Vercel deployments with private repos)
-    const fetchUrlWithFallback = async (p) => {
+    const sourceCandidates = (p) => {
+        const cleanedPath = String(p || '').replace(/^\/+/, '');
         if (repo) {
-            const rawSourcePath = String(repoPath || p || '').replace(/^\/+/, '');
-            const sourcePath = repoPath
-                ? rawSourcePath
-                : (repoName && rawSourcePath.startsWith(`${repoName}/`) ? rawSourcePath.slice(repoName.length + 1) : rawSourcePath);
+            const sourcePath = sourcePathForRepository(cleanedPath);
             const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
             const pagesBase = pagesBaseForRepository(repo);
-            const candidates = [
-                `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`,
+            return [
                 ...(pagesBase ? [`${pagesBase}${sourcePath}`] : []),
+                `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`,
                 `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`
             ];
-            let lastError = null;
-            for (const candidate of candidates) {
-                try {
-                    const response = await fetch(candidate, { cache: 'no-store' });
-                    if (response.ok) return await response.text();
-                    lastError = new Error(`HTTP ${response.status}`);
-                }
-                catch (error) {
-                    lastError = error;
-                }
-            }
-            throw lastError || new Error('Source file unavailable');
         }
-        const pagesUrl = buildPagesUrl(p);
-        if (pagesUrl) {
-            try {
-                const response = await fetch(pagesUrl);
-                if (response.ok) {
-                    return await response.text();
-                }
-            }
-            catch (e) {
-                // Continue to fallback behavior
-            }
-        }
-        if (appConfig.GITHUB_REPO) {
-            const cdnUrl = `https://cdn.jsdelivr.net/gh/${appConfig.GITHUB_REPO}@${appConfig.GITHUB_BRANCH || 'main'}/${String(p || '').replace(/^\/+/, '')}`;
-            try {
-                const response = await fetch(cdnUrl, { cache: 'no-store' });
-                if (response.ok)
-                    return await response.text();
-            }
-            catch (e) {
-                // Continue to local/API fallback.
-            }
-        }
-        const apiUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(p)}`;
-        const directUrl = localFileUrl(p);
-        try {
-            const response = await fetch(directUrl);
-            if (response.ok) {
-                const contentType = response.headers.get('content-type') || '';
-                if (!contentType.includes('text/html') || directUrl.endsWith('.html') || directUrl.endsWith('.htm')) {
-                    return await response.text();
-                }
-            }
-        }
-        catch (e) {
-            // Direct access failed, try API
-        }
-        const apiResponse = await fetch(apiUrl);
-        if (!apiResponse.ok)
-            throw new Error(`HTTP ${apiResponse.status}`);
-        return await apiResponse.text();
-    };
-    const resolvePdfPreviewUrl = async (p) => {
-        const cleanedPath = String(p || '').replace(/^\/+/, '');
         const candidates = [];
-        if (repo) {
-            const sourcePath = String(repoPath || cleanedPath).replace(/^\/+/, '');
-            const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
-            const pagesBase = pagesBaseForRepository(repo);
-            if (pagesBase)
-                candidates.push(`${pagesBase}${sourcePath}`);
-            candidates.push(`https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`);
-            candidates.push(`https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`);
+        const pagesUrl = buildPagesUrl(cleanedPath);
+        if (pagesUrl) candidates.push(pagesUrl);
+        if (isGitHubPages && appConfig.GITHUB_REPO) {
+            candidates.push(`https://raw.githubusercontent.com/${appConfig.GITHUB_REPO}/${appConfig.GITHUB_BRANCH || 'main'}/${cleanedPath}`);
         }
-        else {
-            candidates.push(localFileUrl(cleanedPath));
-            const apiUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`;
-            candidates.push(apiUrl);
-            const pagesUrl = buildPagesUrl(cleanedPath);
-            if (pagesUrl)
-                candidates.push(pagesUrl);
-        }
+        candidates.push(localFileUrl(cleanedPath));
+        candidates.push(`${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`);
+        return candidates;
+    };
+    const resolveSourceUrl = async (p) => {
+        const candidates = sourceCandidates(p);
         for (const candidate of candidates) {
             try {
                 const response = await fetch(candidate, { method: 'HEAD', cache: 'no-store' });
-                if (response.ok) {
-                    const contentType = response.headers.get('content-type') || '';
-                    if (contentType.includes('application/pdf') || !contentType.includes('text/html'))
-                        return candidate;
-                }
+                if (response.ok) return candidate;
             }
             catch (e) {
-                // Continue to the next subject-aware source.
+                // Continue to the next source candidate.
             }
         }
-        return repo ? fetchUrl(cleanedPath) : candidates[0];
+        return candidates[0] || localFileUrl(p);
     };
-    const rawUrl = fetchUrl(path);
+    const fetchUrlWithFallback = async (p) => {
+        let lastError = null;
+        for (const candidate of sourceCandidates(p)) {
+            try {
+                const response = await fetch(candidate, { cache: 'no-store' });
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!contentType.includes('text/html') || candidate.endsWith('.html') || candidate.endsWith('.htm')) {
+                        return await response.text();
+                    }
+                }
+                lastError = new Error(`HTTP ${response.status}`);
+            }
+            catch (error) {
+                lastError = error;
+            }
+        }
+        throw lastError || new Error('Source file unavailable');
+    };
+    const rawUrl = await resolveSourceUrl(path);
     try {
         if (/\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(filename)) {
-            container.innerHTML = `<img src="${fetchUrl(path)}" style="max-width:100%;height:auto;display:block;margin:auto;" alt="${filename}" />`;
+            container.innerHTML = `<img src="${await resolveSourceUrl(path)}" style="max-width:100%;height:auto;display:block;margin:auto;" alt="${filename}" />`;
         }
         else if (/\.(mp3|wav|ogg|flac)$/i.test(filename)) {
-            container.innerHTML = `<audio controls src="${fetchUrl(path)}" style="width:100%;display:block;margin-top:20px"></audio>`;
+            container.innerHTML = `<audio controls src="${await resolveSourceUrl(path)}" style="width:100%;display:block;margin-top:20px"></audio>`;
         }
         else if (/\.(mp4|webm)$/i.test(filename)) {
-            container.innerHTML = `<video controls src="${fetchUrl(path)}" style="max-width:100%;max-height:100%;display:block;margin:auto"></video>`;
+            container.innerHTML = `<video controls src="${await resolveSourceUrl(path)}" style="max-width:100%;max-height:100%;display:block;margin:auto"></video>`;
         }
         else if (/\.(docx?|xlsx?|pptx?)$/i.test(filename.includes('.') ? filename : path)) {
             const viewerUrl = `https://docs.google.com/gviewer?embedded=true&url=${encodeURIComponent(rawUrl)}`;
@@ -1948,14 +1886,12 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         }
         else if (ext === 'html' || ext === 'htm') {
             container.style.cssText = 'padding:0;overflow:hidden;display:flex;flex-direction:column;flex-grow:1;min-height:0;';
-            container.innerHTML = `<iframe src="${fetchUrl(path)}" style="flex:1;min-height:0;width:100%;border:none;display:block;"></iframe>`;
+            container.innerHTML = `<iframe src="${await resolveSourceUrl(path)}" style="flex:1;min-height:0;width:100%;border:none;display:block;"></iframe>`;
         }
         else if (ext === 'pdf') {
             container.style.cssText = 'padding:0;overflow:hidden;display:flex;flex-direction:column;flex-grow:1;min-height:0;';
             const targetPath = repo ? (repoPath || path) : path;
-            const proxied = repo
-                ? `${window.location.origin}/api/raw?path=${encodeURIComponent(targetPath)}`
-                : await resolvePdfPreviewUrl(targetPath);
+            const proxied = await resolvePdfPreviewUrl(targetPath);
             container.innerHTML = `<iframe src="${proxied}" style="flex:1;min-height:0;width:100%;border:none;display:block;"></iframe>`;
         }
         else if (ext === 'md' || ext === 'mdx' || ext === 'markdown') {
