@@ -35,8 +35,7 @@ function subjectCacheKey(subject: string): string {
 }
 
 function normalizeSubject(value: unknown): string | null {
-  const subject = String(value || '').trim().toLowerCase();
-  return SUBJECTS.has(subject) ? subject : null;
+  return normalizeStream(value);
 }
 
 function normalizePath(value: unknown): string {
@@ -260,8 +259,8 @@ function verifyRefreshSignature(req: Request): boolean {
 }
 
 export default async function handler(req: Request, res: Response) {
-  const routeSubject = String(req.params?.subject || req.query?.subject || '').toLowerCase();
-  const subject = normalizeSubject(routeSubject);
+  const routeStream = req.params?.stream ?? req.params?.subject ?? req.query?.stream ?? req.query?.subject;
+  const subject = normalizeSubject(routeStream);
   if (!subject) return res.status(404).json({ error: 'Unknown subject' });
 
   if (req.method === 'GET' || req.method === 'HEAD') {

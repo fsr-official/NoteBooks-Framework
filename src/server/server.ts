@@ -455,9 +455,12 @@ export function createApp() {
   app.get('/api/config.js', configHandler);
   app.get('/api/registry', repoRegistryHandler);
   app.get('/api/registry.js', repoRegistryHandler);
-  app.get('/api/system/:subject', systemHandler);
-  app.head('/api/system/:subject', systemHandler);
-  app.post('/api/system/:subject/refresh', systemHandler);
+  // Stream-scoped subject tree API and server-to-server refresh webhook.
+  // The handler still accepts the legacy `subject` parameter for direct callers,
+  // but the public route contract is explicitly `/api/system/:stream`.
+  app.get('/api/system/:stream', systemHandler);
+  app.head('/api/system/:stream', systemHandler);
+  app.post('/api/system/:stream/refresh', systemHandler);
   app.get('/api/files', repoRegistryHandler);
   app.get('/api/files.js', repoRegistryHandler);
   app.get('/api/pr-review', prReview.listHandler);

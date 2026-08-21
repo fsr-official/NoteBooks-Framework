@@ -32,10 +32,10 @@ describe('runtime subject system API', () => {
     return () => calls;
   }
 
-  it('returns a subject-scoped tree with raw URLs and filters unsupported files', async () => {
+  it('returns a subject-scoped tree through the stream route and normalizes case', async () => {
     const calls = stubManifestFetch();
     const app = createApp();
-    const response = await request(app).get('/api/system/commerce');
+    const response = await request(app).get('/api/system/COMMERCE');
 
     expect(response.status).toBe(200);
     expect(response.body.subject).toBe('commerce');
@@ -66,7 +66,7 @@ describe('runtime subject system API', () => {
   it('rejects refresh requests with an invalid signature', async () => {
     const app = createApp();
     const response = await request(app)
-      .post('/api/system/commerce/refresh')
+      .post('/api/system/COMMERCE/refresh')
       .set('Content-Type', 'application/json')
       .set('X-System-Signature', 'sha256=invalid')
       .send({ reason: 'github push' });
@@ -83,7 +83,7 @@ describe('runtime subject system API', () => {
     const signature = `sha256=${crypto.createHmac('sha256', 'webhook-secret').update(rawBody, 'utf8').digest('hex')}`;
 
     const response = await request(app)
-      .post('/api/system/commerce/refresh')
+      .post('/api/system/COMMERCE/refresh')
       .set('Content-Type', 'application/json')
       .set('X-System-Signature', signature)
       .send(payload);
