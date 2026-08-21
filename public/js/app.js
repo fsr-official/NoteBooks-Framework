@@ -1836,17 +1836,12 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         candidates.push(`${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`);
         return candidates;
     };
-    const resolveSourceUrl = async (p) => {
+    // Do not probe cross-origin candidates with HEAD. GitHub Pages and raw
+    // sources can reject or mishandle HEAD even when the actual file GET works.
+    // The media/iframe/fetch consumer performs the real request and the
+    // ordered candidates provide the universal fallback sequence.
+    const resolveSourceUrl = (p) => {
         const candidates = sourceCandidates(p);
-        for (const candidate of candidates) {
-            try {
-                const response = await fetch(candidate, { method: 'HEAD', cache: 'no-store' });
-                if (response.ok) return candidate;
-            }
-            catch (e) {
-                // Continue to the next source candidate.
-            }
-        }
         return candidates[0] || localFileUrl(p);
     };
     const fetchUrlWithFallback = async (p) => {

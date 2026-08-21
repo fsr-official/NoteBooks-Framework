@@ -18,6 +18,8 @@ describe('frontend subject shell', () => {
     expect(appJs.text).toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
     expect(appJs.text).toContain('const sourceCandidates = (p) => {');
+    expect(appJs.text).toContain('const resolveSourceUrl = (p) => {');
+    expect(appJs.text).not.toContain("method: 'HEAD'");
     expect(appJs.text).toContain('const rawUrl = await resolveSourceUrl(path);');
     expect(appJs.text).toContain('const targetPath = repo ? (repoPath || path) : path;');
     expect(appJs.text).toContain('const proxied = await resolveSourceUrl(targetPath);');
