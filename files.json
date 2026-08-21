@@ -25,6 +25,19 @@
           "name": "community",
           "path": "api/community",
           "children": []
+        },
+        {
+          "type": "folder",
+          "name": "system",
+          "path": "api/system",
+          "children": [
+            {
+              "type": "folder",
+              "name": "[stream]",
+              "path": "api/system/[stream]",
+              "children": []
+            }
+          ]
         }
       ]
     },
