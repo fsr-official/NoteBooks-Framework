@@ -1820,14 +1820,10 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             const sourcePath = sourcePathForRepository(cleanedPath);
             const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
             const pagesBase = pagesBaseForRepository(repo);
-            // Prefer jsDelivr for browser fetches: it provides permissive CORS
-            // and does not depend on the repository having a Pages deployment.
-            // Raw GitHub and Pages remain useful fallbacks for media and files
-            // that are unavailable through the CDN.
             return [
-                `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`,
+                ...(pagesBase ? [`${pagesBase}${sourcePath}`] : []),
                 `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`,
-                ...(pagesBase ? [`${pagesBase}${sourcePath}`] : [])
+                `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`
             ];
         }
         const candidates = [];
