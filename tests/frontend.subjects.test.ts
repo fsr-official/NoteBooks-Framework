@@ -13,6 +13,15 @@ describe('frontend subject shell', () => {
     expect(shell.text).toContain('openNewMarkdownEditor()');
     expect(shell.text).toContain('/public/js/markdown-editor.js');
 
+    const appJs = await request(app).get('/public/js/app.js');
+    expect(appJs.status).toBe(200);
+    expect(appJs.text).toContain('Edit existing Markdown file');
+    expect(appJs.text).toContain('isNewFile: false');
+
+    const mobileJs = await request(app).get('/public/js/mobile.js');
+    expect(mobileJs.status).toBe(200);
+    expect(mobileJs.text).toContain('Edit existing Markdown file');
+
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);
     expect(page.text).toContain('class="subject-shell-page"');

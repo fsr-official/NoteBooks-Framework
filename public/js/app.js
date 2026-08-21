@@ -1740,14 +1740,14 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     win.style.left = `${100 + previewId * 10}px`;
     win.dataset.id = id;
     const ext = filename.split('.').pop().toLowerCase();
-    const isMarkdown = ext === 'md' || ext === 'markdown';
+    const isMarkdown = ext === 'md' || ext === 'mdx' || ext === 'markdown';
     const isFullScreen = isMarkdown || ext === 'pdf' || ext === 'html' || ext === 'htm'
         || ext === 'doc' || ext === 'docx' || ext === 'xls' || ext === 'xlsx'
         || ext === 'ppt' || ext === 'pptx';
     // Edit button — only for markdown files
     const editBtnHTML = isMarkdown
-        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Open markdown editor" aria-label="Open markdown editor" onclick="toggleSplitEditor('${id}')">
-         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="sv-dot"></span>
+        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Edit existing Markdown file" aria-label="Edit existing Markdown file" onclick="toggleSplitEditor('${id}')">
+         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Edit</span><span class="sv-dot"></span>
        </button>`
         : '';
     win.innerHTML = `
@@ -1958,7 +1958,7 @@ async function fetchFileContent(path, filename, container, winElement = null, re
                 : await resolvePdfPreviewUrl(targetPath);
             container.innerHTML = `<iframe src="${proxied}" style="flex:1;min-height:0;width:100%;border:none;display:block;"></iframe>`;
         }
-        else if (ext === 'md' || ext === 'markdown') {
+        else if (ext === 'md' || ext === 'mdx' || ext === 'markdown') {
             const text = await fetchUrlWithFallback(path);
             if (winElement) {
                 winElement._originalContent = text;
@@ -2089,7 +2089,8 @@ function toggleSplitEditor(windowId) {
             subject: getCurrentSubjectRoute(),
             submissionPath: win._repoPath || win._filePath,
             repo: win._repo || '',
-            branch: win._branch || ''
+            branch: win._branch || '',
+            isNewFile: false
         });
         // Wire the editor's textarea so typing also live-updates the preview pane
         // We do this after createEditorUI mounts, so the textarea exists

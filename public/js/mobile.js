@@ -136,6 +136,10 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     }
     win.dataset.id = id;
     const ext = filename.split('.').pop().toLowerCase();
+    const isMarkdown = ext === 'md' || ext === 'mdx' || ext === 'markdown';
+    const editBtnHTML = isMarkdown
+        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Edit existing Markdown file" aria-label="Edit existing Markdown file" onclick="toggleSplitEditor('${id}')"><svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Edit</span><span class="sv-dot"></span></button>`
+        : '';
     const minBtn = isMobile
         ? `<button onclick="minimizeWindowMobile('${id}')">🗕</button>`
         : `<button onclick="minimizeWindow('${id}')">🗕</button>`;
@@ -143,15 +147,23 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     win.innerHTML = `
     <div class="title-bar" onmousedown="${isMobile ? '' : `startDrag(event,'${id}')`}">
       <div class="title">${filename}</div>
-      <div class="buttons">${minBtn}${fsBtn}<button onclick="closeWindow('${id}')">✖</button></div>
+      <div class="buttons">${editBtnHTML}${minBtn}${fsBtn}<button onclick="closeWindow('${id}')">✖</button></div>
     </div>
     <div class="preview-body" id="${id}-body">Loading...</div>`;
     previewContainer.appendChild(win);
     windows[id] = win;
-    fetchFileContent(path, filename, document.getElementById(id + '-body'), null, repo, branch, repoPath);
+    win._filePath = path;
+    win._repo = repo;
+    win._branch = branch;
+    win._repoPath = repoPath || path;
+    win._filename = filename;
+    win._isMarkdown = isMarkdown;
+    win._originalContent = isMarkdown ? null : '';
+    win._splitActive = false;
+    fetchFileContent(path, filename, document.getElementById(id + '-body'), win, repo, branch, repoPath);
     if (!isMobile) {
         updateTaskbar();
-        if (['md', 'markdown', 'pdf', 'html', 'htm', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext))
+        if (['md', 'mdx', 'markdown', 'pdf', 'html', 'htm', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext))
             setTimeout(() => toggleFullscreen(id, true), 100);
     }
 }
