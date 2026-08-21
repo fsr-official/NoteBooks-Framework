@@ -30,6 +30,16 @@ describe('Admin endpoints (role/ban)', () => {
     expect((u2 as any).role).toBe('user');
   });
 
+  it('rejects unsupported role values', async () => {
+    const res = await request(app)
+      .post('/api/admin?action=assign-role')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ email: targetEmail, role: 'superuser' });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Invalid role' });
+  });
+
   it('can ban and unban accounts', async () => {
     await setUser(targetEmail, { email: targetEmail, password: 'x', role: 'user', createdAt: new Date().toISOString() } as any);
     const until = new Date(Date.now() + 24 * 3600 * 1000).toISOString();

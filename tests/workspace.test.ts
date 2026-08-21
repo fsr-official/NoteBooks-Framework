@@ -30,6 +30,14 @@ describe('workspace env routing', () => {
     }));
   });
 
+  it('serves the admin control-centre shell at /admin', async () => {
+    const app = createApp();
+    const response = await request(app).get('/admin');
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Admin control centre');
+    expect(response.text).toContain('/api/admin?action=');
+  });
+
   it('serves the subject-aware landing routes for science, commerce, humanities, community, issues, accounts and volunteers', async () => {
     const app = createApp();
 

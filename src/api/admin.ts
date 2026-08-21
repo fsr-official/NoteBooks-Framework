@@ -5,6 +5,8 @@ import path from 'path';
 import permissions from '../lib/permissions.js';
 import { getUser, setUser } from './auth.js';
 
+const VALID_ROLES = new Set(['admin', 'moderator', 'editor', 'user']);
+
 function appendAdminLog(entry: any) {
   try {
     const logDir = path.join(process.cwd(), 'logs');
@@ -42,7 +44,8 @@ export default async function handler(req: Request, res: Response) {
       try {
         const { email, role } = req.body || {};
         if (!email || !role) return res.status(400).json({ error: 'Missing email or role' });
-        const actor = (req as any).auth?.email || 'system';
+        if (!VALID_ROLES.has(String(role))) return res.status(400).json({ error: 'Invalid role' });
+        const actor = String(decoded.email || 'system');
         if (isDbConfigured()) {
           await dbQuery('UPDATE users SET role = $1 WHERE email = $2', [role, email]);
           await dbQuery('INSERT INTO admin_hierarchy(user_id, subject, role) SELECT id, $1, $2 FROM users WHERE email = $3', [ 'global', role, email ]).catch(() => {});
@@ -63,7 +66,7 @@ export default async function handler(req: Request, res: Response) {
       try {
         const { email } = req.body || {};
         if (!email) return res.status(400).json({ error: 'Missing email' });
-        const actorR = (req as any).auth?.email || 'system';
+        const actorR = String(decoded.email || 'system');
         if (isDbConfigured()) {
           await dbQuery('UPDATE users SET role = $1 WHERE email = $2', ['user', email]);
         } else {
@@ -84,7 +87,7 @@ export default async function handler(req: Request, res: Response) {
         const { email, until } = req.body || {};
         if (!email) return res.status(400).json({ error: 'Missing email' });
         const untilTs = until ? new Date(until).toISOString() : null;
-        const actorB = (req as any).auth?.email || 'system';
+        const actorB = String(decoded.email || 'system');
         if (isDbConfigured()) {
           await dbQuery('UPDATE users SET banned_until = $1 WHERE email = $2', [untilTs, email]);
         } else {
@@ -104,7 +107,7 @@ export default async function handler(req: Request, res: Response) {
       try {
         const { email } = req.body || {};
         if (!email) return res.status(400).json({ error: 'Missing email' });
-        const actorU = (req as any).auth?.email || 'system';
+        const actorU = String(decoded.email || 'system');
         if (isDbConfigured()) {
           await dbQuery('UPDATE users SET banned_until = NULL WHERE email = $1', [email]);
         } else {

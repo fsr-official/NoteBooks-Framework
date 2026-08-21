@@ -3,167 +3,290 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin Console</title>
+    <title>Admin Control Centre — NoteBooks</title>
     <style>
-      :root { color-scheme: light dark; }
-      body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
-      .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 4rem; }
-      h1 { margin-bottom: 1.5rem; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
-      .card { background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 1rem; }
-      form { display: grid; gap: 0.75rem; }
-      label { display: grid; gap: 0.35rem; font-size: 0.9rem; color: #cbd5e1; }
-      input, select, button { font: inherit; }
-      input, select { padding: 0.7rem 0.8rem; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.4); background: rgba(15, 23, 42, 0.9); color: #f8fafc; }
-      button { cursor: pointer; border: 0; background: #2563eb; color: white; border-radius: 8px; padding: 0.7rem 1rem; font-weight: 600; }
-      button.secondary { background: #334155; }
-      ul { margin: 0; padding-left: 1.1rem; }
-      li { margin-bottom: 0.5rem; }
-      .status { margin-top: 0.75rem; min-height: 1.25rem; color: #93c5fd; }
-      .muted { color: #94a3b8; }
+      :root { color-scheme: dark; --bg: #08111a; --panel: #101d2a; --panel-2: #142638; --line: rgba(148,163,184,.22); --text: #e5eef7; --muted: #94a9bc; --accent: #55d6be; --danger: #fda4af; --warning: #fcd34d; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; background: radial-gradient(circle at top right, #173047 0, var(--bg) 48%); color: var(--text); }
+      a { color: #8ee7d5; }
+      .admin-shell { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 100vh; }
+      .admin-sidebar { padding: 1.5rem 1rem; background: rgba(5, 13, 21, .82); border-right: 1px solid var(--line); }
+      .brand { margin: 0 0 .25rem; font-size: 1.15rem; letter-spacing: .02em; }
+      .eyebrow { margin: 0 0 1.5rem; color: var(--muted); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; }
+      .nav { display: grid; gap: .4rem; }
+      .nav a { display: block; padding: .7rem .8rem; border-radius: .65rem; color: var(--muted); text-decoration: none; }
+      .nav a:hover, .nav a[aria-current="page"] { background: rgba(85, 214, 190, .12); color: var(--text); }
+      .sidebar-note { margin-top: 2rem; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+      .admin-main { min-width: 0; padding: clamp(1.2rem, 3vw, 2.5rem); }
+      .topbar { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1.5rem; }
+      h1, h2, p { margin-top: 0; }
+      h1 { margin-bottom: .4rem; font-size: clamp(1.7rem, 3vw, 2.5rem); }
+      h2 { margin-bottom: .8rem; font-size: 1.05rem; }
+      .muted { color: var(--muted); }
+      .status { min-height: 1.35rem; color: #9dd7ff; }
+      .status.error { color: var(--danger); }
+      .status.success { color: var(--accent); }
+      .identity { display: grid; justify-items: end; gap: .45rem; color: var(--muted); font-size: .82rem; text-align: right; }
+      button, input, select { font: inherit; }
+      button { cursor: pointer; border: 0; border-radius: .55rem; padding: .65rem .85rem; background: var(--accent); color: #06231e; font-weight: 700; }
+      button.secondary { background: #2c4357; color: var(--text); }
+      button.danger { background: rgba(253,164,175,.14); color: var(--danger); border: 1px solid rgba(253,164,175,.3); }
+      button:disabled { cursor: not-allowed; opacity: .48; }
+      .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1rem; }
+      .card { grid-column: span 6; min-width: 0; padding: 1.1rem; background: rgba(16,29,42,.84); border: 1px solid var(--line); border-radius: .9rem; box-shadow: 0 16px 40px rgba(0,0,0,.15); }
+      .card.wide { grid-column: span 12; }
+      form { display: grid; gap: .7rem; }
+      label { display: grid; gap: .35rem; color: var(--muted); font-size: .85rem; }
+      input, select { width: 100%; padding: .65rem .7rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--panel-2); color: var(--text); }
+      .form-actions { display: flex; flex-wrap: wrap; gap: .55rem; }
+      .stack { display: grid; gap: 1rem; }
+      .list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; max-height: 22rem; overflow: auto; }
+      .list li { padding: .7rem .75rem; background: rgba(20,38,56,.7); border: 1px solid rgba(148,163,184,.13); border-radius: .55rem; color: var(--muted); font-size: .84rem; line-height: 1.45; overflow-wrap: anywhere; }
+      .access { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid rgba(252,211,77,.28); border-radius: .7rem; background: rgba(252,211,77,.08); color: var(--warning); }
+      .access.ok { border-color: rgba(85,214,190,.28); background: rgba(85,214,190,.08); color: var(--accent); }
+      @media (max-width: 820px) { .admin-shell { grid-template-columns: 1fr; } .admin-sidebar { border-right: 0; border-bottom: 1px solid var(--line); } .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sidebar-note { display: none; } .card, .card.wide { grid-column: span 12; } .topbar { flex-direction: column; } .identity { justify-items: start; text-align: left; } }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <h1>Admin Console</h1>
-      <div class="grid">
-        <section class="card">
-          <h2>Role Management</h2>
-          <form id="assign-role-form">
-            <label>Email<input name="email" type="email" required /></label>
-            <label>Role<select name="role"><option value="admin">admin</option><option value="moderator">moderator</option><option value="user">user</option></select></label>
-            <button type="submit">Assign role</button>
-          </form>
-          <div class="status" id="assign-role-status"></div>
-          <form id="revoke-role-form" style="margin-top:1rem;">
-            <label>Email<input name="email" type="email" required /></label>
-            <button class="secondary" type="submit">Revoke role</button>
-          </form>
-          <div class="status" id="revoke-role-status"></div>
+    <div class="admin-shell">
+      <aside class="admin-sidebar" aria-label="Admin navigation">
+        <p class="brand">NoteBooks</p>
+        <p class="eyebrow">Admin control centre</p>
+        <nav class="nav">
+          <a href="/admin" aria-current="page">Overview</a>
+          <a href="#access">Access</a>
+          <a href="#review">Review</a>
+        </nav>
+        <p class="sidebar-note">Administrative actions are protected by the server-side admin role gate. Public pages and subject workspaces remain outside this shell.</p>
+      </aside>
+
+      <main class="admin-main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Protected workspace</p>
+            <h1>Admin control centre</h1>
+            <p class="muted">Manage access, moderation state, audit visibility, and contribution review.</p>
+          </div>
+          <div class="identity">
+            <span id="identity-label">Checking administrator session…</span>
+            <button id="logout-button" class="secondary" type="button" hidden>Sign out</button>
+          </div>
+        </header>
+
+        <div id="access-status" class="access" role="status">Checking administrator access…</div>
+
+        <section id="access" class="grid" aria-label="Access management">
+          <article class="card">
+            <h2>Role management</h2>
+            <div class="stack">
+              <form id="assign-role-form">
+                <label>Email<input name="email" type="email" autocomplete="off" required /></label>
+                <label>Role<select name="role"><option value="admin">admin</option><option value="moderator">moderator</option><option value="editor">editor</option><option value="user">user</option></select></label>
+                <div class="form-actions"><button type="submit">Assign role</button></div>
+              </form>
+              <div class="status" id="assign-role-status" aria-live="polite"></div>
+              <form id="revoke-role-form">
+                <label>Email<input name="email" type="email" autocomplete="off" required /></label>
+                <div class="form-actions"><button class="secondary" type="submit">Revoke role</button></div>
+              </form>
+              <div class="status" id="revoke-role-status" aria-live="polite"></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Ban and unban</h2>
+            <div class="stack">
+              <form id="ban-form">
+                <label>Email<input name="email" type="email" autocomplete="off" required /></label>
+                <label>Until<input name="until" type="datetime-local" /></label>
+                <div class="form-actions"><button class="danger" type="submit">Ban user</button></div>
+              </form>
+              <div class="status" id="ban-status" aria-live="polite"></div>
+              <form id="unban-form">
+                <label>Email<input name="email" type="email" autocomplete="off" required /></label>
+                <div class="form-actions"><button class="secondary" type="submit">Unban user</button></div>
+              </form>
+              <div class="status" id="unban-status" aria-live="polite"></div>
+            </div>
+          </article>
         </section>
-        <section class="card">
-          <h2>Ban / Unban</h2>
-          <form id="ban-form">
-            <label>Email<input name="email" type="email" required /></label>
-            <label>Until<input name="until" type="datetime-local" /></label>
-            <button type="submit">Ban user</button>
-          </form>
-          <div class="status" id="ban-status"></div>
-          <form id="unban-form" style="margin-top:1rem;">
-            <label>Email<input name="email" type="email" required /></label>
-            <button class="secondary" type="submit">Unban user</button>
-          </form>
-          <div class="status" id="unban-status"></div>
+
+        <section id="review" class="grid" aria-label="Review and audit">
+          <article class="card wide">
+            <h2>Recent audit log</h2>
+            <ul id="logs-list" class="list"><li class="muted">Loading audit entries…</li></ul>
+          </article>
+          <article class="card wide">
+            <h2>Open contribution PRs</h2>
+            <ul id="prs-list" class="list"><li class="muted">Loading pull requests…</li></ul>
+          </article>
         </section>
-        <section class="card">
-          <h2>Recent Audit Log</h2>
-          <ul id="logs-list"></ul>
-        </section>
-        <section class="card">
-          <h2>Open PRs</h2>
-          <ul id="prs-list"></ul>
-        </section>
-      </div>
+      </main>
     </div>
+
+    <script src="/public/js/modern-auth.js"></script>
     <script>
-      function getCsrfHeaders() {
-        const cookieMatch = document.cookie.split(';').map((c) => c.trim()).find((c) => c.startsWith('csrf='));
-        const csrf = cookieMatch ? cookieMatch.split('=')[1] : null;
-        const headers = { 'Content-Type': 'application/json' };
-        if (csrf) {
-          headers['x-csrf-token'] = csrf;
-          headers['x-csrf-cookie'] = csrf;
-        }
-        return headers;
-      }
+      (() => {
+        const auth = window.ModernAuthInstance;
+        const accessStatus = document.getElementById('access-status');
+        const identityLabel = document.getElementById('identity-label');
+        const logoutButton = document.getElementById('logout-button');
+        const controls = Array.from(document.querySelectorAll('form button, form input, form select'));
 
-      async function callAdmin(action, payload, statusEl) {
-        statusEl.textContent = 'Working...';
-        try {
-          const res = await fetch(`/api/admin?action=${action}`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: getCsrfHeaders(),
-            body: JSON.stringify(payload)
-          });
-          const json = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(json.error || res.statusText || 'Request failed');
+        function setAccess(message, ok = false) {
+          accessStatus.textContent = message;
+          accessStatus.classList.toggle('ok', ok);
+          accessStatus.classList.toggle('error', !ok);
+          controls.forEach((control) => { control.disabled = !ok; });
+        }
+
+        function csrfHeaders() {
+          const cookie = document.cookie.split(';').map((value) => value.trim()).find((value) => value.startsWith('csrf='));
+          const headers = { 'Content-Type': 'application/json' };
+          if (cookie) {
+            const token = cookie.slice(5);
+            headers['x-csrf-token'] = token;
+            headers['x-csrf-cookie'] = token;
           }
-          statusEl.textContent = 'Success';
-          await Promise.all([loadLogs(), loadPrs()]);
-          return true;
-        } catch (err) {
-          statusEl.textContent = String(err.message || err);
-          return false;
+          return headers;
         }
-      }
 
-      async function loadLogs() {
-        const list = document.getElementById('logs-list');
-        try {
-          const res = await fetch('/api/admin?action=logs', { credentials: 'same-origin' });
-          if (!res.ok) throw new Error('Failed to load logs');
-          const json = await res.json();
-          const logs = Array.isArray(json.logs) ? json.logs : [];
-          list.innerHTML = logs.length
-            ? logs.map((entry) => `<li>${JSON.stringify(entry)}</li>`).join('')
-            : '<li class="muted">No audit entries yet.</li>';
-        } catch (err) {
-          list.innerHTML = `<li class="muted">${String(err.message || err)}</li>`;
+        function adminHeaders() {
+          const headers = csrfHeaders();
+          const token = auth && auth.getToken ? auth.getToken() : localStorage.getItem('auth_token');
+          if (token) headers.Authorization = `Bearer ${token}`;
+          return headers;
         }
-      }
 
-      async function loadPrs() {
-        const list = document.getElementById('prs-list');
-        try {
-          const res = await fetch('/api/admin?action=list-prs', { credentials: 'same-origin' });
-          if (!res.ok) throw new Error('Failed to load PR list');
-          const json = await res.json();
-          const prs = Array.isArray(json.prs) ? json.prs : [];
-          list.innerHTML = prs.length
-            ? prs.map((pr) => `<li><strong>${pr.title}</strong> — <a href="${pr.pr_url}" target="_blank">#${pr.pr_number}</a> by ${pr.author_email}</li>`).join('')
-            : '<li class="muted">No PRs found.</li>';
-        } catch (err) {
-          list.innerHTML = `<li class="muted">${String(err.message || err)}</li>`;
+        async function adminRequest(action, options = {}) {
+          const response = await fetch(`/api/admin?action=${encodeURIComponent(action)}`, {
+            credentials: 'same-origin',
+            ...options,
+            headers: { ...adminHeaders(), ...(options.headers || {}) }
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const error = new Error(data.error || `Request failed (${response.status})`);
+            error.status = response.status;
+            throw error;
+          }
+          return data;
         }
-      }
 
-      document.getElementById('assign-role-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const data = Object.fromEntries(new FormData(form).entries());
-        await callAdmin('assign-role', { email: data.email, role: data.role }, document.getElementById('assign-role-status'));
-        form.reset();
-      });
+        function clearList(list, message) {
+          list.replaceChildren();
+          const item = document.createElement('li');
+          item.className = 'muted';
+          item.textContent = message;
+          list.appendChild(item);
+        }
 
-      document.getElementById('revoke-role-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const email = new FormData(form).get('email');
-        await callAdmin('revoke-role', { email }, document.getElementById('revoke-role-status'));
-        form.reset();
-      });
+        async function loadLogs() {
+          const list = document.getElementById('logs-list');
+          const data = await adminRequest('logs');
+          list.replaceChildren();
+          const logs = Array.isArray(data.logs) ? data.logs : [];
+          if (!logs.length) return clearList(list, 'No audit entries yet.');
+          logs.forEach((entry) => {
+            const item = document.createElement('li');
+            item.textContent = typeof entry === 'string' ? entry : JSON.stringify(entry);
+            list.appendChild(item);
+          });
+        }
 
-      document.getElementById('ban-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const data = Object.fromEntries(new FormData(form).entries());
-        await callAdmin('ban', { email: data.email, until: data.until || null }, document.getElementById('ban-status'));
-        form.reset();
-      });
+        async function loadPrs() {
+          const list = document.getElementById('prs-list');
+          const data = await adminRequest('list-prs');
+          list.replaceChildren();
+          const prs = Array.isArray(data.prs) ? data.prs : [];
+          if (!prs.length) return clearList(list, 'No contribution PRs found.');
+          prs.forEach((pr) => {
+            const item = document.createElement('li');
+            const title = document.createElement('strong');
+            title.textContent = String(pr.title || 'Untitled PR');
+            item.appendChild(title);
+            item.appendChild(document.createTextNode(` — #${String(pr.pr_number || '')} by ${String(pr.author_email || 'unknown')}`));
+            if (pr.pr_url) {
+              const link = document.createElement('a');
+              link.href = String(pr.pr_url);
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              link.textContent = ' Open';
+              item.appendChild(link);
+            }
+            list.appendChild(item);
+          });
+        }
 
-      document.getElementById('unban-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const email = new FormData(form).get('email');
-        await callAdmin('unban', { email }, document.getElementById('unban-status'));
-        form.reset();
-      });
+        async function checkAccess() {
+          if (!auth || !auth.isLoggedIn || !auth.isLoggedIn()) {
+            identityLabel.textContent = 'No administrator session detected';
+            setAccess('Sign in with an administrator account to continue.');
+            return false;
+          }
+          identityLabel.textContent = `Signed in as ${auth.getEmail() || 'administrator'}`;
+          logoutButton.hidden = false;
+          try {
+            await Promise.all([loadLogs(), loadPrs()]);
+            setAccess('Administrator access verified.', true);
+            return true;
+          } catch (error) {
+            if (error.status === 401) {
+              identityLabel.textContent = 'Administrator authentication required';
+              setAccess('Your session is missing or expired. Sign in again.');
+            } else if (error.status === 403) {
+              setAccess('This account is authenticated but does not have the admin role.');
+            } else {
+              setAccess(error.message || 'Unable to verify administrator access.');
+            }
+            return false;
+          }
+        }
 
-      loadLogs();
-      loadPrs();
+        async function callAdmin(action, payload, statusEl) {
+          statusEl.textContent = 'Working…';
+          statusEl.className = 'status';
+          try {
+            await adminRequest(action, { method: 'POST', body: JSON.stringify(payload) });
+            statusEl.textContent = 'Success';
+            statusEl.className = 'status success';
+            await Promise.all([loadLogs(), loadPrs()]);
+          } catch (error) {
+            statusEl.textContent = error.message || String(error);
+            statusEl.className = 'status error';
+          }
+        }
+
+        document.getElementById('assign-role-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+          await callAdmin('assign-role', { email: data.email, role: data.role }, document.getElementById('assign-role-status'));
+          event.currentTarget.reset();
+        });
+        document.getElementById('revoke-role-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const email = new FormData(event.currentTarget).get('email');
+          await callAdmin('revoke-role', { email }, document.getElementById('revoke-role-status'));
+          event.currentTarget.reset();
+        });
+        document.getElementById('ban-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+          await callAdmin('ban', { email: data.email, until: data.until || null }, document.getElementById('ban-status'));
+          event.currentTarget.reset();
+        });
+        document.getElementById('unban-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const email = new FormData(event.currentTarget).get('email');
+          await callAdmin('unban', { email }, document.getElementById('unban-status'));
+          event.currentTarget.reset();
+        });
+        logoutButton.addEventListener('click', () => {
+          auth?.logout?.();
+          window.location.reload();
+        });
+        checkAccess();
+      })();
     </script>
   </body>
 </html>
-

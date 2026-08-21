@@ -22,6 +22,19 @@ describe('Protected endpoints', () => {
     expect(res.status).toBe(403);
   });
 
+  it('allows Bearer-authenticated admin requests when CSRF enforcement is enabled', async () => {
+    process.env.ENFORCE_CSRF = 'true';
+    const csrfApp = createApp();
+    const adminToken = jwt.sign({ email: 'csrf-admin@example.com', role: 'admin' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+    const res = await request(csrfApp)
+      .post('/api/admin?action=assign-role')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ email: 'target@example.com', role: 'unsupported' });
+    delete process.env.ENFORCE_CSRF;
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Invalid role' });
+  });
+
   it('rejects unauthenticated POST /api/pr-review/accept', async () => {
     const res = await request(app).post('/api/pr-review/accept').send({});
     expect(res.status).toBe(401);

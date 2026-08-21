@@ -141,8 +141,11 @@ export function createApp() {
     app.use((req, res, next) => {
       const method = req.method.toUpperCase();
       if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return next();
-      // Exempt refresh-signal which is server-to-server
-      if (req.path === '/api/refresh-signal' || req.path.startsWith('/api/system/')) return next();
+      // Exempt server-to-server refresh routes and Bearer-authenticated admin API calls.
+      // Admin mutations authenticate with an Authorization token, not a session cookie,
+      // so a cross-site form cannot reproduce the request without the token.
+      const bearerAdmin = req.path === '/api/admin' && /^Bearer\s+/i.test(String(req.headers.authorization || ''));
+      if (req.path === '/api/refresh-signal' || req.path.startsWith('/api/system/') || bearerAdmin) return next();
       const cookieToken = req.cookies?.csrf || req.headers['x-csrf-cookie'];
       const header = req.headers['x-csrf-token'];
       if (!cookieToken || !header || header !== cookieToken) {
@@ -338,6 +341,15 @@ export function createApp() {
   app.get('/LICENSE', (_req, res) => {
     res.sendFile(path.join(projectDir, 'LICENSE'));
   });
+
+  // Canonical admin shell. The page itself is safe to serve publicly; every
+  // administrative data request and mutation remains protected by /api/admin.
+  const adminShell = (_req: express.Request, res: express.Response) => {
+    res.sendFile(path.join(projectDir, 'public', 'html', 'admin-prs.html'));
+  };
+  app.get('/admin', adminShell);
+  app.get('/admin/', adminShell);
+  app.get('/admin-prs', adminShell);
 
   // Subject and content routes use the focused subject shell rather than the
   // marketing landing page. This keeps the legacy workspace as the only visible
