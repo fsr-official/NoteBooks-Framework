@@ -331,7 +331,6 @@ ENFORCE_CSRF=false
 
 # Optional: enable write logging
 ENABLE_WRITE_LOGS=false
-
 ```
 
 ```
