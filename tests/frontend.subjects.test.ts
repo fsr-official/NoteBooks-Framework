@@ -10,6 +10,8 @@ describe('frontend subject shell', () => {
     expect(shell.status).toBe(200);
     expect(shell.text).toContain('class="subject-shell-page"');
     expect(shell.text).toContain('/public/js/app.js');
+    expect(shell.text).toContain('openNewMarkdownEditor()');
+    expect(shell.text).toContain('/public/js/markdown-editor.js');
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);

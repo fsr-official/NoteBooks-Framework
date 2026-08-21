@@ -1673,6 +1673,64 @@ function injectSplitViewStyles() {
     document.head.appendChild(style);
 }
 // ─── openPreview ────────────────────────────────────────���────────────────────
+function openNewMarkdownEditor() {
+    const subject = getCurrentSubjectRoute() || 'science';
+    const suggestedPath = `notes/${subject}-new-note.md`;
+    const requestedPath = window.prompt('Repository path for the new Markdown note:', suggestedPath);
+    if (!requestedPath)
+        return;
+    const targetPath = String(requestedPath).trim().replace(/^\/+/, '').replace(/\\+/g, '/');
+    if (!/^([a-zA-Z0-9._-]+\/)*[a-zA-Z0-9._-]+\.md$/i.test(targetPath) || targetPath.split('/').some((part) => part === '..')) {
+        window.alert('Use a relative .md path without .. segments.');
+        return;
+    }
+    const id = 'editor-' + (++previewId);
+    const win = document.createElement('div');
+    win.className = 'floating-window';
+    win.style.top = `${100 + previewId * 10}px`;
+    win.style.left = `${100 + previewId * 10}px`;
+    win.dataset.id = id;
+    win.innerHTML = `
+    <div class="title-bar" onmousedown="startDrag(event, '${id}')">
+      <div class="title">New Markdown note — ${escapeHTML(targetPath)}</div>
+      <div class="buttons"><button onclick="minimizeWindow('${id}')">🗕</button><button onclick="toggleFullscreen('${id}')">🗖</button><button onclick="closeWindow('${id}')">✖</button></div>
+    </div>
+    <div class="preview-body sv-active" id="${id}-body"></div>`;
+    previewContainer.appendChild(win);
+    windows[id] = win;
+    win._filePath = targetPath;
+    win._repo = '';
+    win._branch = appConfig.GITHUB_BRANCH || 'main';
+    win._repoPath = targetPath;
+    win._filename = targetPath.split('/').pop();
+    win._isMarkdown = true;
+    win._originalContent = '';
+    win._splitActive = true;
+    const body = document.getElementById(`${id}-body`);
+    const editorPane = document.createElement('div');
+    editorPane.className = 'sv-editor-pane sv-editor-pane-full';
+    body.appendChild(editorPane);
+    const onEditorClose = (editedContent) => {
+        if (body) {
+            body.innerHTML = '';
+            const previewPane = document.createElement('div');
+            previewPane.className = 'sv-preview-pane sv-preview-pane-full';
+            previewPane.innerHTML = `<div class="markdown-content">${markdownToHTML(editedContent, targetPath)}</div>`;
+            body.appendChild(previewPane);
+            setTimeout(() => initMarkdownFeatures(previewPane), 0);
+        }
+        showStatus('✓ Draft updated — submit it as a pull request from the editor toolbar.');
+    };
+    MarkdownEditor.createEditorUI(editorPane, targetPath, '', onEditorClose, {
+        subject,
+        submissionPath: targetPath,
+        branch: win._branch,
+        isNewFile: true
+    });
+    updateTaskbar();
+    setTimeout(() => toggleFullscreen(id, true), 100);
+}
+
 function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     injectSplitViewStyles();
     const id = 'preview-' + (++previewId);
@@ -1978,7 +2036,7 @@ function toggleSplitEditor(windowId) {
     }
     else {
         // ── Open split view ──────────────────────────────────────────────────────
-        if (!win._originalContent) {
+        if (win._originalContent === null || win._originalContent === undefined) {
             showStatus('⏳ File still loading, please wait…');
             return;
         }
@@ -2027,7 +2085,12 @@ function toggleSplitEditor(windowId) {
                 editBtn.classList.toggle('has-edits', MarkdownEditor.hasUnsavedEdits(win._filePath));
             showStatus('✓ Changes saved to session');
         };
-        MarkdownEditor.createEditorUI(editorPane, win._filePath, win._originalContent, onEditorClose);
+        MarkdownEditor.createEditorUI(editorPane, win._filePath, win._originalContent, onEditorClose, {
+            subject: getCurrentSubjectRoute(),
+            submissionPath: win._repoPath || win._filePath,
+            repo: win._repo || '',
+            branch: win._branch || ''
+        });
         // Wire the editor's textarea so typing also live-updates the preview pane
         // We do this after createEditorUI mounts, so the textarea exists
         requestAnimationFrame(() => {

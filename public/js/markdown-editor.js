@@ -332,8 +332,12 @@ const MarkdownEditor = (() => {
         document.head.appendChild(style);
     }
     // ─── Public: createEditorUI ───────────────────────────────────────────────
-    function createEditorUI(container, filePath, originalContent, onClose) {
+    function createEditorUI(container, filePath, originalContent, onClose, options) {
         buildStyles();
+        options = options || {};
+        var submissionPath = options.submissionPath || filePath;
+        var subject = options.subject || '';
+        var isNewFile = Boolean(options.isNewFile);
         var storageKey = EDITOR_STORAGE_PREFIX + btoa(unescape(encodeURIComponent(filePath)));
         var savedContent = sessionStorage.getItem(storageKey);
         if (savedContent === null)
@@ -454,8 +458,8 @@ const MarkdownEditor = (() => {
             unsavedDot.classList.remove('visible');
         });
         var prBtn = makeBtn('<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>', 'Push changes as pull request', 'mde-btn-primary', function () {
-            if (textarea.value === originalContent) {
-                showToast(wrapper, 'No changes to submit', 'error');
+            if ((isNewFile && textarea.value.trim() === '') || (!isNewFile && textarea.value === originalContent)) {
+                showToast(wrapper, isNewFile ? 'Add some content before submitting' : 'No changes to submit', 'error');
                 return;
             }
             prBtn.disabled = true;
@@ -473,9 +477,13 @@ const MarkdownEditor = (() => {
                     Authorization: 'Bearer ' + window.ModernAuthInstance.getToken()
                 },
                 body: JSON.stringify({
-                    filePath: filePath,
+                    filePath: submissionPath,
+                    sourceFilePath: filePath,
                     content: textarea.value,
                     originalContent: originalContent,
+                    subject: subject,
+                    repo: options.repo || '',
+                    branch: options.branch || '',
                     authorName: window.ModernAuthInstance.getEmail() || 'anonymous',
                     authorEmail: window.ModernAuthInstance.getEmail() || 'n/a'
                 })
@@ -547,6 +555,9 @@ const MarkdownEditor = (() => {
         wrapper._textarea = textarea;
         wrapper._originalContent = originalContent;
         wrapper._filePath = filePath;
+        wrapper._submissionPath = submissionPath;
+        wrapper._subject = subject;
+        wrapper._isNewFile = isNewFile;
         wrapper._storageKey = storageKey;
         wrapper._onClose = onClose;
         return wrapper;

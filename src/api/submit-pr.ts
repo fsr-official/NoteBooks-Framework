@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import type { Request, Response } from 'express';
 import { getOctokit, getRepoConfig, getSubjectRepo } from './_shared.js';
+import { loadRepoRegistry } from './repo-registry.js';
 import { validateBlocks, sanitizeBlocks } from '../lib/ai-markdown.js';
 
 const cooldownState = new Map<string, { attempts: number; lastAttempt: number; violations: number; bannedUntil?: number }>();
@@ -78,6 +79,23 @@ function sanitizeBranchSegment(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/-+/g, '-').slice(0, 32) || 'account';
 }
 
+export async function resolveSubjectSubmissionRepo(subject: string) {
+  const configured = getSubjectRepo(subject);
+  if (configured) return { ...configured, branch: process.env.GITHUB_BRANCH || 'main' };
+
+  const normalizedSubject = subject.trim().toLowerCase();
+  const entries = (await loadRepoRegistry())
+    .filter((entry) => entry.enabled !== false && entry.repo)
+    .filter((entry) => String(entry.stream || '').trim().toLowerCase() === normalizedSubject)
+    .sort((a, b) => Number(a.priority || Number.MAX_SAFE_INTEGER) - Number(b.priority || Number.MAX_SAFE_INTEGER));
+  const entry = entries[0];
+  if (!entry?.repo) return null;
+
+  const [owner, repo] = String(entry.repo).split('/').filter(Boolean);
+  if (!owner || !repo) return null;
+  return { owner, repo, branch: entry.branch || process.env.GITHUB_BRANCH || 'main' };
+}
+
 export default async function handler(req: Request, res: Response) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -127,11 +145,13 @@ export default async function handler(req: Request, res: Response) {
     const subject = String(body.subject || '').trim() || undefined;
     let owner: string | undefined;
     let repo: string | undefined;
+    let subjectBranch: string | undefined;
     if (subject) {
-      const subjRepo = getSubjectRepo(subject as string);
+      const subjRepo = await resolveSubjectSubmissionRepo(subject);
       if (subjRepo) {
         owner = subjRepo.owner;
         repo = subjRepo.repo;
+        subjectBranch = subjRepo.branch;
       }
     }
 
@@ -156,7 +176,7 @@ export default async function handler(req: Request, res: Response) {
         console.warn('[submit-pr] could not enforce open PR cap:', err);
       }
     }
-    const mainBranch = process.env.GITHUB_BRANCH || 'main';
+    const mainBranch = subjectBranch || process.env.GITHUB_BRANCH || 'main';
     const branchName = `pr/edit-${sanitizeBranchSegment(normalizedAccountId)}-${Date.now()}`;
     const fileName = filePath.split('/').pop() || 'file';
 
