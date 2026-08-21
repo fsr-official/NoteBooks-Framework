@@ -1891,7 +1891,7 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         else if (ext === 'pdf') {
             container.style.cssText = 'padding:0;overflow:hidden;display:flex;flex-direction:column;flex-grow:1;min-height:0;';
             const targetPath = repo ? (repoPath || path) : path;
-            const proxied = await resolvePdfPreviewUrl(targetPath);
+            const proxied = await resolveSourceUrl(targetPath);
             container.innerHTML = `<iframe src="${proxied}" style="flex:1;min-height:0;width:100%;border:none;display:block;"></iframe>`;
         }
         else if (ext === 'md' || ext === 'mdx' || ext === 'markdown') {

@@ -20,11 +20,17 @@ describe('frontend subject shell', () => {
     expect(appJs.text).toContain('const sourceCandidates = (p) => {');
     expect(appJs.text).toContain('const rawUrl = await resolveSourceUrl(path);');
     expect(appJs.text).toContain('const targetPath = repo ? (repoPath || path) : path;');
+    expect(appJs.text).toContain('const proxied = await resolveSourceUrl(targetPath);');
+    expect(appJs.text).not.toContain('resolvePdfPreviewUrl');
 
     const mobileJs = await request(app).get('/public/js/mobile.js');
     expect(mobileJs.status).toBe(200);
     expect(mobileJs.text).toContain('Edit existing Markdown file');
     expect(mobileJs.text).toContain("selected.repo || ''");
+
+    const serviceWorker = await request(app).get('/service-worker.js');
+    expect(serviceWorker.status).toBe(200);
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v9'");
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);
