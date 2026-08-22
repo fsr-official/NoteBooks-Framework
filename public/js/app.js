@@ -1823,16 +1823,27 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     // actually guaranteed to serve exact repo content first, and keep the Pages
     // URL as a last-resort fallback (it can still be right for repos whose Pages
     // site *does* mirror the source tree).
-    // `forEmbed` controls ordering, not membership. fetch()-based consumers
-    // (fetchUrlWithFallback, for text like markdown) don't care about the
-    // Content-Disposition header, so raw.githubusercontent.com goes first for
-    // its reliable CORS support. But raw.githubusercontent.com deliberately
-    // sends Content-Disposition: attachment for many file types (pdf, html...)
-    // to stop raw content executing/rendering in a browser tab -- fine for
-    // fetch(), but fatal for anything set directly as an <img>/<video>/<iframe>
-    // src, which the browser will download instead of render. Those direct-src
-    // consumers (resolveSourceUrl) need jsDelivr first instead, since it serves
-    // inline without forcing a download.
+    //
+    // `forEmbed` controls ordering, not just for the Content-Disposition reason
+    // below -- it's mainly about this app's own Content-Security-Policy (see
+    // server.ts helmet config). frameSrc only allows 'self' / docs.google.com /
+    // *.github.io -- NOT raw.githubusercontent.com and NOT cdn.jsdelivr.net.
+    // imgSrc/mediaSrc allow 'self' / *.github.io / raw.githubusercontent.com --
+    // but NOT cdn.jsdelivr.net. So for anything set directly as an element src
+    // (img/audio/video/iframe), only this app's own same-origin /api/raw proxy
+    // is guaranteed to pass CSP for every media type, so it goes first. It also
+    // sidesteps two other problems: raw.githubusercontent.com deliberately sends
+    // Content-Disposition: attachment for several file types (pdf, html...) to
+    // stop raw content executing/rendering in a browser tab, which forces a
+    // download instead of an inline view; and raw.githubusercontent.com sends
+    // X-Frame-Options: deny, which blocks it from ever being framed at all.
+    // /api/raw sets neither header and explicitly sends
+    // Cross-Origin-Resource-Policy: cross-origin, so it also satisfies this
+    // app's Cross-Origin-Embedder-Policy: require-corp.
+    // fetch()-based consumers (fetchUrlWithFallback, for text like markdown)
+    // aren't subject to CSP's frameSrc/imgSrc/mediaSrc (that's connectSrc, which
+    // does allow raw.githubusercontent.com and cdn.jsdelivr.net), so they keep
+    // raw.githubusercontent.com first for its reliable CORS support.
     const sourceCandidates = (p, forEmbed) => {
         const cleanedPath = String(p || '').replace(/^\/+/, '');
         if (repo) {
@@ -1841,17 +1852,24 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             const pagesBase = pagesBaseForRepository(repo);
             const rawGithub = `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`;
             const jsdelivr = `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`;
+            const apiRaw = `${window.location.origin}/api/raw?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(sourceBranch)}`;
             const pagesEntry = pagesBase ? [`${pagesBase}${sourcePath}`] : [];
             return forEmbed
-                ? [jsdelivr, ...pagesEntry, rawGithub]
+                ? [apiRaw, ...pagesEntry, rawGithub]
                 : [rawGithub, jsdelivr, ...pagesEntry];
         }
         const candidates = [];
+        const apiRaw = `${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`;
+        if (forEmbed) {
+            candidates.push(apiRaw);
+        }
         if (isGitHubPages && appConfig.GITHUB_REPO) {
             candidates.push(`https://raw.githubusercontent.com/${appConfig.GITHUB_REPO}/${appConfig.GITHUB_BRANCH || 'main'}/${cleanedPath}`);
         }
         candidates.push(localFileUrl(cleanedPath));
-        candidates.push(`${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`);
+        if (!forEmbed) {
+            candidates.push(apiRaw);
+        }
         const pagesUrl = buildPagesUrl(cleanedPath);
         if (pagesUrl) candidates.push(pagesUrl);
         return candidates;
