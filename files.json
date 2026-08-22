@@ -1,6 +1,6 @@
 {
   "type": "folder",
-  "name": "project-src",
+  "name": "NoteBooks-Framework",
   "path": "",
   "children": [
     {
@@ -35,57 +35,6 @@
               "type": "folder",
               "name": "[stream]",
               "path": "api/system/[stream]",
-              "children": []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "folder",
-      "name": "dist",
-      "path": "dist",
-      "children": [
-        {
-          "type": "folder",
-          "name": "server",
-          "path": "dist/server",
-          "children": [
-            {
-              "type": "folder",
-              "name": "api",
-              "path": "dist/server/api",
-              "children": [
-                {
-                  "type": "folder",
-                  "name": "webhooks",
-                  "path": "dist/server/api/webhooks",
-                  "children": []
-                }
-              ]
-            },
-            {
-              "type": "folder",
-              "name": "lib",
-              "path": "dist/server/lib",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "scripts",
-              "path": "dist/server/scripts",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "server",
-              "path": "dist/server/server",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "shims",
-              "path": "dist/server/shims",
               "children": []
             }
           ]
@@ -276,6 +225,12 @@
               "name": "DATA-MODEL.md",
               "path": "docs/phase2-3/DATA-MODEL.md",
               "sha": "db609695ea7408afad8566bfc8fcb20b80eb5a5112accf3ccbd006ff4e5d9323"
+            },
+            {
+              "type": "file",
+              "name": "PHASE2-3-STATUS.md",
+              "path": "docs/phase2-3/PHASE2-3-STATUS.md",
+              "sha": "733db7325129c81ccc48a2e5f765c4a594b80b0b67dc7618b22800dc1abc8fba"
             }
           ]
         },
@@ -335,25 +290,6 @@
       "name": "scripts",
       "path": "scripts",
       "children": []
-    },
-    {
-      "type": "folder",
-      "name": "ui-verification",
-      "path": "ui-verification",
-      "children": [
-        {
-          "type": "file",
-          "name": "findings.md",
-          "path": "ui-verification/findings.md",
-          "sha": "e4c69acd0a9082c57157f481d33e63512b18f02fe6693b9dd7f11356b99a9a04"
-        },
-        {
-          "type": "file",
-          "name": "runtime-check.txt",
-          "path": "ui-verification/runtime-check.txt",
-          "sha": "a78f9931d40f348c6dccc8721349ca726c78b74a1f19d923655158b9b501aa80"
-        }
-      ]
     }
   ]
 }
