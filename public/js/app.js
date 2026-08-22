@@ -1858,11 +1858,26 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     };
     // Do not probe cross-origin candidates with HEAD. GitHub Pages and raw
     // sources can reject or mishandle HEAD even when the actual file GET works.
-    // The media/iframe/fetch consumer performs the real request and the
-    // ordered candidates provide the universal fallback sequence.
+    // resolveSourceUrl only hands back the first candidate; actual fallback for
+    // <img>/<audio>/<video> happens client-side via onMediaError below, which
+    // cycles the element's src through the remaining candidates on load failure.
     const resolveSourceUrl = (p) => {
         const candidates = sourceCandidates(p, true);
         return candidates[0] || localFileUrl(p);
+    };
+    if (!window.__ntbkMediaFallback) {
+        window.__ntbkMediaFallback = (el) => {
+            let list;
+            try { list = JSON.parse(el.dataset.fallbacks || '[]'); } catch (e) { list = []; }
+            const next = list.shift();
+            if (!next) { el.removeAttribute('onerror'); return; }
+            el.dataset.fallbacks = JSON.stringify(list);
+            el.src = next;
+        };
+    }
+    const mediaSrcAttrs = (candidates) => {
+        const [first, ...rest] = candidates;
+        return `src="${first}" data-fallbacks='${JSON.stringify(rest).replace(/'/g, '&#39;')}' onerror="window.__ntbkMediaFallback(this)"`;
     };
     const fetchUrlWithFallback = async (p) => {
         let lastError = null;
@@ -1886,13 +1901,13 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     const rawUrl = await resolveSourceUrl(path);
     try {
         if (/\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(filename)) {
-            container.innerHTML = `<img src="${await resolveSourceUrl(path)}" style="max-width:100%;height:auto;display:block;margin:auto;" alt="${filename}" />`;
+            container.innerHTML = `<img ${mediaSrcAttrs(sourceCandidates(path, true))} style="max-width:100%;height:auto;display:block;margin:auto;" alt="${filename}" />`;
         }
         else if (/\.(mp3|wav|ogg|flac)$/i.test(filename)) {
-            container.innerHTML = `<audio controls src="${await resolveSourceUrl(path)}" style="width:100%;display:block;margin-top:20px"></audio>`;
+            container.innerHTML = `<audio controls ${mediaSrcAttrs(sourceCandidates(path, true))} style="width:100%;display:block;margin-top:20px"></audio>`;
         }
         else if (/\.(mp4|webm)$/i.test(filename)) {
-            container.innerHTML = `<video controls src="${await resolveSourceUrl(path)}" style="max-width:100%;max-height:100%;display:block;margin:auto"></video>`;
+            container.innerHTML = `<video controls ${mediaSrcAttrs(sourceCandidates(path, true))} style="max-width:100%;max-height:100%;display:block;margin:auto"></video>`;
         }
         else if (/\.(docx?|xlsx?|pptx?)$/i.test(filename.includes('.') ? filename : path)) {
             const viewerUrl = `https://docs.google.com/gviewer?embedded=true&url=${encodeURIComponent(rawUrl)}`;
