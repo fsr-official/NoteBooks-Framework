@@ -1814,6 +1814,15 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             ? rawSourcePath.slice(repoName.length + 1)
             : rawSourcePath;
     };
+    // Candidate order matters: GitHub Pages builds almost never mirror a repo's
+    // raw file tree at arbitrary paths (a Pages site for docs.foo/README.md will
+    // usually 404 for the raw README.md path itself). Probing it first means every
+    // preview pays for a failed cross-origin request, and Pages' 404 responses
+    // typically omit CORS headers, which surfaces as a scary (but harmless, since
+    // it's caught and retried) CORS error in the console. Try the sources that are
+    // actually guaranteed to serve exact repo content first, and keep the Pages
+    // URL as a last-resort fallback (it can still be right for repos whose Pages
+    // site *does* mirror the source tree).
     const sourceCandidates = (p) => {
         const cleanedPath = String(p || '').replace(/^\/+/, '');
         if (repo) {
@@ -1821,19 +1830,19 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
             const pagesBase = pagesBaseForRepository(repo);
             return [
-                ...(pagesBase ? [`${pagesBase}${sourcePath}`] : []),
                 `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`,
-                `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`
+                `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`,
+                ...(pagesBase ? [`${pagesBase}${sourcePath}`] : [])
             ];
         }
         const candidates = [];
-        const pagesUrl = buildPagesUrl(cleanedPath);
-        if (pagesUrl) candidates.push(pagesUrl);
         if (isGitHubPages && appConfig.GITHUB_REPO) {
             candidates.push(`https://raw.githubusercontent.com/${appConfig.GITHUB_REPO}/${appConfig.GITHUB_BRANCH || 'main'}/${cleanedPath}`);
         }
         candidates.push(localFileUrl(cleanedPath));
         candidates.push(`${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`);
+        const pagesUrl = buildPagesUrl(cleanedPath);
+        if (pagesUrl) candidates.push(pagesUrl);
         return candidates;
     };
     // Do not probe cross-origin candidates with HEAD. GitHub Pages and raw
