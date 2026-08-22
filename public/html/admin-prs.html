@@ -57,7 +57,7 @@
           <a href="#access">Access</a>
           <a href="#review">Review</a>
         </nav>
-        <p class="sidebar-note">Administrative actions are protected by the server-side admin role gate. Public pages and subject workspaces remain outside this shell.</p>
+        <p class="sidebar-note">Administrative actions require an admin role, a linked GitHub identity, and enrolled TOTP. Public pages and subject workspaces remain outside this shell.</p>
       </aside>
 
       <main class="admin-main">
@@ -235,7 +235,7 @@
               identityLabel.textContent = 'Administrator authentication required';
               setAccess('Your session is missing or expired. Sign in again.');
             } else if (error.status === 403) {
-              setAccess('This account is authenticated but does not have the admin role.');
+              setAccess(error.message || 'Administrator security requirements are not satisfied.');
             } else {
               setAccess(error.message || 'Unable to verify administrator access.');
             }

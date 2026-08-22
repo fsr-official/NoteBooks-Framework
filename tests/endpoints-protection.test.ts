@@ -23,16 +23,39 @@ describe('Protected endpoints', () => {
   });
 
   it('allows Bearer-authenticated admin requests when CSRF enforcement is enabled', async () => {
+    const previousCsrf = process.env.ENFORCE_CSRF;
     process.env.ENFORCE_CSRF = 'true';
-    const csrfApp = createApp();
-    const adminToken = jwt.sign({ email: 'csrf-admin@example.com', role: 'admin' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
-    const res = await request(csrfApp)
-      .post('/api/admin?action=assign-role')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ email: 'target@example.com', role: 'unsupported' });
-    delete process.env.ENFORCE_CSRF;
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Invalid role' });
+    try {
+      const csrfApp = createApp();
+      await setUser('csrf-admin@example.com', {
+        email: 'csrf-admin@example.com',
+        password: 'x',
+        role: 'admin',
+        github_id: 'github-csrf-admin',
+        totp_secret: 'KVKFKRCPNZQUYMLXOVDSQKJKZDTSRLD',
+        createdAt: new Date().toISOString()
+      } as any);
+      const adminToken = jwt.sign({ email: 'csrf-admin@example.com', role: 'admin' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+      const res = await request(csrfApp)
+        .post('/api/admin?action=assign-role')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ email: 'target@example.com', role: 'unsupported' });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Invalid role' });
+    } finally {
+      if (previousCsrf === undefined) delete process.env.ENFORCE_CSRF;
+      else process.env.ENFORCE_CSRF = previousCsrf;
+    }
+  });
+
+  it('rejects unauthenticated POST /api/totp', async () => {
+    const res = await request(app).post('/api/totp?action=enroll').send({ email: 'someone@example.com' });
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects unauthenticated subject-scoped community approval', async () => {
+    const res = await request(app).post('/api/subject/science/community/post/1/approve').send({});
+    expect(res.status).toBe(401);
   });
 
   it('rejects unauthenticated POST /api/pr-review/accept', async () => {

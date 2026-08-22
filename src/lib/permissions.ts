@@ -50,9 +50,50 @@ export function requireRole(role: string) {
   };
 }
 
+export async function getAdminSecurityContext(req: Request): Promise<
+  | { ok: true; auth: any }
+  | { ok: false; status: 401 | 403; error: string }
+> {
+  const decoded = parseAuthToken(req);
+  if (!decoded || !decoded.email) {
+    return { ok: false, status: 401, error: 'Administrator authentication required' };
+  }
+  if (decoded.role !== 'admin') {
+    return { ok: false, status: 403, error: 'Administrator role required' };
+  }
+
+  try {
+    const user = await getUser(String(decoded.email));
+    if (!user) {
+      return { ok: false, status: 403, error: 'Administrator account not found' };
+    }
+    if (!(user as any).github_id) {
+      return { ok: false, status: 403, error: 'GitHub account linking required for administrators' };
+    }
+    if (!(user as any).totp_secret) {
+      return { ok: false, status: 403, error: 'TOTP enrollment required for administrators' };
+    }
+    return {
+      ok: true,
+      auth: { ...decoded, githubLinked: true, totpEnrolled: true }
+    };
+  } catch {
+    return { ok: false, status: 403, error: 'Administrator security verification failed' };
+  }
+}
+
+export async function requireAdminSecurity(req: Request, res: Response, next: NextFunction) {
+  const result = await getAdminSecurityContext(req);
+  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  (req as any).auth = result.auth;
+  return next();
+}
+
 export default {
   parseAuthToken,
   requireAuth,
   requireTotpEnrolled,
-  requireRole
+  requireRole,
+  getAdminSecurityContext,
+  requireAdminSecurity
 };

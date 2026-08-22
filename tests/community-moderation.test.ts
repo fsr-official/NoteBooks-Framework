@@ -12,7 +12,14 @@ describe('Community moderation', () => {
     const author = 'author@example.com';
     await setUser(author, { email: author, password: 'x', role: 'user', createdAt: new Date().toISOString() } as any);
     const admin = 'admin@example.com';
-    await setUser(admin, { email: admin, password: 'x', role: 'admin', createdAt: new Date().toISOString() } as any);
+    await setUser(admin, {
+      email: admin,
+      password: 'x',
+      role: 'admin',
+      github_id: 'github-community-admin',
+      totp_secret: 'JBSWY3DPEHPK3PXP',
+      createdAt: new Date().toISOString()
+    } as any);
 
     const authorToken = jwt.sign({ email: author }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
     const createRes = await request(app).post('/api/community/post').set('Authorization', `Bearer ${authorToken}`).send({ title: 'For Approval', body: 'Please approve' });
