@@ -1823,17 +1823,28 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     // actually guaranteed to serve exact repo content first, and keep the Pages
     // URL as a last-resort fallback (it can still be right for repos whose Pages
     // site *does* mirror the source tree).
-    const sourceCandidates = (p) => {
+    // `forEmbed` controls ordering, not membership. fetch()-based consumers
+    // (fetchUrlWithFallback, for text like markdown) don't care about the
+    // Content-Disposition header, so raw.githubusercontent.com goes first for
+    // its reliable CORS support. But raw.githubusercontent.com deliberately
+    // sends Content-Disposition: attachment for many file types (pdf, html...)
+    // to stop raw content executing/rendering in a browser tab -- fine for
+    // fetch(), but fatal for anything set directly as an <img>/<video>/<iframe>
+    // src, which the browser will download instead of render. Those direct-src
+    // consumers (resolveSourceUrl) need jsDelivr first instead, since it serves
+    // inline without forcing a download.
+    const sourceCandidates = (p, forEmbed) => {
         const cleanedPath = String(p || '').replace(/^\/+/, '');
         if (repo) {
             const sourcePath = sourcePathForRepository(cleanedPath);
             const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
             const pagesBase = pagesBaseForRepository(repo);
-            return [
-                `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`,
-                `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`,
-                ...(pagesBase ? [`${pagesBase}${sourcePath}`] : [])
-            ];
+            const rawGithub = `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`;
+            const jsdelivr = `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`;
+            const pagesEntry = pagesBase ? [`${pagesBase}${sourcePath}`] : [];
+            return forEmbed
+                ? [jsdelivr, ...pagesEntry, rawGithub]
+                : [rawGithub, jsdelivr, ...pagesEntry];
         }
         const candidates = [];
         if (isGitHubPages && appConfig.GITHUB_REPO) {
@@ -1850,7 +1861,7 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     // The media/iframe/fetch consumer performs the real request and the
     // ordered candidates provide the universal fallback sequence.
     const resolveSourceUrl = (p) => {
-        const candidates = sourceCandidates(p);
+        const candidates = sourceCandidates(p, true);
         return candidates[0] || localFileUrl(p);
     };
     const fetchUrlWithFallback = async (p) => {
