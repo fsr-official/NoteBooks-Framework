@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run fmtree.py
-        run: python fmtree.py
+        run: python3 fmtree.py --output files.json
 
       - name: Commit files.json if changed
         run: |

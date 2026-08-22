@@ -259,6 +259,15 @@ export default async function handler(req: Request, res: Response) {
   try {
     const fs = await import('fs/promises');
     const path = await import('path');
+    const canonicalPath = path.resolve(process.cwd(), 'public', 'json', 'repo-registry.json');
+    try {
+      const canonicalText = await fs.readFile(canonicalPath, 'utf8');
+      const canonicalTree = JSON.parse(canonicalText) as TreeNode;
+      return res.status(200).json(canonicalTree);
+    } catch {
+      // Fall through to the legacy local-plus-remote registry builder.
+    }
+
     const manifestPath = path.resolve(process.cwd(), 'files.json');
 
     try {

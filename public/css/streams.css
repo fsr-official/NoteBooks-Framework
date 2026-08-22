@@ -1,0 +1,175 @@
+/* Streams shared styles */
+.stream-page {
+max-width: 980px;
+margin: 18px auto 32px;
+padding: 0;
+color: #e2e8f0;
+}
+.stream-page header {
+padding: 18px 8px 10px;
+}
+.stream-page header h1 {
+font-size: clamp(2.2rem, 3vw, 3rem);
+margin: 0 0 8px 0;
+color: #f8fafc;
+letter-spacing: -0.05em;
+}
+.stream-lead {
+color: rgba(226, 232, 240, 0.72);
+margin: 0 0 16px 0;
+font-size: 1.03rem;
+}
+#stream-content {
+background: rgba(10, 18, 25, 0.82);
+padding: 0;
+border: 1px solid rgba(148, 163, 184, 0.18);
+border-radius: 18px;
+box-shadow: 0 18px 44px rgba(2, 6, 23, 0.28);
+overflow: hidden;
+}
+.placeholder {
+color: #cbd5e1;
+}
+.admin-shell #stream-content {
+background: rgba(10, 18, 25, 0.82);
+}
+
+/* Two-column Contents tree + reading pane layout */
+.stream-grid-view {
+display: grid;
+grid-template-columns: 260px 1fr;
+gap: 0;
+align-items: stretch;
+padding: 0;
+overflow: hidden;
+background: rgba(10, 18, 25, 0.9);
+}
+@media (max-width: 720px) {
+.stream-grid-view {
+grid-template-columns: 1fr;
+}
+}
+
+.stream-tree {
+border-right: 1px solid rgba(148, 163, 184, 0.18);
+padding: 18px 14px 18px 16px;
+min-height: 220px;
+background: rgba(8, 16, 24, 0.8);
+}
+@media (max-width: 720px) {
+.stream-tree {
+border-right: none;
+border-bottom: 1px solid #eee;
+}
+}
+
+.tree-header {
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+color: #7dd3fc;
+margin-bottom: 12px;
+}
+
+.tree-body {
+font-size: 14px;
+}
+
+.stream-tree-loading,
+.stream-tree-empty {
+color: rgba(226, 232, 240, 0.68);
+font-size: 13px;
+margin: 0;
+}
+
+.stream-tree-list,
+.stream-tree-children {
+list-style: none;
+margin: 0;
+padding: 0;
+}
+.stream-tree-children {
+padding-left: 16px;
+}
+
+.stream-tree-node {
+margin: 2px 0;
+}
+
+.stream-tree-folder,
+.stream-tree-file {
+display: flex;
+align-items: center;
+gap: 6px;
+width: 100%;
+text-align: left;
+background: rgba(15, 23, 42, 0.5);
+border: 1px solid transparent;
+padding: 6px 8px;
+border-radius: 9px;
+font-size: 13.5px;
+color: #e2e8f0;
+cursor: pointer;
+transition: background .15s ease, border-color .15s ease;
+}
+.stream-tree-folder:hover,
+.stream-tree-file:hover {
+background: rgba(52, 211, 153, 0.09);
+border-color: rgba(52, 211, 153, 0.18);
+}
+.stream-tree-caret {
+width: 12px;
+display: inline-block;
+color: #999;
+font-size: 11px;
+}
+.stream-tree-glyph {
+flex-shrink: 0;
+}
+
+.stream-list {
+padding: 18px 22px;
+background: rgba(7, 14, 20, 0.7);
+}
+
+.stream-intro p {
+color: rgba(226, 232, 240, 0.8);
+margin: 0 0 18px 0;
+line-height: 1.7;
+}
+
+.stream-samples {
+display: grid;
+gap: 12px;
+}
+
+.stream-sample {
+border: 1px solid #eee;
+border-radius: 8px;
+padding: 14px 16px;
+}
+.stream-sample h3 {
+margin: 0 0 4px 0;
+font-size: 16px;
+}
+.stream-sample p {
+margin: 0 0 10px 0;
+color: #555;
+font-size: 13.5px;
+}
+
+.btn {
+display: inline-block;
+padding: 7px 14px;
+border-radius: 6px;
+background: #0969da;
+color: #fff;
+text-decoration: none;
+font-size: 13.5px;
+font-weight: 600;
+}
+.btn:hover {
+background: #0757ba;
+}
+

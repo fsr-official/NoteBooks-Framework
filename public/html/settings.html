@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#030811" />
+  <title>Settings — NoteBooks</title>
+  <link rel="stylesheet" href="/public/css/theme.css" />
+  <link rel="stylesheet" href="/public/css/style.css" />
+</head>
+<body class="settings-page">
+  <nav class="global-nav" aria-label="Primary navigation">
+    <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
+    <div class="global-nav-links">
+      <a href="/" data-nav="home">Home</a><a href="/science" data-nav="science">Science</a><a href="/commerce" data-nav="commerce">Commerce</a><a href="/humanities" data-nav="humanities">Humanities</a><a href="/community" data-nav="community">Community</a><a href="/settings" data-nav="settings" aria-current="page">Settings</a>
+    </div>
+    <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+  </nav>
+
+  <main class="settings-main">
+    <header class="settings-hero">
+      <span class="landing-kicker">Workspace preferences</span>
+      <h1>Settings</h1>
+      <p>Shape your reading room now. Sign-in and account synchronization will be connected in a later phase.</p>
+    </header>
+
+    <section class="settings-grid" aria-label="Settings sections">
+      <article class="settings-card settings-card--account">
+        <div class="settings-card-kicker">Account</div>
+        <h2>Sign in later</h2>
+        <p>Account access is intentionally deferred. This placeholder preserves the future integration boundary without changing the current public browsing experience.</p>
+        <button type="button" class="settings-disabled-button" disabled>Sign in / create account — coming later</button>
+      </article>
+
+      <article class="settings-card">
+        <div class="settings-card-kicker">Appearance</div>
+        <h2>Reading room theme</h2>
+        <p>Theme preferences are local to this browser for now. They are independent of authentication and can be synchronized later.</p>
+        <label class="settings-field" for="themePreset"><span>Preset</span><select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic dark</option><option value="professional">Professional dark</option><option value="contrast">High contrast</option><option value="neon">Neon dark</option><option value="classic">Classic light</option></select></label>
+        <div class="settings-fields-grid">
+          <label class="settings-field" for="themeAccent"><span>Accent</span><input id="themeAccent" type="color" onchange="updateCustomTheme('accent', this.value)" /></label>
+          <label class="settings-field" for="themeSurface"><span>Surface</span><input id="themeSurface" type="color" onchange="updateCustomTheme('surface', this.value)" /></label>
+          <label class="settings-field" for="themeText"><span>Text</span><input id="themeText" type="color" onchange="updateCustomTheme('text', this.value)" /></label>
+          <label class="settings-field" for="themeCode"><span>Code surface</span><input id="themeCode" type="color" onchange="updateCustomTheme('code', this.value)" /></label>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="/public/js/theme.js"></script>
+  <script src="/public/js/stream-runtime.js"></script>
+  <script src="/public/js/app.js" defer></script>
+</body>
+</html>

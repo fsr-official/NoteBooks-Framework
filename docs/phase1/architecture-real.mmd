@@ -1,0 +1,118 @@
+flowchart LR
+  subgraph Browser[Browser / PWA client]
+    Shell[index.html or subjects.html]
+    App[public/js/app.js\nworkspace, routing, preview, editor]
+    Subjects[public/client/subjects.js\nsubject shell tree]
+    AuthUI[public/js/modern-auth.js + auth.js]
+    Editor[public/js/markdown-editor.js + upload.js]
+    Renderer[Markdown / MathJax / Mermaid / TikZJax / Highlight.js]
+    SW[service-worker.js\nwebman-v9 cache + offline fallback]
+    Shell --> App
+    Shell --> Subjects
+    Shell --> AuthUI
+    App --> Renderer
+    App --> Editor
+    App <--> SW
+  end
+
+  subgraph Runtime[Node / Express runtime]
+    Server[src/server/server.ts\nmiddleware + route composition]
+    Vercel["api/[...all].ts - Vercel catch-all adapter"]
+    Shims["api/system/*, api/community/feed.ts - serverless route adapters"]
+    Server -. local start .-> RuntimeHTTP[HTTP :4000]
+    Vercel --> Server
+    Shims --> APIs
+    Server --> APIs
+  end
+
+  subgraph APIs[API modules]
+    Config["/api/config, /api/workspace"]
+    Registry["/api/registry - combined registry"]
+    SubjectTree["/api/system/:stream - subject tree"]
+    Raw["/api/raw - content proxy"]
+    Auth["/api/auth - register/login/reset"]
+    OAuth["/api/oauth - GitHub/Google"]
+    Community["/api/community + /api/issues - feed/posts/moderation"]
+    Submit["/api/submit-pr - editor PR creation"]
+    Review["/api/pr-review + /api/admin - admin review"]
+    GH["/api/gh - file ops"]
+    Blob["/api/blob - private binary staging"]
+    Refresh["/api/refresh-signal - update signal"]
+    GithubWebhook["/api/webhooks/github-app"]
+    Theme["/api/theme - preference cookie"]
+  end
+
+  subgraph Data[State and storage]
+    LocalFiles[Local project files + files.json]
+    Generated[public/*-tree.json + public/json/*-tree.json]
+    Postgres[(Postgres\nusers, reset tokens, community posts,\nGitHub installations, webhooks, groups, hierarchy)]
+    Redis[(Optional Upstash KV / shared cache)]
+    Memory[(Process memory fallbacks\nusers/posts/cache/cooldowns/signals)]
+    BlobStore[(Vercel Blob private objects)]
+    Logs[logs/admin-actions.log]
+  end
+
+  subgraph External[External systems]
+    GitHub[(GitHub repositories + Contents/Tree/PR/Discussion APIs)]
+    Pages[(GitHub Pages / files.json manifests)]
+    Resend[Resend email]
+    Captcha[Google reCAPTCHA]
+    GoogleViewer[Google Docs viewer]
+  end
+
+  App -->|config, registry, trees, feeds, raw, auth, PR| Server
+  Subjects -->|/api/config + /api/system/:subject| Server
+  AuthUI --> Auth
+  Editor --> Submit
+  App -->|media / documents| Raw
+  App -->|theme + update polling| Theme
+  App -->|version + latest commit| Server
+  Renderer -->|embedded content| Raw
+
+  Config --> Data
+  Registry --> LocalFiles
+  Registry --> Pages
+  Registry --> GitHub
+  SubjectTree --> Registry
+  SubjectTree --> Pages
+  SubjectTree --> GitHub
+  SubjectTree --> Redis
+  SubjectTree --> Memory
+  Raw --> LocalFiles
+  Raw --> GitHub
+  Raw --> Pages
+  Auth --> Postgres
+  Auth --> Redis
+  Auth --> Memory
+  Auth --> Captcha
+  Auth --> Resend
+  OAuth --> Postgres
+  OAuth --> Memory
+  Community --> Postgres
+  Community --> Memory
+  Community --> GitHub
+  Submit --> GitHub
+  Submit --> Logs
+  Review --> GitHub
+  Review --> Logs
+  GH --> GitHub
+  Blob --> BlobStore
+  Refresh --> Memory
+  GithubWebhook --> GitHub
+  GithubWebhook --> Postgres
+  Generated -. build artifacts .-> Browser
+  LocalFiles -. static delivery .-> Server
+  GoogleViewer -. embedded office preview .-> Browser
+
+  classDef browser fill:#0f2a3d,stroke:#34d399,color:#dbe7e5;
+  classDef runtime fill:#1e293b,stroke:#60a5fa,color:#e5edf8;
+  classDef api fill:#312e81,stroke:#a78bfa,color:#f5f3ff;
+  classDef data fill:#3f2d20,stroke:#f59e0b,color:#fff7ed;
+  classDef ext fill:#1f2937,stroke:#94a3b8,color:#f8fafc;
+  class Shell,App,Subjects,AuthUI,Editor,Renderer,SW browser;
+  class Server,Vercel,Shims,RuntimeHTTP runtime;
+  class Config,Registry,SubjectTree,Raw,Auth,OAuth,Community,Submit,Review,GH,Blob,Refresh,GithubWebhook,Theme api;
+  class LocalFiles,Generated,Postgres,Redis,Memory,BlobStore,Logs data;
+  class GitHub,Pages,Resend,Captcha,GoogleViewer ext;
+
+ 

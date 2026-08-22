@@ -65,14 +65,14 @@
   <nav class="global-nav" aria-label="Primary navigation">
     <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
     <div class="global-nav-links">
-      <a href="/" data-nav="home">Home</a><a href="/science" data-nav="science">Science</a><a href="/commerce" data-nav="commerce">Commerce</a><a href="/humanities" data-nav="humanities">Humanities</a><a href="/community" data-nav="community">Community</a><a href="/issues" data-nav="issues">Issues</a><a href="/volunteers" data-nav="volunteers">Volunteers</a><a href="/accounts" data-nav="accounts">Account</a><a href="/about" data-nav="about">About</a>
+      <a href="/" data-nav="home">Home</a><a href="/dashboard" data-nav="dashboard">Dashboard</a><a href="/science" data-nav="science">Science</a><a href="/commerce" data-nav="commerce">Commerce</a><a href="/humanities" data-nav="humanities">Humanities</a><a href="/community" data-nav="community">Community</a><a href="/issues" data-nav="issues">Issues</a><a href="/volunteers" data-nav="volunteers">Volunteers</a><a href="/accounts" data-nav="accounts">Account</a><a href="/settings" data-nav="settings">Settings</a><a href="/about" data-nav="about">About</a>
     </div>
     <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
   </nav>
 
-  <div id="subjectContentRoot" class="subject-content-root" aria-live="polite" hidden></div>
+  <div id="streamContentRoot" class="stream-content-root" aria-live="polite" hidden></div>
 
-  <div id="subjectLanding" class="subject-landing" aria-live="polite">
+  <div id="streamLanding" class="stream-landing" aria-live="polite">
     <div class="landing-hero">
       <div class="landing-kicker">A calmer way to build knowledge</div>
       <h1>Study deeply. Share clearly. Leave the shelf better.</h1>
@@ -83,7 +83,7 @@
         <a class="landing-secondary" href="/volunteers">Contribute to NoteBooks</a>
       </div>
       <div class="landing-signals" aria-label="NoteBooks principles">
-        <span><strong>01</strong> Browse by subject</span>
+        <span><strong>01</strong> Browse by stream</span>
         <span><strong>02</strong> Read without noise</span>
         <span><strong>03</strong> Improve together</span>
       </div>
@@ -103,24 +103,29 @@
       </section>
     </div>
 
-    <div class="subject-grid" id="subjectGrid">
-      <a class="subject-card" href="/science">
-        <span class="subject-icon">🧪</span>
+    <div class="stream-grid" id="streamGrid">
+      <a class="stream-card" href="/science">
+        <span class="stream-icon">🧪</span>
         <strong>Science</strong>
         <small>NCERT-oriented notes, concepts, diagrams, and revision pathways</small>
       </a>
-      <a class="subject-card" href="/commerce">
-        <span class="subject-icon">💼</span>
+      <a class="stream-card" href="/commerce">
+        <span class="stream-icon">💼</span>
         <strong>Commerce</strong>
         <small>Business, accounting, economics, and worked-example study</small>
       </a>
-      <a class="subject-card" href="/humanities">
-        <span class="subject-icon">📚</span>
+      <a class="stream-card" href="/humanities">
+        <span class="stream-icon">📚</span>
         <strong>Humanities</strong>
         <small>History, civics, culture, and context-rich critical reading</small>
       </a>
 
     </div>
+
+    <section class="landing-docs-panel" aria-labelledby="landingDocsHeading">
+      <div class="landing-docs-header"><span class="landing-kicker">Project context</span><h2 id="landingDocsHeading">Read the project locally</h2><p>Start with the project overview or inspect the current architecture before entering a stream.</p></div>
+      <div id="landingDocs" class="landing-doc-grid" aria-live="polite"><p class="landing-doc-empty">Loading local project documents…</p></div>
+    </section>
   </div>
 
   <!-- ===== FIRST-TIME GUIDANCE ===== -->
@@ -599,6 +604,10 @@
 <!-- gh-proxy.js archived → archive/removed-public-js/gh-proxy.js (DEPRECATED) -->
 <script src="/public/js/markdown.js"></script>
 <script src="/public/js/config.js"></script>
+<script src="/public/js/theme.js"></script>
+<script src="/public/js/landing-docs.js"></script>
+<script src="/public/js/stream-runtime.js"></script>
+<script src="/public/js/raw-delivery.js"></script>
 <script src="/public/js/app.js?v=20260808-pathfix"></script>
 
 <div id="updateNotice" style="display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--item); color: var(--fg); padding: 12px 20px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2); z-index: 9999; align-items: center; gap: 12px;">
@@ -611,6 +620,6 @@
 <script src="/public/js/auth.js"></script>
 <script src="/public/js/upload.js"></script>
   <script src="/public/js/mobile.js"></script>
-  <script src="/public/client/subjects.js" defer></script>
+  <script src="/public/client/streams.js" defer></script>
   <script src="/public/client/main.js" defer></script>
 </body>

@@ -5,14 +5,14 @@ import { getSubjectRepo } from './_shared.js';
 import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
 import { sharedDelete, sharedGetJson, sharedSetJson } from '../lib/shared-cache.js';
 
-const SUBJECTS = new Set(['science', 'commerce', 'humanities']);
+const STREAMS = new Set(['science', 'commerce', 'humanities']);
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const SHARED_CACHE_TTL_SECONDS = Math.floor(CACHE_TTL_MS / 1000);
-const SHARED_CACHE_KEY_PREFIX = 'notebooks:subject-tree:v1';
+const SHARED_CACHE_KEY_PREFIX = 'notebooks:stream-tree:v1';
 const FETCHABLE_EXTENSIONS = /\.(?:md|mdx|markdown|pdf)$/i;
 
-type SubjectTreePayload = {
-  subject: string;
+type StreamTreePayload = {
+  stream: string;
   repos: Array<{
     repo: string;
     branch: string;
@@ -23,19 +23,15 @@ type SubjectTreePayload = {
 };
 
 type CacheEntry = {
-  payload: SubjectTreePayload;
+  payload: StreamTreePayload;
   cachedAt: number;
 };
 
 const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<CacheEntry>>();
 
-function subjectCacheKey(subject: string): string {
-  return `${SHARED_CACHE_KEY_PREFIX}:${subject}`;
-}
-
-function normalizeSubject(value: unknown): string | null {
-  return normalizeStream(value);
+function streamCacheKey(stream: string): string {
+  return `${SHARED_CACHE_KEY_PREFIX}:${stream}`;
 }
 
 function normalizePath(value: unknown): string {
@@ -133,12 +129,12 @@ function normalizeStream(value: unknown): string | null {
   return null;
 }
 
-function subjectEntries(subject: string, entries: any[]): any[] {
+function streamEntries(stream: string, entries: any[]): any[] {
   const enabled = (entries || []).filter((entry) => entry?.enabled !== false && entry?.repo);
-  const explicitStreamEntries = enabled.filter((entry) => normalizeStream(entry.stream) === subject);
+  const explicitStreamEntries = enabled.filter((entry) => normalizeStream(entry.stream) === stream);
   if (explicitStreamEntries.length > 0) return explicitStreamEntries;
 
-  const configured = getSubjectRepo(subject);
+  const configured = getSubjectRepo(stream);
   if (configured) {
     const exact = enabled.find((entry) => String(entry.repo).toLowerCase() === `${configured.owner}/${configured.repo}`.toLowerCase());
     return exact ? [exact] : [{ repo: `${configured.owner}/${configured.repo}`, branch: process.env.GITHUB_BRANCH || 'main', pages: true }];
@@ -146,14 +142,14 @@ function subjectEntries(subject: string, entries: any[]): any[] {
 
   return enabled.filter((entry) => {
     const haystack = `${entry.name || ''} ${entry.repo || ''}`.toLowerCase();
-    return subject === 'humanities'
+    return stream === 'humanities'
       ? haystack.includes('humanit') || haystack.includes('arts')
-      : haystack.includes(subject);
+      : haystack.includes(stream);
   });
 }
 
-async function buildSubjectTree(subject: string): Promise<CacheEntry> {
-  const entries = subjectEntries(subject, await loadRepoRegistry());
+async function buildStreamTree(stream: string): Promise<CacheEntry> {
+  const entries = streamEntries(stream, await loadRepoRegistry());
   const repos = await Promise.all(entries.map(async (entry) => {
     const repo = String(entry.repo);
     const repoName = repo.split('/').pop() || repo;
@@ -174,7 +170,7 @@ async function buildSubjectTree(subject: string): Promise<CacheEntry> {
       }
       return { repo, branch, pagesBase, tree };
     } catch (error) {
-      console.warn(`[system] subject tree failed for ${repo}:`, error instanceof Error ? error.message : error);
+      console.warn(`[system] stream tree failed for ${repo}:`, error instanceof Error ? error.message : error);
       return {
         repo,
         branch,
@@ -186,37 +182,37 @@ async function buildSubjectTree(subject: string): Promise<CacheEntry> {
   }));
 
   return {
-    payload: { subject, repos },
+    payload: { stream, repos },
     cachedAt: Date.now()
   };
 }
 
-async function getSubjectTree(subject: string, forceRefresh = false): Promise<CacheEntry> {
-  const localCached = cache.get(subject);
+async function getStreamTree(stream: string, forceRefresh = false): Promise<CacheEntry> {
+  const localCached = cache.get(stream);
   if (!forceRefresh && localCached && Date.now() - localCached.cachedAt < CACHE_TTL_MS) return localCached;
 
   let sharedCached: CacheEntry | null = null;
   try {
-    sharedCached = await sharedGetJson<CacheEntry>(subjectCacheKey(subject));
+    sharedCached = await sharedGetJson<CacheEntry>(streamCacheKey(stream));
     if (!forceRefresh && sharedCached?.payload && typeof sharedCached.cachedAt === 'number') {
-      cache.set(subject, sharedCached);
+      cache.set(stream, sharedCached);
       if (Date.now() - sharedCached.cachedAt < CACHE_TTL_MS) return sharedCached;
     }
   } catch {
     // Shared-cache failures must never prevent the local rebuild path.
   }
 
-  const existing = inFlight.get(subject);
+  const existing = inFlight.get(stream);
   if (existing) return existing;
 
-  const build = buildSubjectTree(subject)
+  const build = buildStreamTree(stream)
     .then(async (entry) => {
-      cache.set(subject, entry);
-      await sharedSetJson(subjectCacheKey(subject), entry, SHARED_CACHE_TTL_SECONDS);
+      cache.set(stream, entry);
+      await sharedSetJson(streamCacheKey(stream), entry, SHARED_CACHE_TTL_SECONDS);
       return entry;
     })
-    .finally(() => inFlight.delete(subject));
-  inFlight.set(subject, build);
+    .finally(() => inFlight.delete(stream));
+  inFlight.set(stream, build);
 
   try {
     return await build;
@@ -227,10 +223,10 @@ async function getSubjectTree(subject: string, forceRefresh = false): Promise<Ca
   }
 }
 
-export async function invalidateSubjectTree(subject?: string): Promise<void> {
-  const subjects = subject ? [subject] : Array.from(SUBJECTS);
-  for (const value of subjects) cache.delete(value);
-  await Promise.all(subjects.map((value) => sharedDelete(subjectCacheKey(value))));
+export async function invalidateStreamTree(stream?: string): Promise<void> {
+  const streams = stream ? [stream] : Array.from(STREAMS);
+  for (const value of streams) cache.delete(value);
+  await Promise.all(streams.map((value) => sharedDelete(streamCacheKey(value))));
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -259,34 +255,47 @@ function verifyRefreshSignature(req: Request): boolean {
 }
 
 export default async function handler(req: Request, res: Response) {
-  const routeStream = req.params?.stream ?? req.params?.subject ?? req.query?.stream ?? req.query?.subject;
-  const subject = normalizeSubject(routeStream);
-  if (!subject) return res.status(404).json({ error: 'Unknown subject' });
+    const routeStream = req.params?.stream ?? req.params?.subject ?? req.query?.stream ?? req.query?.subject;
+  const stream = normalizeStream(routeStream);
+  if (!stream) return res.status(404).json({ error: 'Unknown stream' });
 
   if (req.method === 'GET' || req.method === 'HEAD') {
     try {
-      const result = await getSubjectTree(subject);
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const canonicalPath = path.resolve(process.cwd(), 'public', 'json', `${stream}-tree.json`);
+      try {
+        const canonicalText = await fs.readFile(canonicalPath, 'utf8');
+        const canonicalPayload = JSON.parse(canonicalText);
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=900');
+        res.setHeader('X-Stream-Tree-Source', 'generated-json');
+        return res.status(200).json(canonicalPayload);
+      } catch {
+        // Fall through to the compatibility runtime builder when no artifact exists.
+      }
+
+      const result = await getStreamTree(stream);
       res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=900');
-      res.setHeader('X-Subject-Tree-Cached-At', new Date(result.cachedAt).toISOString());
+      res.setHeader('X-Stream-Tree-Cached-At', new Date(result.cachedAt).toISOString());
       return res.status(200).json(result.payload);
     } catch (error) {
-      return res.status(503).json({ error: 'Subject tree temporarily unavailable' });
+      return res.status(503).json({ error: 'Stream tree temporarily unavailable' });
     }
   }
 
   if (req.method === 'POST' && String(req.path || '').endsWith('/refresh')) {
     if (!verifyRefreshSignature(req)) return res.status(401).json({ error: 'Invalid refresh signature' });
-    await invalidateSubjectTree(subject);
+    await invalidateStreamTree(stream);
     try {
-      const result = await getSubjectTree(subject, true);
+      const result = await getStreamTree(stream, true);
       return res.status(200).json({
         success: true,
-        subject,
+        stream,
         repoCount: result.payload.repos.length,
         refreshedAt: result.cachedAt
       });
     } catch (error) {
-      return res.status(503).json({ error: 'Subject tree refresh failed' });
+      return res.status(503).json({ error: 'Stream tree refresh failed' });
     }
   }
 

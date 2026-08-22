@@ -1,6 +1,6 @@
 {
   "type": "folder",
-  "name": "NoteBooks-Framework",
+  "name": "project-src",
   "path": "",
   "children": [
     {
@@ -13,7 +13,7 @@
       "type": "file",
       "name": "README.md",
       "path": "README.md",
-      "sha": "7679d463e7c4782f1b092011527ce74fbedec6129640c952b29f84486f11718c"
+      "sha": "34bd9b9b6fa24b3e8de69e2ac056a98b3c543aee6227bc67ae5b840ec009cd5f"
     },
     {
       "type": "folder",
@@ -35,6 +35,57 @@
               "type": "folder",
               "name": "[stream]",
               "path": "api/system/[stream]",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "dist",
+      "path": "dist",
+      "children": [
+        {
+          "type": "folder",
+          "name": "server",
+          "path": "dist/server",
+          "children": [
+            {
+              "type": "folder",
+              "name": "api",
+              "path": "dist/server/api",
+              "children": [
+                {
+                  "type": "folder",
+                  "name": "webhooks",
+                  "path": "dist/server/api/webhooks",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "lib",
+              "path": "dist/server/lib",
+              "children": []
+            },
+            {
+              "type": "folder",
+              "name": "scripts",
+              "path": "dist/server/scripts",
+              "children": []
+            },
+            {
+              "type": "folder",
+              "name": "server",
+              "path": "dist/server/server",
+              "children": []
+            },
+            {
+              "type": "folder",
+              "name": "shims",
+              "path": "dist/server/shims",
               "children": []
             }
           ]
@@ -72,56 +123,159 @@
         },
         {
           "type": "folder",
-          "name": "archive",
-          "path": "docs/archive",
+          "name": "phase1",
+          "path": "docs/phase1",
           "children": [
             {
               "type": "file",
-              "name": "ARCHITECTURE.md",
-              "path": "docs/archive/ARCHITECTURE.md",
-              "sha": "3f30696ff849cb8416131d7c7cf992fb1dcdbb8fbaad9e736bea64efb09c0f6f"
+              "name": "CANDIDATE-CLASSIFICATION.txt",
+              "path": "docs/phase1/CANDIDATE-CLASSIFICATION.txt",
+              "sha": "0ff12248a6f44c118505d8b1965776c12c6ef11f60dd238119f4f2001a6ce9ea"
             },
             {
               "type": "file",
-              "name": "BACKEND-REPOS.md",
-              "path": "docs/archive/BACKEND-REPOS.md",
-              "sha": "898b421b7588224f2a965cfa926b70a5785a9032e15be43e4d54b5d2ef808725"
+              "name": "FILE-AREA-INVENTORY.txt",
+              "path": "docs/phase1/FILE-AREA-INVENTORY.txt",
+              "sha": "cc5a0bc1d17ba8c7bd5bf57e34f7362b1ad2df6c071c1f2e5cf8e9c32b4bd822"
             },
             {
               "type": "file",
-              "name": "CACHE_SYSTEM.md",
-              "path": "docs/archive/CACHE_SYSTEM.md",
-              "sha": "b23fc55fc0ee6962aabcd76f60cca9a906bb9bfd1bcaf8e5f0ba4138df8e032b"
+              "name": "FILE-RESPONSIBILITY-MANIFEST.md",
+              "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md",
+              "sha": "013e95bf05aea54402378f55698b1471561c2a22cbfa3d426f90a02ead59e332"
             },
             {
               "type": "file",
-              "name": "CI_KEY_ROTATION.md",
-              "path": "docs/archive/CI_KEY_ROTATION.md",
-              "sha": "5da75c25bfd7afa30ce541da2e4ecc695d6212084f22e8946fb634b4466ba05d"
+              "name": "FILE-REVAMP-DESIGN.md",
+              "path": "docs/phase1/FILE-REVAMP-DESIGN.md",
+              "sha": "de121853082b49af9e7ca33349ec27c97307f8a3a430fbf9a7c4495cbe6116d7"
             },
             {
               "type": "file",
-              "name": "GITHUB_APP_SETUP.md",
-              "path": "docs/archive/GITHUB_APP_SETUP.md",
-              "sha": "d903b5bec86fdf3391be090c3ed9fd59a8119d64a3be205d6671248b5524ff90"
+              "name": "FINAL-REFACTOR-REPORT.md",
+              "path": "docs/phase1/FINAL-REFACTOR-REPORT.md",
+              "sha": "ad0e9ea5e3753280467b73508a2b289b382d4cc4b5e45c3a216d4f9548f3ad1e"
             },
             {
               "type": "file",
-              "name": "PHASE-PLANS.md",
-              "path": "docs/archive/PHASE-PLANS.md",
-              "sha": "35cb69d8bfc7f293d971595999c384a6eb10bb3ecc6b7a341df491f599a764ab"
+              "name": "FUNCTIONAL-OWNERSHIP-INDEX.txt",
+              "path": "docs/phase1/FUNCTIONAL-OWNERSHIP-INDEX.txt",
+              "sha": "b1225093cfaeccb5f518b26613d1196a99403a16bff1f66752d29d88b1649e51"
             },
             {
               "type": "file",
-              "name": "STAGING.md",
-              "path": "docs/archive/STAGING.md",
-              "sha": "b132138891b10f16ad10e81df4504a9cb9972a0c15f0975096aad78ada67fbf4"
+              "name": "LOCAL-MANIFEST-OWNERSHIP.md",
+              "path": "docs/phase1/LOCAL-MANIFEST-OWNERSHIP.md",
+              "sha": "45cc5a1541356b3837bacd8ef201938886dea66ae24f4d8e814add01b3bf6300"
             },
             {
               "type": "file",
-              "name": "WEBHOOK_SETUP.md",
-              "path": "docs/archive/WEBHOOK_SETUP.md",
-              "sha": "ebc6915787fe7676222aab5ba73b0928a14d7d37e77d1cb440234d0e8bd35088"
+              "name": "LOOSE-END-DETAILS.txt",
+              "path": "docs/phase1/LOOSE-END-DETAILS.txt",
+              "sha": "7886c5dc232f66d9ed1c60f421880923781bd6ce60a01cd3a3c29f9b824abc40"
+            },
+            {
+              "type": "file",
+              "name": "LOOSE-END-DIAGNOSIS.md",
+              "path": "docs/phase1/LOOSE-END-DIAGNOSIS.md",
+              "sha": "6ca7fd40deb445d1aae48af07125324386b36c46dd8af6c9a3509eca0abf790f"
+            },
+            {
+              "type": "file",
+              "name": "LOOSE-END-EVIDENCE.txt",
+              "path": "docs/phase1/LOOSE-END-EVIDENCE.txt",
+              "sha": "69ad3fbce0678555885c3b55b1840e7d608fd8ad6a1d24c8fbf8dc8bc0aa527f"
+            },
+            {
+              "type": "file",
+              "name": "LOOSE-END-FOCUSED.txt",
+              "path": "docs/phase1/LOOSE-END-FOCUSED.txt",
+              "sha": "705beb4dd25db4eb3b34193aaa4606dc4e05bc2c08c0fe17e017841320c8c357"
+            },
+            {
+              "type": "file",
+              "name": "NEXT-CLEANUP-ROADMAP.md",
+              "path": "docs/phase1/NEXT-CLEANUP-ROADMAP.md",
+              "sha": "32da3436e54c8a8afcf072e2b9eef1668a44f80ac1536ad9f05f8a0c05f96015"
+            },
+            {
+              "type": "file",
+              "name": "PHASE-I-PLAN.md",
+              "path": "docs/phase1/PHASE-I-PLAN.md",
+              "sha": "d6b314a6683581ac7eda7a17a11b58c422d8a0e69f62f1830488fdda34c93020"
+            },
+            {
+              "type": "file",
+              "name": "PHASE-I-VERIFICATION.md",
+              "path": "docs/phase1/PHASE-I-VERIFICATION.md",
+              "sha": "899482c1e1fef88d0bb44327e059cb5a0285e995cb7cc060a0e7846a16b73e1f"
+            },
+            {
+              "type": "file",
+              "name": "PUBLIC-ASSET-INVENTORY.txt",
+              "path": "docs/phase1/PUBLIC-ASSET-INVENTORY.txt",
+              "sha": "cb69c2496262a90783e203d08e1a0c752ec5986fe7a5c7abc3e423c46e9917e8"
+            },
+            {
+              "type": "file",
+              "name": "REACHABILITY-INDEX.txt",
+              "path": "docs/phase1/REACHABILITY-INDEX.txt",
+              "sha": "685fa456d4198ee537e10157c7c0b20455cfb6a37c5202195878c185832eb14f"
+            },
+            {
+              "type": "file",
+              "name": "REAL-ARCHITECTURE.md",
+              "path": "docs/phase1/REAL-ARCHITECTURE.md",
+              "sha": "d936c5a02a5517b2598c69e32367b9dea55879684ee3e1b4605bdb4e5cc4dffc"
+            },
+            {
+              "type": "file",
+              "name": "REFACTOR-BASELINE.md",
+              "path": "docs/phase1/REFACTOR-BASELINE.md",
+              "sha": "aec10aeeac36b22c2eea7fc26d0a8f1bea03fd90d9b47ecdc9b459c240cfc34e"
+            },
+            {
+              "type": "file",
+              "name": "REMOVAL-CANDIDATE-REFERENCES.txt",
+              "path": "docs/phase1/REMOVAL-CANDIDATE-REFERENCES.txt",
+              "sha": "a9a8685d83bb0a41b4ef0e9da82a8e1acbb3c9d47120aed121e4c7c5f0a26d04"
+            },
+            {
+              "type": "file",
+              "name": "SERVICE-WORKER-OWNERSHIP.md",
+              "path": "docs/phase1/SERVICE-WORKER-OWNERSHIP.md",
+              "sha": "d803e39dadd73cb4102793a4a47c61bd23a8cd15f0c3cb4d5674429b21dc62c9"
+            },
+            {
+              "type": "file",
+              "name": "STREAM-CLEANUP-VERIFICATION.md",
+              "path": "docs/phase1/STREAM-CLEANUP-VERIFICATION.md",
+              "sha": "21193cf114ff81130ec9afa12751bb1ab76012c62e3db51324f92858728142e2"
+            },
+            {
+              "type": "file",
+              "name": "STREAM-TERMINOLOGY-AUDIT.md",
+              "path": "docs/phase1/STREAM-TERMINOLOGY-AUDIT.md",
+              "sha": "d7173e5de004f9445d15e97eb9813d3169af06b8ef191147385f125011efcd1e"
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "phase2-3",
+          "path": "docs/phase2-3",
+          "children": [
+            {
+              "type": "file",
+              "name": "AUDIT-AND-DECISIONS.md",
+              "path": "docs/phase2-3/AUDIT-AND-DECISIONS.md",
+              "sha": "5a8b54c1e8fc98cfb0d5655522e69e5f15e91dcf6189a2d6591acc3f1a64aaf4"
+            },
+            {
+              "type": "file",
+              "name": "DATA-MODEL.md",
+              "path": "docs/phase2-3/DATA-MODEL.md",
+              "sha": "db609695ea7408afad8566bfc8fcb20b80eb5a5112accf3ccbd006ff4e5d9323"
             }
           ]
         },
@@ -175,6 +329,31 @@
       "name": "logs",
       "path": "logs",
       "children": []
+    },
+    {
+      "type": "folder",
+      "name": "scripts",
+      "path": "scripts",
+      "children": []
+    },
+    {
+      "type": "folder",
+      "name": "ui-verification",
+      "path": "ui-verification",
+      "children": [
+        {
+          "type": "file",
+          "name": "findings.md",
+          "path": "ui-verification/findings.md",
+          "sha": "e4c69acd0a9082c57157f481d33e63512b18f02fe6693b9dd7f11356b99a9a04"
+        },
+        {
+          "type": "file",
+          "name": "runtime-check.txt",
+          "path": "ui-verification/runtime-check.txt",
+          "sha": "a78f9931d40f348c6dccc8721349ca726c78b74a1f19d923655158b9b501aa80"
+        }
+      ]
     }
   ]
 }

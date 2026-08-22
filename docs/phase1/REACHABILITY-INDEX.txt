@@ -1,0 +1,156 @@
+=== SERVER IMPORTS ===
+7:import repoRegistryHandler from '../api/repo-registry.js';
+8:import configHandler from '../api/config.js';
+9:import ghHandler from '../api/gh.js';
+10:import blobHandler from '../api/blob.js';
+11:import rawHandler from '../api/raw.js';
+12:import submitPrHandler from '../api/submit-pr.js';
+13:import * as prReview from '../api/pr-review.js';
+14:import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal.js';
+15:import desmosHandler from '../api/desmos.js';
+16:import systemHandler from '../api/system.js';
+17:import authHandler from '../api/auth.js';
+18:import oauthHandler from '../api/oauth.js';
+19:import totpHandler from '../api/totp.js';
+20:import { buildLocalFilesManifest } from '../api/files-manifest.js';
+21:import permissions from '../lib/permissions.js';
+22:import * as communityHandler from '../api/community.js';
+23:import * as metrics from '../lib/metrics.js';
+24:import { generateJsonFiles } from '../scripts/generate-json-files.js';
+=== ROUTE MOUNTS ===
+131:  app.use((_req, res, next) => {
+138:  app.use(cookieParser());
+143:    app.use((req, res, next) => {
+162:    app.use((req, _res, next) => {
+172:  app.use(helmet({
+213:  app.use(express.json({
+220:  app.use((req, res, next) => {
+236:  app.get('/metrics', (req, res) => {
+247:  app.use(express.urlencoded({ extended: true }));
+295:  app.get('/health', healthHandler);
+296:  app.get('/api/health', healthHandler);
+298:  app.get('/api/version', (_req, res) => {
+325:  app.get('/private/files.json', async (_req, res) => await sendManifestResponse(res));
+327:  app.get('/api/oauth', oauthHandler);
+328:  app.get('/api/oauth.js', oauthHandler);
+329:  app.post('/api/oauth', oauthHandler);
+331:  app.get('/private/config', configHandler);
+333:  app.get('/', (_req, res) => {
+337:  app.get('/index.html', (_req, res) => {
+341:  app.get('/README.md', (_req, res) => {
+345:  app.get('/LICENSE', (_req, res) => {
+354:  app.get('/admin', adminShell);
+355:  app.get('/admin/', adminShell);
+356:  app.get('/admin-prs', adminShell);
+361:  app.get('/settings', settingsShell);
+362:  app.get('/settings/', settingsShell);
+368:  app.get(`/${s}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
+369:  app.get(`/${s}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
+372:  app.get(/^\/(science|commerce|humanities|community|issues|accounts|volunteers|about)(?:\/.+)?$/, (_req, res) => {
+376:  app.get('/manifest.json', (_req, res) => {
+380:  app.get('/service-worker.js', (_req, res) => {
+384:  app.get('/favicon.png', (_req, res) => {
+389:  app.use('/public', express.static(path.join(projectDir, 'public'), {
+405:  app.use(express.static(path.join(projectDir, 'public'), {
+440:  app.get('/files.json', async (_req, res) => await sendManifestResponse(res));
+441:  app.get('/repo-registry.json', (_req, res) => {
+448:  app.get('/api/files.json', async (_req, res) => await sendManifestResponse(res));
+449:  app.get('/api/manifest', async (_req, res) => await sendManifestResponse(res));
+450:  app.get('/api/manifest.js', async (_req, res) => await sendManifestResponse(res));
+451:  app.get('/files/:filePath(*)', (req, res) => {
+470:  app.get('/api/workspace', (_req, res) => {
+475:  app.get('/api/config', configHandler);
+476:  app.get('/api/config.js', configHandler);
+477:  app.get('/api/registry', repoRegistryHandler);
+478:  app.get('/api/registry.js', repoRegistryHandler);
+482:  app.get('/api/system/:stream', systemHandler);
+483:  app.head('/api/system/:stream', systemHandler);
+484:  app.post('/api/system/:stream/refresh', systemHandler);
+485:  app.get('/api/files', repoRegistryHandler);
+486:  app.get('/api/files.js', repoRegistryHandler);
+487:  app.get('/api/pr-review', prReview.listHandler);
+488:  app.get('/api/pr-review.js', prReview.listHandler);
+489:  app.use('/api/auth', authLimiter);
+492:  app.post('/api/totp', permissions.requireAuth, totpHandler);
+493:  app.post('/api/totp.js', permissions.requireAuth, totpHandler);
+494:  app.post('/api/gh', permissions.requireAuth, ghHandler);
+495:  app.post('/api/gh.js', permissions.requireAuth, ghHandler);
+496:  app.post('/api/blob', permissions.requireTotpEnrolled, blobHandler);
+497:  app.post('/api/blob.js', permissions.requireTotpEnrolled, blobHandler);
+498:  app.get('/api/raw', rawHandler);
+499:  app.get('/api/raw.js', rawHandler);
+502:  app.use('/api/submit-pr', submitPrLimiter);
+503:  app.post('/api/submit-pr', permissions.requireTotpEnrolled, submitPrHandler);
+504:  app.post('/api/submit-pr.js', permissions.requireTotpEnrolled, submitPrHandler);
+505:  app.post('/api/refresh-signal', refreshSignalHandler);
+506:  app.get('/api/refresh-signal', refreshSignalHandler);
+508:  app.post('/api/subject/:subject/community/post', permissions.requireAuth, (req, res) => {
+512:  app.post('/api/subject/:subject/community/post/:id/approve', permissions.requireAdminSecurity, (req, res) => {
+515:  app.post('/api/subject/:subject/issues/create', permissions.requireAuth, async (req, res) => {
+534:  app.get('/api/community/feed', communityHandler.listFeed);
+535:  app.get('/api/community/posts', communityHandler.listPosts);
+536:  app.get('/api/issues/feed', communityHandler.listFeed);
+537:  app.post('/api/community/post', permissions.requireAuth, communityHandler.createPost);
+538:  app.post('/api/community/post/:id/approve', permissions.requireAdminSecurity, communityHandler.approvePost);
+539:  app.post('/api/community/post/:id/reject', permissions.requireAdminSecurity, communityHandler.rejectPost);
+541:  app.post('/api/github-app', permissions.requireAdminSecurity, (req, res) => {
+545:  app.post('/api/webhooks/github-app', express.json(), (req, res) => {
+548:  app.get('/api/webhooks/github-app', permissions.requireAdminSecurity, (req, res) => {
+552:  app.get('/api/admin', permissions.requireAdminSecurity, (req, res) => {
+555:  app.post('/api/admin', permissions.requireAdminSecurity, (req, res) => {
+558:  app.get('/api/latest-commit', (_req, res) => {
+575:  app.post('/api/pr-review/accept', permissions.requireAdminSecurity, prReview.acceptHandler);
+576:  app.post('/api/pr-review/reject', permissions.requireAdminSecurity, prReview.rejectHandler);
+577:  app.get('/api/desmos', desmosHandler);
+578:  app.get('/api/desmos.js', desmosHandler);
+581:  app.post('/api/theme', express.json(), (req, res) => {
+595:  app.get('/api/theme', (req, res) => {
+=== API EXPORTS ===
+src/api/_shared.ts	79:export async function findRegisteredRepo(owner: string, repoName: string): Promise<{ owner: string; repo: string; branch?: string; root?: string } | null> { 99:export async function getOctokit(options: { allowUnauthenticated?: boolean } = {}) { 128:export async function getRepoConfig(): Promise<{ owner: string; repo: string; branch?: string; root?: string } | null> { 165:export async function readRepoFile(filePath: string, branch?: string) { 184:export function getSubjectRepo(subject?: string) { 
+src/api/admin.ts	21:export async function listPrs(req: Request, res: Response) { 32:export default async function handler(req: Request, res: Response) { 
+src/api/auth.ts	29:export function assertAuthConfig() { 116:export { getUser, setUser }; 230:export async function handleRegister(req: Request, res: Response) { 301:export async function handleLogin(req: Request, res: Response) { 352:export async function handleForgotPassword(req: Request, res: Response) { 
+src/api/blob.ts	4:export default async function handler(req: Request, res: Response) { 
+src/api/community.ts	24:export async function listFeed(req: Request, res: Response) { 36:export async function listPosts(req: Request, res: Response) { 49:export async function createPost(req: Request, res: Response) { 102:export async function findPostById(id: number) { 110:export async function approvePost(req: Request, res: Response) { 
+src/api/config.ts	3:export default function handler(req: Request, res: Response) { 
+src/api/desmos.ts	10:export default async function handler(req: Request, res: Response) { 
+src/api/files-manifest.ts	55:export async function buildLocalFilesManifest(rootDir: string): Promise<FileManifestNode> { 123:export async function writeFilesJson(rootDir: string, outputPath: string) { 
+src/api/forum.ts	841:export function createForumRouter(): Router { 877:export default createForumRouter; 
+src/api/gh.ts	4:export default async function handler(req: Request, res: Response) { 
+src/api/github-app.ts	7:export async function mergePrHandler(req: Request, res: Response) { 55:export default async function handler(req: Request, res: Response) { 
+src/api/oauth.ts	129:export default async function handler(req: Request, res: Response) { 
+src/api/pages-fetch.ts	18:export function resolvePagesBaseUrl(entry: PagesRegistryEntryLike) { 28:export function buildPagesTreeFromManifest(repoName: string, manifest: PagesManifestEntry[]) { 86:export function buildRawManifestUrl(repo: string, branch: string) { 99:export async function fetchRepoManifest(repo: string, repoName: string, branch: string, pagesBase: string) { 119:export async function fetchPagesManifest(pagesBase: string, repoName: string) { 
+src/api/pr-review.ts	18:export async function listHandler(_req: Request, res: Response) { 52:export async function acceptHandler(req: Request, res: Response) { 74:export async function rejectHandler(req: Request, res: Response) { 96:export default { 
+src/api/raw.ts	38:export function buildRawGithubUrl(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) { 97:export default async function handler(req: Request, res: Response) { 
+src/api/refresh-signal.ts	16:export function addRefreshSignal( 85:export function getLatestSignal(): RefreshSignal | null { 89:export function getRecentSignals(since?: number): RefreshSignal[] { 96:export default function handler(req: Request, res: Response) { 
+src/api/repo-registry.ts	41:export function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntry[] { 115:export async function buildRegistryTree(entries: RepoRegistryEntry[]) { 214:export async function loadRepoRegistry(): Promise<RepoRegistryEntry[]> { 254:export default async function handler(req: Request, res: Response) { 
+src/api/submit-pr.ts	11:export function getOpenPrLimitError(openPulls: Array<{ body?: string | null; head?: { ref?: string | null } }>, accountEmail: string, maxOpenPerAccount: number) { 82:export async function resolveSubjectSubmissionRepo(subject: string) { 99:export default async function handler(req: Request, res: Response) { 
+src/api/system.ts	226:export async function invalidateStreamTree(stream?: string): Promise<void> { 257:export default async function handler(req: Request, res: Response) { 
+src/api/totp.ts	15:export async function generateTotpSecretForEmail(email: string) { 21:export async function verifyTotpForEmail(email: string, token: string): Promise<boolean> { 53:export async function enrollTotp(req: Request, res: Response) { 69:export async function verifyAndEnableTotp(req: Request, res: Response) { 98:export async function disableTotp(req: Request, res: Response) { 
+=== CLIENT SCRIPT REFERENCES ===
+index.html:52:  <script src="/public/js/obsidian-markdown-it.js"></script>
+index.html:56:  <script src="/public/js/modern-auth.js"></script>
+index.html:59:  <script src="/public/js/md-init.js"></script>
+index.html:60:  <script src="/public/js/markdown-editor.js"></script>
+index.html:605:<script src="/public/js/markdown.js"></script>
+index.html:606:<script src="/public/js/config.js"></script>
+index.html:607:<script src="/public/js/app.js?v=20260808-pathfix"></script>
+index.html:616:<script src="/public/js/auth.js"></script>
+index.html:617:<script src="/public/js/upload.js"></script>
+index.html:618:  <script src="/public/js/mobile.js"></script>
+index.html:619:  <script src="/public/client/streams.js" defer></script>
+index.html:620:  <script src="/public/client/main.js" defer></script>
+public/html/admin-prs.html:166:    <script src="/public/js/modern-auth.js"></script>
+public/html/admin.html:12:  <script src="/public/client/streams.js" defer></script>
+public/html/community.html:12:  <script src="/public/client/streams.js" defer></script>
+public/html/settings.html:50:  <script src="/public/js/app.js" defer></script>
+public/html/volunteers.html:12:  <script src="/public/client/streams.js" defer></script>
+public/html/streams.html:54:    <script src="/public/js/modern-auth.js" defer></script>
+public/html/streams.html:60:  <script src="/public/js/obsidian-markdown-it.js" defer></script>
+public/html/streams.html:61:  <script src="/public/js/md-init.js" defer></script>
+public/html/streams.html:62:  <script src="/public/js/markdown-editor.js" defer></script>
+public/html/streams.html:63:  <script src="/public/js/markdown.js" defer></script>
+public/html/streams.html:64:  <script src="/public/client/streams.js" defer></script>
+public/html/streams.html:82:  <script src="/public/js/config.js" defer></script>
+public/html/streams.html:83:  <script src="/public/js/app.js" defer></script>
+public/html/streams.html:84:  <script src="/public/js/auth.js" defer></script>
+tsconfig.client.json:17:  "include": ["src/client/**/*.ts"],

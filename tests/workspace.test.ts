@@ -30,12 +30,32 @@ describe('workspace env routing', () => {
     }));
   });
 
-  it('serves the admin control-centre shell at /admin', async () => {
+  it('serves the public Dashboard and separate admin control-center shells', async () => {
     const app = createApp();
-    const response = await request(app).get('/admin');
+
+    const dashboard = await request(app).get('/dashboard');
+    expect(dashboard.status).toBe(200);
+    expect(dashboard.text).toContain('Your NoteBooks dashboard');
+    expect(dashboard.text).toContain('/public/js/dashboard.js');
+
+    const admin = await request(app).get('/admin');
+    expect(admin.status).toBe(200);
+    expect(admin.text).toContain('Admin control center');
+    expect(admin.text).toContain('/public/js/admin-dashboard.js');
+
+    const adminApi = await request(app).get('/api/admin/dashboard');
+    expect(adminApi.status).toBe(401);
+  });
+
+  it('returns a public Dashboard data contract without requiring a database', async () => {
+    const app = createApp();
+    const response = await request(app).get('/api/dashboard');
     expect(response.status).toBe(200);
-    expect(response.text).toContain('Admin control centre');
-    expect(response.text).toContain('/api/admin?action=');
+    expect(response.body).toEqual(expect.objectContaining({
+      viewer: expect.objectContaining({ signedIn: false }),
+      metrics: expect.objectContaining({ streams: 3 }),
+      capabilities: expect.objectContaining({ database: false }),
+    }));
   });
 
   it('serves the subject-aware landing routes for science, commerce, humanities, community, issues, accounts and volunteers', async () => {
