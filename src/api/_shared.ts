@@ -71,6 +71,31 @@ async function readRepoRegistryEntries(): Promise<RepoRegistryEntryLike[]> {
   }
 }
 
+// Looks up a specific "owner/repo" against the configured registry (plus the
+// single-repo GITHUB_REPO env fallback). Used to validate repo/branch query
+// overrides on endpoints like /api/raw so they can serve any known subject
+// repo -- not just the default one -- without becoming an open proxy for
+// arbitrary GitHub repos.
+export async function findRegisteredRepo(owner: string, repoName: string): Promise<{ owner: string; repo: string; branch?: string; root?: string } | null> {
+  const target = `${owner}/${repoName}`.toLowerCase();
+
+  const envRepo = (process.env.GITHUB_REPO || '').trim();
+  if (envRepo.toLowerCase() === target) {
+    return { owner, repo: repoName, branch: process.env.GITHUB_BRANCH || 'main' };
+  }
+
+  const entries = await readRepoRegistryEntries();
+  const match = entries.find((entry) => entry.enabled !== false && String(entry.repo || '').toLowerCase() === target);
+  if (!match) return null;
+
+  return {
+    owner,
+    repo: repoName,
+    branch: match.branch || process.env.GITHUB_BRANCH || 'main',
+    root: match.root || ''
+  };
+}
+
 export async function getOctokit(options: { allowUnauthenticated?: boolean } = {}) {
   const token = (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
   if (token) {

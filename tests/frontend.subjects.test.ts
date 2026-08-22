@@ -17,7 +17,7 @@ describe('frontend subject shell', () => {
     expect(appJs.status).toBe(200);
     expect(appJs.text).toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
-    expect(appJs.text).toContain('const sourceCandidates = (p) => {');
+    expect(appJs.text).toContain('const sourceCandidates = (p, forEmbed) => {');
     expect(appJs.text).toContain('const resolveSourceUrl = (p) => {');
     expect(appJs.text).not.toContain("method: 'HEAD'");
     expect(appJs.text).toContain('const rawUrl = await resolveSourceUrl(path);');

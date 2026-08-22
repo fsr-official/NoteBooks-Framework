@@ -1814,35 +1814,88 @@ async function fetchFileContent(path, filename, container, winElement = null, re
             ? rawSourcePath.slice(repoName.length + 1)
             : rawSourcePath;
     };
-    const sourceCandidates = (p) => {
+    // Candidate order matters: GitHub Pages builds almost never mirror a repo's
+    // raw file tree at arbitrary paths (a Pages site for docs.foo/README.md will
+    // usually 404 for the raw README.md path itself). Probing it first means every
+    // preview pays for a failed cross-origin request, and Pages' 404 responses
+    // typically omit CORS headers, which surfaces as a scary (but harmless, since
+    // it's caught and retried) CORS error in the console. Try the sources that are
+    // actually guaranteed to serve exact repo content first, and keep the Pages
+    // URL as a last-resort fallback (it can still be right for repos whose Pages
+    // site *does* mirror the source tree).
+    //
+    // `forEmbed` controls ordering, not just for the Content-Disposition reason
+    // below -- it's mainly about this app's own Content-Security-Policy (see
+    // server.ts helmet config). frameSrc only allows 'self' / docs.google.com /
+    // *.github.io -- NOT raw.githubusercontent.com and NOT cdn.jsdelivr.net.
+    // imgSrc/mediaSrc allow 'self' / *.github.io / raw.githubusercontent.com --
+    // but NOT cdn.jsdelivr.net. So for anything set directly as an element src
+    // (img/audio/video/iframe), only this app's own same-origin /api/raw proxy
+    // is guaranteed to pass CSP for every media type, so it goes first. It also
+    // sidesteps two other problems: raw.githubusercontent.com deliberately sends
+    // Content-Disposition: attachment for several file types (pdf, html...) to
+    // stop raw content executing/rendering in a browser tab, which forces a
+    // download instead of an inline view; and raw.githubusercontent.com sends
+    // X-Frame-Options: deny, which blocks it from ever being framed at all.
+    // /api/raw sets neither header and explicitly sends
+    // Cross-Origin-Resource-Policy: cross-origin, so it also satisfies this
+    // app's Cross-Origin-Embedder-Policy: require-corp.
+    // fetch()-based consumers (fetchUrlWithFallback, for text like markdown)
+    // aren't subject to CSP's frameSrc/imgSrc/mediaSrc (that's connectSrc, which
+    // does allow raw.githubusercontent.com and cdn.jsdelivr.net), so they keep
+    // raw.githubusercontent.com first for its reliable CORS support.
+    const sourceCandidates = (p, forEmbed) => {
         const cleanedPath = String(p || '').replace(/^\/+/, '');
         if (repo) {
             const sourcePath = sourcePathForRepository(cleanedPath);
             const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
             const pagesBase = pagesBaseForRepository(repo);
-            return [
-                ...(pagesBase ? [`${pagesBase}${sourcePath}`] : []),
-                `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`,
-                `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`
-            ];
+            const rawGithub = `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`;
+            const jsdelivr = `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`;
+            const apiRaw = `${window.location.origin}/api/raw?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(sourceBranch)}`;
+            const pagesEntry = pagesBase ? [`${pagesBase}${sourcePath}`] : [];
+            return forEmbed
+                ? [apiRaw, ...pagesEntry, rawGithub]
+                : [rawGithub, jsdelivr, ...pagesEntry];
         }
         const candidates = [];
-        const pagesUrl = buildPagesUrl(cleanedPath);
-        if (pagesUrl) candidates.push(pagesUrl);
+        const apiRaw = `${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`;
+        if (forEmbed) {
+            candidates.push(apiRaw);
+        }
         if (isGitHubPages && appConfig.GITHUB_REPO) {
             candidates.push(`https://raw.githubusercontent.com/${appConfig.GITHUB_REPO}/${appConfig.GITHUB_BRANCH || 'main'}/${cleanedPath}`);
         }
         candidates.push(localFileUrl(cleanedPath));
-        candidates.push(`${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`);
+        if (!forEmbed) {
+            candidates.push(apiRaw);
+        }
+        const pagesUrl = buildPagesUrl(cleanedPath);
+        if (pagesUrl) candidates.push(pagesUrl);
         return candidates;
     };
     // Do not probe cross-origin candidates with HEAD. GitHub Pages and raw
     // sources can reject or mishandle HEAD even when the actual file GET works.
-    // The media/iframe/fetch consumer performs the real request and the
-    // ordered candidates provide the universal fallback sequence.
+    // resolveSourceUrl only hands back the first candidate; actual fallback for
+    // <img>/<audio>/<video> happens client-side via onMediaError below, which
+    // cycles the element's src through the remaining candidates on load failure.
     const resolveSourceUrl = (p) => {
-        const candidates = sourceCandidates(p);
+        const candidates = sourceCandidates(p, true);
         return candidates[0] || localFileUrl(p);
+    };
+    if (!window.__ntbkMediaFallback) {
+        window.__ntbkMediaFallback = (el) => {
+            let list;
+            try { list = JSON.parse(el.dataset.fallbacks || '[]'); } catch (e) { list = []; }
+            const next = list.shift();
+            if (!next) { el.removeAttribute('onerror'); return; }
+            el.dataset.fallbacks = JSON.stringify(list);
+            el.src = next;
+        };
+    }
+    const mediaSrcAttrs = (candidates) => {
+        const [first, ...rest] = candidates;
+        return `src="${first}" data-fallbacks='${JSON.stringify(rest).replace(/'/g, '&#39;')}' onerror="window.__ntbkMediaFallback(this)"`;
     };
     const fetchUrlWithFallback = async (p) => {
         let lastError = null;
@@ -1866,13 +1919,13 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     const rawUrl = await resolveSourceUrl(path);
     try {
         if (/\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(filename)) {
-            container.innerHTML = `<img src="${await resolveSourceUrl(path)}" style="max-width:100%;height:auto;display:block;margin:auto;" alt="${filename}" />`;
+            container.innerHTML = `<img ${mediaSrcAttrs(sourceCandidates(path, true))} style="max-width:100%;height:auto;display:block;margin:auto;" alt="${filename}" />`;
         }
         else if (/\.(mp3|wav|ogg|flac)$/i.test(filename)) {
-            container.innerHTML = `<audio controls src="${await resolveSourceUrl(path)}" style="width:100%;display:block;margin-top:20px"></audio>`;
+            container.innerHTML = `<audio controls ${mediaSrcAttrs(sourceCandidates(path, true))} style="width:100%;display:block;margin-top:20px"></audio>`;
         }
         else if (/\.(mp4|webm)$/i.test(filename)) {
-            container.innerHTML = `<video controls src="${await resolveSourceUrl(path)}" style="max-width:100%;max-height:100%;display:block;margin:auto"></video>`;
+            container.innerHTML = `<video controls ${mediaSrcAttrs(sourceCandidates(path, true))} style="max-width:100%;max-height:100%;display:block;margin:auto"></video>`;
         }
         else if (/\.(docx?|xlsx?|pptx?)$/i.test(filename.includes('.') ? filename : path)) {
             const viewerUrl = `https://docs.google.com/gviewer?embedded=true&url=${encodeURIComponent(rawUrl)}`;

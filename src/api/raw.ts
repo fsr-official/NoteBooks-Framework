@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { resolve, normalize } from 'path';
-import { getRepoConfig } from './_shared.js';
+import { getRepoConfig, findRegisteredRepo } from './_shared.js';
 
 const MIME_TYPES: Record<string, string> = {
   doc: 'application/msword',
@@ -112,8 +112,29 @@ export default async function handler(req: Request, res: Response) {
     return res.status(400).json({ error: 'Missing path query parameter' });
   }
 
+  // Optional explicit repo override (owner/repoName), used when the caller
+  // knows the file belongs to a specific subject repo rather than whichever
+  // one getRepoConfig() treats as the default. Validated against the repo
+  // registry so this endpoint can't be used as an open proxy for arbitrary
+  // GitHub repos.
+  const repoOverride = String(req.query.repo || '').trim();
+  const branchOverride = String(req.query.branch || '').trim();
+
   try {
-    const repoCfg = await getRepoConfig();
+    let repoCfg = await getRepoConfig();
+
+    if (repoOverride) {
+      const [ownerParam, repoNameParam] = repoOverride.split('/').filter(Boolean);
+      if (!ownerParam || !repoNameParam) {
+        return res.status(400).json({ error: 'Invalid repo query parameter, expected owner/repo' });
+      }
+      const registered = await findRegisteredRepo(ownerParam, repoNameParam);
+      if (!registered) {
+        return res.status(403).json({ error: 'Repo is not registered for this deployment' });
+      }
+      repoCfg = branchOverride ? { ...registered, branch: branchOverride } : registered;
+    }
+
     if (!repoCfg) {
       return serveLocalFile(filePath, res);
     }
