@@ -44,6 +44,11 @@
       .list li { padding: .7rem .75rem; background: rgba(20,38,56,.7); border: 1px solid rgba(148,163,184,.13); border-radius: .55rem; color: var(--muted); font-size: .84rem; line-height: 1.45; overflow-wrap: anywhere; }
       .access { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid rgba(252,211,77,.28); border-radius: .7rem; background: rgba(252,211,77,.08); color: var(--warning); }
       .access.ok { border-color: rgba(85,214,190,.28); background: rgba(85,214,190,.08); color: var(--accent); }
+      .security-output { display: grid; gap: .45rem; padding: .75rem; background: rgba(8,17,26,.65); border: 1px solid rgba(148,163,184,.16); border-radius: .55rem; overflow-wrap: anywhere; }
+      .security-output code { color: #d6fff5; word-break: break-all; }
+      .security-output ol { margin: 0; padding-left: 1.35rem; columns: 2; }
+      .security-output li { padding: .15rem 0; color: var(--text); }
+      .security-form { margin-top: .8rem; }
       @media (max-width: 820px) { .admin-shell { grid-template-columns: 1fr; } .admin-sidebar { border-right: 0; border-bottom: 1px solid var(--line); } .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sidebar-note { display: none; } .card, .card.wide { grid-column: span 12; } .topbar { flex-direction: column; } .identity { justify-items: start; text-align: left; } }
     </style>
   </head>
@@ -111,6 +116,40 @@
           </article>
         </section>
 
+        <section id="security" class="grid" aria-label="Administrator security enrollment">
+          <article class="card wide">
+            <h2>Security enrollment</h2>
+            <p class="muted">Complete GitHub linkage and TOTP enrollment for this signed-in administrator. These setup controls remain available while the main administrator console is locked.</p>
+            <div class="form-actions">
+              <button id="link-github-button" type="button">Link GitHub account</button>
+            </div>
+            <div class="status" id="github-link-status" aria-live="polite"></div>
+            <form id="totp-enroll-form" class="security-form">
+              <div class="form-actions"><button type="submit">Generate TOTP secret</button></div>
+            </form>
+            <div class="status" id="totp-enroll-status" aria-live="polite"></div>
+            <div id="totp-secret-output" class="security-output" hidden>
+              <strong>Scan or enter this secret in your authenticator</strong>
+              <code id="totp-secret"></code>
+              <small id="totp-otpauth" class="muted"></small>
+            </div>
+            <form id="totp-verify-form" class="security-form" hidden>
+              <label>Current authenticator code<input name="token" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required /></label>
+              <div class="form-actions"><button type="submit">Verify and enable TOTP</button></div>
+            </form>
+            <div class="status" id="totp-verify-status" aria-live="polite"></div>
+            <div id="backup-codes-output" class="security-output" hidden>
+              <strong>Save these one-time backup codes</strong>
+              <ol id="backup-codes"></ol>
+            </div>
+            <form id="totp-disable-form" class="security-form">
+              <label>Disable TOTP with current code<input name="token" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required /></label>
+              <div class="form-actions"><button class="danger" type="submit">Disable TOTP enrollment</button></div>
+            </form>
+            <div class="status" id="totp-disable-status" aria-live="polite"></div>
+          </article>
+        </section>
+
         <section id="review" class="grid" aria-label="Review and audit">
           <article class="card wide">
             <h2>Recent audit log</h2>
@@ -131,7 +170,8 @@
         const accessStatus = document.getElementById('access-status');
         const identityLabel = document.getElementById('identity-label');
         const logoutButton = document.getElementById('logout-button');
-        const controls = Array.from(document.querySelectorAll('form button, form input, form select'));
+        const controls = Array.from(document.querySelectorAll('#assign-role-form button, #assign-role-form input, #assign-role-form select, #revoke-role-form button, #revoke-role-form input, #revoke-role-form select, #ban-form button, #ban-form input, #ban-form select, #unban-form button, #unban-form input, #unban-form select'));
+        const securityControls = Array.from(document.querySelectorAll('#link-github-button, #totp-enroll-form button, #totp-enroll-form input, #totp-enroll-form select, #totp-verify-form button, #totp-verify-form input, #totp-verify-form select, #totp-disable-form button, #totp-disable-form input, #totp-disable-form select'));
 
         function setAccess(message, ok = false) {
           accessStatus.textContent = message;
@@ -156,6 +196,26 @@
           const token = auth && auth.getToken ? auth.getToken() : localStorage.getItem('auth_token');
           if (token) headers.Authorization = `Bearer ${token}`;
           return headers;
+        }
+
+        function setSecurityAvailability(enabled) {
+          securityControls.forEach((control) => { control.disabled = !enabled; });
+        }
+
+        async function totpRequest(action, payload) {
+          const response = await fetch(`/api/totp?action=${encodeURIComponent(action)}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: adminHeaders(),
+            body: JSON.stringify(payload || {})
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const error = new Error(data.error || `Request failed (${response.status})`);
+            error.status = response.status;
+            throw error;
+          }
+          return data;
         }
 
         async function adminRequest(action, options = {}) {
@@ -219,7 +279,9 @@
         }
 
         async function checkAccess() {
-          if (!auth || !auth.isLoggedIn || !auth.isLoggedIn()) {
+          const loggedIn = Boolean(auth && auth.isLoggedIn && auth.isLoggedIn());
+          setSecurityAvailability(loggedIn);
+          if (!loggedIn) {
             identityLabel.textContent = 'No administrator session detected';
             setAccess('Sign in with an administrator account to continue.');
             return false;
@@ -255,6 +317,90 @@
             statusEl.textContent = error.message || String(error);
             statusEl.className = 'status error';
           }
+        }
+
+        document.getElementById('link-github-button').addEventListener('click', async () => {
+          const status = document.getElementById('github-link-status');
+          status.textContent = 'Preparing GitHub authorization…';
+          status.className = 'status';
+          try {
+            const response = await fetch('/api/oauth?action=github-url', { headers: adminHeaders(), credentials: 'same-origin' });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.url) throw new Error(data.error || 'Unable to start GitHub authorization');
+            window.location.assign(data.url);
+          } catch (error) {
+            status.textContent = error.message || String(error);
+            status.className = 'status error';
+          }
+        });
+
+        document.getElementById('totp-enroll-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const status = document.getElementById('totp-enroll-status');
+          status.textContent = 'Generating secret…';
+          status.className = 'status';
+          try {
+            const data = await totpRequest('enroll', { email: auth.getEmail() });
+            document.getElementById('totp-secret').textContent = data.secret || '';
+            document.getElementById('totp-otpauth').textContent = data.otpauth || '';
+            document.getElementById('totp-secret-output').hidden = false;
+            document.getElementById('totp-verify-form').hidden = false;
+            status.textContent = 'Secret generated. Verify one code to enable TOTP.';
+            status.className = 'status success';
+          } catch (error) {
+            status.textContent = error.message || String(error);
+            status.className = 'status error';
+          }
+        });
+
+        document.getElementById('totp-verify-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const status = document.getElementById('totp-verify-status');
+          const token = new FormData(event.currentTarget).get('token');
+          status.textContent = 'Verifying code…';
+          status.className = 'status';
+          try {
+            const data = await totpRequest('verify-enable', { email: auth.getEmail(), secret: document.getElementById('totp-secret').textContent, token });
+            const list = document.getElementById('backup-codes');
+            list.replaceChildren();
+            (Array.isArray(data.backupCodes) ? data.backupCodes : []).forEach((code) => {
+              const item = document.createElement('li');
+              item.textContent = String(code);
+              list.appendChild(item);
+            });
+            document.getElementById('backup-codes-output').hidden = false;
+            status.textContent = 'TOTP enabled. Save the backup codes before leaving this page.';
+            status.className = 'status success';
+            event.currentTarget.reset();
+          } catch (error) {
+            status.textContent = error.message || String(error);
+            status.className = 'status error';
+          }
+        });
+
+        document.getElementById('totp-disable-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const status = document.getElementById('totp-disable-status');
+          const token = new FormData(event.currentTarget).get('token');
+          status.textContent = 'Disabling TOTP…';
+          status.className = 'status';
+          try {
+            await totpRequest('disable', { email: auth.getEmail(), token });
+            status.textContent = 'TOTP enrollment disabled.';
+            status.className = 'status success';
+            event.currentTarget.reset();
+          } catch (error) {
+            status.textContent = error.message || String(error);
+            status.className = 'status error';
+          }
+        });
+
+        const githubLinked = new URLSearchParams(window.location.search).get('github_linked');
+        if (githubLinked === '1') {
+          const status = document.getElementById('github-link-status');
+          status.textContent = 'GitHub account linked. You can now enroll TOTP.';
+          status.className = 'status success';
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
         }
 
         document.getElementById('assign-role-form').addEventListener('submit', async (event) => {

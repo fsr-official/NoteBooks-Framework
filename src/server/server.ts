@@ -323,6 +323,8 @@ export function createApp() {
 
   app.get('/private/files.json', async (_req, res) => await sendManifestResponse(res));
 
+  app.get('/api/oauth', oauthHandler);
+  app.get('/api/oauth.js', oauthHandler);
   app.post('/api/oauth', oauthHandler);
 
   app.get('/private/config', configHandler);

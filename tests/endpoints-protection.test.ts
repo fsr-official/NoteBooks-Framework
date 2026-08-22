@@ -53,6 +53,34 @@ describe('Protected endpoints', () => {
     expect(res.status).toBe(401);
   });
 
+  it('rejects unauthenticated GitHub-link URL generation', async () => {
+    const res = await request(app).get('/api/oauth?action=github-url');
+    expect(res.status).toBe(401);
+  });
+
+  it('generates an authenticated GitHub-link URL with signed state', async () => {
+    const previousClientId = process.env.GITHUB_OAUTH_CLIENT_ID;
+    process.env.GITHUB_OAUTH_CLIENT_ID = 'github-oauth-test-client';
+    try {
+      const email = 'oauth-admin@example.com';
+      await setUser(email, { email, password: 'x', role: 'admin', createdAt: new Date().toISOString() } as any);
+      const token = jwt.sign({ email, role: 'admin' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+      const res = await request(app)
+        .get('/api/oauth?action=github-url')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const link = new URL(res.body.url);
+      expect(link.origin).toBe('https://github.com');
+      expect(link.pathname).toBe('/login/oauth/authorize');
+      expect(link.searchParams.get('client_id')).toBe('github-oauth-test-client');
+      expect(link.searchParams.get('scope')).toBe('read:user user:email');
+      expect(link.searchParams.get('state')).toBeTruthy();
+    } finally {
+      if (previousClientId === undefined) delete process.env.GITHUB_OAUTH_CLIENT_ID;
+      else process.env.GITHUB_OAUTH_CLIENT_ID = previousClientId;
+    }
+  });
+
   it('rejects unauthenticated subject-scoped community approval', async () => {
     const res = await request(app).post('/api/subject/science/community/post/1/approve').send({});
     expect(res.status).toBe(401);
