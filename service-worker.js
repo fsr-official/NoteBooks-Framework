@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v9';
+const CACHE_VERSION = 'webman-v10';
 const OFFLINE_PAGE = 'offline.html';
 
 const APP_SHELL = [
@@ -174,6 +174,13 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => caches.match(request))
     );
+    return;
+  }
+
+  // Admin routes must always follow the server/Vercel route decision. Do not
+  // serve a cached legacy workspace shell for these security-sensitive pages.
+  if (/^\/(?:admin|admin-prs)(?:\/|$)/.test(url.pathname)) {
+    event.respondWith(fetch(request));
     return;
   }
 

@@ -32,7 +32,8 @@ describe('frontend subject shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v9'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v10'");
+    expect(serviceWorker.text).toContain('Admin routes must always follow the server/Vercel route decision.');
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);
