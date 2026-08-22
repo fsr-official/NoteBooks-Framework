@@ -5,10 +5,10 @@
   "buildCommand": "npm run build",
     "outputDirectory": ".",
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/admin", "destination": "/public/html/admin-prs.html" },
-    { "source": "/admin/", "destination": "/public/html/admin-prs.html" },
-    { "source": "/admin-prs", "destination": "/public/html/admin-prs.html" }
+  "redirects": [
+    { "source": "/admin", "destination": "/public/html/admin-prs.html", "permanent": false },
+    { "source": "/admin/", "destination": "/public/html/admin-prs.html", "permanent": false },
+    { "source": "/admin-prs", "destination": "/public/html/admin-prs.html", "permanent": false }
   ]
 
 }
