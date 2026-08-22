@@ -16,6 +16,7 @@ import desmosHandler from '../api/desmos.js';
 import systemHandler from '../api/system.js';
 import authHandler from '../api/auth.js';
 import oauthHandler from '../api/oauth.js';
+import totpHandler from '../api/totp.js';
 import { buildLocalFilesManifest } from '../api/files-manifest.js';
 import permissions from '../lib/permissions.js';
 import * as communityHandler from '../api/community.js';
@@ -322,6 +323,8 @@ export function createApp() {
 
   app.get('/private/files.json', async (_req, res) => await sendManifestResponse(res));
 
+  app.get('/api/oauth', oauthHandler);
+  app.get('/api/oauth.js', oauthHandler);
   app.post('/api/oauth', oauthHandler);
 
   app.get('/private/config', configHandler);
@@ -480,6 +483,8 @@ export function createApp() {
   app.use('/api/auth', authLimiter);
   app.all('/api/auth', authHandler);
   app.all('/api/auth.js', authHandler);
+  app.post('/api/totp', permissions.requireAuth, totpHandler);
+  app.post('/api/totp.js', permissions.requireAuth, totpHandler);
   app.post('/api/gh', permissions.requireAuth, ghHandler);
   app.post('/api/gh.js', permissions.requireAuth, ghHandler);
   app.post('/api/blob', permissions.requireTotpEnrolled, blobHandler);
@@ -498,7 +503,7 @@ export function createApp() {
     // delegate to community handler with subject in params
     return import('../api/community.js').then((m) => m.createPost(req, res));
   });
-  app.post('/api/subject/:subject/community/post/:id/approve', permissions.requireRole('admin'), (req, res) => {
+  app.post('/api/subject/:subject/community/post/:id/approve', permissions.requireAdminSecurity, (req, res) => {
     return import('../api/community.js').then((m) => m.approvePost(req, res));
   });
   app.post('/api/subject/:subject/issues/create', permissions.requireAuth, async (req, res) => {
@@ -524,24 +529,24 @@ export function createApp() {
   app.get('/api/community/posts', communityHandler.listPosts);
   app.get('/api/issues/feed', communityHandler.listFeed);
   app.post('/api/community/post', permissions.requireAuth, communityHandler.createPost);
-  app.post('/api/community/post/:id/approve', permissions.requireRole('admin'), communityHandler.approvePost);
-  app.post('/api/community/post/:id/reject', permissions.requireRole('admin'), communityHandler.rejectPost);
+  app.post('/api/community/post/:id/approve', permissions.requireAdminSecurity, communityHandler.approvePost);
+  app.post('/api/community/post/:id/reject', permissions.requireAdminSecurity, communityHandler.rejectPost);
   // GitHub App administrative actions
-  app.post('/api/github-app', permissions.requireRole('admin'), (req, res) => {
+  app.post('/api/github-app', permissions.requireAdminSecurity, (req, res) => {
     return import('../api/github-app.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
   // GitHub App webhook receiver (no auth; validate with webhook secret in front proxy if needed)
   app.post('/api/webhooks/github-app', express.json(), (req, res) => {
     return import('../api/webhooks/github-app.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
-  app.get('/api/webhooks/github-app', permissions.requireRole('admin'), (req, res) => {
+  app.get('/api/webhooks/github-app', permissions.requireAdminSecurity, (req, res) => {
     return import('../api/webhooks/github-app.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
   // Admin PR listing
-  app.get('/api/admin', permissions.requireRole('admin'), (req, res) => {
+  app.get('/api/admin', permissions.requireAdminSecurity, (req, res) => {
     return import('../api/admin.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
-  app.post('/api/admin', permissions.requireRole('admin'), (req, res) => {
+  app.post('/api/admin', permissions.requireAdminSecurity, (req, res) => {
     return import('../api/admin.js').then((m: any) => (typeof m.default === 'function' ? m.default(req, res) : m(req, res)));
   });
   app.get('/api/latest-commit', (_req, res) => {
@@ -561,8 +566,8 @@ export function createApp() {
       timestamp: Date.now()
     });
   });
-  app.post('/api/pr-review/accept', permissions.requireRole('admin'), prReview.acceptHandler);
-  app.post('/api/pr-review/reject', permissions.requireRole('admin'), prReview.rejectHandler);
+  app.post('/api/pr-review/accept', permissions.requireAdminSecurity, prReview.acceptHandler);
+  app.post('/api/pr-review/reject', permissions.requireAdminSecurity, prReview.rejectHandler);
   app.get('/api/desmos', desmosHandler);
   app.get('/api/desmos.js', desmosHandler);
 

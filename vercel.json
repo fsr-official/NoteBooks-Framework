@@ -3,6 +3,12 @@
   "version": 2,
   "framework": null,
   "buildCommand": "npm run build",
-  "outputDirectory": ".",
-  "cleanUrls": true
+    "outputDirectory": ".",
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/admin", "destination": "/public/html/admin-prs.html", "permanent": false },
+    { "source": "/admin/", "destination": "/public/html/admin-prs.html", "permanent": false },
+    { "source": "/admin-prs", "destination": "/public/html/admin-prs.html", "permanent": false }
+  ]
+
 }

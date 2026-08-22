@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { authenticator } from 'otplib';
 import { getUser, setUser } from './auth.js';
+import permissions from '../lib/permissions.js';
 
 function generateBackupCodes(count = 8) {
   const codes: string[] = [];
@@ -23,13 +24,41 @@ export async function verifyTotpForEmail(email: string, token: string): Promise<
   return authenticator.check(token, (user as any).totp_secret);
 }
 
+function authenticatedAccount(req: Request, requestedEmail?: string) {
+  const auth = permissions.parseAuthToken(req);
+  if (!auth?.email) {
+    return { error: { status: 401, message: 'Authentication required' } };
+  }
+  const authenticatedEmail = String(auth.email);
+  if (requestedEmail && requestedEmail !== authenticatedEmail) {
+    return { error: { status: 403, message: 'TOTP account mismatch' } };
+  }
+  return { email: authenticatedEmail, auth };
+}
+
+async function ensureAdminCanManageTotp(email: string, auth: any, res: Response) {
+  if (auth?.role !== 'admin') return true;
+  const user = await getUser(email);
+  if (!user) {
+    res.status(403).json({ error: 'Administrator account not found' });
+    return false;
+  }
+  if (!(user as any).github_id) {
+    res.status(403).json({ error: 'GitHub account linking required before administrator TOTP setup' });
+    return false;
+  }
+  return true;
+}
+
 export async function enrollTotp(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    const { email } = req.body || {};
-    if (!email) return res.status(400).json({ error: 'Email is required' });
-    const { secret, otpauth } = await generateTotpSecretForEmail(email);
-    // Return secret to client for verification step; don't persist yet
+    const requestedEmail = String(req.body?.email || '').trim();
+    const account = authenticatedAccount(req, requestedEmail || undefined);
+    if (account.error) return res.status(account.error.status).json({ error: account.error.message });
+    if (!(await ensureAdminCanManageTotp(account.email, account.auth, res))) return;
+    const { secret, otpauth } = await generateTotpSecretForEmail(account.email);
+    // Return secret to the authenticated client for verification; don't persist yet.
     return res.status(200).json({ secret, otpauth });
   } catch (err) {
     console.error('[totp] enroll error', err);
@@ -40,20 +69,24 @@ export async function enrollTotp(req: Request, res: Response) {
 export async function verifyAndEnableTotp(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    const { email, secret, token } = req.body || {};
+    const { email: requestedEmail, secret, token } = req.body || {};
+    const email = String(requestedEmail || '').trim();
     if (!email || !secret || !token) return res.status(400).json({ error: 'Missing required fields' });
+    const account = authenticatedAccount(req, email);
+    if (account.error) return res.status(account.error.status).json({ error: account.error.message });
+    if (!(await ensureAdminCanManageTotp(account.email, account.auth, res))) return;
 
     const valid = authenticator.check(token, secret);
     if (!valid) return res.status(400).json({ error: 'Invalid token' });
 
-    const user = await getUser(email);
+    const user = await getUser(account.email);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     (user as any).totp_secret = secret;
     const backupCodes = generateBackupCodes();
     (user as any).backup_codes = JSON.stringify(backupCodes);
 
-    await setUser(email, user as any);
+    await setUser(account.email, user as any);
 
     return res.status(200).json({ success: true, backupCodes });
   } catch (err) {
@@ -65,13 +98,21 @@ export async function verifyAndEnableTotp(req: Request, res: Response) {
 export async function disableTotp(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    const { email } = req.body || {};
-    if (!email) return res.status(400).json({ error: 'Email is required' });
-    const user = await getUser(email);
+    const requestedEmail = String(req.body?.email || '').trim();
+    const token = String(req.body?.token || '').trim();
+    if (!requestedEmail) return res.status(400).json({ error: 'Email is required' });
+    const account = authenticatedAccount(req, requestedEmail);
+    if (account.error) return res.status(account.error.status).json({ error: account.error.message });
+    if (!token) return res.status(400).json({ error: 'Current TOTP token is required' });
+    const user = await getUser(account.email);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    const currentSecret = String((user as any).totp_secret || '');
+    if (!currentSecret || !authenticator.check(token, currentSecret)) {
+      return res.status(403).json({ error: 'Invalid current TOTP token' });
+    }
     (user as any).totp_secret = null;
     (user as any).backup_codes = null;
-    await setUser(email, user as any);
+    await setUser(account.email, user as any);
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error('[totp] disable error', err);

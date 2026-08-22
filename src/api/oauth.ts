@@ -9,6 +9,35 @@ function getJwtSecret(): string {
   return process.env.JWT_SECRET;
 }
 
+function getRequestOrigin(req: Request): string {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol || 'https';
+  const host = String(req.headers.host || '').trim();
+  if (!host) throw new Error('Request host is unavailable');
+  return `${protocol}://${host}`;
+}
+
+function verifyBearerPayload(req: Request) {
+  const header = String(req.headers.authorization || '');
+  if (!header.startsWith('Bearer ')) return null;
+  const payload = jwt.verify(header.slice(7), getJwtSecret()) as any;
+  return payload?.email ? payload : null;
+}
+
+function buildGithubRedirectUri(req: Request): string {
+  return process.env.GITHUB_OAUTH_REDIRECT_URI || `${getRequestOrigin(req)}/api/oauth?action=github-callback`;
+}
+
+function buildGithubLinkState(email: string): string {
+  return jwt.sign({ purpose: 'github-link', email }, getJwtSecret(), { expiresIn: '10m' });
+}
+
+function verifyGithubLinkState(state: string) {
+  const payload = jwt.verify(state, getJwtSecret()) as any;
+  if (payload?.purpose !== 'github-link' || !payload.email) throw new Error('Invalid GitHub OAuth state');
+  return payload;
+}
+
 async function findOrCreateUserByEmail(email: string, provider: string, providerId: string) {
   if (isDbConfigured()) {
     const res = await dbQuery('SELECT id, email, role FROM users WHERE email = $1', [email]);
@@ -100,6 +129,36 @@ async function exchangeGoogle(code: string, redirectUri?: string) {
 export default async function handler(req: Request, res: Response) {
   const action = String(req.query.action || '');
   try {
+    if (action === 'github-url') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+      const payload = verifyBearerPayload(req);
+      if (!payload?.email) return res.status(401).json({ error: 'Authentication required' });
+      const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
+      if (!clientId) return res.status(500).json({ error: 'GitHub OAuth not configured' });
+      const redirectUri = buildGithubRedirectUri(req);
+      const state = buildGithubLinkState(String(payload.email));
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        scope: 'read:user user:email',
+        state
+      });
+      return res.json({ url: `https://github.com/login/oauth/authorize?${params.toString()}` });
+    }
+
+    if (action === 'github-callback') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+      const code = String(req.query.code || '').trim();
+      const state = String(req.query.state || '').trim();
+      if (!code || !state) return res.status(400).send('Missing GitHub OAuth code or state');
+      const statePayload = verifyGithubLinkState(state);
+      const { email, providerId } = await exchangeGitHub(code);
+      if (!email) return res.status(400).send('GitHub account has no email');
+      await findOrCreateUserByEmail(String(statePayload.email), 'github', providerId);
+      const destination = `${getRequestOrigin(req)}/admin?github_linked=1`;
+      return res.redirect(303, destination);
+    }
+
     if (action === 'github') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
       const { code } = req.body || {};

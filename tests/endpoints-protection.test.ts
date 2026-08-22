@@ -23,16 +23,67 @@ describe('Protected endpoints', () => {
   });
 
   it('allows Bearer-authenticated admin requests when CSRF enforcement is enabled', async () => {
+    const previousCsrf = process.env.ENFORCE_CSRF;
     process.env.ENFORCE_CSRF = 'true';
-    const csrfApp = createApp();
-    const adminToken = jwt.sign({ email: 'csrf-admin@example.com', role: 'admin' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
-    const res = await request(csrfApp)
-      .post('/api/admin?action=assign-role')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({ email: 'target@example.com', role: 'unsupported' });
-    delete process.env.ENFORCE_CSRF;
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'Invalid role' });
+    try {
+      const csrfApp = createApp();
+      await setUser('csrf-admin@example.com', {
+        email: 'csrf-admin@example.com',
+        password: 'x',
+        role: 'admin',
+        github_id: 'github-csrf-admin',
+        totp_secret: 'KVKFKRCPNZQUYMLXOVDSQKJKZDTSRLD',
+        createdAt: new Date().toISOString()
+      } as any);
+      const adminToken = jwt.sign({ email: 'csrf-admin@example.com', role: 'admin' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+      const res = await request(csrfApp)
+        .post('/api/admin?action=assign-role')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ email: 'target@example.com', role: 'unsupported' });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Invalid role' });
+    } finally {
+      if (previousCsrf === undefined) delete process.env.ENFORCE_CSRF;
+      else process.env.ENFORCE_CSRF = previousCsrf;
+    }
+  });
+
+  it('rejects unauthenticated POST /api/totp', async () => {
+    const res = await request(app).post('/api/totp?action=enroll').send({ email: 'someone@example.com' });
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects unauthenticated GitHub-link URL generation', async () => {
+    const res = await request(app).get('/api/oauth?action=github-url');
+    expect(res.status).toBe(401);
+  });
+
+  it('generates an authenticated GitHub-link URL with signed state', async () => {
+    const previousClientId = process.env.GITHUB_OAUTH_CLIENT_ID;
+    process.env.GITHUB_OAUTH_CLIENT_ID = 'github-oauth-test-client';
+    try {
+      const email = 'oauth-admin@example.com';
+      await setUser(email, { email, password: 'x', role: 'admin', createdAt: new Date().toISOString() } as any);
+      const token = jwt.sign({ email, role: 'admin' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+      const res = await request(app)
+        .get('/api/oauth?action=github-url')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const link = new URL(res.body.url);
+      expect(link.origin).toBe('https://github.com');
+      expect(link.pathname).toBe('/login/oauth/authorize');
+      expect(link.searchParams.get('client_id')).toBe('github-oauth-test-client');
+      expect(link.searchParams.get('scope')).toBe('read:user user:email');
+      expect(link.searchParams.get('state')).toBeTruthy();
+    } finally {
+      if (previousClientId === undefined) delete process.env.GITHUB_OAUTH_CLIENT_ID;
+      else process.env.GITHUB_OAUTH_CLIENT_ID = previousClientId;
+    }
+  });
+
+  it('rejects unauthenticated subject-scoped community approval', async () => {
+    const res = await request(app).post('/api/subject/science/community/post/1/approve').send({});
+    expect(res.status).toBe(401);
   });
 
   it('rejects unauthenticated POST /api/pr-review/accept', async () => {

@@ -30,11 +30,13 @@ export async function listPrs(req: Request, res: Response) {
 }
 
 export default async function handler(req: Request, res: Response) {
-  // Enforce admin role for all admin actions as a safety net
-  const decoded = permissions.parseAuthToken(req);
-  if (!decoded || decoded.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden' });
+  // Defense in depth: keep the full administrator security boundary here even
+  // when this handler is invoked outside the Express route registration.
+  const security = await permissions.getAdminSecurityContext(req);
+  if (!security.ok) {
+    return res.status(security.status).json({ error: security.error });
   }
+  const decoded = security.auth;
   const action = Array.isArray(req.query.action) ? req.query.action[0] : req.query.action;
   switch (action) {
     case 'list-prs':

@@ -3,7 +3,7 @@ import request from 'supertest';
 import createApp from '../src/server/server';
 import jwt from 'jsonwebtoken';
 import { setUser, getUser } from '../src/api/auth';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 
 describe('Admin endpoints (role/ban)', () => {
   const app = createApp();
@@ -11,6 +11,17 @@ describe('Admin endpoints (role/ban)', () => {
   const targetEmail = 'target@example.com';
 
   const adminToken = jwt.sign({ email: adminEmail, role: 'admin' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+
+  beforeAll(async () => {
+    await setUser(adminEmail, {
+      email: adminEmail,
+      password: 'x',
+      role: 'admin',
+      github_id: 'github-admin-1',
+      totp_secret: 'KVKFKRCPNZQUYMLXOVYDSQKJKZDTSRLD',
+      createdAt: new Date().toISOString()
+    } as any);
+  });
 
   it('can assign and revoke roles', async () => {
     // ensure target exists
