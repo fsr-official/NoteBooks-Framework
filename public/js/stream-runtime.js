@@ -11,11 +11,12 @@ function loadStreamTree() {
         try {
             const stream = (window.CURRENT_STREAM || (window.location.pathname.split('/').filter(Boolean)[0]) || '').toLowerCase();
             if (!stream || !STREAM_ARTIFACTS[stream]) return null;
-            // Runtime system API is authoritative; static manifests remain a compatibility fallback.
+            // Build-time artifacts are canonical for the browser. The runtime API is
+            // only a compatibility fallback when a deployment omitted an artifact.
             const runtimeUrl = `/api/system/${stream}`;
             const jsonUrl = STREAM_ARTIFACTS[stream] || "";
-            let res = await fetch(runtimeUrl, { cache: 'no-store' });
-            if (!res.ok) res = await fetch(jsonUrl, { cache: 'no-store' });
+            let res = await fetch(jsonUrl, { cache: 'default' });
+            if (!res.ok) res = await fetch(runtimeUrl, { cache: 'no-store' });
             if (!res.ok) {
                 console.debug('No stream-tree manifest at', jsonUrl, 'status', res.status);
                 return null;

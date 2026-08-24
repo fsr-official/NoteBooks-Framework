@@ -7,6 +7,7 @@
   <title>Settings — NoteBooks</title>
   <link rel="stylesheet" href="/public/css/theme.css" />
   <link rel="stylesheet" href="/public/css/style.css" />
+  <link rel="stylesheet" href="/public/css/dashboard.css" />
 </head>
 <body class="settings-page">
   <nav class="global-nav" aria-label="Primary navigation">
@@ -24,7 +25,19 @@
       <p>Shape your reading room now. Sign-in and account synchronization will be connected in a later phase.</p>
     </header>
 
-    <section class="settings-grid" aria-label="Settings sections">
+    <div class="settings-grid" aria-label="Settings sections">
+      <section class="settings-card settings-card--personal" id="personal-space" aria-labelledby="personalSpaceTitle">
+        <div class="settings-card-kicker">Personal space</div>
+        <h2 id="personalSpaceTitle">Your Dashboard</h2>
+        <p>Keep your NoteBooks presence, activity, learning streams, and project participation in one private-facing space.</p>
+        <div class="dashboard-status settings-dashboard-status" id="dashboardStatus"><strong>Loading your space</strong>Preparing your project view…</div>
+        <p id="dashboardOverview">Loading current project metrics…</p>
+        <div class="dashboard-metrics" id="dashboardMetrics"></div>
+        <div class="settings-personal-grid">
+          <div><div class="settings-card-kicker">Explore</div><div class="dashboard-links" id="dashboardStreams"></div></div>
+          <div><div class="settings-card-kicker">Recent activity</div><div class="dashboard-activity" id="dashboardActivity"><div class="dashboard-empty">Sign in to connect activity to your personal space.</div></div></div>
+        </div>
+      </section>
       <article class="settings-card settings-card--account">
         <div class="settings-card-kicker">Account</div>
         <h2>Sign in later</h2>
@@ -48,6 +61,7 @@
   </main>
 
   <script src="/public/js/theme.js"></script>
+  <script src="/public/js/dashboard.js" defer></script>
   <script src="/public/js/stream-runtime.js"></script>
   <script src="/public/js/app.js" defer></script>
 </body>

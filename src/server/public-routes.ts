@@ -1,9 +1,13 @@
 import express from 'express';
 import path from 'node:path';
 
-const STREAM_ROUTES = ['science', 'commerce', 'humanities', 'community', 'volunteers', 'accounts', 'issues', 'about'] as const;
+const STREAM_ROUTES = ['science', 'commerce', 'humanities'] as const;
+const PORTAL_ROUTES = ['community', 'volunteers', 'accounts', 'issues', 'about'] as const;
 
 function setAssetContentType(res: express.Response, filePath: string): void {
+  if (/\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf)$/.test(filePath)) {
+    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+  }
   if (filePath.endsWith('.css')) {
     res.setHeader('Content-Type', 'text/css; charset=utf-8');
   } else if (filePath.endsWith('.js')) {
@@ -35,7 +39,7 @@ export function registerPublicRoutes(app: express.Application, projectDir: strin
   });
 
   const dashboardShell = (_req: express.Request, res: express.Response) => {
-    res.sendFile(path.join(projectDir, 'public', 'html', 'dashboard.html'));
+    res.redirect(302, '/settings#personal-space');
   };
   app.get('/dashboard', dashboardShell);
   app.get('/dashboard/', dashboardShell);
@@ -62,8 +66,9 @@ export function registerPublicRoutes(app: express.Application, projectDir: strin
     app.get(`/${stream}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
     app.get(`/${stream}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
   });
-  app.get(/^\/(science|commerce|humanities|community|issues|accounts|volunteers|about)(?:\/.+)?$/, (_req, res) => {
-    res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html'));
+  PORTAL_ROUTES.forEach((route) => {
+    app.get(`/${route}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'portal.html')));
+    app.get(`/${route}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'portal.html')));
   });
 
   app.get('/manifest.json', (_req, res) => {

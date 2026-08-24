@@ -38,6 +38,9 @@ window.markdownToHTML = markdownToHTML;
  * @param {Element} container – the wrapper element that received the HTML
  */
 async function initMarkdownFeatures(container) {
+    if (window.NoteBooksMarkdownVendors && typeof window.NoteBooksMarkdownVendors.ensureFor === 'function') {
+        await window.NoteBooksMarkdownVendors.ensureFor(container);
+    }
     if (typeof window.obsidianInitCalloutFolds === 'function') {
         window.obsidianInitCalloutFolds(container);
     }

@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { createHash } from 'node:crypto';
 import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
 import { findRegisteredRepo, getOctokit } from './_shared.js';
 
@@ -25,6 +26,29 @@ function authEmail(req: Request): string | null {
 
 function issueRepository(): { owner: string; repo: string } | null {
   return splitRepo(ISSUES_REPO());
+}
+
+export function sourceEvidence(value: unknown): { startLine: number; endLine: number; text: string } | null {
+  const startLine = Number(value && typeof value === 'object' ? (value as any).startLine : 0);
+  const endLine = Number(value && typeof value === 'object' ? (value as any).endLine : 0);
+  const text = String(value && typeof value === 'object' ? (value as any).text || '' : '').replace(/\r\n/g, '\n');
+  if (!Number.isSafeInteger(startLine) || !Number.isSafeInteger(endLine) || startLine < 1 || endLine < startLine || endLine - startLine >= 500 || !text || text.length > 100_000) return null;
+  return { startLine, endLine, text };
+}
+
+async function validateSourceEvidence(source: { owner: string; repo: string }, branch: string, path: string, evidence: { startLine: number; endLine: number; text: string }, submittedCommit?: string) {
+  const octokit = await getOctokit({ allowUnauthenticated: true });
+  const response = await octokit.repos.getContent({ owner: source.owner, repo: source.repo, path, ref: branch });
+  const item = Array.isArray(response.data) ? response.data[0] : response.data as any;
+  if (!item || typeof item.content !== 'string') throw new Error('Selected source file could not be read');
+  const currentText = Buffer.from(item.content.replace(/\n/g, ''), 'base64').toString('utf8').replace(/\r\n/g, '\n');
+  const currentLines = currentText.split('\n');
+  const currentSelection = currentLines.slice(evidence.startLine - 1, evidence.endLine).join('\n');
+  if (currentSelection !== evidence.text) throw new Error('The selected source changed. Reopen the file and select the current lines again.');
+  return {
+    commit: submittedCommit && /^[0-9a-f]{7,64}$/i.test(submittedCommit) ? submittedCommit : item.sha || '',
+    snippetHash: createHash('sha256').update(`${evidence.startLine}:${evidence.endLine}:${evidence.text}`).digest('hex')
+  };
 }
 
 async function getIssueProposal(id: number): Promise<any | null> {
@@ -105,6 +129,10 @@ export async function createProposal(req: Request, res: Response): Promise<void>
   const sourceRepository = String(req.body?.sourceRepository || '').trim();
   const sourceBranch = String(req.body?.sourceBranch || 'main').trim() || 'main';
   const sourcePath = normalizePath(req.body?.sourcePath);
+  const rawEvidence = { startLine: req.body?.sourceStartLine, endLine: req.body?.sourceEndLine, text: req.body?.sourceText };
+  const hasEvidence = rawEvidence.startLine != null || rawEvidence.endLine != null || rawEvidence.text != null;
+  const evidence = hasEvidence ? sourceEvidence(rawEvidence) : null;
+  if (hasEvidence && !evidence) { res.status(400).json({ error: 'Valid source line evidence is required' }); return; }
   if (!title || title.length > 200 || !body || body.length > 20_000 || !sourceRepository || !isSafeSourcePath(sourcePath)) {
     res.status(400).json({ error: 'Title, body, source repository, and safe source path are required' });
     return;
@@ -128,21 +156,26 @@ export async function createProposal(req: Request, res: Response): Promise<void>
   }
 
   try {
+    const evidenceMeta = evidence && sourceParts ? await validateSourceEvidence(sourceParts, sourceBranch, sourcePath, evidence, String(req.body?.sourceCommit || '')) : null;
     const octokit = await getOctokit({ allowUnauthenticated: false });
     const issueBody = [
       `noteBooksSourceRepository: ${sourceRepository}`,
       `noteBooksSourceBranch: ${sourceBranch}`,
       `noteBooksSourcePath: ${sourcePath}`,
+      evidence ? `noteBooksSourceLines: ${evidence.startLine}-${evidence.endLine}` : '',
+      evidenceMeta?.commit ? `noteBooksSourceCommit: ${evidenceMeta.commit}` : '',
+      evidenceMeta?.snippetHash ? `noteBooksSourceSnippetHash: ${evidenceMeta.snippetHash}` : '',
       stream ? `noteBooksStream: ${stream}` : '',
       '',
+      evidence ? `Selected source:\n${evidence.text}\n` : '',
       body,
     ].filter(Boolean).join('\n');
     const issue = await octokit.issues.create({ owner: targetIssuesRepo.owner, repo: targetIssuesRepo.repo, title, body: issueBody });
     const inserted = await dbQuery(
-      `INSERT INTO issue_proposals(author_user_id, author_email, title, body, stream, source_repository, source_branch, source_path, note_books_issue_number, note_books_issue_url, status)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'submitted')
+      `INSERT INTO issue_proposals(author_user_id, author_email, title, body, stream, source_repository, source_branch, source_path, source_start_line, source_end_line, source_text, source_commit, source_snippet_hash, source_snapshot_text, source_snapshot_captured_at, note_books_issue_number, note_books_issue_url, status)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, now(), $15, $16, 'submitted')
        RETURNING *`,
-      [userId, email, title, body, stream, sourceRepository, sourceBranch, sourcePath, issue.data.number, issue.data.html_url],
+      [userId, email, title, body, stream, sourceRepository, sourceBranch, sourcePath, evidence?.startLine || null, evidence?.endLine || null, evidence?.text || null, evidenceMeta?.commit || null, evidenceMeta?.snippetHash || null, evidence?.text || null, issue.data.number, issue.data.html_url],
     );
     const proposal = inserted.rows?.[0];
     if (proposal?.id) {
@@ -206,6 +239,17 @@ export async function createPullRequest(req: Request, res: Response): Promise<vo
     res.status(400).json({ error: 'Issue proposal and replacement content are required' });
     return;
   }
+  if (proposal.status !== 'approved') {
+    res.status(409).json({ error: 'Proposal must be approved before opening a pull request' });
+    return;
+  }
+  const existing = await dbQuery(`SELECT id, pr_number, pr_url, state, source_branch, target_branch
+                                  FROM pr_lifecycle WHERE issue_id = $1 AND state IN ('created', 'open', 'approved', 'merged')
+                                  ORDER BY created_at DESC LIMIT 1`, [issueId]);
+  if (existing.rows?.[0]?.pr_number) {
+    res.status(200).json({ idempotent: true, pr: { number: existing.rows[0].pr_number, html_url: existing.rows[0].pr_url }, lifecycle: existing.rows[0], targetRepository: proposal.source_repository });
+    return;
+  }
   const target = splitRepo(String(proposal.source_repository));
   if (!target || !isSafeSourcePath(proposal.source_path)) {
     res.status(400).json({ error: 'Stored source repository or path is invalid' });
@@ -214,7 +258,7 @@ export async function createPullRequest(req: Request, res: Response): Promise<vo
 
   try {
     const octokit = await getOctokit({ allowUnauthenticated: false });
-    const branch = `notebooks/issue-${issueId}-${Date.now()}`;
+    const branch = `notebooks/issue-${issueId}`;
     const ref = await octokit.git.getRef({ owner: target.owner, repo: target.repo, ref: `heads/${proposal.source_branch}` });
     const baseSha = ref.data.object.sha;
     await octokit.git.createRef({ owner: target.owner, repo: target.repo, ref: `refs/heads/${branch}`, sha: baseSha });
@@ -238,7 +282,9 @@ export async function createPullRequest(req: Request, res: Response): Promise<vo
     await dbQuery('UPDATE issue_proposals SET status = $1, updated_at = now() WHERE id = $2', ['pr_open', issueId]);
     await dbQuery(
       `INSERT INTO pr_lifecycle(issue_id, target_repository, target_branch, source_branch, pr_number, pr_url, state, created_by)
-       VALUES($1,$2,$3,$4,$5,$6,'open',$7)`,
+       VALUES($1,$2,$3,$4,$5,$6,'open',$7)
+       ON CONFLICT (provider, target_repository, pr_number) DO UPDATE SET updated_at = now()
+       RETURNING id, pr_number, pr_url, state`,
       [issueId, proposal.source_repository, proposal.source_branch, branch, pr.data.number, pr.data.html_url, (req as any).auth?.userId || null],
     );
     const issuesRepo = issueRepository();

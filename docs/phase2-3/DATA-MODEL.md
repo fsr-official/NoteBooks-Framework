@@ -1,6 +1,6 @@
 # NoteBooks Phase-2 / Phase-3 Data Model
 
-**Status:** Design baseline for implementation
+**Status:** Design baseline implemented for the role/profile slice; Vercel runtime binding remains separate from Supabase schema state.
 
 ## Persistence decision
 
@@ -16,12 +16,12 @@ Supabase Data API access is not required for the first activation. If direct bro
 
 | Concern | Canonical owner | Durable state |
 |---|---|---|
-| Identity and roles | `src/api/auth.ts`, OAuth/TOTP modules, users schema | `users`, reset tables, TOTP columns |
+| Identity and roles | `src/api/auth.ts`, `src/lib/roles.ts`, OAuth/TOTP modules, users schema | `users`, `app_roles`, `user_roles`, reset tables, TOTP columns |
 | Public Dashboard | Dashboard API module | activity and profile aggregates |
 | Admin control center | protected admin API and admin shell | moderation, theme, PR, and audit records |
 | Global themes | theme preset service | `theme_presets` |
 | Anonymous custom themes | theme preference service and signed visitor key | `theme_preferences` plus cookie key |
-| Community | community API and repository adapter | `community_posts`, repository metadata |
+| Community | community API, profile/presence API, and repository adapter | `community_posts`, user profile fields, role assignments, repository metadata |
 | Issues | issue proposal API and NoteBooks-Issues adapter | `issue_proposals`, `issue_votes` |
 | PR lifecycle | Octokit/GitHub App adapter | `pr_lifecycle`, audit events |
 | Cross-cutting audit | audit service | `audit_events` |
@@ -29,6 +29,14 @@ Supabase Data API access is not required for the first activation. If direct bro
 ## Core tables
 
 The existing `users`, `community_posts`, `github_installations`, `webhook_deliveries`, `reset_tokens`, and `reset_cooldowns` tables remain canonical. The Phase-2 migration adds additive columns and the following tables.
+
+### `app_roles` and `user_roles`
+
+`app_roles` is the canonical catalog for the fifteen named NoteBooks roles. `user_roles` is an additive many-to-many assignment table so a person can hold multiple moderator, supervisor, volunteer, or membership roles at once. The legacy `users.role` string remains for compatibility with the existing admin-plus-GitHub-plus-TOTP security boundary; a Super Admin assignment also keeps that legacy value at `admin`.
+
+### User profile and presence fields
+
+The `users` table now stores an allowlisted public display name, bounded bio, avatar color, public-profile flag, `presence_status` (`online` or `dnd`), and `presence_updated_at`. Profile reads never expose password hashes, TOTP secrets, provider IDs, or other authentication fields. Presence is currently a manually selected status, not a real-time heartbeat or last-seen tracker.
 
 ### `dashboard_activity`
 
@@ -70,7 +78,7 @@ The current project has both custom email/password auth and OAuth/TOTP-related m
 
 ## Activation order
 
-First, harden the PostgreSQL boundary and apply the additive migration. Second, add repository-agnostic data services with deterministic tests and explicit no-database behavior. Third, activate the Dashboard and theme services. Fourth, activate issue proposals and authenticated voting. Finally, connect Octokit PR creation and NoteBooks-Issues recording behind administrator approval and idempotency checks.
+The role/profile slice follows this activation order: apply the base identity, Phase-2, and role/profile migrations; provision the initial Super Admin; expose safe profile reads and authenticated profile/presence updates; then connect the Vercel runtime with `DATABASE_URL`. Existing Dashboard, theme, issue, voting, and Octokit boundaries remain gated by their respective credentials and administrator security requirements.
 
 ## References
 

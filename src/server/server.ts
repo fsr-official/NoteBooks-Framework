@@ -1,5 +1,6 @@
 import express, { type Request } from 'express';
 import helmet from 'helmet';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
@@ -19,6 +20,7 @@ export function createApp() {
 
 
   const app = express();
+  app.use(compression());
 
   // TikZJax and other WASM/WebWorker features require the page and its assets to be
   // cross-origin isolated. Setting this at the app layer guarantees the document and
@@ -111,6 +113,12 @@ export function createApp() {
       (req as any).rawBody = buf?.toString('utf8') || '';
     }
   }));
+  app.use((error: any, req: Request, res: express.Response, next: express.NextFunction) => {
+    if (req.path.startsWith('/api/') && error instanceof SyntaxError && 'body' in error) {
+      return res.status(400).json({ error: 'Malformed JSON request body' });
+    }
+    return next(error);
+  });
   registerObservability(app, projectDir);
   app.use(express.urlencoded({ extended: true }));
 

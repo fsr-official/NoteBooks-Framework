@@ -1,5 +1,5 @@
 (() => {
-  const root = document.getElementById('dashboardRoot');
+  const root = document.getElementById('dashboardRoot') || document.getElementById('personal-space');
   const status = document.getElementById('dashboardStatus');
   const overview = document.getElementById('dashboardOverview');
   const metrics = document.getElementById('dashboardMetrics');

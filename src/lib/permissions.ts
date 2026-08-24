@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getUser } from '../api/auth.js';
+import type { RoleKey } from './roles.js';
 
 function getJwtSecret() {
   return process.env.JWT_SECRET || 'dev-secret-key-do-not-use-in-production';
@@ -50,6 +51,24 @@ export function requireRole(role: string) {
   };
 }
 
+export function hasRole(decoded: any, role: RoleKey | string): boolean {
+  if (!decoded) return false;
+  if (decoded.role === 'admin' && role === 'super_admin') return true;
+  if (decoded.role === role) return true;
+  const roles = Array.isArray(decoded.roles) ? decoded.roles : Array.isArray(decoded.role_keys) ? decoded.role_keys : [];
+  return roles.includes(role);
+}
+
+export function requireAnyRole(...roles: Array<RoleKey | string>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const decoded = parseAuthToken(req);
+    if (!decoded || !decoded.email) return res.status(401).json({ error: 'Unauthorized' });
+    if (!roles.some((role) => hasRole(decoded, role))) return res.status(403).json({ error: 'Forbidden' });
+    (req as any).auth = decoded;
+    next();
+  };
+}
+
 export async function getAdminSecurityContext(req: Request): Promise<
   | { ok: true; auth: any }
   | { ok: false; status: 401 | 403; error: string }
@@ -58,7 +77,7 @@ export async function getAdminSecurityContext(req: Request): Promise<
   if (!decoded || !decoded.email) {
     return { ok: false, status: 401, error: 'Administrator authentication required' };
   }
-  if (decoded.role !== 'admin') {
+  if (!hasRole(decoded, 'super_admin') && decoded.role !== 'admin') {
     return { ok: false, status: 403, error: 'Administrator role required' };
   }
 
@@ -94,6 +113,8 @@ export default {
   requireAuth,
   requireTotpEnrolled,
   requireRole,
+  hasRole,
+  requireAnyRole,
   getAdminSecurityContext,
   requireAdminSecurity
 };

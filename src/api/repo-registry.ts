@@ -1,16 +1,9 @@
 import type { Request, Response } from 'express';
 import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js';
+import { parseRepoRegistryMarkdown, type RepoRegistryEntry } from '../lib/github-repositories.js';
 
-export interface RepoRegistryEntry {
-  name: string;
-  stream?: string;
-  repo: string;
-  branch?: string;
-  root?: string;
-  enabled?: boolean;
-  priority?: number;
-  pages?: boolean | string;
-}
+export { parseRepoRegistryMarkdown } from '../lib/github-repositories.js';
+export type { RepoRegistryEntry } from '../lib/github-repositories.js';
 
 export interface TreeNode {
   type: 'folder' | 'file';
@@ -38,42 +31,6 @@ function normalizeRepoEntry(entry: RepoRegistryEntry): RepoRegistryEntry {
   };
 }
 
-export function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntry[] {
-  const lines = markdown.split(/\r?\n/);
-  const tableLines = lines.filter((line) => line.trim().startsWith('|'));
-  if (tableLines.length < 2) {
-    return [];
-  }
-
-  const headers = tableLines[0]
-    .split('|')
-    .slice(1, -1)
-    .map((cell) => cell.trim().toLowerCase());
-  const indexOf = (name: string) => headers.indexOf(name);
-  const valueOf = (cells: string[], name: string) => {
-    const index = indexOf(name);
-    return index >= 0 ? cells[index] || '' : '';
-  };
-
-  return tableLines.slice(2)
-    .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
-    .filter((cells) => cells.length >= 2 && valueOf(cells, 'name') && valueOf(cells, 'repo'))
-    .map((cells) => {
-      const priority = valueOf(cells, 'priority');
-      const pages = valueOf(cells, 'pages');
-      return {
-        name: valueOf(cells, 'name'),
-        stream: valueOf(cells, 'stream').toLowerCase() || undefined,
-        repo: valueOf(cells, 'repo'),
-        branch: valueOf(cells, 'branch') || undefined,
-        root: valueOf(cells, 'root'),
-        enabled: valueOf(cells, 'enabled').toLowerCase() !== 'false',
-        priority: Number(priority),
-        pages: pages ? pages.toLowerCase() === 'true' : false
-      };
-    })
-    .filter((entry) => !Number.isNaN(entry.priority));
-}
 
 function buildTreeNode(name: string, path: string, children: TreeNode[] = []): TreeNode {
   return { type: 'folder', name, path, children };
@@ -212,16 +169,24 @@ function resolveDuplicateFiles(root: TreeNode) {
 }
 
 export async function loadRepoRegistry(): Promise<RepoRegistryEntry[]> {
-  const registryPath = process.env.REPO_REGISTRY_PATH || 'GITHUB-REPOSITORIES.md';
   const fs = await import('fs/promises');
   const path = await import('path');
-  const filePath = path.resolve(process.cwd(), registryPath);
+  const artifactPath = path.resolve(process.cwd(), 'public', 'json', 'github-repos.json');
 
   try {
-    const data = await fs.readFile(filePath, 'utf8');
-    if (data.trim().startsWith('|')) {
-      return parseRepoRegistryMarkdown(data);
+    const artifact = JSON.parse(await fs.readFile(artifactPath, 'utf8'));
+    if (artifact?.schemaVersion === 1 && artifact?.sourceFile === 'GITHUB-REPOSITORIES.md' && Array.isArray(artifact.entries)) {
+      return artifact.entries as RepoRegistryEntry[];
     }
+  } catch {
+    // Fall through to the compatibility source reader below.
+  }
+
+  const registryPath = process.env.REPO_REGISTRY_PATH || 'GITHUB-REPOSITORIES.md';
+  const filePath = path.resolve(process.cwd(), registryPath);
+  try {
+    const data = await fs.readFile(filePath, 'utf8');
+    if (data.trim().startsWith('|')) return parseRepoRegistryMarkdown(data);
     if (data.trim().startsWith('{')) {
       const parsed = JSON.parse(data);
       return Array.isArray(parsed) ? parsed : parsed.entries || [];
@@ -233,7 +198,7 @@ export async function loadRepoRegistry(): Promise<RepoRegistryEntry[]> {
       try {
         const fallbackData = await fs.readFile(fallbackPath, 'utf8');
         const parsed = JSON.parse(fallbackData);
-        console.warn('[api/repo-registry] repo-registry.json is deprecated; please migrate to GITHUB-REPOSITORIES.md');
+        console.warn('[api/repo-registry] repo-registry.json is deprecated; please migrate to github-repos.json');
         return Array.isArray(parsed) ? parsed : parsed.entries || [];
       } catch {
         return [];

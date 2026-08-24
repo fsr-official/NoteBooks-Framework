@@ -11,6 +11,16 @@ const mobilePreviewContent = document.getElementById("mobilePreviewContent");
 const mobilePreviewTitle = document.getElementById("mobilePreviewTitle");
 const taskbar = document.getElementById("taskbar");
 const statusEl = document.getElementById("status");
+function hideSplash() {
+    if (typeof window.__notebooksHideSplash === 'function' && window.__notebooksHideSplash !== hideSplash) {
+        window.__notebooksHideSplash();
+        return;
+    }
+    if (!splash) return;
+    splash.style.opacity = '0';
+    setTimeout(() => { splash.style.display = 'none'; }, 180);
+}
+window.__notebooksHideSplash = hideSplash;
 let currentNode = null;
 let pathHistory = [];
 let selected = null;
@@ -166,6 +176,11 @@ const SUBJECT_PAGES = {
 about: { icon: '◌', title: 'About NoteBooks', description: 'A shared shelf for clearer, kinder learning.' }
 };
 
+const SHARED_SHELL_ROUTES = new Set(['science', 'commerce', 'humanities', 'community', 'issues', 'volunteers', 'accounts', 'about']);
+function isSharedShellRoute(pathname) {
+    const slug = pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean)[0]?.toLowerCase() || '';
+    return pathname === '/' || SHARED_SHELL_ROUTES.has(slug);
+}
 function getCurrentStreamRoute() {
     // Prefer the explicit stream set by the shell
     if (window.CURRENT_STREAM) return window.CURRENT_STREAM;
@@ -181,9 +196,11 @@ function updateNavigationState() {
         else link.removeAttribute('aria-current');
     });
 }
+let routeTransitionSerial = 0;
 async function navigateToRoute(href, { replace = false } = {}) {
     const url = new URL(href, window.location.href);
     if (url.origin !== window.location.origin || !url.pathname.startsWith('/')) return;
+    const transitionId = ++routeTransitionSerial;
     if (replace) window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
     else window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
 
@@ -195,9 +212,9 @@ async function navigateToRoute(href, { replace = false } = {}) {
     updateNavigationState();
     syncStreamLandingState();
 
-    const shouldLoadWorkspace = url.pathname === '/' || NoteBooksStreamRuntime.streams.has(slug);
+    const shouldLoadWorkspace = NoteBooksStreamRuntime.streams.has(slug);
     if (shouldLoadWorkspace) {
-        await fetchTree();
+        await fetchTree(transitionId);
     }
 }
 function initGlobalNav() {
@@ -213,10 +230,16 @@ function initGlobalNav() {
         if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         const href = link.getAttribute('href');
         if (!href || href.startsWith('#')) return;
+        const targetUrl = new URL(href, window.location.href);
+        // Dashboard, Settings, and admin routes have standalone HTML shells. Let the
+        // browser perform a real navigation so their DOM and ownership boundaries load.
+        if (!isSharedShellRoute(targetUrl.pathname) || !isSharedShellRoute(window.location.pathname)) return;
         event.preventDefault();
         navigateToRoute(href).catch((error) => console.warn('[navigation] route transition failed', error));
     });
-    window.addEventListener('popstate', () => navigateToRoute(window.location.href, { replace: true }).catch((error) => console.warn('[navigation] history transition failed', error)));
+    window.addEventListener('popstate', () => {
+        if (isSharedShellRoute(window.location.pathname)) navigateToRoute(window.location.href, { replace: true }).catch((error) => console.warn('[navigation] history transition failed', error));
+    });
 }
 
 function renderPublicPortal(subject) {
@@ -342,12 +365,9 @@ function syncStreamLandingState() {
 
 async function fetchConfig() {
     try {
-        const res = await fetch('/api/config');
-        if (res.ok) {
-            const data = await res.json();
-            Object.assign(appConfig, data);
-            window.appConfig = appConfig;
-        }
+        const data = window.appConfigPromise ? await window.appConfigPromise : window.appConfig;
+        Object.assign(appConfig, data || {});
+        window.appConfig = appConfig;
     }
     catch (e) {
         console.warn('fetchConfig failed — using defaults:', e);
@@ -561,9 +581,13 @@ async function checkForAppUpdates() {
     }
 }
 
+let updatePollingStarted = false;
+let updatePollingTimer = null;
 async function startUpdatePolling() {
+    if (updatePollingStarted) return;
+    updatePollingStarted = true;
     await checkForAppUpdates();
-    setInterval(() => checkForAppUpdates(), UPDATE_POLL_INTERVAL);
+    updatePollingTimer = window.setInterval(() => checkForAppUpdates(), UPDATE_POLL_INTERVAL);
 }
 
 async function refreshFromSignal(payload) {
@@ -1003,7 +1027,8 @@ function toggleSidebar() {
     button.title = `${collapsed ? 'Expand' : 'Collapse'} repository navigator`;
     button.textContent = collapsed ? '›' : '‹';
 }
-  async function fetchTree() {
+  async function fetchTree(routeToken = 0) {
+  const routeAtStart = getCurrentStreamRoute();
   showStatus("Loading files...", true);
   try {
     let tree = null;
@@ -1068,6 +1093,8 @@ function toggleSidebar() {
                 throw new Error(`Failed to fetch registry: ${res.status}`);
             tree = await res.json();
         }
+        if (routeToken && routeToken !== routeTransitionSerial) return;
+        if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
@@ -1451,7 +1478,12 @@ function handleDownload() {
 }
 function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
     mobilePreviewTitle.textContent = filename;
-    fetchFileContent(path, filename, mobilePreviewContent, null, repo, branch, repoPath, precomputedRaw);
+    mobilePreview._filePath = path;
+    mobilePreview._repo = repo;
+    mobilePreview._branch = branch;
+    mobilePreview._repoPath = repoPath || path;
+    mobilePreview._filename = filename;
+    fetchFileContent(path, filename, mobilePreviewContent, mobilePreview, repo, branch, repoPath, precomputedRaw);
     mobilePreview.style.display = "flex";
 }
 function closeMobilePreview() {
@@ -1663,7 +1695,7 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
     // Edit button — only for markdown files
     const editBtnHTML = isMarkdown
         ? `<button class="btn-edit-split" id="${id}-editbtn" title="Edit existing Markdown file" aria-label="Edit existing Markdown file" onclick="toggleSplitEditor('${id}')">
-         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Edit</span><span class="sv-dot"></span>
+         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Open editor</span><span class="sv-dot"></span>
        </button>`
         : '';
     win.innerHTML = `
@@ -1773,25 +1805,126 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     }
 }
 // ─── Markdown render helper ───────────────────────────────────────────────────
+function sourceLineFromNode(node) {
+  const element = node && node.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+  const line = element?.closest?.('[data-source-line]')?.dataset.sourceLine;
+  return line ? Number(line) : null;
+}
+
+function sourceRangeForSelection(selection, sourceText) {
+  if (!selection || selection.isCollapsed || !selection.toString().trim()) return null;
+  const selectedText = selection.toString();
+  const rawStart = sourceLineFromNode(selection.anchorNode);
+  const rawEnd = sourceLineFromNode(selection.focusNode);
+  if (rawStart && rawEnd) {
+    const startLine = Math.min(rawStart, rawEnd);
+    const endLine = Math.max(rawStart, rawEnd);
+    const lines = String(sourceText || '').split(/\r?\n/);
+    return { startLine, endLine, selectedText, sourceText: lines.slice(startLine - 1, endLine).join('\n') };
+  }
+  const normalized = selectedText.replace(/\s+/g, ' ').trim();
+  const sourceLines = String(sourceText || '').split(/\r?\n/);
+  let startIndex = String(sourceText || '').indexOf(selectedText);
+  if (startIndex < 0) {
+    startIndex = sourceLines.findIndex((line) => line.replace(/\s+/g, ' ').trim().includes(normalized));
+    if (startIndex >= 0) return { startLine: startIndex + 1, endLine: startIndex + 1, selectedText, sourceText: sourceLines[startIndex] };
+  }
+  if (startIndex < 0) return null;
+  const endIndex = startIndex + selectedText.length;
+  return { startLine: String(sourceText).slice(0, startIndex).split(/\r?\n/).length, endLine: String(sourceText).slice(0, endIndex).split(/\r?\n/).length, selectedText, sourceText: String(sourceText).slice(startIndex, endIndex) };
+}
+
+function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
+  const existing = document.getElementById('suggest-changes-dialog');
+  if (existing) existing.remove();
+  if (!evidence) {
+    showStatus('Select source text that maps to a source line, or use Raw view for exact line selection.');
+    return;
+  }
+  const dialog = document.createElement('div');
+  dialog.id = 'suggest-changes-dialog';
+  dialog.className = 'suggest-changes-dialog';
+  const repo = win?._repo || appConfig.GITHUB_REPO || '';
+  const branch = win?._branch || appConfig.GITHUB_BRANCH || 'main';
+  const stream = typeof getCurrentStreamRoute === 'function' ? getCurrentStreamRoute() : '';
+  dialog.innerHTML = `<div class="suggest-changes-card" role="dialog" aria-modal="true" aria-labelledby="suggest-changes-title"><div class="suggest-changes-header"><div><span class="markdown-mode-label">Issues</span><h2 id="suggest-changes-title">Suggest changes</h2></div><button type="button" class="suggest-changes-close" aria-label="Close">×</button></div><p class="suggest-changes-context">${escapeHTML(repo || 'Source repository')} · ${escapeHTML(filePath)} · lines ${evidence.startLine}–${evidence.endLine}</p><pre class="suggest-changes-selection">${escapeHTML(evidence.sourceText)}</pre><form id="suggest-changes-form"><label>Short title<input name="title" maxlength="200" required placeholder="What should be improved?" /></label><label>Why should this change? <textarea name="body" maxlength="20000" minlength="20" required placeholder="Explain the issue for the reviewer."></textarea></label><div class="suggest-changes-actions"><button type="button" class="landing-secondary" data-suggest-cancel>Cancel</button><button type="submit" class="landing-primary">Raise issue</button><span class="suggest-changes-status" role="status"></span></div></form></div>`;
+  document.body.appendChild(dialog);
+  const close = () => dialog.remove();
+  dialog.querySelector('.suggest-changes-close')?.addEventListener('click', close);
+  dialog.querySelector('[data-suggest-cancel]')?.addEventListener('click', close);
+  dialog.querySelector('#suggest-changes-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const status = form.querySelector('.suggest-changes-status');
+    const token = window.ModernAuthInstance?.getToken?.() || '';
+    if (!token) { if (status) status.textContent = 'Sign in from Settings before raising an issue.'; return; }
+    const values = Object.fromEntries(new FormData(form).entries());
+    const button = form.querySelector('button[type="submit"]');
+    if (button) button.disabled = true;
+    if (status) status.textContent = 'Submitting to NoteBooks-Issues…';
+    try {
+      const response = await fetch('/api/issues/proposals', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` }, credentials: 'same-origin', body: JSON.stringify({ title: values.title, body: values.body, stream, sourceRepository: repo, sourceBranch: branch, sourcePath: win?._repoPath || filePath, sourceStartLine: evidence.startLine, sourceEndLine: evidence.endLine, sourceText: evidence.sourceText, sourceCommit: win?._commit || '' }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `Issue submission failed (${response.status})`);
+      if (status) status.textContent = 'Issue raised for review.';
+      setTimeout(close, 900);
+    } catch (error) { if (status) status.textContent = error.message || 'Issue submission failed.'; if (button) button.disabled = false; }
+  });
+  dialog.querySelector('input')?.focus();
+}
+
+function renderRawMarkdown(text) {
+  const lines = String(text || '').split(/\r?\n/);
+  const renderedLines = lines.map((line, index) => `<span class="raw-source-line" data-source-line="${index + 1}"><span class="raw-line-number" aria-hidden="true">${index + 1}</span><span class="raw-line-text">${escapeHTML(line) || ' '}</span></span>`).join('');
+  return `<pre class="raw-markdown-line-view" data-raw-source="true"><code>${renderedLines}</code></pre>`;
+}
+
 function renderMarkdownIntoContainer(text, filePath, container) {
   const win = container.closest('.floating-window');
   const toolbar = document.createElement('div');
   toolbar.className = 'markdown-mode-toolbar';
-  toolbar.innerHTML = '<span class="markdown-mode-label">Document</span><button type="button" data-mode="preview" class="active">Preview</button><button type="button" data-mode="edit">Edit</button><button type="button" data-mode="raw">RAW</button>';
+  toolbar.innerHTML = '<span class="markdown-mode-label">Document</span><button type="button" data-mode="preview" class="active">Reader</button><button type="button" data-mode="raw">Raw view</button>';
   const wrapper = document.createElement('div');
   wrapper.className = 'markdown-content';
+  wrapper.dataset.sourceFile = filePath || '';
+  let lastEvidence = null;
   wrapper.innerHTML = markdownToHTML(text, filePath);
   container.innerHTML = '';
   container.appendChild(toolbar);
   container.appendChild(wrapper);
-  toolbar.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {
-      toolbar.querySelectorAll('button').forEach((item) => item.classList.toggle('active', item === button));
-      if (button.dataset.mode === 'edit' && win) { toggleSplitEditor(win.dataset.id); return; }
-      if (button.dataset.mode === 'raw') {
-          wrapper.classList.add('raw-markdown'); wrapper.textContent = text;
-      } else {
-          wrapper.classList.remove('raw-markdown'); wrapper.innerHTML = markdownToHTML(text, filePath); setTimeout(() => initMarkdownFeatures(wrapper), 0);
-      }
+
+  const suggestButton = document.createElement('button');
+  suggestButton.type = 'button';
+  suggestButton.dataset.mode = 'suggest';
+  suggestButton.textContent = 'Suggest changes';
+  suggestButton.className = 'markdown-suggest-button';
+  suggestButton.disabled = true;
+  suggestButton.title = 'Select source text first';
+  suggestButton.addEventListener('mousedown', (event) => event.preventDefault());
+  suggestButton.addEventListener('click', () => openSuggestChangesComposer(win, text, filePath, lastEvidence));
+  toolbar.appendChild(suggestButton);
+  wrapper.addEventListener('mouseup', () => {
+    const selection = window.getSelection();
+    if (!selection || !wrapper.contains(selection.anchorNode) || !wrapper.contains(selection.focusNode)) return;
+    lastEvidence = sourceRangeForSelection(selection, text);
+    suggestButton.disabled = !lastEvidence;
+    suggestButton.title = lastEvidence ? `Suggest changes for lines ${lastEvidence.startLine}–${lastEvidence.endLine}` : 'Select source text that maps to source lines';
+  });
+
+  const setMode = (mode) => {
+    toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((item) => item.classList.toggle('active', item.dataset.mode === mode));
+    if (mode === 'raw') {
+      wrapper.classList.add('raw-markdown');
+      wrapper.innerHTML = renderRawMarkdown(text);
+      return;
+    }
+    wrapper.classList.remove('raw-markdown');
+    wrapper.innerHTML = markdownToHTML(text, filePath);
+    setTimeout(() => initMarkdownFeatures(wrapper), 0);
+  };
+
+  toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((button) => button.addEventListener('click', () => {
+    setMode(button.dataset.mode || 'preview');
   }));
   setTimeout(() => initMarkdownFeatures(wrapper), 0);
 }
@@ -1983,7 +2116,7 @@ function openCommunity() {
         openPreview(path, 'Community 💬');
     }
 }
-window.addEventListener("DOMContentLoaded", async () => {
+async function bootNoteBooks() {
     const treeRail = document.getElementById('treeRail');
     const treeRailToggle = document.getElementById('treeRailToggle');
     treeRailToggle?.addEventListener('click', () => {
@@ -2018,6 +2151,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   await fetchConfig();
   applyWorkspaceBranding();
   syncStreamLandingState();
+  const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(getCurrentStreamRoute()) || window.location.pathname === '/';
+  if (isPortalRoute) hideSplash();
     // Subject pages are rendered into the dedicated content mount in the shared app shell.
     // We intentionally do not replace the whole app shell here, because that destroys
     // the existing navigation and workspace state and causes the placeholder issue.
@@ -2031,11 +2166,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   const utilityTitle = document.getElementById('utilityWorkspaceTitle');
   if (utilityTitle) utilityTitle.textContent = document.getElementById('workspaceHeader')?.textContent || 'NoteBooks';
   const activeRoute = getCurrentStreamRoute();
-  const shouldLoadWorkspace = window.location.pathname === '/' || NoteBooksStreamRuntime.streams.has(activeRoute);
+    const shouldLoadWorkspace = NoteBooksStreamRuntime.streams.has(activeRoute);
   if (shouldLoadWorkspace) {
     await NoteBooksStreamRuntime.loadStreamTree();
     await startUpdatePolling();
     await fetchTree();
   }
   maybeShowVercelPopup();
-});
+}
+void bootNoteBooks();

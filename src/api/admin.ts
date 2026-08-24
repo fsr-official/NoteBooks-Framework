@@ -4,8 +4,10 @@ import fs from 'fs';
 import path from 'path';
 import permissions from '../lib/permissions.js';
 import { getUser, setUser } from './auth.js';
+import { ROLE_KEYS, isRoleKey, ROLE_LABELS } from '../lib/roles.js';
 
-const VALID_ROLES = new Set(['admin', 'moderator', 'editor', 'user']);
+const LEGACY_ROLES = new Set(['admin', 'moderator', 'editor', 'user']);
+const VALID_ROLES = new Set([...LEGACY_ROLES, ...ROLE_KEYS]);
 
 function appendAdminLog(entry: any) {
   try {
@@ -46,18 +48,26 @@ export default async function handler(req: Request, res: Response) {
       try {
         const { email, role } = req.body || {};
         if (!email || !role) return res.status(400).json({ error: 'Missing email or role' });
-        if (!VALID_ROLES.has(String(role))) return res.status(400).json({ error: 'Invalid role' });
+        const roleKey = String(role);
+        if (!VALID_ROLES.has(roleKey)) return res.status(400).json({ error: 'Invalid role' });
         const actor = String(decoded.email || 'system');
+        const legacyRole = LEGACY_ROLES.has(roleKey) ? roleKey : roleKey === 'super_admin' ? 'admin' : 'user';
         if (isDbConfigured()) {
-          await dbQuery('UPDATE users SET role = $1 WHERE email = $2', [role, email]);
-          await dbQuery('INSERT INTO admin_hierarchy(user_id, subject, role) SELECT id, $1, $2 FROM users WHERE email = $3', [ 'global', role, email ]).catch(() => {});
+          await dbQuery('UPDATE users SET role = $1 WHERE email = $2', [legacyRole, email]);
+          if (isRoleKey(roleKey)) {
+            await dbQuery('INSERT INTO user_roles(user_id, role_key, assigned_by) SELECT target.id, $1, actor.id FROM users target LEFT JOIN users actor ON actor.email = $2 WHERE target.email = $3 ON CONFLICT (user_id, role_key) DO NOTHING', [roleKey, actor, email]).catch(() => {});
+          }
+          await dbQuery('INSERT INTO admin_hierarchy(user_id, subject, role) SELECT id, $1, $2 FROM users WHERE email = $3', ['global', roleKey, email]).catch(() => {});
         } else {
           const u = await getUser(email);
           if (!u) return res.status(404).json({ error: 'User not found' });
-          u.role = role as any;
+          u.role = legacyRole as any;
+          if (isRoleKey(roleKey)) {
+            (u as any).role_keys = Array.from(new Set([...(Array.isArray((u as any).role_keys) ? (u as any).role_keys : []), roleKey]));
+          }
           await setUser(email, u as any);
         }
-        appendAdminLog({ action: 'assign-role', actor, target: email, role, at: new Date().toISOString() });
+        appendAdminLog({ action: 'assign-role', actor, target: email, role: roleKey, label: isRoleKey(roleKey) ? ROLE_LABELS[roleKey] : roleKey, at: new Date().toISOString() });
         return res.status(200).json({ success: true });
       } catch (err) {
         console.error('[admin] assign-role failed', err);
@@ -66,18 +76,25 @@ export default async function handler(req: Request, res: Response) {
     case 'revoke-role':
       if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
       try {
-        const { email } = req.body || {};
+        const { email, role } = req.body || {};
         if (!email) return res.status(400).json({ error: 'Missing email' });
         const actorR = String(decoded.email || 'system');
+        if (role && !isRoleKey(String(role))) return res.status(400).json({ error: 'Invalid role' });
         if (isDbConfigured()) {
-          await dbQuery('UPDATE users SET role = $1 WHERE email = $2', ['user', email]);
+          if (role) {
+            await dbQuery('DELETE FROM user_roles WHERE user_id = (SELECT id FROM users WHERE email = $1) AND role_key = $2', [email, String(role)]).catch(() => {});
+          } else {
+            await dbQuery('UPDATE users SET role = $1 WHERE email = $2', ['user', email]);
+            await dbQuery('DELETE FROM user_roles WHERE user_id = (SELECT id FROM users WHERE email = $1)', [email]).catch(() => {});
+          }
         } else {
           const u = await getUser(email);
           if (!u) return res.status(404).json({ error: 'User not found' });
-          u.role = 'user';
+          if (role) (u as any).role_keys = (Array.isArray((u as any).role_keys) ? (u as any).role_keys : []).filter((key: string) => key !== String(role));
+          else { u.role = 'user'; delete (u as any).role_keys; }
           await setUser(email, u as any);
         }
-        appendAdminLog({ action: 'revoke-role', actor: actorR, target: email, at: new Date().toISOString() });
+        appendAdminLog({ action: 'revoke-role', actor: actorR, target: email, role: role || null, at: new Date().toISOString() });
         return res.status(200).json({ success: true });
       } catch (err) {
         console.error('[admin] revoke-role failed', err);

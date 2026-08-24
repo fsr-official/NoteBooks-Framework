@@ -1,6 +1,20 @@
 import request from 'supertest';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { createApp } from '../src/server/server.ts';
+import { sourceEvidence } from '../src/api/issues.ts';
+
+describe('canonical issues source evidence', () => {
+  it('accepts bounded line ranges with selected source text', () => {
+    expect(sourceEvidence({ startLine: 4, endLine: 6, text: '## Heading\\n\\nDetails' })).toEqual({ startLine: 4, endLine: 6, text: '## Heading\\n\\nDetails' });
+  });
+
+  it('rejects missing, reversed, oversized, or empty evidence', () => {
+    expect(sourceEvidence({ startLine: 0, endLine: 1, text: 'x' })).toBeNull();
+    expect(sourceEvidence({ startLine: 8, endLine: 4, text: 'x' })).toBeNull();
+    expect(sourceEvidence({ startLine: 1, endLine: 501, text: 'x' })).toBeNull();
+    expect(sourceEvidence({ startLine: 1, endLine: 1, text: '' })).toBeNull();
+  });
+});
 
 describe('canonical issues security boundaries', () => {
   beforeEach(() => {

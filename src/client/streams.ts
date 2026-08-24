@@ -15,12 +15,12 @@ interface StreamTreeNode {
   children?: StreamTreeNode[];
 }
 
-const STREAM_ARTIFACTS: Record<string, string> = {
+const STREAM_SHELL_ARTIFACTS: Record<string, string> = {
   science: '/public/json/science-tree.json',
   commerce: '/public/json/commerce-tree.json',
   humanities: '/public/json/humanities-tree.json'
 };
-const STREAM_SLUGS = Object.keys(STREAM_ARTIFACTS);
+const STREAM_SLUGS = Object.keys(STREAM_SHELL_ARTIFACTS);
 
 let streamRepoMapPromise: Promise<Record<string, string>> | null = null;
 
@@ -43,12 +43,13 @@ function parseStreamRepos(raw: string): Record<string, string> {
 
 async function getStreamRepoMap(): Promise<Record<string, string>> {
   if (!streamRepoMapPromise) {
-    streamRepoMapPromise = fetch('/api/config')
-      .then((res) => (res.ok ? res.json() : Promise.resolve({})))
+    const configPromise = (window as any).appConfigPromise || Promise.resolve((window as any).appConfig || {});
+    streamRepoMapPromise = configPromise
+      .then((data: any) => data || {})
       .then((data: { STREAM_REPOS?: string; SUBJECT_REPOS?: string }) => parseStreamRepos(data?.STREAM_REPOS || data?.SUBJECT_REPOS || ''))
       .catch(() => ({}));
   }
-  return streamRepoMapPromise;
+  return streamRepoMapPromise || Promise.resolve({});
 }
 
 /** Finds the top-level registry tree node for a given repo (e.g. "fsr-science/NCERT-Science"). */
@@ -170,15 +171,15 @@ async function populateStreamTree(container: HTMLElement, slug: string): Promise
   treeBody.innerHTML = '<p class="stream-tree-loading">Loading contents…</p>';
 
   try {
-    // The runtime system endpoint is authoritative; static files remain a compatibility fallback.
+    // Build-time stream artifacts are canonical; the runtime endpoint is a compatibility fallback.
     let payload: any = null;
     const candidateUrls = [
-      `/api/system/${slug}`,
-      STREAM_ARTIFACTS[slug] || ''
+      STREAM_SHELL_ARTIFACTS[slug] || '',
+      `/api/system/${slug}`
     ];
     for (const u of candidateUrls) {
       try {
-        const r = await fetch(`${u}?_=${Date.now()}`, { cache: 'no-store' });
+        const r = await fetch(u, { cache: u.startsWith('/public/json/') ? 'default' : 'no-store' });
         if (!r.ok) continue;
         payload = await r.json();
         break;

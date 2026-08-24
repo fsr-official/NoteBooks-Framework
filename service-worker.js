@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v12';
+const CACHE_VERSION = 'webman-v23';
 const OFFLINE_PAGE = 'offline.html';
 
 const APP_SHELL = [
@@ -13,10 +13,12 @@ const APP_SHELL = [
   'index.html',
   'offline.html',
   'public/manifest.json',
-  'favicon.png',
+  'public/favicon-128.png',
   'public/css/style.css',
   'public/css/tree.css',
   'public/css/dashboard.css',
+  'public/js/config.js',
+  'public/js/markdown-vendors.js',
   'public/js/app.js',
   'public/js/theme.js',
   'public/js/landing-docs.js',
@@ -26,6 +28,7 @@ const APP_SHELL = [
   'public/js/admin-dashboard.js',
   'public/client/streams.js',
   'public/js/auth.js',
+  'public/js/modern-auth.js',
   'public/js/upload.js',
   'public/js/mobile.js',
   'public/js/markdown.js',
@@ -33,8 +36,11 @@ const APP_SHELL = [
   'public/js/obsidian-markdown-it.js',
   'public/css/theme.css',
   'public/html/settings.html',
-  'public/html/dashboard.html',
   'public/html/admin.html',
+  'public/html/portal.html',
+  'public/js/portal.js',
+  'public/js/shell-nav.js',
+  'public/json/github-repos.json',
   'public/json/science-tree.json',
   'public/json/commerce-tree.json',
   'public/json/humanities-tree.json',
@@ -134,8 +140,9 @@ self.addEventListener('install', event => {
     (async () => {
       const cache = await caches.open(CACHE_VERSION);
       await Promise.allSettled(APP_SHELL.map(url => cache.add(url).catch(() => {})));
-      // Load stream trees into memory so fetch handler can resolve stream files
-      try { await loadStreamTrees(); } catch (e) { /* ignore */ }
+      // Do not fan out to all remote stream APIs during installation. Stream trees are
+      // already precached as build artifacts and runtime stream/API requests remain lazy.
+      // This keeps SW install fast and avoids making every client refresh all streams.
     })()
   );
   self.skipWaiting();

@@ -19,6 +19,9 @@ import dashboardHandler from '../api/dashboard.js';
 import adminDashboardHandler from '../api/admin-dashboard.js';
 import themeHandler from '../api/theme.js';
 import issuesHandler from '../api/issues.js';
+import * as communityProfileHandler from '../api/community-profile.js';
+import * as communityChannelsHandler from '../api/community-channels.js';
+import * as issueReviewHandler from '../api/issue-review.js';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -104,7 +107,24 @@ export function registerApiRoutes(app: express.Application): void {
 
   app.get('/api/community/feed', communityHandler.listFeed);
   app.get('/api/community/posts', communityHandler.listPosts);
+  app.get('/api/community/channels', communityChannelsHandler.listChannels);
+  app.get('/api/community/channels/:slug/messages', communityChannelsHandler.listMessages);
+  app.post('/api/community/channels/:slug/messages', permissions.requireAuth, communityChannelsHandler.createMessage);
+  app.post('/api/community/channels/:slug/read', permissions.requireAuth, communityChannelsHandler.markChannelRead);
+  app.post('/api/community/messages/:id/report', permissions.requireAuth, communityChannelsHandler.reportMessage);
+  app.get('/api/community/moderation/reports', permissions.requireAnyRole('super_admin', 'community_mod', 'issues_mod', 'content_mod'), communityChannelsHandler.listReports);
+  app.post('/api/community/messages/:id/moderate', permissions.requireAnyRole('super_admin', 'community_mod', 'issues_mod', 'content_mod'), communityChannelsHandler.moderateMessage);
+  app.post('/api/community/moderation/reports/:id/resolve', permissions.requireAnyRole('super_admin', 'community_mod', 'issues_mod', 'content_mod'), communityChannelsHandler.resolveReport);
+  app.get('/api/community/profiles', communityProfileHandler.listPublicProfiles);
+  app.get('/api/community/profile', permissions.requireAuth, communityProfileHandler.getOwnProfile);
+  app.get('/api/community/profile/:email', communityProfileHandler.getPublicProfile);
+  app.put('/api/community/profile', permissions.requireAuth, express.json(), communityProfileHandler.updateOwnProfile);
   app.get('/api/issues/feed', issuesHandler.listIssues);
+  app.get('/api/issues/review', permissions.requireAdminSecurity, issueReviewHandler.listProposals);
+  app.get('/api/issues/:id/diff', permissions.requireAdminSecurity, issueReviewHandler.getDiff);
+  app.get('/api/issues/:id/comments', permissions.requireAuth, issueReviewHandler.listComments);
+  app.post('/api/issues/:id/comments', permissions.requireAuth, issueReviewHandler.createComment);
+  app.post('/api/issues/:id/review', permissions.requireAdminSecurity, issueReviewHandler.reviewProposal);
   app.post('/api/community/post', permissions.requireAuth, communityHandler.createPost);
   app.post('/api/community/post/:id/approve', permissions.requireAdminSecurity, communityHandler.approvePost);
   app.post('/api/community/post/:id/reject', permissions.requireAdminSecurity, communityHandler.rejectPost);

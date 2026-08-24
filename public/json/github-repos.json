@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "sourceFile": "GITHUB-REPOSITORIES.md",
+  "sourceSha256": "97e0a89dd3d8f64b799f9c4188574f397eba77359c699d434fd06121cfc921f3",
+  "entries": [
+    {
+      "name": "NCERT-SCIENCE",
+      "stream": "science",
+      "repo": "fsr-science/NCERT-Science",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 1,
+      "pages": true
+    },
+    {
+      "name": "NCERT-COMMERCE",
+      "stream": "commerce",
+      "repo": "fsr-commerce/NCERT-Commerce",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 2,
+      "pages": true
+    },
+    {
+      "name": "NCERT-HUMANITIES",
+      "stream": "humanities",
+      "repo": "fsr-humanities/NCERT-Humanities",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 3,
+      "pages": true
+    }
+  ]
+}

@@ -34,9 +34,13 @@ describe('workspace env routing', () => {
     const app = createApp();
 
     const dashboard = await request(app).get('/dashboard');
-    expect(dashboard.status).toBe(200);
-    expect(dashboard.text).toContain('Your NoteBooks dashboard');
-    expect(dashboard.text).toContain('/public/js/dashboard.js');
+    expect(dashboard.status).toBe(302);
+    expect(dashboard.headers.location).toBe('/settings#personal-space');
+
+    const settings = await request(app).get('/settings');
+    expect(settings.status).toBe(200);
+    expect(settings.text).toContain('Your Dashboard');
+    expect(settings.text).toContain('id="personal-space"');
 
     const admin = await request(app).get('/admin');
     expect(admin.status).toBe(200);

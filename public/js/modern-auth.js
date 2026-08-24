@@ -1,5 +1,21 @@
 // ===== MODERN EMAIL + PASSWORD AUTH SYSTEM =====
 // v2 — fixed reCAPTCHA key binding, async race guard, and error propagation
+let recaptchaScriptPromise = null;
+function ensureRecaptchaScript(siteKey) {
+    if (window.grecaptcha) return Promise.resolve();
+    if (!siteKey) return Promise.resolve();
+    if (recaptchaScriptPromise) return recaptchaScriptPromise;
+    recaptchaScriptPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(siteKey)}`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('reCAPTCHA failed to load.'));
+        document.head.appendChild(script);
+    });
+    return recaptchaScriptPromise;
+}
 class ModernAuth {
     constructor(config = {}) {
         this.token = null;
@@ -58,14 +74,19 @@ class ModernAuth {
      * Returns a reCAPTCHA v3 token, or null if reCAPTCHA is not configured.
      * Rejects if the key is set but grecaptcha fails to produce a token.
      */
-    _getCaptchaToken() {
+    async _getCaptchaToken() {
         // No key configured — skip reCAPTCHA entirely (dev / test environments).
         if (!this.recaptchaSiteKey) {
-            return Promise.resolve(null);
+            return null;
         }
-        // grecaptcha script hasn't loaded yet — fail fast rather than sending null.
+        try {
+            await ensureRecaptchaScript(this.recaptchaSiteKey);
+        }
+        catch (error) {
+            throw new Error('reCAPTCHA has not loaded yet. Please try again.');
+        }
         if (!window.grecaptcha) {
-            return Promise.reject(new Error('reCAPTCHA has not loaded yet. Please wait and try again.'));
+            throw new Error('reCAPTCHA has not loaded yet. Please try again.');
         }
         return new Promise((resolve, reject) => {
             window.grecaptcha.ready(() => {

@@ -212,6 +212,12 @@
             },
             {
               "type": "file",
+              "name": "PRODUCTION-RELIABILITY-FIX.md",
+              "path": "docs/phase1/PRODUCTION-RELIABILITY-FIX.md",
+              "sha": "074b75ca59be612200f1a66582a8f3002da90fe4ec60256166dc3a9ffca6222c"
+            },
+            {
+              "type": "file",
               "name": "PUBLIC-ASSET-INVENTORY.txt",
               "path": "docs/phase1/PUBLIC-ASSET-INVENTORY.txt",
               "sha": "cb69c2496262a90783e203d08e1a0c752ec5986fe7a5c7abc3e423c46e9917e8"
@@ -273,9 +279,39 @@
             },
             {
               "type": "file",
+              "name": "COMMUNITY-CHANNELS.md",
+              "path": "docs/phase2-3/COMMUNITY-CHANNELS.md",
+              "sha": "08758ac61d028257fc85c280f7e448001faeb68a8178772e9c780a648fb89baa"
+            },
+            {
+              "type": "file",
               "name": "DATA-MODEL.md",
               "path": "docs/phase2-3/DATA-MODEL.md",
-              "sha": "db609695ea7408afad8566bfc8fcb20b80eb5a5112accf3ccbd006ff4e5d9323"
+              "sha": "0cd1a689e6737f7c3efda1aa50461451bfcd27a140ee23cb78d1a8d673d1bfe5"
+            },
+            {
+              "type": "file",
+              "name": "FINAL-AUDIT-AND-VERIFICATION.md",
+              "path": "docs/phase2-3/FINAL-AUDIT-AND-VERIFICATION.md",
+              "sha": "358f4f64dba963a3bad2fb614fdf3ff7d1d6a009851cfc1a57acde3c13aec4ec"
+            },
+            {
+              "type": "file",
+              "name": "HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
+              "path": "docs/phase2-3/HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
+              "sha": "de36ea2f35bf3b035103d1d86def75a9e9cd299e3e595a4065e8535cd17ad3ab"
+            },
+            {
+              "type": "file",
+              "name": "ISSUES-ADMIN-REVIEW.md",
+              "path": "docs/phase2-3/ISSUES-ADMIN-REVIEW.md",
+              "sha": "ea64f44928ec7e7a91989d6623bdb0f1d2b764d43f6a41a49d99347ed2845900"
+            },
+            {
+              "type": "file",
+              "name": "PHASE2-3-STATUS.md",
+              "path": "docs/phase2-3/PHASE2-3-STATUS.md",
+              "sha": "3f218334ff273af9b7a3006c43e3250051d193079d9d82e3304a46cc4122e87b"
             }
           ]
         },
@@ -335,25 +371,6 @@
       "name": "scripts",
       "path": "scripts",
       "children": []
-    },
-    {
-      "type": "folder",
-      "name": "ui-verification",
-      "path": "ui-verification",
-      "children": [
-        {
-          "type": "file",
-          "name": "findings.md",
-          "path": "ui-verification/findings.md",
-          "sha": "e4c69acd0a9082c57157f481d33e63512b18f02fe6693b9dd7f11356b99a9a04"
-        },
-        {
-          "type": "file",
-          "name": "runtime-check.txt",
-          "path": "ui-verification/runtime-check.txt",
-          "sha": "a78f9931d40f348c6dccc8721349ca726c78b74a1f19d923655158b9b501aa80"
-        }
-      ]
     }
   ]
 }
