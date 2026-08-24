@@ -1,6 +1,6 @@
 {
   "type": "folder",
-  "name": "project-src",
+  "name": "NoteBooks-Framework",
   "path": "",
   "children": [
     {
@@ -35,57 +35,6 @@
               "type": "folder",
               "name": "[stream]",
               "path": "api/system/[stream]",
-              "children": []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "folder",
-      "name": "dist",
-      "path": "dist",
-      "children": [
-        {
-          "type": "folder",
-          "name": "server",
-          "path": "dist/server",
-          "children": [
-            {
-              "type": "folder",
-              "name": "api",
-              "path": "dist/server/api",
-              "children": [
-                {
-                  "type": "folder",
-                  "name": "webhooks",
-                  "path": "dist/server/api/webhooks",
-                  "children": []
-                }
-              ]
-            },
-            {
-              "type": "folder",
-              "name": "lib",
-              "path": "dist/server/lib",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "scripts",
-              "path": "dist/server/scripts",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "server",
-              "path": "dist/server/server",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "shims",
-              "path": "dist/server/shims",
               "children": []
             }
           ]
@@ -294,6 +243,12 @@
               "name": "FINAL-AUDIT-AND-VERIFICATION.md",
               "path": "docs/phase2-3/FINAL-AUDIT-AND-VERIFICATION.md",
               "sha": "358f4f64dba963a3bad2fb614fdf3ff7d1d6a009851cfc1a57acde3c13aec4ec"
+            },
+            {
+              "type": "file",
+              "name": "GITHUB-REPOS-MANIFEST.md",
+              "path": "docs/phase2-3/GITHUB-REPOS-MANIFEST.md",
+              "sha": "d9c82e8bf0e1a858d0e1b9598ee7f22642961a53becba630a2b7bb101ca0ab24"
             },
             {
               "type": "file",
