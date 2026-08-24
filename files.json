@@ -1,6 +1,6 @@
 {
   "type": "folder",
-  "name": "project-src",
+  "name": "NoteBooks-Framework",
   "path": "",
   "children": [
     {
@@ -35,57 +35,6 @@
               "type": "folder",
               "name": "[stream]",
               "path": "api/system/[stream]",
-              "children": []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "folder",
-      "name": "dist",
-      "path": "dist",
-      "children": [
-        {
-          "type": "folder",
-          "name": "server",
-          "path": "dist/server",
-          "children": [
-            {
-              "type": "folder",
-              "name": "api",
-              "path": "dist/server/api",
-              "children": [
-                {
-                  "type": "folder",
-                  "name": "webhooks",
-                  "path": "dist/server/api/webhooks",
-                  "children": []
-                }
-              ]
-            },
-            {
-              "type": "folder",
-              "name": "lib",
-              "path": "dist/server/lib",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "scripts",
-              "path": "dist/server/scripts",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "server",
-              "path": "dist/server/server",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "shims",
-              "path": "dist/server/shims",
               "children": []
             }
           ]
