@@ -133,10 +133,10 @@ def resolve_file_hashes(tree):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate the local files manifest and repo registry.")
+    parser = argparse.ArgumentParser(description="Generate the local files manifest; an optional local registry can be requested explicitly.")
     parser.add_argument("--root", default=".", help="Directory to scan (default: current directory)")
     parser.add_argument("--output", default="files.json", help="Manifest output path")
-    parser.add_argument("--registry", default="repo-registry.json", help="Generated registry output path")
+    parser.add_argument("--registry", default="", help="Optional local registry output path; omit to preserve the canonical remote registry")
     args = parser.parse_args()
 
     root_dir = Path(args.root).resolve()
@@ -151,7 +151,10 @@ if __name__ == "__main__":
 
     Path(args.output).write_text(json.dumps(tree, indent=2) + "\n", encoding="utf-8")
 
-    registry = parse_registry(root_dir / "GITHUB-REPOSITORIES.md")
-    Path(args.registry).write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
     print(f"✓ {args.output} generated ({len(tree['children'])} root entries).")
-    print(f"✓ {args.registry} synchronized from GITHUB-REPOSITORIES.md ({len(registry)} repositories).")
+    if args.registry:
+        registry = parse_registry(root_dir / "GITHUB-REPOSITORIES.md")
+        registry_path = Path(args.registry)
+        registry_path.parent.mkdir(parents=True, exist_ok=True)
+        registry_path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
+        print(f"✓ {args.registry} synchronized from GITHUB-REPOSITORIES.md ({len(registry)} repositories).")

@@ -1,10 +1,51 @@
 {
-  "subject": "commerce",
+  "stream": "commerce",
+  "root": {
+    "type": "folder",
+    "name": "NoteBooks-Commerce",
+    "path": "NoteBooks-Commerce",
+    "stream": "commerce",
+    "children": [
+      {
+        "type": "folder",
+        "name": "NCERT-Commerce",
+        "children": [
+          {
+            "type": "file",
+            "name": "README.md",
+            "path": "README.md",
+            "mime": "text/markdown",
+            "repo": "fsr-commerce/NCERT-Commerce",
+            "branch": "main",
+            "raw": "https://raw.githubusercontent.com/fsr-commerce/NCERT-Commerce/main/README.md",
+            "size": 16
+          }
+        ]
+      }
+    ]
+  },
   "repos": [
     {
+      "stream": "commerce",
       "repo": "fsr-commerce/NCERT-Commerce",
       "branch": "main",
-      "pagesBase": "https://fsr-commerce.github.io/NCERT-Commerce/",
+      "root": "",
+      "name": "fsr-commerce/NCERT-Commerce",
+      "manifestUrl": "",
+      "source": "raw",
+      "files": [
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "README.md",
+          "mime": "text/markdown",
+          "repo": "fsr-commerce/NCERT-Commerce",
+          "branch": "main",
+          "raw": "https://raw.githubusercontent.com/fsr-commerce/NCERT-Commerce/main/README.md",
+          "size": 16,
+          "stream": "commerce"
+        }
+      ],
       "tree": {
         "type": "folder",
         "name": "NCERT-Commerce",

@@ -10,12 +10,12 @@ html[data-theme="dark"] {
   color-scheme: dark;
 
   /* Core surfaces and text */
-  --bg: #030811;
+  --bg: #02050a;
   --fg: #dbe7e5;
-  --item: #08111d;
-  --panel: #091827;
-  --hover: #10243a;
-  --code-bg: #02050a;
+  --item: #050c14;
+  --panel: #07111b;
+  --hover: #0b1b2b;
+  --code-bg: #010307;
   --surface-muted: color-mix(in srgb, var(--item) 86%, var(--bg));
   --text-muted: color-mix(in srgb, var(--fg) 64%, transparent);
 
@@ -26,7 +26,7 @@ html[data-theme="dark"] {
   --selected: rgba(52, 211, 153, 0.18);
   --btn-bg: #0d1728;
   --btn-hover: #162438;
-  --border: #183449;
+  --border: #112a3b;
   --border-subtle: rgba(126, 167, 198, 0.18);
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 
@@ -83,7 +83,7 @@ body {
 /* Shared surface utilities used by both the landing page and workspace shell. */
 .panel,
 .portal-panel,
-.subject-card {
+.stream-card {
   background: var(--panel);
   color: var(--fg);
   border: 1px solid var(--border);

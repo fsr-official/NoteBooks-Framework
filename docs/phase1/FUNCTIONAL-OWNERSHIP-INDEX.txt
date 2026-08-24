@@ -1,0 +1,639 @@
+=== APP.JS FUNCTIONS ===
+4:const listView = document.getElementById("listView");
+5:const pathNav = document.getElementById("pathNav");
+6:const splash = document.getElementById("splash");
+7:const contextMenu = document.getElementById("contextMenu");
+8:const previewContainer = document.getElementById("previewContainer");
+9:const mobilePreview = document.getElementById("mobilePreview");
+10:const mobilePreviewContent = document.getElementById("mobilePreviewContent");
+11:const mobilePreviewTitle = document.getElementById("mobilePreviewTitle");
+12:const taskbar = document.getElementById("taskbar");
+13:const statusEl = document.getElementById("status");
+18:const windows = {};
+19:const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+32:const expandedTreePaths = new Set();
+33:const THEME_KEY = 'notebooks-theme-global';
+34:const THEME_COOKIE = 'notebooks-theme';
+35:const THEME_PRESETS = {
+42:function themeControls(id) {
+45:function getCookie(name) {
+50:function setCookie(name, value, days = 365) {
+56:function readSavedTheme() {
+67:function applyTheme(theme, options = {}) {
+106:function applyThemePreset(name) { applyTheme(THEME_PRESETS[name] || THEME_PRESETS.futuristic); }
+107:function updateCustomTheme(key, value) { applyTheme({ ...readSavedTheme(), [key]: value }); themeControls('themePreset').forEach((el) => { el.value = 'custom'; }); }
+108:function restoreTheme() { applyTheme(readSavedTheme() || THEME_PRESETS.futuristic, { skipPersist: true }); }
+113:const appConfig = window.appConfig || {
+126:function loadStreamTree() {
+128:    streamTreeLoadPromise = (async () => {
+161:function formatWorkspaceLabel(rawValue) {
+174:function applyWorkspaceBranding() {
+217:function switchGuideTab(tab) {
+235:function showGuidance() {
+243:function dismissGuidance() {
+251:function hideGuidance() {
+259:function initialGuideState() {
+273:const SUBJECT_PAGES = {
+284:const STREAM_ARTIFACTS = Object.freeze({
+289:const WORKSPACE_STREAMS = new Set(Object.keys(STREAM_ARTIFACTS));
+290:function streamArtifactUrl(stream) {
+293:function getCurrentStreamRoute() {
+299:function updateNavigationState() {
+308:async function navigateToRoute(href, { replace = false } = {}) {
+328:function initGlobalNav() {
+347:function renderPublicPortal(subject) {
+367:async function loadPortalFeed(subject, targetId = 'portalFeed', sort = 'latest') {
+382:function formatFeedDate(value) { const date = value ? new Date(value) : null; return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Recently'; }
+383:function initHomeFeed() {
+391:async function initLocalLandingDocs() {
+418:function initPortalMotion() { const targets = document.querySelectorAll('[data-reveal], .stream-card'); if (!('IntersectionObserver' in window)) { targets.forEach((target) => target.classList.add('is-visible')); return; } const observer = new IntersectionObserver((entries, instance) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); instance.unobserve(entry.target); } }), { threshold: 0.12 }); targets.forEach((target) => observer.observe(target)); }
+419:function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
+421:function syncStreamLandingState() {
+459:async function fetchConfig() {
+472:const EXCLUDED_ROOT_FILES = [
+475:const FILE_ICONS = {
+508:function dismissUpdateNotice() {
+512:function showStatus(message, isLoading = false) {
+526:const UPDATE_POLL_INTERVAL = 30_000;
+527:const PRESERVED_LOCAL_STORAGE_KEYS = [
+535:function notifyRefreshSignal(type, message) {
+544:async function clearAppCaches() {
+590:function showUpdateBanner(message = 'Update detected. Refresh now to apply changes.') {
+600:function scheduleReload(delay = 3000) {
+607:async function getAppVersion() {
+620:async function getLatestCommitSignal() {
+633:async function applyDirectoryUpdate(signal) {
+642:async function applyFileUpdate(signal) {
+650:async function checkForAppUpdates() {
+680:async function startUpdatePolling() {
+685:async function refreshFromSignal(payload) {
+695:async function generateFileTree() {
+706:async function refreshSignalLoop() {
+721:function refreshFiles() {
+725:function buildPagesUrl(p) {
+738:async function fetchPagesManifest() {
+768:function pagesBaseForRepository(repo) {
+776:function annotateRepositoryTree(node, prefix, repo, branch) {
+792:async function appendConfiguredRepositoryTrees(localTree) {
+826:function buildFileIndex(node, acc = []) {
+844:function nodeMatchesQuery(node, query) {
+850:function updateSearchResults(query) {
+864:function renderSearchResults(results) {
+906:function findAncestors(node, targetPath, ancestors = []) {
+923:function navigateToSidebarNode(path) {
+937:function getNodePath(node) {
+940:function getNodeRepositoryPath(nodeOrPath, explicitRepoPath = '') {
+946:function getNodeDetails(node) {
+952:function setActiveTreePath(path) {
+976:function showTreeHoverDetails(node) {
+991:function hideTreeHoverDetails() {
+995:function createSidebarTreeItem(node, query) {
+1085:function renderSidebarTree(root, query = '') {
+1110:function toggleSidebar() {
+1232:function getFileIcon(file) {
+1238:function getFileTypeClass(file) {
+1246:function renderFolder(node) {
+1321:function startDrag(e, id) {
+1340:function updatePathNav() {
+1362:function goToRoot() { fetchTree(); }
+1363:function goToPath(index) {
+1370:function goUp() {
+1378:function previewFile(e, index) {
+1384:function downloadFile(e, index) {
+1396:function deleteFile(e, index) {
+1419:function cancelDeleteFile() {
+1427:async function confirmDeleteFile() {
+1448:function closeWindow(id) {
+1456:function minimizeWindow(id) {
+1463:function showTaskbarContextMenu(x, y, id) {
+1479:function restoreFromTaskbar(id) {
+1486:function updateTaskbar() {
+1507:function toggleFullscreen(id, forceFull = false) {
+1533:function showContextMenu(x, y) {
+1538:function handlePreview() {
+1547:function handleDownload() {
+1567:function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+1572:function closeMobilePreview() {
+1577:function injectSplitViewStyles() {
+1707:function openNewMarkdownEditor() {
+1765:function openPreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+1815:async function fetchFileContent(path, filename, container, winElement = null, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+1999:function renderMarkdownIntoContainer(text, filePath, container) {
+2026:function toggleSplitEditor(windowId) {
+2132:function attachDividerDrag(divider, leftPane, container) {
+2157:function escapeHTML(s) {
+2169:const manifest = {
+2179:function hasVercelDismissCookie() {
+2182:function goToVercel() {
+2186:function dismissVercelPopup() {
+2192:function maybeShowVercelPopup() {
+2200:function openCommunity() {
+2232:            searchDebounceTimer = setTimeout(() => updateSearchResults(query), 120);
+=== SERVER FUNCTIONS/CONSTANTS ===
+26:const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+28:function getWorkspaceEnv(): string {
+32:function resolveWorkspaceRoot(projectDir: string, workspaceEnv: string): string {
+37:  const projectBaseName = path.basename(projectDir);
+38:  const candidate = path.isAbsolute(workspaceEnv)
+44:  const normalized = path.normalize(candidate);
+45:  const projectRootNormalized = path.normalize(projectDir);
+46:  const pathLike = path.isAbsolute(workspaceEnv) || workspaceEnv.includes('/') || workspaceEnv.includes(path.sep) || workspaceEnv.toLowerCase().endsWith('.json');
+49:    const parentDir = path.dirname(normalized);
+76:function resolveWorkspaceManifestPath(projectDir: string, workspaceEnv: string): string {
+81:  const envPath = path.isAbsolute(workspaceEnv)
+89:  const workspaceRoot = resolveWorkspaceRoot(projectDir, workspaceEnv);
+93:function getWorkspaceMetadata(projectDir: string) {
+94:  const workspaceEnv = getWorkspaceEnv();
+95:  const workspaceRoot = resolveWorkspaceRoot(projectDir, workspaceEnv);
+103:const authLimiter = rateLimit({
+111:const submitPrLimiter = rateLimit({
+119:export function createApp() {
+126:  const app = express();
+131:  app.use((_req, res, next) => {
+138:  app.use(cookieParser());
+141:  const enforceCsrf = process.env.ENFORCE_CSRF === 'true';
+143:    app.use((req, res, next) => {
+144:      const method = req.method.toUpperCase();
+149:      const bearerAdmin = req.path === '/api/admin' && /^Bearer\s+/i.test(String(req.headers.authorization || ''));
+151:      const cookieToken = req.cookies?.csrf || req.headers['x-csrf-cookie'];
+152:      const header = req.headers['x-csrf-token'];
+162:    app.use((req, _res, next) => {
+163:      const method = req.method.toUpperCase();
+170:  const projectDir = path.resolve(process.cwd());
+172:  app.use(helmet({
+213:  app.use(express.json({
+220:  app.use((req, res, next) => {
+221:    const start = Date.now();
+223:      const dur = Date.now() - start;
+236:  app.get('/metrics', (req, res) => {
+237:    const format = String(req.query.format || '').toLowerCase();
+239:      const text = metrics.getPrometheusText ? metrics.getPrometheusText() : '';
+243:    const m = metrics.getMetrics();
+247:  app.use(express.urlencoded({ extended: true }));
+249:    const healthHandler = async (_req: express.Request, res: express.Response) => {
+250:    const health: any = { status: 'ok', checks: {} };
+254:      const db = await import('../lib/db.js');
+272:      const sh = await import('../api/_shared.js');
+275:        const oct = await sh.getOctokit({ allowUnauthenticated: false } as any);
+278:        const apps = (oct as any).apps;
+295:  app.get('/health', healthHandler);
+296:  app.get('/api/health', healthHandler);
+298:  app.get('/api/version', (_req, res) => {
+299:    const versionPath = path.join(projectDir, 'version.json');
+302:        const content = fs.readFileSync(versionPath, 'utf-8');
+315:    const fallbackVersion = {
+325:  app.get('/private/files.json', async (_req, res) => await sendManifestResponse(res));
+327:  app.get('/api/oauth', oauthHandler);
+328:  app.get('/api/oauth.js', oauthHandler);
+329:  app.post('/api/oauth', oauthHandler);
+331:  app.get('/private/config', configHandler);
+333:  app.get('/', (_req, res) => {
+337:  app.get('/index.html', (_req, res) => {
+341:  app.get('/README.md', (_req, res) => {
+345:  app.get('/LICENSE', (_req, res) => {
+351:  const adminShell = (_req: express.Request, res: express.Response) => {
+354:  app.get('/admin', adminShell);
+355:  app.get('/admin/', adminShell);
+356:  app.get('/admin-prs', adminShell);
+358:  const settingsShell = (_req: express.Request, res: express.Response) => {
+361:  app.get('/settings', settingsShell);
+362:  app.get('/settings/', settingsShell);
+366:  const STREAM_ROUTES = ['science', 'commerce', 'humanities', 'community', 'volunteers', 'accounts', 'issues', 'about'];
+368:  app.get(`/${s}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
+369:  app.get(`/${s}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
+372:  app.get(/^\/(science|commerce|humanities|community|issues|accounts|volunteers|about)(?:\/.+)?$/, (_req, res) => {
+376:  app.get('/manifest.json', (_req, res) => {
+380:  app.get('/service-worker.js', (_req, res) => {
+384:  app.get('/favicon.png', (_req, res) => {
+389:  app.use('/public', express.static(path.join(projectDir, 'public'), {
+405:  app.use(express.static(path.join(projectDir, 'public'), {
+422:    const workspaceEnv = getWorkspaceEnv();
+423:    const manifestPath = resolveWorkspaceManifestPath(projectDir, workspaceEnv);
+424:    const workspaceRoot = resolveWorkspaceRoot(projectDir, workspaceEnv);
+427:      const content = fs.readFileSync(manifestPath, 'utf-8');
+434:    const manifest = await buildLocalFilesManifest(workspaceRoot);
+440:  app.get('/files.json', async (_req, res) => await sendManifestResponse(res));
+441:  app.get('/repo-registry.json', (_req, res) => {
+442:    const registryPath = path.join(projectDir, 'public', 'json', 'repo-registry.json');
+448:  app.get('/api/files.json', async (_req, res) => await sendManifestResponse(res));
+449:  app.get('/api/manifest', async (_req, res) => await sendManifestResponse(res));
+450:  app.get('/api/manifest.js', async (_req, res) => await sendManifestResponse(res));
+451:  app.get('/files/:filePath(*)', (req, res) => {
+452:    const params = req.params as { filePath?: string };
+453:    const filePath = String(params.filePath || '').replace(/^\/+/, '');
+458:    const absolutePath = path.resolve(projectDir, filePath);
+470:  app.get('/api/workspace', (_req, res) => {
+475:  app.get('/api/config', configHandler);
+476:  app.get('/api/config.js', configHandler);
+477:  app.get('/api/registry', repoRegistryHandler);
+478:  app.get('/api/registry.js', repoRegistryHandler);
+482:  app.get('/api/system/:stream', systemHandler);
+483:  app.head('/api/system/:stream', systemHandler);
+484:  app.post('/api/system/:stream/refresh', systemHandler);
+485:  app.get('/api/files', repoRegistryHandler);
+486:  app.get('/api/files.js', repoRegistryHandler);
+487:  app.get('/api/pr-review', prReview.listHandler);
+488:  app.get('/api/pr-review.js', prReview.listHandler);
+489:  app.use('/api/auth', authLimiter);
+492:  app.post('/api/totp', permissions.requireAuth, totpHandler);
+493:  app.post('/api/totp.js', permissions.requireAuth, totpHandler);
+494:  app.post('/api/gh', permissions.requireAuth, ghHandler);
+495:  app.post('/api/gh.js', permissions.requireAuth, ghHandler);
+496:  app.post('/api/blob', permissions.requireTotpEnrolled, blobHandler);
+497:  app.post('/api/blob.js', permissions.requireTotpEnrolled, blobHandler);
+498:  app.get('/api/raw', rawHandler);
+499:  app.get('/api/raw.js', rawHandler);
+502:  app.use('/api/submit-pr', submitPrLimiter);
+503:  app.post('/api/submit-pr', permissions.requireTotpEnrolled, submitPrHandler);
+504:  app.post('/api/submit-pr.js', permissions.requireTotpEnrolled, submitPrHandler);
+505:  app.post('/api/refresh-signal', refreshSignalHandler);
+506:  app.get('/api/refresh-signal', refreshSignalHandler);
+508:  app.post('/api/subject/:subject/community/post', permissions.requireAuth, (req, res) => {
+512:  app.post('/api/subject/:subject/community/post/:id/approve', permissions.requireAdminSecurity, (req, res) => {
+515:  app.post('/api/subject/:subject/issues/create', permissions.requireAuth, async (req, res) => {
+516:    const subject = String(req.params.subject || req.query.subject || '').trim();
+517:    const title = (req.body && req.body.title) || req.body.title || req.query.title;
+518:    const body = (req.body && req.body.body) || req.body.body || req.query.body;
+521:      const issuesTarget = process.env.GITHUB_ISSUES_REPO || '';
+523:      const [owner, repo] = issuesTarget.split('/').filter(Boolean);
+524:      const oct = await import('../api/_shared.js').then((m) => m.getOctokit({ allowUnauthenticated: false }));
+525:      const issueBody = subject ? `[${subject}]\n\n${body}` : body;
+526:      const issue = await oct.issues.create({ owner, repo, title, body: issueBody }).catch((e:any) => { throw e; });
+534:  app.get('/api/community/feed', communityHandler.listFeed);
+535:  app.get('/api/community/posts', communityHandler.listPosts);
+536:  app.get('/api/issues/feed', communityHandler.listFeed);
+537:  app.post('/api/community/post', permissions.requireAuth, communityHandler.createPost);
+538:  app.post('/api/community/post/:id/approve', permissions.requireAdminSecurity, communityHandler.approvePost);
+539:  app.post('/api/community/post/:id/reject', permissions.requireAdminSecurity, communityHandler.rejectPost);
+541:  app.post('/api/github-app', permissions.requireAdminSecurity, (req, res) => {
+545:  app.post('/api/webhooks/github-app', express.json(), (req, res) => {
+548:  app.get('/api/webhooks/github-app', permissions.requireAdminSecurity, (req, res) => {
+552:  app.get('/api/admin', permissions.requireAdminSecurity, (req, res) => {
+555:  app.post('/api/admin', permissions.requireAdminSecurity, (req, res) => {
+558:  app.get('/api/latest-commit', (_req, res) => {
+559:    const latest = getLatestSignal();
+575:  app.post('/api/pr-review/accept', permissions.requireAdminSecurity, prReview.acceptHandler);
+576:  app.post('/api/pr-review/reject', permissions.requireAdminSecurity, prReview.rejectHandler);
+577:  app.get('/api/desmos', desmosHandler);
+578:  app.get('/api/desmos.js', desmosHandler);
+581:  app.post('/api/theme', express.json(), (req, res) => {
+583:      const theme = req.body && req.body.theme ? req.body.theme : null;
+585:      const json = JSON.stringify(theme);
+595:  app.get('/api/theme', (req, res) => {
+597:      const cookie = req.cookies && req.cookies['notebooks-theme'];
+610:async function hasValidGeneratedArtifacts(projectDir: string): Promise<boolean> {
+611:  const candidates = [
+620:      const parsed = JSON.parse(await fs.promises.readFile(candidate, 'utf8'));
+629:export async function startServer(port: number = PORT) {
+631:    const envDefaults = {
+644:  const projectDir = path.resolve(process.cwd());
+646:    const result = await generateJsonFiles({ cwd: projectDir });
+657:  const app = createApp();
+=== ACTIVE HTML SCRIPT/CSS GRAPH ===
+--- index.html ---
+16:  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js"></script>
+18:  <script src="https://cdn.jsdelivr.net/npm/markdown-it-sub@1/dist/markdown-it-sub.min.js"></script>
+19:  <script src="https://cdn.jsdelivr.net/npm/markdown-it-sup@1/dist/markdown-it-sup.min.js"></script>
+20:  <script src="https://cdn.jsdelivr.net/npm/markdown-it-footnote@3/dist/markdown-it-footnote.min.js"></script>
+22:  <script>
+36:  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+39:  <link rel="stylesheet" href="/public/bin/tikzjax/css/fonts.css">
+40:  <script src="/public/bin/tikzjax/output/tikzjax.js"></script>
+42:  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css"
+44:  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github-dark.min.css"
+46:  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+48:  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+50:  <script src="/api/desmos.js"></script>
+52:  <script src="/public/js/obsidian-markdown-it.js"></script>
+54:  <script src="https://www.google.com/recaptcha/api.js?render=6LeI4QgtAAAAAIHR7fZ2uCoPNqNe3LBFLCuCBBZH" async defer></script>
+56:  <script src="/public/js/modern-auth.js"></script>
+57:  <link rel="stylesheet" href="/public/css/theme.css">
+58:  <link rel="stylesheet" href="/public/css/style.css">
+59:  <script src="/public/js/md-init.js"></script>
+60:  <script src="/public/js/markdown-editor.js"></script>
+63:  <div id="splash"><img src="favicon.png" alt="Loading..." /></div>
+65:  <nav class="global-nav" aria-label="Primary navigation">
+66:    <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
+67:    <div class="global-nav-links">
+70:    <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+73:  <div id="streamContentRoot" class="stream-content-root" aria-live="polite" hidden></div>
+75:  <div id="streamLanding" class="stream-landing" aria-live="polite">
+76:    <div class="landing-hero">
+77:      <div class="landing-kicker">A calmer way to build knowledge</div>
+79:      <p class="hero-copy"><span>NoteBooks is where notes stop being static.</span> <span>Diagrams that show how ideas connect, callouts that catch what matters before you miss it, and a structure built to survive the second read — not just the first.</span> <span>Study a concept once, and the page is still useful the tenth time you come back to it.</span></p>
+80:      <div class="landing-actions" aria-label="Primary journeys">
+81:        <a class="landing-primary" href="/science">Start learning <span aria-hidden="true">→</span></a>
+82:        <a class="landing-secondary" href="/community">Join the conversation</a>
+83:        <a class="landing-secondary" href="/volunteers">Contribute to NoteBooks</a>
+85:      <div class="landing-signals" aria-label="NoteBooks principles">
+92:    <div class="portal-grid">
+93:      <section class="portal-panel portal-panel--wide live-activity-panel" data-reveal>
+94:        <div class="portal-panel-header"><span>Live activity</span><strong>What the community is improving</strong></div>
+95:        <div class="feed-switcher" role="group" aria-label="Activity sorting"><button type="button" class="feed-switch is-active" data-feed-sort="latest">Latest</button><button type="button" class="feed-switch" data-feed-sort="trending">Trending</button></div>
+96:        <div class="portal-feed" id="homeFeed" role="status" aria-live="polite"><p class="feed-empty">Select Latest or Trending to load community activity.</p></div>
+99:      <section class="portal-panel portal-panel--mission">
+100:        <div class="portal-panel-header"><span>Why NoteBooks</span><strong>Learning that compounds</strong></div>
+101:        <div class="mission-points"><p class="mission-copy"><strong>Built for understanding.</strong> Notes are organized for study, revision, and returning to difficult ideas without losing context.</p><p class="mission-copy"><strong>Improved in public.</strong> Contributions move through validation, review, and the project’s GitHub workflow before they become part of the shared shelf.</p><p class="mission-copy"><strong>Connected by conversation.</strong> Community discussions and Issues turn questions, gaps, and corrections into visible next steps.</p></div>
+102:        <a class="portal-inline-link" href="/about">Read our mission →</a>
+106:    <div class="stream-grid" id="streamGrid">
+107:      <a class="stream-card" href="/science">
+108:        <span class="stream-icon">🧪</span>
+112:      <a class="stream-card" href="/commerce">
+113:        <span class="stream-icon">💼</span>
+117:      <a class="stream-card" href="/humanities">
+118:        <span class="stream-icon">📚</span>
+125:    <section class="landing-docs-panel" aria-labelledby="landingDocsHeading">
+126:      <div class="landing-docs-header"><span class="landing-kicker">Project context</span><h2 id="landingDocsHeading">Read the project locally</h2><p>Start with the project overview or inspect the current architecture before entering a stream.</p></div>
+127:      <div id="landingDocs" class="landing-doc-grid" aria-live="polite"><p class="landing-doc-empty">Loading local project documents…</p></div>
+132:  <div id="guidanceOverlay" class="full-overlay">
+133:    <div class="overlay-card">
+134:      <div class="overlay-icon-lg">👋</div>
+135:      <div id="guideOverlayHeading" class="overlay-heading">Welcome to NoteBooks</div>
+136:      <div class="overlay-subtext">A quick guide to get you started</div>
+137:      <div class="guide-tabs">
+138:        <button class="guide-tab" id="guideTabDesktop" onclick="switchGuideTab('desktop')">🖥️ Desktop</button>
+139:        <button class="guide-tab" id="guideTabMobile" onclick="switchGuideTab('mobile')">📱 Mobile</button>
+141:      <div id="guideDesktop">
+142:        <div class="guide-step"><div class="guide-step-icon">👆</div><div class="guide-step-text"><strong>Click to open files</strong><span>Single-click any file to preview it in a floating window</span></div></div>
+143:        <div class="guide-step"><div class="guide-step-icon">🖱️</div><div class="guide-step-text"><strong>Right-click for options</strong><span>Right-click any file for Preview or Download options</span></div></div>
+144:        <div class="guide-step"><div class="guide-step-icon">⠿</div><div class="guide-step-text"><strong>Drag windows freely</strong><span>Hold and drag the title bar to reposition any window</span></div></div>
+145:        <div class="guide-step"><div class="guide-step-icon">🗕</div><div class="guide-step-text"><strong>Minimise to taskbar</strong><span>Click 🗕 to minimise — windows appear in the scrollable bottom bar</span></div></div>
+146:        <div class="guide-step"><div class="guide-step-icon">📂</div><div class="guide-step-text"><strong>Navigate folders</strong><span>Click a folder to open it, use ↑ or the breadcrumb to go back</span></div></div>
+147:        <div class="guide-step"><div class="guide-step-icon">📤</div><div class="guide-step-text"><strong>Upload files</strong><span>Click 📤 in the toolbar to upload a file for admin review</span></div></div>
+148:        <div class="guide-step"><div class="guide-step-icon">🔑</div><div class="guide-step-text"><strong>Admin access</strong><span>Click 🔑 Login in the toolbar to enter your access code</span></div></div>
+150:      <div id="guideMobile" style="display:none">
+151:        <div class="guide-step"><div class="guide-step-icon">👆</div><div class="guide-step-text"><strong>Tap to open files</strong><span>Tap any file to open a full-screen preview</span></div></div>
+152:        <div class="guide-step"><div class="guide-step-icon">🗕</div><div class="guide-step-text"><strong>Minimise to corner button</strong><span>Tap 🗕 to minimise — a floating button appears at the bottom-right</span></div></div>
+153:        <div class="guide-step"><div class="guide-step-icon">🔄</div><div class="guide-step-text"><strong>Switch between open files</strong><span>Tap a minimised button to restore it; any open file auto-minimises</span></div></div>
+154:        <div class="guide-step"><div class="guide-step-icon">📂</div><div class="guide-step-text"><strong>Navigate folders</strong><span>Tap a folder to open, use ↑ or the breadcrumb to go back</span></div></div>
+155:        <div class="guide-step"><div class="guide-step-icon">📤</div><div class="guide-step-text"><strong>Upload files</strong><span>Tap 📤 in the toolbar to submit a file for review</span></div></div>
+156:        <div class="guide-step"><div class="guide-step-icon">🔑</div><div class="guide-step-text"><strong>Admin access</strong><span>Tap 🔑 Login to enter your admin access code</span></div></div>
+158:      <button class="overlay-btn-primary" onclick="dismissGuidance()" style="margin-top:20px">Got it — let's go! 🚀</button>
+163:  <div id="loginOverlay" class="full-overlay">
+164:    <div class="overlay-card">
+165:      <button class="overlay-close" onclick="hideLoginScreen()">×</button>
+168:      <div id="authTabs" class="guide-tabs" style="margin-bottom:20px">
+169:        <button class="guide-tab active" onclick="switchAuthTab('login')">Login</button>
+170:        <button class="guide-tab" onclick="switchAuthTab('register')">Register</button>
+174:      <div id="loginView">
+175:        <div class="overlay-icon-lg" style="font-size:42px">🔐</div>
+176:        <div class="overlay-heading">Welcome Back</div>
+177:        <div class="overlay-subtext">Sign in to your account</div>
+181:          <input type="email" id="loginEmail" class="text-input" placeholder="your@email.com" style="margin:0">
+186:          <input type="password" id="loginPassword" class="text-input" placeholder="••••••••" style="margin:0">
+189:        <div id="loginMsg" class="login-msg"></div>
+191:        <button class="overlay-btn-primary" onclick="attemptModernLogin()" style="margin-top:16px">Sign In</button>
+194:          <button class="overlay-btn-ghost" onclick="switchAuthTab('forgot')" style="font-size:13px">Forgot password?</button>
+199:      <div id="registerView" style="display:none">
+200:        <div class="overlay-icon-lg" style="font-size:42px">📝</div>
+201:        <div class="overlay-heading">Create Account</div>
+202:        <div class="overlay-subtext">Join NoteBooks today</div>
+206:          <input type="email" id="registerEmail" class="text-input" placeholder="your@email.com" style="margin:0">
+211:          <input type="password" id="registerPassword" class="text-input" placeholder="••••••••" style="margin:0">
+217:          <input type="password" id="registerConfirmPassword" class="text-input" placeholder="••••••••" style="margin:0">
+220:        <div id="registerMsg" class="login-msg"></div>
+222:        <button class="overlay-btn-primary" onclick="attemptModernRegister()" style="margin-top:16px">Create Account</button>
+226:      <div id="forgotView" style="display:none">
+227:        <div class="overlay-icon-lg" style="font-size:42px">🔑</div>
+228:        <div class="overlay-heading">Reset Password</div>
+229:        <div class="overlay-subtext">Enter your email to receive a reset link</div>
+233:          <input type="email" id="forgotEmail" class="text-input" placeholder="your@email.com" style="margin:0">
+236:        <div id="forgotMsg" class="login-msg"></div>
+238:        <button class="overlay-btn-primary" onclick="attemptModernForgotPassword()" style="margin-top:16px">Send Reset Link</button>
+241:          <button class="overlay-btn-ghost" onclick="switchAuthTab('login')" style="font-size:13px">Back to Login</button>
+246:      <div id="loggedInView" style="display:none">
+247:        <div class="overlay-icon-lg" style="font-size:42px">✅</div>
+248:        <div class="overlay-heading">Welcome!</div>
+249:        <div class="overlay-subtext" id="loggedInEmail"></div>
+253:            <span id="loggedInStatus" style="font-weight:600;color:var(--accent)">Authenticated</span>
+256:        <button class="overlay-btn-ghost" onclick="attemptModernLogout()" style="margin-top:16px">Log Out</button>
+262:  <div id="adminOverlay" class="full-overlay">
+263:    <div class="overlay-card overlay-card--wide">
+264:      <button class="overlay-close" onclick="hideAdminPanel()">×</button>
+265:      <div class="overlay-heading">Admin Panel</div>
+268:      <div class="admin-section">
+273:        <button class="overlay-btn-primary" style="width:auto;padding:10px 20px" onclick="hideAdminPanel(); showAdminTerminal()">Open Terminal</button>
+277:      <div class="admin-section">
+279:        <div id="sshUsersList"><div style="font-size:13px;opacity:.5;padding:6px 0">No SSH users registered.</div></div>
+283:      <div id="superAdminSection" class="admin-section" style="display:none">
+285:        <div id="adminCodesList"><div style="font-size:13px;opacity:.5;padding:6px 0">No admin codes yet.</div></div>
+286:        <button class="overlay-btn-secondary" style="width:auto;padding:8px 16px;margin-top:8px" onclick="toggleCreateAdminForm()">+ Create New Admin</button>
+287:        <div id="createAdminForm" style="display:none;margin-top:14px;padding:16px;background:var(--bg);border-radius:13px">
+289:          <input id="newAdminCodeInput" class="text-input mono-input" maxlength="6" placeholder="Leave blank to auto-generate">
+291:          <div class="perm-checks">
+292:            <label class="perm-check"><input type="checkbox" id="pc-create" checked> Create</label>
+293:            <label class="perm-check"><input type="checkbox" id="pc-delete"> Delete</label>
+294:            <label class="perm-check"><input type="checkbox" id="pc-modify"> Modify</label>
+295:            <label class="perm-check"><input type="checkbox" id="pc-approve" checked> Approve</label>
+297:          <button class="overlay-btn-primary" onclick="createNewAdmin()" style="margin-top:10px">Create Code</button>
+298:          <div id="createAdminMsg" style="font-size:13px;text-align:center;margin-top:8px;min-height:16px"></div>
+302:      <div class="admin-section">
+303:        <h3>📥 Pending Uploads <span id="pendingCountLabel" style="font-size:12px;font-weight:400;opacity:.55"></span></h3>
+304:        <div id="pendingUploadsList"><div style="font-size:13px;opacity:.5;padding:6px 0">No pending uploads.</div></div>
+307:      <div class="admin-section">
+317:  <div id="uploadOverlay" class="full-overlay">
+318:    <div class="overlay-card">
+319:      <button class="overlay-close" onclick="closeUploadScreen()">×</button>
+320:      <div class="upload-dots">
+321:        <div class="upload-dot on" id="ud0"></div>
+322:        <div class="upload-dot" id="ud1"></div>
+323:        <div class="upload-dot" id="ud2"></div>
+326:      <div id="us1">
+327:        <div class="overlay-heading">Upload Files</div>
+328:        <div class="overlay-subtext">Choose one or more files to upload</div>
+329:        <div class="drop-zone" id="dropZone" onclick="document.getElementById('filePickerInput').click()" ondragover="uploadDragOver(event)" ondragleave="uploadDragLeave(event)" ondrop="uploadFileDrop(event)">
+330:          <div class="dz-icon">📤</div>
+332:          <button class="overlay-btn-secondary" style="width:auto;padding:8px 20px" onclick="event.stopPropagation();document.getElementById('filePickerInput').click()">Browse Files</button>
+334:        <input type="file" id="filePickerInput" style="display:none" multiple onchange="onFilePicked(event)">
+337:      <div id="us2" style="display:none">
+338:        <div class="overlay-heading" id="us2title">Files Selected</div>
+339:        <div class="overlay-subtext" id="us2sub">Review before submitting</div>
+341:        <div id="us2fileQueue" style="max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin:10px 0"></div>
+342:        <div id="us2pendingNotice" class="pending-notice">⏳ <span>Files will be held for admin review and approval before being published.</span></div>
+343:        <div id="us2adminNotice" class="admin-notice" style="display:none">✓ As an admin, your files will be published directly to the repository.</div>
+345:        <div id="us2destSection" style="margin-top:12px">
+347:          <input type="text" id="us2destPath" class="text-input" placeholder="e.g. books/sci-fi (leave blank for root)">
+351:        <div id="us2reuploadSection" style="display:none;margin-top:10px">
+353:          <button class="overlay-btn-secondary" style="width:auto;padding:8px 16px" onclick="document.getElementById('reuploadPicker').click()">📎 Choose modified file</button>
+354:          <input type="file" id="reuploadPicker" style="display:none" onchange="onReuploadPicked(event)">
+355:          <div id="reuploadInfo" style="font-size:12px;opacity:.6;margin-top:6px"></div>
+357:        <button class="overlay-btn-primary" onclick="uploadGoStep3()" style="margin-top:14px">Continue →</button>
+358:        <button class="overlay-btn-ghost" onclick="uploadGoStep1()">← Back</button>
+361:      <div id="us3" style="display:none">
+362:        <div class="overlay-heading">Confirm Upload</div>
+363:        <div class="overlay-subtext" id="us3sub">Please confirm to submit</div>
+364:        <div class="fpc" id="us3card">
+365:          <div class="fpc-icon" id="us3icon">📄</div>
+366:          <div><div class="fpc-name" id="us3name"></div><div class="fpc-size" id="us3size"></div></div>
+368:        <div style="font-size:12px;opacity:.6;margin:2px 0 8px;text-align:center">📁 Destination: <span id="us3destPath">repository root</span></div>
+369:        <div id="us3adminNote" class="admin-notice" style="display:none">✓ These files will be committed directly to the repository.</div>
+370:        <div id="us3progressWrap" style="display:none;margin:10px 0">
+371:          <div style="font-size:13px;text-align:center;margin-bottom:6px" id="us3progressLabel">Uploading…</div>
+373:            <div id="us3progressBar" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s ease;border-radius:99px"></div>
+376:        <button class="overlay-btn-primary" id="us3approveBtn" onclick="finalizeUpload()">✓ Approve Upload</button>
+--- public/html/admin-prs.html ---
+56:    <div class="admin-shell">
+57:      <aside class="admin-sidebar" aria-label="Admin navigation">
+58:        <p class="brand">NoteBooks</p>
+59:        <p class="eyebrow">Admin control centre</p>
+60:        <nav class="nav">
+65:        <p class="sidebar-note">Administrative actions require an admin role, a linked GitHub identity, and enrolled TOTP. Public pages and subject workspaces remain outside this shell.</p>
+68:      <main class="admin-main">
+69:        <header class="topbar">
+71:            <p class="eyebrow">Protected workspace</p>
+73:            <p class="muted">Manage access, moderation state, audit visibility, and contribution review.</p>
+75:          <div class="identity">
+76:            <span id="identity-label">Checking administrator session…</span>
+77:            <button id="logout-button" class="secondary" type="button" hidden>Sign out</button>
+81:        <div id="access-status" class="access" role="status">Checking administrator access…</div>
+83:        <section id="access" class="grid" aria-label="Access management">
+84:          <article class="card">
+86:            <div class="stack">
+87:              <form id="assign-role-form">
+90:                <div class="form-actions"><button type="submit">Assign role</button></div>
+92:              <div class="status" id="assign-role-status" aria-live="polite"></div>
+93:              <form id="revoke-role-form">
+95:                <div class="form-actions"><button class="secondary" type="submit">Revoke role</button></div>
+97:              <div class="status" id="revoke-role-status" aria-live="polite"></div>
+101:          <article class="card">
+103:            <div class="stack">
+104:              <form id="ban-form">
+107:                <div class="form-actions"><button class="danger" type="submit">Ban user</button></div>
+109:              <div class="status" id="ban-status" aria-live="polite"></div>
+110:              <form id="unban-form">
+112:                <div class="form-actions"><button class="secondary" type="submit">Unban user</button></div>
+114:              <div class="status" id="unban-status" aria-live="polite"></div>
+119:        <section id="security" class="grid" aria-label="Administrator security enrollment">
+120:          <article class="card wide">
+122:            <p class="muted">Complete GitHub linkage and TOTP enrollment for this signed-in administrator. These setup controls remain available while the main administrator console is locked.</p>
+123:            <div class="form-actions">
+124:              <button id="link-github-button" type="button">Link GitHub account</button>
+126:            <div class="status" id="github-link-status" aria-live="polite"></div>
+127:            <form id="totp-enroll-form" class="security-form">
+128:              <div class="form-actions"><button type="submit">Generate TOTP secret</button></div>
+130:            <div class="status" id="totp-enroll-status" aria-live="polite"></div>
+131:            <div id="totp-secret-output" class="security-output" hidden>
+133:              <code id="totp-secret"></code>
+134:              <small id="totp-otpauth" class="muted"></small>
+136:            <form id="totp-verify-form" class="security-form" hidden>
+138:              <div class="form-actions"><button type="submit">Verify and enable TOTP</button></div>
+140:            <div class="status" id="totp-verify-status" aria-live="polite"></div>
+141:            <div id="backup-codes-output" class="security-output" hidden>
+143:              <ol id="backup-codes"></ol>
+145:            <form id="totp-disable-form" class="security-form">
+147:              <div class="form-actions"><button class="danger" type="submit">Disable TOTP enrollment</button></div>
+149:            <div class="status" id="totp-disable-status" aria-live="polite"></div>
+153:        <section id="review" class="grid" aria-label="Review and audit">
+154:          <article class="card wide">
+156:            <ul id="logs-list" class="list"><li class="muted">Loading audit entries…</li></ul>
+158:          <article class="card wide">
+160:            <ul id="prs-list" class="list"><li class="muted">Loading pull requests…</li></ul>
+166:    <script src="/public/js/modern-auth.js"></script>
+167:    <script>
+--- public/html/admin.html ---
+7:  <link rel="stylesheet" href="/css/theme.css" />
+8:  <link rel="stylesheet" href="/public/css/streams.css" />
+11:  <div id="streamLanding"></div>
+12:  <script src="/public/client/streams.js" defer></script>
+13:  <script>
+--- public/html/community.html ---
+7:  <link rel="stylesheet" href="/css/theme.css" />
+8:  <link rel="stylesheet" href="/public/css/streams.css" />
+11:  <div id="streamLanding"></div>
+12:  <script src="/public/client/streams.js" defer></script>
+13:  <script>
+--- public/html/settings.html ---
+8:  <link rel="stylesheet" href="/public/css/theme.css" />
+9:  <link rel="stylesheet" href="/public/css/style.css" />
+11:<body class="settings-page">
+12:  <nav class="global-nav" aria-label="Primary navigation">
+13:    <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
+14:    <div class="global-nav-links">
+17:    <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+20:  <main class="settings-main">
+21:    <header class="settings-hero">
+22:      <span class="landing-kicker">Workspace preferences</span>
+27:    <section class="settings-grid" aria-label="Settings sections">
+28:      <article class="settings-card settings-card--account">
+29:        <div class="settings-card-kicker">Account</div>
+32:        <button type="button" class="settings-disabled-button" disabled>Sign in / create account — coming later</button>
+35:      <article class="settings-card">
+36:        <div class="settings-card-kicker">Appearance</div>
+39:        <label class="settings-field" for="themePreset"><span>Preset</span><select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic dark</option><option value="professional">Professional dark</option><option value="contrast">High contrast</option><option value="neon">Neon dark</option><option value="classic">Classic light</option></select></label>
+40:        <div class="settings-fields-grid">
+41:          <label class="settings-field" for="themeAccent"><span>Accent</span><input id="themeAccent" type="color" onchange="updateCustomTheme('accent', this.value)" /></label>
+42:          <label class="settings-field" for="themeSurface"><span>Surface</span><input id="themeSurface" type="color" onchange="updateCustomTheme('surface', this.value)" /></label>
+43:          <label class="settings-field" for="themeText"><span>Text</span><input id="themeText" type="color" onchange="updateCustomTheme('text', this.value)" /></label>
+44:          <label class="settings-field" for="themeCode"><span>Code surface</span><input id="themeCode" type="color" onchange="updateCustomTheme('code', this.value)" /></label>
+50:  <script src="/public/js/app.js" defer></script>
+--- public/html/streams.html ---
+8:  <link rel="stylesheet" href="/public/css/theme.css" />
+9:  <link rel="stylesheet" href="/public/css/style.css" />
+10:  <link rel="stylesheet" href="/public/css/streams.css" />
+12:<body class="stream-shell-page">
+13:  <nav class="global-nav" aria-label="Primary navigation">
+14:    <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
+15:    <div class="global-nav-links">
+18:    <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+21:  <main class="stream-workspace-main">
+22:    <section class="app-shell" aria-label="NoteBooks file workspace">
+23:      <main class="window workspace-window" id="workspaceWindow" aria-label="File workspace">
+24:        <div class="toolbar">
+25:          <h1 id="workspaceHeader">NoteBooks</h1>
+26:          <div class="workspace-location-marker" id="workspaceLocationMarker" role="status" aria-live="polite">Inside: workspace root</div>
+27:          <button class="mob-toolbar-overflow" onclick="refreshFiles()" title="Refresh">↻</button>
+28:          <button class="mob-toolbar-overflow" onclick="goUp()" title="Go up">↑</button>
+29:          <button class="mob-toolbar-overflow" onclick="showUploadScreen()" title="Upload">⬆</button>
+30:          <button class="editor-launch-button" onclick="openNewMarkdownEditor()" title="New Markdown note">✎ New note</button>
+31:          <button class="mob-toolbar-overflow" onclick="openCommunity()" title="Community">•••</button>
+32:          <button id="loginBtnToolbar" onclick="showLoginScreen()" title="Login / Account">Account</button>
+34:        <div class="path-nav" id="pathNav" aria-label="Current location"><span class="path-segment" onclick="goToRoot()">☁️</span></div>
+35:        <div class="list-view" id="listView" aria-live="polite"></div>
+38:      <aside class="tree-rail" id="treeRail" aria-label="Repository navigator">
+39:        <div class="tree-rail-header">
+40:          <div><div class="tree-rail-kicker">NAVIGATOR</div><div class="tree-rail-title">Repository tree</div></div>
+41:          <button class="sidebar-collapse-control" id="sidebarCollapseBtn" type="button" aria-label="Collapse navigator" aria-expanded="true">›</button>
+43:        <div class="sidebar-section sidebar-browse-section">
+44:          <label class="sidebar-section-title" for="sidebarSearch">Search files and folders</label>
+45:          <input class="sidebar-search-input" id="sidebarSearch" type="search" placeholder="Filter tree" autocomplete="off" aria-label="Search repository files and folders" />
+46:          <div class="tree-current-location" id="treeCurrentLocation" role="status" aria-live="polite">Current location: workspace root</div>
+47:          <div class="sidebar-tree" id="sidebarTree" role="tree" aria-label="Repository files and folders"><div class="sidebar-tree-empty">Loading file tree…</div></div>
+48:          <div class="tree-hover-details" id="treeHoverDetails" role="tooltip" aria-live="polite" hidden></div>
+54:    <script src="/public/js/modern-auth.js" defer></script>
+56:  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js" defer></script>
+57:  <script src="https://cdn.jsdelivr.net/npm/markdown-it-sub@1/dist/markdown-it-sub.min.js" defer></script>
+58:  <script src="https://cdn.jsdelivr.net/npm/markdown-it-sup@1/dist/markdown-it-sup.min.js" defer></script>
+59:  <script src="https://cdn.jsdelivr.net/npm/markdown-it-footnote@3/dist/markdown-it-footnote.min.js" defer></script>
+60:  <script src="/public/js/obsidian-markdown-it.js" defer></script>
+61:  <script src="/public/js/md-init.js" defer></script>
+62:  <script src="/public/js/markdown-editor.js" defer></script>
+63:  <script src="/public/js/markdown.js" defer></script>
+64:  <script src="/public/client/streams.js" defer></script>
+65:  <script>
+82:  <script src="/public/js/config.js" defer></script>
+83:  <script src="/public/js/app.js" defer></script>
+84:  <script src="/public/js/auth.js" defer></script>
+--- public/html/volunteers.html ---
+7:  <link rel="stylesheet" href="/css/theme.css" />
+8:  <link rel="stylesheet" href="/public/css/streams.css" />
+11:  <div id="streamLanding"></div>
+12:  <script src="/public/client/streams.js" defer></script>
+13:  <script>
+=== PACKAGE COMMAND GRAPH ===
+{
+  "clean": "node src/scripts/cleanup-stale-src-js.js",
+  "clean:src": "npm run clean",
+  "dev": "npm run clean && npm run build && node dist/server/server/server.js",
+  "start": "node dist/server/server/server.js",
+  "build": "npm run clean && node src/scripts/generate-version.js && npm run generate:json-files && npm run build:client && npm run build:server",
+  "generate:json-files": "tsx src/scripts/generate-json-files.ts",
+  "build:client": "tsc -p tsconfig.client.json",
+  "build:server": "tsc -p tsconfig.server.json",
+  "backend": "node dist/server/server/server.js",
+  "prepare:json": "tsx src/scripts/generate-json-files.ts",
+  "setup": "npm run dev",
+  "test": "vitest run",
+  "pretest": "node src/scripts/migrate-db.js || true",
+  "migrate": "node src/scripts/migrate-db.js",
+  "typecheck": "tsc --noEmit -p tsconfig.server.json"
+}

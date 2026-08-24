@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { parseRepoRegistryMarkdown } from '../lib/github-repositories.js';
 
 interface RepoRegistryEntryLike {
   name?: string;
@@ -12,52 +13,25 @@ interface RepoRegistryEntryLike {
   priority?: number;
 }
 
-function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntryLike[] {
-  const lines = String(markdown || '').split(/\r?\n/);
-  const tableLines = lines.filter((line) => line.trim().startsWith('|'));
-  if (tableLines.length < 2) {
-    return [];
-  }
-
-  const headers = tableLines[0]
-    .split('|')
-    .slice(1, -1)
-    .map((cell) => cell.trim().toLowerCase());
-  const indexOf = (name: string) => headers.indexOf(name);
-  const valueOf = (cells: string[], name: string) => {
-    const index = indexOf(name);
-    return index >= 0 ? cells[index] || '' : '';
-  };
-
-  return tableLines.slice(2)
-    .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
-    .filter((cells) => cells.length >= 2 && valueOf(cells, 'name') && valueOf(cells, 'repo'))
-    .map((cells) => {
-      const priority = valueOf(cells, 'priority');
-      return {
-        name: valueOf(cells, 'name'),
-        stream: valueOf(cells, 'stream').toLowerCase() || undefined,
-        repo: valueOf(cells, 'repo'),
-        branch: valueOf(cells, 'branch') || undefined,
-        root: valueOf(cells, 'root'),
-        enabled: valueOf(cells, 'enabled').toLowerCase() !== 'false',
-        priority: Number(priority)
-      };
-    })
-    .filter((entry) => !Number.isNaN(entry.priority));
-}
-
 async function readRepoRegistryEntries(): Promise<RepoRegistryEntryLike[]> {
   const projectDir = process.cwd();
+  const artifactPath = path.resolve(projectDir, 'public', 'json', 'github-repos.json');
   const registryPath = path.resolve(projectDir, 'GITHUB-REPOSITORIES.md');
   const fallbackPath = path.resolve(projectDir, 'repo-registry.json');
 
   try {
+    const artifact = JSON.parse(await readFile(artifactPath, 'utf8'));
+    if (artifact?.schemaVersion === 1 && artifact?.sourceFile === 'GITHUB-REPOSITORIES.md' && Array.isArray(artifact.entries)) {
+      return artifact.entries as RepoRegistryEntryLike[];
+    }
+  } catch {
+    // fall through to the compatibility source reader
+  }
+
+  try {
     const markdown = await readFile(registryPath, 'utf8');
     const entries = parseRepoRegistryMarkdown(markdown);
-    if (entries.length > 0) {
-      return entries;
-    }
+    if (entries.length > 0) return entries;
   } catch {
     // fall through to JSON fallback
   }

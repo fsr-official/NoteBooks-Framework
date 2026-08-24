@@ -1,0 +1,176 @@
+=== CANDIDATE FILE REFERENCES ===
+--- generate-stream-trees ---
+./docs/phase1/PHASE-I-VERIFICATION.md:37:| `scripts/generate-stream-trees.js` | Superseded by the canonical generator. |
+./docs/phase1/FILE-INVENTORY.tsv:345:./src/scripts/generate-stream-trees.js	2170	js	src-scripts
+./docs/phase1/FILE-AREA-INVENTORY.txt:64:src/scripts/generate-stream-trees.js	2170 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:352:| `./src/scripts/generate-stream-trees.js` | 2170 | Legacy stream generator | Content pipeline | dormant/legacy | Older stream tree generation path | Candidate for removal after reference scan. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:2:--- generate-stream-trees ---
+./scripts/build-file-responsibility-manifest.mjs:82:  'generate-stream-trees.js': ['Legacy stream generator', 'Content pipeline', 'dormant/legacy', 'Older stream tree generation path', 'Candidate for removal after reference scan.'],
+--- generate-registry ---
+./docs/phase1/PHASE-I-PLAN.md:109:The expected generator files are absent from the collaborator archive, so they must be created or reconciled from the existing `generate-registry.ts`, `generate-subject-trees.ts`, `repo-registry.ts`, and Pages/manifest helpers.
+./docs/phase1/PHASE-I-PLAN.md:173:| `src/scripts/generate-registry.ts` | No active build/startup/import/test reference remains after `generate-json-files.ts` becomes canonical | Remove if fully superseded. |
+./docs/phase1/PHASE-I-VERIFICATION.md:35:| `src/scripts/generate-registry.ts` | Superseded by the canonical generator. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:9:--- generate-registry ---
+--- pages-fetch ---
+./tests/pages-registry.test.ts:2:import { buildPagesTreeFromManifest, resolvePagesBaseUrl } from '../src/api/pages-fetch.ts';
+./docs/phase1/PHASE-I-PLAN.md:175:| `src/api/pages-fetch.ts` and/or `src/shims/pages-fetch.ts` | No canonical generator or dormant feature depends on it; raw manifest fetching has a verified replacement | Remove only the duplicate implementation; retain one helper if still needed. |
+./docs/phase1/FILE-INVENTORY.tsv:319:./src/api/pages-fetch.ts	4473	ts	src-api
+./docs/phase1/FILE-INVENTORY.tsv:352:./src/shims/pages-fetch.ts	3965	ts	src-other
+./docs/phase1/FILE-AREA-INVENTORY.txt:38:src/api/pages-fetch.ts	4473 bytes
+./docs/phase1/FILE-AREA-INVENTORY.txt:71:src/shims/pages-fetch.ts	3965 bytes
+./docs/phase1/REACHABILITY-INDEX.txt:121:src/api/pages-fetch.ts	18:export function resolvePagesBaseUrl(entry: PagesRegistryEntryLike) { 28:export function buildPagesTreeFromManifest(repoName: string, manifest: PagesManifestEntry[]) { 86:export function buildRawManifestUrl(repo: string, branch: string) { 99:export async function fetchRepoManifest(repo: string, repoName: string, branch: string, pagesBase: string) { 119:export async function fetchPagesManifest(pagesBase: string, repoName: string) { 
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:326:| `./src/api/pages-fetch.ts` | 4473 | Pages manifest fetcher | Content pipeline | compatibility | Pages/raw files.json fallback fetching | Keep as fallback; canonical generation owner is scripts/json-fetch.ts. |
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:359:| `./src/shims/pages-fetch.ts` | 3965 | Compatibility shim | Build system | compatibility | TypeScript/runtime compatibility adapter | Retain only while importer exists. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:14:--- pages-fetch ---
+./src/api/repo-registry.ts:2:import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js';
+./src/api/system.ts:5:import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
+./src/scripts/json-fetch.ts:1:import { resolvePagesBaseUrl } from '../api/pages-fetch.js';
+./scripts/build-file-responsibility-manifest.mjs:60:  'pages-fetch.ts': ['Pages manifest fetcher', 'Content pipeline', 'compatibility', 'Pages/raw files.json fallback fetching', 'Keep as fallback; canonical generation owner is scripts/json-fetch.ts.'],
+--- src/client/main ---
+./docs/phase1/FILE-INVENTORY.tsv:328:./src/client/main.ts	699	ts	src-client
+./docs/phase1/FILE-AREA-INVENTORY.txt:47:src/client/main.ts	699 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:335:| `./src/client/main.ts` | 699 | Client entrypoint | Frontend runtime | active/compatibility | Client entrypoint/bootstrap compatibility layer | Keep only if referenced; otherwise consolidate with streams.ts. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:29:--- src/client/main ---
+--- public/client/main.js ---
+./docs/phase1/FILE-INVENTORY.tsv:268:./public/client/main.js	605	js	public-other
+./docs/phase1/FILE-AREA-INVENTORY.txt:98:public/client/main.js	605 bytes
+./docs/phase1/PUBLIC-ASSET-INVENTORY.txt:241:public/client/main.js
+./docs/phase1/REACHABILITY-INDEX.txt:141:index.html:620:  <script src="/public/client/main.js" defer></script>
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:275:| `./public/client/main.js` | 605 | Generated client artifact | Build system | generated | Compiled client controller artifact | Regenerate from src/client; never hand-edit. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:34:--- public/client/main.js ---
+./index.html:620:  <script src="/public/client/main.js" defer></script>
+--- adminX.html ---
+./docs/phase1/FILE-INVENTORY.tsv:284:./public/html/adminX.html	993	html	public-html
+./docs/phase1/FILE-AREA-INVENTORY.txt:80:public/html/adminX.html	993 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:291:| `./public/html/adminX.html` | 993 | Legacy admin shell | Admin feature | dormant/legacy | Older admin variant | Candidate for removal after route/reference verification. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:42:--- adminX.html ---
+./scripts/build-file-responsibility-manifest.mjs:106:  'adminX.html': ['Legacy admin shell', 'Admin feature', 'dormant/legacy', 'Older admin variant', 'Candidate for removal after route/reference verification.'],
+--- communityX.html ---
+./docs/phase1/FILE-INVENTORY.tsv:286:./public/html/communityX.html	1051	html	public-html
+./docs/phase1/FILE-AREA-INVENTORY.txt:82:public/html/communityX.html	1051 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:293:| `./public/html/communityX.html` | 1051 | Legacy community shell | Community feature | dormant/legacy | Older community variant | Candidate for removal after route/reference verification. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:48:--- communityX.html ---
+./scripts/build-file-responsibility-manifest.mjs:108:  'communityX.html': ['Legacy community shell', 'Community feature', 'dormant/legacy', 'Older community variant', 'Candidate for removal after route/reference verification.'],
+--- volunteersX.html ---
+./docs/phase1/FILE-INVENTORY.tsv:290:./public/html/volunteersX.html	1022	html	public-html
+./docs/phase1/FILE-AREA-INVENTORY.txt:86:public/html/volunteersX.html	1022 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:297:| `./public/html/volunteersX.html` | 1022 | Legacy volunteer shell | Volunteer feature | dormant/legacy | Older volunteer variant | Candidate for removal after route/reference verification. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:54:--- volunteersX.html ---
+./scripts/build-file-responsibility-manifest.mjs:112:  'volunteersX.html': ['Legacy volunteer shell', 'Volunteer feature', 'dormant/legacy', 'Older volunteer variant', 'Candidate for removal after route/reference verification.'],
+--- src/service-worker ---
+./docs/phases/phase-1.md:12:- The public file service code lives under `public/` and `src/client` and `src/service-worker.ts`.
+./docs/phase1/PHASE-I-VERIFICATION.md:64:The active service-worker source under `service-worker.js` contains the collaborator’s admin-route freshness protection. The separate `src/service-worker.ts` remains an older, not-currently-built source variant and should be handled in a later dedicated PWA cleanup rather than deleted implicitly in Phase I.
+./docs/phase1/FILE-INVENTORY.tsv:351:./src/service-worker.ts	6414	ts	src-other
+./docs/phase1/FILE-AREA-INVENTORY.txt:70:src/service-worker.ts	6414 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:358:| `./src/service-worker.ts` | 6414 | Service-worker source variant | Frontend runtime | compatibility | TypeScript service-worker source | Reconcile with canonical service-worker.js before retaining both. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:60:--- src/service-worker ---
+./scripts/build-file-responsibility-manifest.mjs:132:  if (row.file.startsWith('./src/service-worker.ts')) return ['Service-worker source variant', 'Frontend runtime', 'compatibility', 'TypeScript service-worker source', 'Reconcile with canonical service-worker.js before retaining both.'];
+--- fmtree.py ---
+./fmtree.py:13:    "fmtree.py",
+./.github/workflows/fmmupdate.yaml:17:      - name: Run fmtree.py
+./.github/workflows/fmmupdate.yaml:18:        run: python fmtree.py
+./docs/phase1/FILE-INVENTORY.tsv:39:./fmtree.py	5236	py	root
+./docs/phase1/FILE-AREA-INVENTORY.txt:11:fmtree.py	5236 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:46:| `./fmtree.py` | 5236 | Legacy utility | Maintenance tooling | dormant | Legacy local tree/manifest utility | Candidate for removal only after reference scan. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:68:--- fmtree.py ---
+./installer.html:890:    // fmtree.py — exclude installer artefacts + repo meta files from the file tree
+./installer.html:891:    log('Patching fmtree.py…');
+./installer.html:892:    const fmFile = await ghGetFile(pat, repo, 'fmtree.py');
+./installer.html:893:    if (!fmFile) throw new Error('fmtree.py not found.');
+./installer.html:908:    await ghPutFile(pat, repo, 'fmtree.py', newFm, fmFile.sha,
+./installer.html:910:    ok('✓ fmtree.py — exclusions updated');
+./public/js/app.js:473:    "fmtree.py", "files.json", "index.html", "favicon.png", "tree.py", "autocommit.ps1"
+./scripts/build-file-responsibility-manifest.mjs:30:  ['./fmtree.py', ['Legacy utility', 'Maintenance tooling', 'dormant', 'Legacy local tree/manifest utility', 'Candidate for removal only after reference scan.']],
+--- zipCreate.sh ---
+./docs/phase1/FILE-INVENTORY.tsv:386:./zipCreate.sh	1892	sh	root
+./docs/phase1/FILE-AREA-INVENTORY.txt:24:zipCreate.sh	1892 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:393:| `./zipCreate.sh` | 1892 | Release utility | Maintenance tooling | optional | Project archive packaging helper | Keep if release workflow uses it; otherwise retire. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:84:--- zipCreate.sh ---
+./zipCreate.sh:3:# zipCreate.sh — zip only the "important" files in this repo: source,
+./zipCreate.sh:8:#   ./zipCreate.sh [output.zip]
+./scripts/build-file-responsibility-manifest.mjs:31:  ['./zipCreate.sh', ['Release utility', 'Maintenance tooling', 'optional', 'Project archive packaging helper', 'Keep if release workflow uses it; otherwise retire.']],
+--- installer.html ---
+./fmtree.py:25:    "installer.html",
+./docs/phase1/FILE-INVENTORY.tsv:41:./installer.html	59332	html	root
+./docs/phase1/FILE-AREA-INVENTORY.txt:13:installer.html	59332 bytes
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:48:| `./installer.html` | 59332 | Installer shell | Deployment/onboarding | optional | Installation/onboarding UI | Audit separately; do not merge into landing shell without decision. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:76:./installer.html:890:    // fmtree.py — exclude installer artefacts + repo meta files from the file tree
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:77:./installer.html:891:    log('Patching fmtree.py…');
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:78:./installer.html:892:    const fmFile = await ghGetFile(pat, repo, 'fmtree.py');
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:79:./installer.html:893:    if (!fmFile) throw new Error('fmtree.py not found.');
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:80:./installer.html:908:    await ghPutFile(pat, repo, 'fmtree.py', newFm, fmFile.sha,
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:81:./installer.html:910:    ok('✓ fmtree.py — exclusions updated');
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:92:--- installer.html ---
+./installer.html:353:              Open this page from your GitHub Pages URL (e.g. <code>username.github.io/repo-name/installer.html</code>).
+./installer.html:896:    const fmAdd = ['"installer.html"', '"conf.txt"', '"LICENSE"'];
+./installer.html:909:      'installer: exclude installer.html, conf.txt, README.md, LICENSE from file tree');
+./installer.html:1122:    // 4. Remove installer.html (this very file — must be last)
+./installer.html:1123:    await del('installer.html', 'installer.html');
+./scripts/build-file-responsibility-manifest.mjs:29:  ['./installer.html', ['Installer shell', 'Deployment/onboarding', 'optional', 'Installation/onboarding UI', 'Audit separately; do not merge into landing shell without decision.']],
+--- src/api/forum ---
+./docs/REMAINING.md:184:- src/api/forum.ts
+./docs/phase1/REAL-ARCHITECTURE.md:149:| Forum module | `src/api/forum.ts` contains a substantial Redis/memory-backed forum router, but the live server composition does not mount `createForumRouter()` and the shipped client endpoint index does not call it. [1] [20] | Treat the forum module as implemented-but-unreachable from the current HTTP graph; the live community surface is `community.ts`. |
+./docs/phase1/REAL-ARCHITECTURE.md:201:[20]: ./src/api/forum.ts "Implemented forum router not mounted by the current server composition"
+./docs/phase1/FILE-INVENTORY.tsv:315:./src/api/forum.ts	31449	ts	src-api
+./docs/phase1/FILE-AREA-INVENTORY.txt:34:src/api/forum.ts	31449 bytes
+./docs/phase1/REACHABILITY-INDEX.txt:117:src/api/forum.ts	841:export function createForumRouter(): Router { 877:export default createForumRouter; 
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:322:| `./src/api/forum.ts` | 31449 | Forum API | Community feature | dormant/guarded | Forum router and community operations | Retain dormant; do not merge with stream read APIs. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:110:--- src/api/forum ---
+--- src/api/totp ---
+./tests/totp.test.ts:8:import { disableTotp, generateTotpSecretForEmail, verifyAndEnableTotp } from '../src/api/totp';
+./docs/phases/phase-2.md:13:- Identity code: `src/lib/db.ts`, `src/api/auth.ts`, `src/api/totp.ts`, `src/lib/permissions.ts`.
+./docs/REMAINING.md:98:- src/api/totp.ts
+./docs/REMAINING.md:182:- src/api/totp.ts
+./docs/phase1/REAL-ARCHITECTURE.md:150:| TOTP enrollment | `src/api/totp.ts` contains enrollment/verification/disable handlers and tests exercise them, while `server.ts` does not mount a `/api/totp` route. [1] [21] | TOTP is an active gate for `/api/blob` and `/api/submit-pr`, but the archive does not expose the corresponding enrollment route through the main server. |
+./docs/phase1/REAL-ARCHITECTURE.md:202:[21]: ./src/api/totp.ts "TOTP enrollment and verification handlers"
+./docs/phase1/FILE-INVENTORY.tsv:326:./src/api/totp.ts	5698	ts	src-api
+./docs/phase1/FILE-AREA-INVENTORY.txt:45:src/api/totp.ts	5698 bytes
+./docs/phase1/REACHABILITY-INDEX.txt:128:src/api/totp.ts	15:export async function generateTotpSecretForEmail(email: string) { 21:export async function verifyTotpForEmail(email: string, token: string): Promise<boolean> { 53:export async function enrollTotp(req: Request, res: Response) { 69:export async function verifyAndEnableTotp(req: Request, res: Response) { 98:export async function disableTotp(req: Request, res: Response) { 
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:333:| `./src/api/totp.ts` | 5698 | TOTP API | Identity/security feature | dormant/guarded | TOTP enrollment, verification, and disablement | Retain for later sign-in/security. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:119:--- src/api/totp ---
+--- src/api/oauth ---
+./docs/REMAINING.md:99:- src/api/oauth.ts
+./docs/phase1/FILE-INVENTORY.tsv:318:./src/api/oauth.ts	9684	ts	src-api
+./docs/phase1/FILE-AREA-INVENTORY.txt:37:src/api/oauth.ts	9684 bytes
+./docs/phase1/REACHABILITY-INDEX.txt:120:src/api/oauth.ts	129:export default async function handler(req: Request, res: Response) { 
+./docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md:325:| `./src/api/oauth.ts` | 9684 | OAuth API | Identity feature | dormant/guarded | OAuth provider flow | Retain for future sign-in. |
+./docs/phase1/CANDIDATE-CLASSIFICATION.txt:131:--- src/api/oauth ---
+=== PACKAGE SCRIPTS ===
+{
+  "clean": "node src/scripts/cleanup-stale-src-js.js",
+  "clean:src": "npm run clean",
+  "dev": "npm run clean && npm run build && node dist/server/server/server.js",
+  "start": "node dist/server/server/server.js",
+  "build": "npm run clean && node src/scripts/generate-version.js && npm run generate:json-files && npm run build:client && npm run build:server",
+  "generate:json-files": "tsx src/scripts/generate-json-files.ts",
+  "build:client": "tsc -p tsconfig.client.json",
+  "build:server": "tsc -p tsconfig.server.json",
+  "backend": "node dist/server/server/server.js",
+  "prepare:json": "tsx src/scripts/generate-json-files.ts",
+  "setup": "npm run dev",
+  "test": "vitest run",
+  "pretest": "node src/scripts/migrate-db.js || true",
+  "migrate": "node src/scripts/migrate-db.js",
+  "typecheck": "tsc --noEmit -p tsconfig.server.json"
+}
+=== VERCEL ADAPTERS ===
+api/[...all].ts
+import createApp from '../src/server/server';
+
+// Create the Express app once and export it as the default handler. Vercel's
+// Node builder will adapt this to the serverless function entrypoint.
+const app = createApp();
+
+export default app;
+api/community/feed.ts
+import { listFeed } from '../../src/api/community';
+
+export default listFeed;
+api/system/[stream].ts
+import systemHandler from '../../src/api/system.js';
+
+export default systemHandler;
+api/system/[stream]/refresh.ts
+import systemHandler from '../../../src/api/system.js';
+
+export default systemHandler;

@@ -2,14 +2,14 @@ import crypto from 'crypto';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/server/server.ts';
-import { invalidateSubjectTree } from '../src/api/system.ts';
+import { invalidateStreamTree } from '../src/api/system.ts';
 
-describe('runtime subject system API', () => {
+describe('runtime stream system API', () => {
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret';
     process.env.WEBHOOK_SECRET = 'webhook-secret';
     delete process.env.SUBJECT_REPOS;
-    await invalidateSubjectTree();
+    await invalidateStreamTree();
   });
 
   afterEach(() => {
@@ -32,27 +32,26 @@ describe('runtime subject system API', () => {
     return () => calls;
   }
 
-  it('returns a subject-scoped tree through the stream route and normalizes case', async () => {
-    const calls = stubManifestFetch();
+  it('serves the canonical stream-rooted artifact and normalizes case', async () => {
     const app = createApp();
     const response = await request(app).get('/api/system/COMMERCE');
 
     expect(response.status).toBe(200);
-    expect(response.body.subject).toBe('commerce');
-    expect(response.body.repos).toHaveLength(1);
-    expect(response.body.repos[0].repo).toBe('fsr-commerce/NCERT-Commerce');
-    expect(response.body.repos[0].tree.children[0].children[0]).toEqual(expect.objectContaining({
+    expect(response.headers['x-stream-tree-source']).toBe('generated-json');
+    expect(response.body.stream).toBe('commerce');
+    expect(response.body.root.name).toBe('NoteBooks-Commerce');
+    expect(response.body.root.children[0].name).toBe('NCERT-Commerce');
+    expect(response.body.root.children[0].children[0]).toEqual(expect.objectContaining({
       name: 'README.md',
       repo: 'fsr-commerce/NCERT-Commerce',
-      repoPath: 'notes/README.md',
-      raw: 'https://raw.githubusercontent.com/fsr-commerce/NCERT-Commerce/main/notes/README.md'
+      path: 'README.md',
+      raw: 'https://raw.githubusercontent.com/fsr-commerce/NCERT-Commerce/main/README.md'
     }));
     expect(JSON.stringify(response.body)).not.toContain('private.txt');
     expect(response.headers['cache-control']).toContain('s-maxage=300');
-    expect(calls()).toBe(1);
   });
 
-  it('reuses the subject cache for repeated GET requests', async () => {
+  it('reuses the canonical generated artifact for repeated GET requests', async () => {
     const calls = stubManifestFetch();
     const app = createApp();
     const first = await request(app).get('/api/system/commerce');
@@ -60,7 +59,9 @@ describe('runtime subject system API', () => {
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
-    expect(calls()).toBe(1);
+    expect(first.body.root.name).toBe('NoteBooks-Commerce');
+    expect(second.body.root.name).toBe('NoteBooks-Commerce');
+    expect(calls()).toBe(0);
   });
 
   it('rejects refresh requests with an invalid signature', async () => {
@@ -75,7 +76,7 @@ describe('runtime subject system API', () => {
     expect(response.body).toEqual({ error: 'Invalid refresh signature' });
   });
 
-  it('accepts a signed refresh request and rebuilds the subject cache', async () => {
+  it('accepts a signed refresh request and rebuilds the stream cache', async () => {
     stubManifestFetch();
     const app = createApp();
     const payload = { reason: 'github push', commitHash: 'abc123' };
@@ -91,7 +92,7 @@ describe('runtime subject system API', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual(expect.objectContaining({
       success: true,
-      subject: 'commerce',
+      stream: 'commerce',
       repoCount: 1
     }));
   });

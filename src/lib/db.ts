@@ -2,63 +2,108 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import fs from 'fs';
 
-let client: any = null;
+type PgClient = {
+  query: (text: string, params?: unknown[]) => Promise<any>;
+  release: () => void;
+};
 
-async function ensureClient() {
-  if (client) return client;
-  const DATABASE_URL = process.env.DATABASE_URL || '';
-  if (!DATABASE_URL) {
+type PgPool = {
+  query: (text: string, params?: unknown[]) => Promise<any>;
+  connect: () => Promise<PgClient>;
+  end: () => Promise<void>;
+};
+
+let pool: PgPool | null = null;
+
+function databaseUrl(): string {
+  return (process.env.DATABASE_URL || '').trim();
+}
+
+function isProduction(): boolean {
+  return (process.env.NODE_ENV || 'development').toLowerCase() === 'production';
+}
+
+function poolOptions(connectionString: string): Record<string, unknown> {
+  const max = Math.max(1, Math.min(10, Number(process.env.DB_POOL_MAX || (isProduction() ? 3 : 5)) || 3));
+  const options: Record<string, unknown> = {
+    connectionString,
+    max,
+    idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS || 10_000),
+    connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS || 5_000),
+    statement_timeout: Number(process.env.DB_STATEMENT_TIMEOUT_MS || 15_000),
+    allowExitOnIdle: true,
+  };
+
+  // Supabase connections should use TLS in production. For local development,
+  // SSL is opt-in unless the connection string itself requests it.
+  const sslMode = String(process.env.DB_SSL || '').toLowerCase();
+  if (isProduction() || sslMode === 'require' || connectionString.includes('sslmode=require')) {
+    options.ssl = { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' };
+  }
+  return options;
+}
+
+async function ensurePool(): Promise<PgPool> {
+  if (pool) return pool;
+  const connectionString = databaseUrl();
+  if (!connectionString) {
     throw new Error('DATABASE_URL is not configured');
   }
 
   const pg = await import('pg');
-  const { Client } = pg as any;
-  client = new Client({ connectionString: DATABASE_URL });
-  await client.connect();
-  return client;
+  const Pool = (pg as any).Pool;
+  if (!Pool) throw new Error('PostgreSQL Pool constructor is unavailable');
+  pool = new Pool(poolOptions(connectionString)) as PgPool;
+  return pool;
 }
 
-export async function query(text: string, params?: any[]) {
-  const c = await ensureClient();
-  return c.query(text, params);
+export async function query(text: string, params?: unknown[]) {
+  const client = await ensurePool();
+  return client.query(text, params);
 }
 
 export async function migrate() {
-  const DATABASE_URL = process.env.DATABASE_URL || '';
-  if (!DATABASE_URL) {
+  if (!databaseUrl()) {
     throw new Error('DATABASE_URL is not configured');
   }
 
-  // Migration runner: apply SQL files in `src/db/migrations` in filename order
+  // Migration runner: apply SQL files in `src/db/migrations` in filename order.
   const migrationsDir = path.join(process.cwd(), 'src', 'db', 'migrations');
   if (!fs.existsSync(migrationsDir)) {
-    // Fallback: run the single init file if no migrations directory exists
     const sqlPath = path.join(process.cwd(), 'src', 'db', 'init_identity_schema.sql');
     const sql = await readFile(sqlPath, 'utf8');
     return query(sql);
   }
 
-  // Ensure schema_migrations table exists
-  await query(`CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
-  const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
-  for (const f of files) {
-    const id = f;
-    const already = await query('SELECT 1 FROM schema_migrations WHERE id = $1', [id]);
+  const db = await ensurePool();
+  await db.query('CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())');
+  const files = fs.readdirSync(migrationsDir).filter((file) => file.endsWith('.sql')).sort();
+  for (const file of files) {
+    const already = await db.query('SELECT 1 FROM schema_migrations WHERE id = $1', [file]);
     if (already && already.rowCount > 0) continue;
-    const sql = await readFile(path.join(migrationsDir, f), 'utf8');
-    await query(sql);
-    await query('INSERT INTO schema_migrations(id) VALUES($1)', [id]);
+    const sql = await readFile(path.join(migrationsDir, file), 'utf8');
+    const migrationClient = await db.connect();
+    try {
+      await migrationClient.query('BEGIN');
+      await migrationClient.query(sql);
+      await migrationClient.query('INSERT INTO schema_migrations(id) VALUES($1)', [file]);
+      await migrationClient.query('COMMIT');
+    } catch (error) {
+      try { await migrationClient.query('ROLLBACK'); } catch {}
+      throw error;
+    } finally {
+      migrationClient.release();
+    }
   }
-  return;
 }
 
 export async function close() {
-  if (client) {
-    try { await client.end(); } catch {}
-    client = null;
+  if (pool) {
+    try { await pool.end(); } catch {}
+    pool = null;
   }
 }
 
 export function isConfigured() {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(databaseUrl());
 }

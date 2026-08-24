@@ -49,6 +49,12 @@
       .security-output ol { margin: 0; padding-left: 1.35rem; columns: 2; }
       .security-output li { padding: .15rem 0; color: var(--text); }
       .security-form { margin-top: .8rem; }
+      .proposal-review-item { display: grid; gap: .65rem; padding: .95rem; border: 1px solid rgba(148,163,184,.16); border-radius: .7rem; background: rgba(8,17,26,.52); }
+      .proposal-review-item h3 { margin: 0; font-size: 1rem; }
+      .proposal-review-item textarea { width: 100%; resize: vertical; padding: .65rem .7rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--panel-2); color: var(--text); }
+      .proposal-evidence, .proposal-diff { margin: 0; max-height: 20rem; overflow: auto; padding: .75rem; white-space: pre-wrap; overflow-wrap: anywhere; background: #071019; border: 1px solid rgba(148,163,184,.13); border-radius: .5rem; color: #d6fff5; font: .78rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .proposal-diff { color: #dce8f3; }
+      .proposal-review-item .form-actions { margin-top: .1rem; }
       @media (max-width: 820px) { .admin-shell { grid-template-columns: 1fr; } .admin-sidebar { border-right: 0; border-bottom: 1px solid var(--line); } .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sidebar-note { display: none; } .card, .card.wide { grid-column: span 12; } .topbar { flex-direction: column; } .identity { justify-items: start; text-align: left; } }
     </style>
   </head>
@@ -85,13 +91,14 @@
             <h2>Role management</h2>
             <div class="stack">
               <form id="assign-role-form">
-                <label>Email<input name="email" type="email" autocomplete="off" required /></label>
-                <label>Role<select name="role"><option value="admin">admin</option><option value="moderator">moderator</option><option value="editor">editor</option><option value="user">user</option></select></label>
+                <label for="assign-role-email">Email</label><input id="assign-role-email" name="email" type="email" autocomplete="off" required />
+                <label for="assign-role-role">Role</label><select id="assign-role-role" name="role"><option value="super_admin">Super Admin</option><option value="framework_coding_mod">NoteBooks-Framework [Coding] Mod</option><option value="content_mod">NoteBooks-Content Mod</option><option value="community_mod">Community Mod</option><option value="issues_mod">Issues Mod</option><option value="science_supervisor">NoteBooks-Science Supervisor</option><option value="commerce_supervisor">NoteBooks-Commerce Supervisor</option><option value="humanities_supervisor">NoteBooks-Humanities Supervisor</option><option value="science_volunteer">NoteBooks-Science Volunteer</option><option value="commerce_volunteer">NoteBooks-Commerce Volunteer</option><option value="humanities_volunteer">NoteBooks-Humanities Volunteer</option><option value="framework_coding_volunteer">NoteBooks-Framework [Coding] Volunteer</option><option value="ai_notegen_volunteer">AI-NoteGen Volunteer</option><option value="ai_notechk_volunteer">AI-NoteChk Volunteer</option><option value="verified_member">Verified Member</option><option value="admin">Legacy admin</option><option value="moderator">Legacy moderator</option><option value="editor">Legacy editor</option><option value="user">Legacy user</option></select>
                 <div class="form-actions"><button type="submit">Assign role</button></div>
               </form>
               <div class="status" id="assign-role-status" aria-live="polite"></div>
               <form id="revoke-role-form">
-                <label>Email<input name="email" type="email" autocomplete="off" required /></label>
+                <label for="revoke-role-email">Email</label><input id="revoke-role-email" name="email" type="email" autocomplete="off" required />
+                <label for="revoke-role-role">Role to revoke</label><select id="revoke-role-role" name="role"><option value="">All assigned roles</option><option value="super_admin">Super Admin</option><option value="framework_coding_mod">NoteBooks-Framework [Coding] Mod</option><option value="content_mod">NoteBooks-Content Mod</option><option value="community_mod">Community Mod</option><option value="issues_mod">Issues Mod</option><option value="science_supervisor">NoteBooks-Science Supervisor</option><option value="commerce_supervisor">NoteBooks-Commerce Supervisor</option><option value="humanities_supervisor">NoteBooks-Humanities Supervisor</option><option value="science_volunteer">NoteBooks-Science Volunteer</option><option value="commerce_volunteer">NoteBooks-Commerce Volunteer</option><option value="humanities_volunteer">NoteBooks-Humanities Volunteer</option><option value="framework_coding_volunteer">NoteBooks-Framework [Coding] Volunteer</option><option value="ai_notegen_volunteer">AI-NoteGen Volunteer</option><option value="ai_notechk_volunteer">AI-NoteChk Volunteer</option><option value="verified_member">Verified Member</option></select>
                 <div class="form-actions"><button class="secondary" type="submit">Revoke role</button></div>
               </form>
               <div class="status" id="revoke-role-status" aria-live="polite"></div>
@@ -102,13 +109,13 @@
             <h2>Ban and unban</h2>
             <div class="stack">
               <form id="ban-form">
-                <label>Email<input name="email" type="email" autocomplete="off" required /></label>
-                <label>Until<input name="until" type="datetime-local" /></label>
+                <label for="ban-email">Email</label><input id="ban-email" name="email" type="email" autocomplete="off" required />
+                <label for="ban-until">Until</label><input id="ban-until" name="until" type="datetime-local" />
                 <div class="form-actions"><button class="danger" type="submit">Ban user</button></div>
               </form>
               <div class="status" id="ban-status" aria-live="polite"></div>
               <form id="unban-form">
-                <label>Email<input name="email" type="email" autocomplete="off" required /></label>
+                <label for="unban-email">Email</label><input id="unban-email" name="email" type="email" autocomplete="off" required />
                 <div class="form-actions"><button class="secondary" type="submit">Unban user</button></div>
               </form>
               <div class="status" id="unban-status" aria-live="polite"></div>
@@ -133,8 +140,8 @@
               <code id="totp-secret"></code>
               <small id="totp-otpauth" class="muted"></small>
             </div>
-            <form id="totp-verify-form" class="security-form" hidden>
-              <label>Current authenticator code<input name="token" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required /></label>
+                          <form id="totp-verify-form" class="security-form" hidden>
+              <label for="totp-verify-token">Current authenticator code</label><input id="totp-verify-token" name="token" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required />
               <div class="form-actions"><button type="submit">Verify and enable TOTP</button></div>
             </form>
             <div class="status" id="totp-verify-status" aria-live="polite"></div>
@@ -142,8 +149,8 @@
               <strong>Save these one-time backup codes</strong>
               <ol id="backup-codes"></ol>
             </div>
-            <form id="totp-disable-form" class="security-form">
-              <label>Disable TOTP with current code<input name="token" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required /></label>
+                          <form id="totp-disable-form" class="security-form">
+              <label for="totp-disable-token">Disable TOTP with current code</label><input id="totp-disable-token" name="token" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required />
               <div class="form-actions"><button class="danger" type="submit">Disable TOTP enrollment</button></div>
             </form>
             <div class="status" id="totp-disable-status" aria-live="polite"></div>
@@ -154,6 +161,11 @@
           <article class="card wide">
             <h2>Recent audit log</h2>
             <ul id="logs-list" class="list"><li class="muted">Loading audit entries…</li></ul>
+          </article>
+          <article class="card wide">
+            <h2>Issue proposal review</h2>
+            <p class="muted">Review source evidence and current repository state before approving a change or requesting revisions.</p>
+            <div id="proposal-review-list" class="stack"><p class="muted">Loading Issue proposals…</p></div>
           </article>
           <article class="card wide">
             <h2>Open contribution PRs</h2>
@@ -241,6 +253,99 @@
           list.appendChild(item);
         }
 
+        async function issueReviewRequest(path, options = {}) {
+          const response = await fetch(path, { credentials: 'same-origin', ...options, headers: { ...adminHeaders(), ...(options.headers || {}) } });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) { const error = new Error(data.error || `Request failed (${response.status})`); error.status = response.status; throw error; }
+          return data;
+        }
+
+        function unifiedDiff(original, current) {
+          const before = String(original || '').split('\\n');
+          const after = String(current || '').split('\\n');
+          let prefix = 0;
+          while (prefix < before.length && prefix < after.length && before[prefix] === after[prefix]) prefix += 1;
+          let suffix = 0;
+          while (suffix < before.length - prefix && suffix < after.length - prefix && before[before.length - 1 - suffix] === after[after.length - 1 - suffix]) suffix += 1;
+          const lines = [];
+          if (prefix) lines.push(`  ${before[prefix - 1]}`);
+          before.slice(prefix, before.length - suffix).forEach((line) => lines.push(`- ${line}`));
+          after.slice(prefix, after.length - suffix).forEach((line) => lines.push(`+ ${line}`));
+          if (suffix) lines.push(`  ${before[before.length - suffix]}`);
+          return lines.join('\\n') || 'No source difference detected.';
+        }
+
+        function proposalCard(proposal) {
+          const card = document.createElement('article');
+          card.className = 'proposal-review-item';
+          const title = document.createElement('h3');
+          title.textContent = String(proposal.title || 'Untitled proposal');
+          const meta = document.createElement('p');
+          meta.className = 'muted';
+          meta.textContent = `${proposal.source_repository || 'Unknown repository'} · ${proposal.source_path || ''} · lines ${proposal.source_start_line || '?'}–${proposal.source_end_line || '?'} · ${proposal.status || 'submitted'}`;
+          const evidence = document.createElement('pre');
+          evidence.className = 'proposal-evidence';
+          evidence.textContent = String(proposal.source_text || 'No source snapshot supplied.');
+          const note = document.createElement('textarea');
+          note.className = 'proposal-review-note';
+          note.placeholder = 'Reviewer note';
+          note.rows = 3;
+          const proposed = document.createElement('textarea');
+          proposed.className = 'proposal-proposed-content';
+          proposed.placeholder = 'Proposed replacement content for the selected source range';
+          proposed.rows = 5;
+          const diff = document.createElement('pre');
+          diff.className = 'proposal-diff';
+          diff.hidden = true;
+          const discussion = document.createElement('div');
+          discussion.className = 'proposal-discussion';
+          const discussionList = document.createElement('div');
+          discussionList.className = 'proposal-comments';
+          discussionList.textContent = 'Discussion not loaded.';
+          const discussionInput = document.createElement('textarea');
+          discussionInput.placeholder = 'Add a reviewer comment';
+          discussionInput.rows = 2;
+          const discussionActions = document.createElement('div');
+          discussionActions.className = 'form-actions';
+          const makeButton = (label, className, handler) => { const button = document.createElement('button'); button.type = 'button'; button.textContent = label; if (className) button.className = className; button.addEventListener('click', handler); return button; };
+          const loadDiscussion = makeButton('Load discussion', 'secondary', async () => {
+            discussionList.textContent = 'Loading comments…';
+            try { const data = await issueReviewRequest(`/api/issues/${encodeURIComponent(proposal.id)}/comments`, { headers: { Accept: 'application/json' } }); const comments = Array.isArray(data.comments) ? data.comments : []; discussionList.textContent = comments.length ? comments.map((comment) => `${comment.author_email || 'member'} · ${comment.created_at || ''}\\n${comment.body}`).join('\\n\\n') : 'No reviewer comments yet.'; } catch (error) { discussionList.textContent = error.message || 'Discussion unavailable'; }
+          });
+          const addDiscussion = makeButton('Add comment', 'secondary', async () => {
+            const body = discussionInput.value.trim();
+            if (!body) return;
+            try { await issueReviewRequest(`/api/issues/${encodeURIComponent(proposal.id)}/comments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body }) }); discussionInput.value = ''; loadDiscussion.click(); } catch (error) { discussionList.textContent = error.message || 'Comment could not be added'; }
+          });
+          discussionActions.append(loadDiscussion, addDiscussion);
+          discussion.append(discussionList, discussionInput, discussionActions);
+          const actions = document.createElement('div');
+          actions.className = 'form-actions';
+          actions.appendChild(makeButton('Load current diff', 'secondary', async () => {
+            diff.hidden = false; diff.textContent = 'Loading current source…';
+            try { const data = await issueReviewRequest(`/api/issues/${encodeURIComponent(proposal.id)}/diff`); diff.textContent = `Original commit: ${proposal.source_commit || 'unknown'}\\nCurrent commit: ${data.currentCommit || 'unknown'}\\nStatus: ${data.stale ? 'STALE — refresh before approval' : 'Current'}\\n\\n--- Source diff ---\\n${unifiedDiff(data.original, data.selectedCurrent)}\\n\\n--- Current file ---\\n${data.current}`; } catch (error) { diff.textContent = error.message || 'Diff unavailable'; }
+          }));
+          const submitReview = async (decision, openPr = false) => {
+            try {
+              await issueReviewRequest(`/api/issues/${encodeURIComponent(proposal.id)}/review`, { method: 'POST', body: JSON.stringify({ decision, note: note.value, proposedContent: proposed.value || null }) });
+              if (openPr) await issueReviewRequest(`/api/issues/${encodeURIComponent(proposal.id)}/pr`, { method: 'POST', body: JSON.stringify({ content: proposed.value }) });
+              card.remove();
+            } catch (error) { diff.hidden = false; diff.textContent = error.message || 'Review could not be recorded'; }
+          };
+          actions.appendChild(makeButton('Request changes', 'secondary', () => submitReview('request_changes')));
+          actions.appendChild(makeButton('Reject', 'danger', () => submitReview('rejected')));
+          actions.appendChild(makeButton('Approve and open PR', '', () => submitReview('approved', true)));
+          card.append(title, meta, evidence, note, proposed, diff, discussion, actions);
+          return card;
+        }
+
+        async function loadProposalReviews() {
+          const list = document.getElementById('proposal-review-list');
+          if (!list) return;
+          try { const data = await issueReviewRequest('/api/issues/review?status=submitted'); list.replaceChildren(); const proposals = Array.isArray(data.proposals) ? data.proposals : []; if (!proposals.length) return clearList(list, 'No submitted Issue proposals.'); proposals.forEach((proposal) => list.appendChild(proposalCard(proposal))); }
+          catch (error) { clearList(list, error.message || 'Issue proposal review is unavailable.'); }
+        }
+
         async function loadLogs() {
           const list = document.getElementById('logs-list');
           const data = await adminRequest('logs');
@@ -289,7 +394,7 @@
           identityLabel.textContent = `Signed in as ${auth.getEmail() || 'administrator'}`;
           logoutButton.hidden = false;
           try {
-            await Promise.all([loadLogs(), loadPrs()]);
+            await Promise.all([loadLogs(), loadPrs(), loadProposalReviews()]);
             setAccess('Administrator access verified.', true);
             return true;
           } catch (error) {
@@ -312,7 +417,7 @@
             await adminRequest(action, { method: 'POST', body: JSON.stringify(payload) });
             statusEl.textContent = 'Success';
             statusEl.className = 'status success';
-            await Promise.all([loadLogs(), loadPrs()]);
+            await Promise.all([loadLogs(), loadPrs(), loadProposalReviews()]);
           } catch (error) {
             statusEl.textContent = error.message || String(error);
             statusEl.className = 'status error';
@@ -411,8 +516,8 @@
         });
         document.getElementById('revoke-role-form').addEventListener('submit', async (event) => {
           event.preventDefault();
-          const email = new FormData(event.currentTarget).get('email');
-          await callAdmin('revoke-role', { email }, document.getElementById('revoke-role-status'));
+          const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+          await callAdmin('revoke-role', { email: data.email, ...(data.role ? { role: data.role } : {}) }, document.getElementById('revoke-role-status'));
           event.currentTarget.reset();
         });
         document.getElementById('ban-form').addEventListener('submit', async (event) => {

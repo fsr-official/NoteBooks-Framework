@@ -119,6 +119,7 @@ export default async function handler(req: Request, res: Response) {
   // GitHub repos.
   const repoOverride = String(req.query.repo || '').trim();
   const branchOverride = String(req.query.branch || '').trim();
+  const suppliedRawUrl = String(req.query.raw || '').trim();
 
   try {
     let repoCfg = await getRepoConfig();
@@ -143,7 +144,10 @@ export default async function handler(req: Request, res: Response) {
       return res.status(400).json({ error: 'Unsupported URL format for path parameter' });
     }
 
-    const rawUrl = buildRawGithubUrl(filePath, repoCfg);
+    const expectedRawUrl = buildRawGithubUrl(filePath, repoCfg);
+    const rawUrl = suppliedRawUrl
+      ? (suppliedRawUrl === expectedRawUrl ? suppliedRawUrl : expectedRawUrl)
+      : expectedRawUrl;
     const repoPath = normalizeRequestedPath(filePath);
     const ext = repoPath.split('.').pop()?.toLowerCase() || '';
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';

@@ -76,4 +76,17 @@ describe('markdown runtime bootstrap', () => {
     expect(html).toContain('Markdown preview unavailable');
     expect(context.window.__markdownRuntimeError).toContain('markdown-it');
   });
+
+  it('keeps the reader controls source-aware and connected to Issues proposals', () => {
+    const appSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/app.js'), 'utf8');
+    const styleSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/css/style.css'), 'utf8');
+
+    expect(appSource).toContain('data-mode="raw">Raw view');
+    expect(appSource).toContain('raw-source-line');
+    expect(appSource).toContain('sourceStartLine: evidence.startLine');
+    expect(appSource).toContain("fetch('/api/issues/proposals'");
+    expect(styleSource).toContain('.raw-markdown-line-view');
+    expect(styleSource).toContain('.raw-line-number');
+    expect(styleSource).toContain('.suggest-changes-dialog');
+  });
 });

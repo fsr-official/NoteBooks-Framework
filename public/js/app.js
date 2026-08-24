@@ -11,6 +11,16 @@ const mobilePreviewContent = document.getElementById("mobilePreviewContent");
 const mobilePreviewTitle = document.getElementById("mobilePreviewTitle");
 const taskbar = document.getElementById("taskbar");
 const statusEl = document.getElementById("status");
+function hideSplash() {
+    if (typeof window.__notebooksHideSplash === 'function' && window.__notebooksHideSplash !== hideSplash) {
+        window.__notebooksHideSplash();
+        return;
+    }
+    if (!splash) return;
+    splash.style.opacity = '0';
+    setTimeout(() => { splash.style.display = 'none'; }, 180);
+}
+window.__notebooksHideSplash = hideSplash;
 let currentNode = null;
 let pathHistory = [];
 let selected = null;
@@ -30,136 +40,19 @@ let workspaceLocationMarker = null;
 let activeTreePath = '';
 let treeInteractionStarted = false;
 const expandedTreePaths = new Set();
-const THEME_KEY = 'notebooks-theme-global';
-const THEME_COOKIE = 'notebooks-theme';
-const THEME_PRESETS = {
-    futuristic: { accent: '#34d399', surface: '#08111d', text: '#dbe7e5', code: '#02050a', font: 'Inter', bg: '#030811', panel: '#091827', border: '#183449', radius: '14px', density: '1', shadow: '0 18px 55px rgba(0,0,0,.38)', texture: 'grid', heading: 'Inter' },
-    contrast: { accent: '#f8fafc', surface: '#050505', text: '#ffffff', code: '#000000', font: 'system-ui', bg: '#000000', panel: '#0a0a0a', border: '#5b5b5b', radius: '2px', density: '.92', shadow: '0 0 0 transparent', texture: 'none', heading: 'system-ui' },
-    neon: { accent: '#f472b6', surface: '#17112d', text: '#fdf4ff', code: '#0b0618', font: 'JetBrains Mono', bg: '#0b0618', panel: '#21143b', border: '#8b5cf6', radius: '22px', density: '1.12', shadow: '0 0 28px rgba(244,114,182,.24)', texture: 'scanlines', heading: 'JetBrains Mono' },
-    professional: { accent: '#60a5fa', surface: '#172033', text: '#e5edf8', code: '#0d1524', font: 'Inter', bg: '#111827', panel: '#1f2937', border: '#334155', radius: '8px', density: '.98', shadow: '0 10px 28px rgba(0,0,0,.2)', texture: 'none', heading: 'Inter' },
-    classic: { accent: '#0969da', surface: '#ffffff', text: '#1f2328', code: '#f6f8fa', font: 'system-ui', bg: '#f6f8fa', panel: '#ffffff', border: '#d0d7de', radius: '6px', density: '.94', shadow: '0 1px 2px rgba(31,35,40,.08)', texture: 'none', heading: 'system-ui' }
-};
-function themeControls(id) {
-    return Array.from(document.querySelectorAll(`#${id}, #${id}Rail`));
-}
-function getCookie(name) {
-    const m = document.cookie.match('(?:^|; )' + name.replace(/([.$?*|{}()\[\]\\/+^])/g, '\\$1') + '=([^;]*)');
-    return m ? decodeURIComponent(m[1]) : null;
-}
-
-function setCookie(name, value, days = 365) {
-    const d = new Date();
-    d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax; expires=${d.toUTCString()}`;
-}
-
-function readSavedTheme() {
-    try {
-        const local = localStorage.getItem(THEME_KEY);
-        if (local) return JSON.parse(local);
-    } catch (_) { /* ignore */ }
-    try {
-        const cookie = getCookie(THEME_COOKIE);
-        if (cookie) return JSON.parse(cookie);
-    } catch (_) { /* ignore */ }
-    return null;
-}
-function applyTheme(theme, options = {}) {
-    const root = document.documentElement;
-    const values = { ...THEME_PRESETS.futuristic, ...theme };
-    root.dataset.theme = values.texture || 'none';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', values.bg);
-    // theme.css owns the fallback contract; runtime presets override the same tokens as one batch.
-    const tokenValues = {
-        '--accent': values.accent,
-        '--accent-hover': values.accentHover || values.accent,
-        '--accent-subtle': values.accentSubtle || `color-mix(in srgb, ${values.accent} 14%, transparent)`,
-        '--item': values.surface,
-        '--panel': values.panel,
-        '--surface-muted': values.surfaceMuted || `color-mix(in srgb, ${values.surface} 86%, ${values.bg})`,
-        '--fg': values.text,
-        '--text-muted': values.textMuted || `color-mix(in srgb, ${values.text} 64%, transparent)`,
-        '--code-bg': values.code,
-        '--bg': values.bg,
-        '--hover': values.hover || values.surface,
-        '--selected': values.selected || `color-mix(in srgb, ${values.accent} 18%, transparent)`,
-        '--btn-bg': values.btnBg || values.panel,
-        '--btn-hover': values.btnHover || values.surface,
-        '--border': values.border,
-        '--border-subtle': values.borderSubtle || `color-mix(in srgb, ${values.border} 48%, transparent)`,
-        '--radius': values.radius,
-        '--density': values.density,
-        '--shadow': values.shadow,
-        '--font-sans': values.font + ', Inter, sans-serif',
-        '--font-heading': values.heading + ', sans-serif'
-    };
-    Object.entries(tokenValues).forEach(([key, value]) => root.style.setProperty(key, value));
-    [['themeAccent', values.accent], ['themeSurface', values.surface], ['themeText', values.text], ['themeCode', values.code]].forEach(([id, value]) => themeControls(id).forEach((el) => { el.value = value; }));
-    themeControls('themeFont').forEach((el) => { el.value = values.font; });
-    const selectedPreset = Object.keys(THEME_PRESETS).find((name) => JSON.stringify(THEME_PRESETS[name]) === JSON.stringify(values)) || 'custom';
-    themeControls('themePreset').forEach((el) => { el.value = selectedPreset; });
-    if (!options.skipPersist) {
-        try { localStorage.setItem(THEME_KEY, JSON.stringify(values)); } catch (_) { }
-        try { setCookie(THEME_COOKIE, JSON.stringify(values), 365); } catch (_) { }
-    }
-}
-function applyThemePreset(name) { applyTheme(THEME_PRESETS[name] || THEME_PRESETS.futuristic); }
-function updateCustomTheme(key, value) { applyTheme({ ...readSavedTheme(), [key]: value }); themeControls('themePreset').forEach((el) => { el.value = 'custom'; }); }
-function restoreTheme() { applyTheme(readSavedTheme() || THEME_PRESETS.futuristic, { skipPersist: true }); }
-window.addEventListener('storage', (event) => { if (event.key === THEME_KEY && event.newValue) applyTheme(JSON.parse(event.newValue), { skipPersist: true }); });
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
-// Runtime configuration. Avoid hardcoded repo/page defaults; load per-subject trees at runtime.
+// Runtime configuration. Avoid hardcoded repo/page defaults; load per-stream trees at runtime.
 const appConfig = window.appConfig || {
     GITHUB_REPO: '',
     GITHUB_BRANCH: 'main',
     APP_URL: '',
     GITPAGE_URL: '',
     WORKSPACE: '',
-    REPOS: [] // populated from <subject>-tree.json when available
+    REPOS: [] // populated from <stream>-tree.json when available
 };
 window.appConfig = appConfig;
 
-// Subject-level manifest loaded from /public/<subject>-tree.json (generated)
-let subjectTreeManifest = null;
-let subjectTreeLoadPromise = null;
-function loadSubjectTree() {
-    if (subjectTreeLoadPromise) return subjectTreeLoadPromise;
-    subjectTreeLoadPromise = (async () => {
-        try {
-            const subject = (window.CURRENT_SUBJECT || (window.location.pathname.split('/').filter(Boolean)[0]) || '').toLowerCase();
-            if (!subject || !WORKSPACE_SUBJECTS.has(subject)) return null;
-            // Runtime system API is authoritative; static manifests remain a compatibility fallback.
-            const runtimeUrl = `/api/system/${subject}`;
-            const jsonUrl = `/public/json/${subject}-tree.json`;
-            const rootUrl = `/public/${subject}-tree.json`;
-            let res = await fetch(runtimeUrl, { cache: 'no-store' });
-            if (!res.ok) res = await fetch(jsonUrl, { cache: 'no-store' });
-            if (!res.ok) res = await fetch(rootUrl, { cache: 'no-store' });
-            if (!res.ok) {
-                console.debug('No subject-tree manifest at', jsonUrl, 'or', rootUrl, 'status', res.status);
-                return null;
-            }
-            subjectTreeManifest = await res.json();
-            if (subjectTreeManifest && Array.isArray(subjectTreeManifest.repos)) {
-                appConfig.REPOS = subjectTreeManifest.repos;
-                if (subjectTreeManifest.repos.length > 0) {
-                    const primary = subjectTreeManifest.repos[0];
-                    if (primary.repo) appConfig.GITHUB_REPO = primary.repo;
-                    if (primary.branch) appConfig.GITHUB_BRANCH = primary.branch;
-                    if (primary.pagesBase) appConfig.GITPAGE_URL = primary.pagesBase;
-                }
-                console.debug('Loaded subject tree for', subject, subjectTreeManifest.repos.length, 'repos');
-            }
-            return subjectTreeManifest;
-        } catch (err) {
-            console.warn('Failed to load subject tree manifest:', err);
-            return null;
-        }
-    })();
-    return subjectTreeLoadPromise;
-}
-window.loadSubjectTree = loadSubjectTree;
 function formatWorkspaceLabel(rawValue) {
     if (!rawValue) {
         return 'Workspace';
@@ -283,15 +176,19 @@ const SUBJECT_PAGES = {
 about: { icon: '◌', title: 'About NoteBooks', description: 'A shared shelf for clearer, kinder learning.' }
 };
 
-const WORKSPACE_SUBJECTS = new Set(['science', 'commerce', 'humanities']);
-function getCurrentSubjectRoute() {
-    // Prefer explicit runtime subject set by the shell
-    if (window.CURRENT_SUBJECT) return window.CURRENT_SUBJECT;
+const SHARED_SHELL_ROUTES = new Set(['science', 'commerce', 'humanities', 'community', 'issues', 'volunteers', 'accounts', 'about']);
+function isSharedShellRoute(pathname) {
+    const slug = pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean)[0]?.toLowerCase() || '';
+    return pathname === '/' || SHARED_SHELL_ROUTES.has(slug);
+}
+function getCurrentStreamRoute() {
+    // Prefer the explicit stream set by the shell
+    if (window.CURRENT_STREAM) return window.CURRENT_STREAM;
     const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0] || '';
     return slug || '';
 }
 function updateNavigationState() {
-    const current = getCurrentSubjectRoute() || (window.location.pathname === '/' ? 'home' : '');
+    const current = getCurrentStreamRoute() || (window.location.pathname === '/' ? 'home' : '');
     document.querySelectorAll('.global-nav-links a').forEach((link) => {
         const active = link.dataset.nav === current;
         link.classList.toggle('is-current', active);
@@ -299,24 +196,25 @@ function updateNavigationState() {
         else link.removeAttribute('aria-current');
     });
 }
+let routeTransitionSerial = 0;
 async function navigateToRoute(href, { replace = false } = {}) {
     const url = new URL(href, window.location.href);
     if (url.origin !== window.location.origin || !url.pathname.startsWith('/')) return;
+    const transitionId = ++routeTransitionSerial;
     if (replace) window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
     else window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
 
     const slug = url.pathname.replace(/^\/+|\/+$/g, '').split('/')[0]?.toLowerCase() || '';
-    window.CURRENT_SUBJECT = slug;
-    document.body.dataset.subject = slug;
-    subjectTreeManifest = null;
-    subjectTreeLoadPromise = null;
+    window.CURRENT_STREAM = slug;
+    document.body.dataset.stream = slug;
+    NoteBooksStreamRuntime.reset();
     appConfig.REPOS = [];
     updateNavigationState();
-    syncSubjectLandingState();
+    syncStreamLandingState();
 
-    const shouldLoadWorkspace = url.pathname === '/' || WORKSPACE_SUBJECTS.has(slug);
+    const shouldLoadWorkspace = NoteBooksStreamRuntime.streams.has(slug);
     if (shouldLoadWorkspace) {
-        await fetchTree();
+        await fetchTree(transitionId);
     }
 }
 function initGlobalNav() {
@@ -328,25 +226,31 @@ function initGlobalNav() {
     document.querySelector('[data-close-settings]')?.addEventListener('click', () => document.getElementById('accountSettings')?.setAttribute('hidden', ''));
     document.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target : null;
-        const link = target?.closest('a[data-nav], a.subject-card, a.landing-primary, a.landing-secondary, a.portal-inline-link, .portal-doc-links a');
+        const link = target?.closest('a[data-nav], a.stream-card, a.landing-primary, a.landing-secondary, a.portal-inline-link, .portal-doc-links a');
         if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         const href = link.getAttribute('href');
         if (!href || href.startsWith('#')) return;
+        const targetUrl = new URL(href, window.location.href);
+        // Dashboard, Settings, and admin routes have standalone HTML shells. Let the
+        // browser perform a real navigation so their DOM and ownership boundaries load.
+        if (!isSharedShellRoute(targetUrl.pathname) || !isSharedShellRoute(window.location.pathname)) return;
         event.preventDefault();
         navigateToRoute(href).catch((error) => console.warn('[navigation] route transition failed', error));
     });
-    window.addEventListener('popstate', () => navigateToRoute(window.location.href, { replace: true }).catch((error) => console.warn('[navigation] history transition failed', error)));
+    window.addEventListener('popstate', () => {
+        if (isSharedShellRoute(window.location.pathname)) navigateToRoute(window.location.href, { replace: true }).catch((error) => console.warn('[navigation] history transition failed', error));
+    });
 }
 
 function renderPublicPortal(subject) {
-    const landing = document.getElementById('subjectLanding');
+    const landing = document.getElementById('streamLanding');
     if (!landing || !subject) return;
     const pages = {
-        community: { kicker: 'Open discussion', title: 'A thoughtful place to ask, answer, and compare notes.', copy: 'Community conversations are grounded in the three subject libraries and surfaced from the existing GitHub-backed feed.', primary: 'Start a thread', links: [{ label: 'Latest discussions', href: '/community?sort=latest' }, { label: 'Trending now', href: '/community?sort=trending' }] },
+        community: { kicker: 'Open discussion', title: 'A thoughtful place to ask, answer, and compare notes.', copy: 'Community conversations are grounded in the three stream libraries and surfaced from the existing GitHub-backed feed.', primary: 'Start a thread', links: [{ label: 'Latest discussions', href: '/community?sort=latest' }, { label: 'Trending now', href: '/community?sort=trending' }] },
         issues: { kicker: 'Improve the shelf', title: 'Spot a gap. Make a clear request. Help the library get better.', copy: 'Issues turn reader friction into visible, actionable work for the NoteBooks community.', primary: 'Submit an issue', links: [{ label: 'Latest issues', href: '/issues?sort=latest' }, { label: 'Active work', href: '/issues?status=open' }] },
         volunteers: { kicker: 'Contribute your craft', title: 'There is more than one way to leave the shelf better.', copy: 'Help with reference books, AI support, moderation, or coding. The page is public; applications continue through your account.', primary: 'Get started', links: [{ label: 'Reference books', href: '/accounts' }, { label: 'Moderation and coding', href: '/accounts' }] },
         accounts: { kicker: 'Your NoteBooks account', title: 'Keep your learning room close at hand.', copy: 'Sign in to contribute, apply for volunteer work, upload notes, and manage your shared reading-room preferences.', primary: 'Sign in or register', links: [{ label: 'Open settings', href: '#settings' }, { label: 'Contribution access', href: '/volunteers' }] },
-        about: { kicker: 'The NoteBooks mission', title: 'Knowledge becomes more useful when it is easier to enter and easier to improve.', copy: 'NoteBooks is for learners, contributors, reviewers, and maintainers who want subject libraries that are readable, structured, and open to careful improvement. Notes move through submission, validation, review, and GitHub publication; Community and Issues keep questions and gaps visible along the way.', primary: 'Start learning', links: [{ label: 'Browse subjects', href: '/science' }, { label: 'Contribute', href: '/volunteers' }] }
+        about: { kicker: 'The NoteBooks mission', title: 'Knowledge becomes more useful when it is easier to enter and easier to improve.', copy: 'NoteBooks is for learners, contributors, reviewers, and maintainers who want stream libraries that are readable, structured, and open to careful improvement. Notes move through submission, validation, review, and GitHub publication; Community and Issues keep questions and gaps visible along the way.', primary: 'Start learning', links: [{ label: 'Browse streams', href: '/science' }, { label: 'Contribute', href: '/volunteers' }] }
     };
     const page = pages[subject];
     if (!page) return;
@@ -368,10 +272,46 @@ async function loadPortalFeed(subject, targetId = 'portalFeed', sort = 'latest')
         if (!response.ok) throw new Error(`Feed unavailable (${response.status})`);
         const data = await response.json();
         const items = Array.isArray(data.items) ? data.items : [];
-        feed.innerHTML = items.length ? items.slice(0, 6).map((item) => `<a class="feed-item" href="${escapeHtml(item.url || '#')}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title || 'Untitled activity')}</strong><span>${escapeHtml(item.source || source)}${item.reply_count != null ? ` · ${item.reply_count} replies` : ''}${item.reaction_count != null ? ` · ${item.reaction_count} reactions` : ''} · ${formatFeedDate(item.updated_at || item.created_at)}</span><small>${escapeHtml(item.excerpt || '')}</small></a>`).join('') : '<p class="feed-empty">Nothing here yet — be the first to contribute.</p>';
+        if (!items.length) {
+            feed.innerHTML = '<p class="feed-empty">Nothing here yet — be the first to contribute.</p>';
+            return;
+        }
+        feed.innerHTML = items.slice(0, 6).map((item) => {
+            if (source === 'issues') {
+                const votes = item.votes || {};
+                const issueId = escapeHtml(item.id || item.githubIssueNumber || '');
+                return `<article class="feed-item issue-feed-item"><a href="${escapeHtml(item.url || '#')}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title || 'Untitled issue')}</strong><span>Issues${item.state ? ` · ${escapeHtml(item.state)}` : ''} · ${formatFeedDate(item.updatedAt || item.updated_at)}</span><small>${escapeHtml(item.body || item.excerpt || '')}</small></a><div class="issue-vote-controls" data-issue-id="${issueId}" aria-label="Issue voting"><button type="button" data-issue-vote="1" title="Upvote this issue">▲ <span>${escapeHtml(votes.upvotes || 0)}</span></button><strong>${escapeHtml(votes.score || 0)}</strong><button type="button" data-issue-vote="-1" title="Downvote this issue">▼ <span>${escapeHtml(votes.downvotes || 0)}</span></button></div></article>`;
+            }
+            return `<a class="feed-item" href="${escapeHtml(item.url || '#')}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title || 'Untitled activity')}</strong><span>${escapeHtml(item.source || source)}${item.reply_count != null ? ` · ${item.reply_count} replies` : ''}${item.reaction_count != null ? ` · ${item.reaction_count} reactions` : ''} · ${formatFeedDate(item.updated_at || item.created_at)}</span><small>${escapeHtml(item.excerpt || '')}</small></a>`;
+        }).join('');
+        if (source === 'issues') attachIssueVoteHandlers(feed);
     } catch (error) {
-        feed.innerHTML = '<p class="feed-empty">Live activity is unavailable right now. You can still browse the subject libraries.</p>';
+        feed.innerHTML = '<p class="feed-empty">Live activity is unavailable right now. You can still browse the stream libraries.</p>';
     }
+}
+function attachIssueVoteHandlers(feed) {
+    feed.querySelectorAll('[data-issue-vote]').forEach((button) => button.addEventListener('click', async () => {
+        const controls = button.closest('[data-issue-id]');
+        const issueId = controls?.getAttribute('data-issue-id');
+        if (!issueId) return;
+        button.disabled = true;
+        try {
+            const response = await fetch(`/api/issues/${encodeURIComponent(issueId)}/vote`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ value: Number(button.dataset.issueVote) }) });
+            const data = await response.json().catch(() => ({}));
+            if (response.status === 401) throw new Error('Sign in to vote on issues.');
+            if (!response.ok) throw new Error(data.error || 'Vote could not be recorded.');
+            const up = controls.querySelector('[data-issue-vote="1"] span');
+            const down = controls.querySelector('[data-issue-vote="-1"] span');
+            const score = controls.querySelector('strong');
+            if (up) up.textContent = String(data.votes?.upvotes || 0);
+            if (down) down.textContent = String(data.votes?.downvotes || 0);
+            if (score) score.textContent = String(data.votes?.score || 0);
+        } catch (error) {
+            window.alert(error?.message || 'Vote could not be recorded.');
+        } finally {
+            button.disabled = false;
+        }
+    }));
 }
 function formatFeedDate(value) { const date = value ? new Date(value) : null; return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Recently'; }
 function initHomeFeed() {
@@ -382,15 +322,15 @@ function initHomeFeed() {
         loadPortalFeed('community', 'homeFeed', button.dataset.feedSort || 'latest');
     }));
 }
-function initPortalMotion() { const targets = document.querySelectorAll('[data-reveal], .subject-card'); if (!('IntersectionObserver' in window)) { targets.forEach((target) => target.classList.add('is-visible')); return; } const observer = new IntersectionObserver((entries, instance) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); instance.unobserve(entry.target); } }), { threshold: 0.12 }); targets.forEach((target) => observer.observe(target)); }
+function initPortalMotion() { const targets = document.querySelectorAll('[data-reveal], .stream-card'); if (!('IntersectionObserver' in window)) { targets.forEach((target) => target.classList.add('is-visible')); return; } const observer = new IntersectionObserver((entries, instance) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); instance.unobserve(entry.target); } }), { threshold: 0.12 }); targets.forEach((target) => observer.observe(target)); }
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
 
-function syncSubjectLandingState() {
-    const landing = document.getElementById('subjectLanding');
+function syncStreamLandingState() {
+    const landing = document.getElementById('streamLanding');
     const shell = document.querySelector('.app-shell');
-    const subject = getCurrentSubjectRoute();
-    const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(subject) || window.location.pathname === '/';
-    renderPublicPortal(subject);
+    const routeKey = getCurrentStreamRoute();
+    const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(routeKey) || window.location.pathname === '/';
+    renderPublicPortal(routeKey);
 
     if (!landing || !shell) {
         return;
@@ -399,18 +339,18 @@ function syncSubjectLandingState() {
     landing.style.display = isPortalRoute ? 'block' : 'none';
     shell.style.display = isPortalRoute ? 'none' : 'flex';
 
-    document.querySelectorAll('#subjectGrid a, .portal-doc-links a').forEach((link) => {
+    document.querySelectorAll('#streamGrid a, .portal-doc-links a').forEach((link) => {
         const href = link.getAttribute('href') || '';
-        const active = subject && href === `/${subject}`;
+        const active = routeKey && href === `/${routeKey}`;
         link.classList.toggle('is-current', Boolean(active));
         if (active) link.setAttribute('aria-current', 'page');
         else link.removeAttribute('aria-current');
     });
 
-    if (subject && SUBJECT_PAGES[subject]) {
-        const meta = SUBJECT_PAGES[subject];
+    if (routeKey && SUBJECT_PAGES[routeKey]) {
+        const meta = SUBJECT_PAGES[routeKey];
         document.title = `${meta.title} · NoteBooks`;
-        if (window.location.pathname === `/${subject}`) {
+        if (window.location.pathname === `/${routeKey}`) {
             const workspaceHeader = document.getElementById('workspaceHeader');
             if (workspaceHeader) {
                 workspaceHeader.textContent = `${meta.icon} ${meta.title}`;
@@ -425,12 +365,9 @@ function syncSubjectLandingState() {
 
 async function fetchConfig() {
     try {
-        const res = await fetch('/api/config');
-        if (res.ok) {
-            const data = await res.json();
-            Object.assign(appConfig, data);
-            window.appConfig = appConfig;
-        }
+        const data = window.appConfigPromise ? await window.appConfigPromise : window.appConfig;
+        Object.assign(appConfig, data || {});
+        window.appConfig = appConfig;
     }
     catch (e) {
         console.warn('fetchConfig failed — using defaults:', e);
@@ -644,9 +581,13 @@ async function checkForAppUpdates() {
     }
 }
 
+let updatePollingStarted = false;
+let updatePollingTimer = null;
 async function startUpdatePolling() {
+    if (updatePollingStarted) return;
+    updatePollingStarted = true;
     await checkForAppUpdates();
-    setInterval(() => checkForAppUpdates(), UPDATE_POLL_INTERVAL);
+    updatePollingTimer = window.setInterval(() => checkForAppUpdates(), UPDATE_POLL_INTERVAL);
 }
 
 async function refreshFromSignal(payload) {
@@ -997,8 +938,23 @@ function createSidebarTreeItem(node, query) {
     row.setAttribute('role', 'treeitem');
     row.setAttribute('aria-level', String((nodePath.match(/\//g) || []).length + 1));
     row.setAttribute('aria-current', isActive ? 'location' : 'false');
+    row.tabIndex = 0;
     if (hasChildren)
         row.setAttribute('aria-expanded', String(isExpanded));
+    const activateNode = () => {
+        setActiveTreePath(nodePath);
+        if (node.type === 'file')
+            openPreview(node.path, node.name, node.repo, node.branch, getNodeRepositoryPath(node, node.repoPath));
+        else
+            navigateToSidebarNode(node.path);
+    };
+    row.onclick = activateNode;
+    row.onkeydown = (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            activateNode();
+        }
+    };
     const toggle = document.createElement('button');
     toggle.className = 'sidebar-tree-toggle';
     toggle.type = 'button';
@@ -1017,24 +973,10 @@ function createSidebarTreeItem(node, query) {
         renderSidebarTree(treeRoot, searchQuery);
     };
     row.appendChild(toggle);
-    const glyph = document.createElement('span');
-    glyph.className = `sidebar-tree-glyph ${node.type === 'folder' ? 'folder' : 'file'}`;
-    glyph.innerHTML = node.type === 'folder'
-        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5h7l2 2h9v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 6.5v-1a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1"/></svg>'
-        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v5h5"/></svg>';
-    row.appendChild(glyph);
     const label = document.createElement('span');
     label.className = 'sidebar-tree-label';
     label.textContent = node.name;
-    label.onclick = () => {
-        setActiveTreePath(nodePath);
-        if (node.type === 'file') {
-                openPreview(node.path, node.name, node.repo, node.branch, getNodeRepositoryPath(node, node.repoPath));
-        }
-        else {
-            navigateToSidebarNode(node.path);
-        }
-    };
+    label.title = node.name;
     row.appendChild(label);
     li.appendChild(row);
     if (childItems.length > 0) {
@@ -1085,25 +1027,27 @@ function toggleSidebar() {
     button.title = `${collapsed ? 'Expand' : 'Collapse'} repository navigator`;
     button.textContent = collapsed ? '›' : '‹';
 }
-  async function fetchTree() {
+  async function fetchTree(routeToken = 0) {
+  const routeAtStart = getCurrentStreamRoute();
   showStatus("Loading files...", true);
   try {
     let tree = null;
-    const requestedSlug = (window.CURRENT_SUBJECT || document.body?.dataset.subject || window.location.pathname.replace(/^\/+/, '').split('/')[0])?.toLowerCase() || '';
-    const subjectSlug = WORKSPACE_SUBJECTS.has(requestedSlug) ? requestedSlug : '';
-    if (subjectSlug) {
+    const requestedSlug = (window.CURRENT_STREAM || document.body?.dataset.subject || window.location.pathname.replace(/^\/+/, '').split('/')[0])?.toLowerCase() || '';
+    const streamSlug = NoteBooksStreamRuntime.streams.has(requestedSlug) ? requestedSlug : '';
+    if (streamSlug) {
         try {
-            const subjectPayload = subjectTreeManifest || await loadSubjectTree();
-            const hasSubjectManifest = Boolean(subjectPayload && Array.isArray(subjectPayload.repos));
-            const repoEntry = hasSubjectManifest ? subjectPayload.repos[0] : null;
-            if (hasSubjectManifest) {
+            const streamPayload = NoteBooksStreamRuntime.getManifest() || await NoteBooksStreamRuntime.loadStreamTree();
+            const hasStreamManifest = Boolean(streamPayload && Array.isArray(streamPayload.repos));
+            const repoEntry = hasStreamManifest ? streamPayload.repos[0] : null;
+            if (hasStreamManifest) {
                 // An empty subject manifest is still authoritative: do not leak the
-                // combined registry into another subject workspace.
-                tree = repoEntry?.tree || { type: 'folder', name: subjectSlug, children: [] };
-                console.info('[tree] Reused subject-scoped', subjectSlug, 'workspace manifest');
+                // combined registry into another subject workspace. Phase-I payloads
+                // expose a stream root so all configured repositories remain visible.
+                tree = streamPayload.root || repoEntry?.tree || { type: 'folder', name: streamSlug, children: [] };
+                console.info('[tree] Reused stream-scoped', streamSlug, 'workspace manifest');
             }
-        } catch (subjectTreeError) {
-            console.warn('[tree] Subject tree unavailable, continuing with normal registry loading:', subjectTreeError);
+        } catch (streamTreeError) {
+            console.warn('[tree] Stream tree unavailable, continuing with normal registry loading:', streamTreeError);
         }
     }
   const isGitHubPagesHost = window.location.hostname.endsWith('github.io');
@@ -1149,6 +1093,8 @@ function toggleSidebar() {
                 throw new Error(`Failed to fetch registry: ${res.status}`);
             tree = await res.json();
         }
+        if (routeToken && routeToken !== routeTransitionSerial) return;
+        if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
@@ -1503,7 +1449,7 @@ function showContextMenu(x, y) {
 }
 function handlePreview() {
     if (selected && selected.type === "file") {
-        const args = [selected.path, selected.name, selected.repo || '', selected.branch || '', selected.repoPath || selected.path];
+        const args = [selected.path, selected.name, selected.repo || '', selected.branch || '', selected.repoPath || selected.path, selected.raw || ''];
         isMobile
             ? openMobilePreview(...args)
             : openPreview(...args);
@@ -1514,15 +1460,12 @@ function handleDownload() {
     if (selected && selected.type === "file") {
         const a = document.createElement("a");
         const selectedRepoPath = getNodeRepositoryPath(selected, selected.repoPath);
-        let downloadUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(selected.repo ? selectedRepoPath : selected.path)}`;
+        const downloadPath = selected.repo ? selectedRepoPath : selected.path;
+        let downloadUrl = `${window.location.origin}/api/raw?path=${encodeURIComponent(downloadPath)}`;
         if (selected.repo) {
-            const branch = selected.branch || appConfig.GITHUB_BRANCH;
-            downloadUrl = `https://raw.githubusercontent.com/${selected.repo}/${branch}/${selectedRepoPath}`;
-        }
-        else if (appConfig.GITPAGE_URL) {
-            const pagesUrl = buildPagesUrl(selectedRepoPath);
-            if (pagesUrl)
-                downloadUrl = pagesUrl;
+            const branch = selected.branch || appConfig.GITHUB_BRANCH || 'main';
+            const rawUrl = selected.raw || `https://raw.githubusercontent.com/${selected.repo}/${branch}/${downloadPath}`;
+            downloadUrl += `&repo=${encodeURIComponent(selected.repo)}&branch=${encodeURIComponent(branch)}&raw=${encodeURIComponent(rawUrl)}`;
         }
         a.href = downloadUrl;
         a.download = selected.name;
@@ -1533,9 +1476,14 @@ function handleDownload() {
     }
     contextMenu.style.display = 'none';
 }
-function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '') {
+function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
     mobilePreviewTitle.textContent = filename;
-    fetchFileContent(path, filename, mobilePreviewContent, null, repo, branch, repoPath);
+    mobilePreview._filePath = path;
+    mobilePreview._repo = repo;
+    mobilePreview._branch = branch;
+    mobilePreview._repoPath = repoPath || path;
+    mobilePreview._filename = filename;
+    fetchFileContent(path, filename, mobilePreviewContent, mobilePreview, repo, branch, repoPath, precomputedRaw);
     mobilePreview.style.display = "flex";
 }
 function closeMobilePreview() {
@@ -1674,7 +1622,7 @@ function injectSplitViewStyles() {
 }
 // ─── openPreview ────────────────────────────────────────���────────────────────
 function openNewMarkdownEditor() {
-    const subject = getCurrentSubjectRoute() || 'science';
+    const subject = getCurrentStreamRoute() || 'science';
     const suggestedPath = `notes/${subject}-new-note.md`;
     const requestedPath = window.prompt('Repository path for the new Markdown note:', suggestedPath);
     if (!requestedPath)
@@ -1731,7 +1679,7 @@ function openNewMarkdownEditor() {
     setTimeout(() => toggleFullscreen(id, true), 100);
 }
 
-function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
+function openPreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
     injectSplitViewStyles();
     const id = 'preview-' + (++previewId);
     const win = document.createElement("div");
@@ -1747,7 +1695,7 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     // Edit button — only for markdown files
     const editBtnHTML = isMarkdown
         ? `<button class="btn-edit-split" id="${id}-editbtn" title="Edit existing Markdown file" aria-label="Edit existing Markdown file" onclick="toggleSplitEditor('${id}')">
-         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Edit</span><span class="sv-dot"></span>
+         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Open editor</span><span class="sv-dot"></span>
        </button>`
         : '';
     win.innerHTML = `
@@ -1775,147 +1723,34 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     win._splitActive = false;
     // ✅ Pass win directly so _originalContent is set correctly after the await
     const container = document.getElementById(id + "-body");
-    fetchFileContent(path, filename, container, win, repo, branch, repoPath);
+    fetchFileContent(path, filename, container, win, repo, branch, repoPath, precomputedRaw);
     updateTaskbar();
     if (isFullScreen)
         setTimeout(() => toggleFullscreen(id, true), 100);
 }
 // ─── fetchFileContent ─────────────────────────────────────────────────────────
-async function fetchFileContent(path, filename, container, winElement = null, repo = '', branch = '', repoPath = '') {
+async function fetchFileContent(path, filename, container, winElement = null, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
     const ext = (filename.includes('.') ? filename : path).split('.').pop().toLowerCase();
     container.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;"><span class="loader"></span> Loading...</div>';
-    const isGitHubPages = window.location.hostname.endsWith('github.io');
-    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const repoName = repo ? String(repo).split('/').pop() : '';
-    // In local development, try direct file access first (for static servers like `serve`)
-    // On GitHub Pages, use raw.githubusercontent.com
-    // On Vercel, use /api/raw endpoint
-    function buildPagesUrl(p) {
-        if (!appConfig.GITPAGE_URL)
-            return '';
-        const cleanedPath = String(p || '').replace(/^\/+/, '');
-        const baseUrl = appConfig.GITPAGE_URL.endsWith('/') ? appConfig.GITPAGE_URL : `${appConfig.GITPAGE_URL}/`;
-        try {
-            return new URL(cleanedPath, baseUrl).toString();
-        }
-        catch {
-            return '';
-        }
-    }
-    const localFileUrl = (p) => {
-        const cleanedPath = String(p || '').replace(/^\/+/, '');
-        return `${window.location.origin}/files/${cleanedPath.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`;
+    const delivery = window.NoteBooksRawDelivery;
+    if (!delivery) throw new Error('Raw delivery module is unavailable');
+    const deliveryOptions = {
+        repo,
+        branch,
+        repoPath,
+        precomputedRaw,
+        origin: window.location.origin,
+        appConfig,
+        isGitHubPages: window.location.hostname.endsWith('github.io'),
+        githubRepo: appConfig.GITHUB_REPO,
+        githubBranch: appConfig.GITHUB_BRANCH || 'main',
+        pagesBase: repo ? pagesBaseForRepository(repo) : '',
+        pagesFallbackUrl: buildPagesUrl(path)
     };
-    const sourcePathForRepository = (p) => {
-        const rawSourcePath = String(repoPath || p || '').replace(/^\/+/, '');
-        const lowerPath = rawSourcePath.toLowerCase();
-        const lowerRepoName = repoName.toLowerCase();
-        return lowerRepoName && lowerPath.startsWith(`${lowerRepoName}/`)
-            ? rawSourcePath.slice(repoName.length + 1)
-            : rawSourcePath;
-    };
-    // Candidate order matters: GitHub Pages builds almost never mirror a repo's
-    // raw file tree at arbitrary paths (a Pages site for docs.foo/README.md will
-    // usually 404 for the raw README.md path itself). Probing it first means every
-    // preview pays for a failed cross-origin request, and Pages' 404 responses
-    // typically omit CORS headers, which surfaces as a scary (but harmless, since
-    // it's caught and retried) CORS error in the console. Try the sources that are
-    // actually guaranteed to serve exact repo content first, and keep the Pages
-    // URL as a last-resort fallback (it can still be right for repos whose Pages
-    // site *does* mirror the source tree).
-    //
-    // `forEmbed` controls ordering, not just for the Content-Disposition reason
-    // below -- it's mainly about this app's own Content-Security-Policy (see
-    // server.ts helmet config). frameSrc only allows 'self' / docs.google.com /
-    // *.github.io -- NOT raw.githubusercontent.com and NOT cdn.jsdelivr.net.
-    // imgSrc/mediaSrc allow 'self' / *.github.io / raw.githubusercontent.com --
-    // but NOT cdn.jsdelivr.net. So for anything set directly as an element src
-    // (img/audio/video/iframe), only this app's own same-origin /api/raw proxy
-    // is guaranteed to pass CSP for every media type, so it goes first. It also
-    // sidesteps two other problems: raw.githubusercontent.com deliberately sends
-    // Content-Disposition: attachment for several file types (pdf, html...) to
-    // stop raw content executing/rendering in a browser tab, which forces a
-    // download instead of an inline view; and raw.githubusercontent.com sends
-    // X-Frame-Options: deny, which blocks it from ever being framed at all.
-    // /api/raw sets neither header and explicitly sends
-    // Cross-Origin-Resource-Policy: cross-origin, so it also satisfies this
-    // app's Cross-Origin-Embedder-Policy: require-corp.
-    // fetch()-based consumers (fetchUrlWithFallback, for text like markdown)
-    // aren't subject to CSP's frameSrc/imgSrc/mediaSrc (that's connectSrc, which
-    // does allow raw.githubusercontent.com and cdn.jsdelivr.net), so they keep
-    // raw.githubusercontent.com first for its reliable CORS support.
-    const sourceCandidates = (p, forEmbed) => {
-        const cleanedPath = String(p || '').replace(/^\/+/, '');
-        if (repo) {
-            const sourcePath = sourcePathForRepository(cleanedPath);
-            const sourceBranch = branch || appConfig.GITHUB_BRANCH || 'main';
-            const pagesBase = pagesBaseForRepository(repo);
-            const rawGithub = `https://raw.githubusercontent.com/${repo}/${sourceBranch}/${sourcePath}`;
-            const jsdelivr = `https://cdn.jsdelivr.net/gh/${repo}@${sourceBranch}/${sourcePath}`;
-            const apiRaw = `${window.location.origin}/api/raw?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(sourceBranch)}`;
-            const pagesEntry = pagesBase ? [`${pagesBase}${sourcePath}`] : [];
-            return forEmbed
-                ? [apiRaw, ...pagesEntry, rawGithub]
-                : [rawGithub, jsdelivr, ...pagesEntry];
-        }
-        const candidates = [];
-        const apiRaw = `${window.location.origin}/api/raw?path=${encodeURIComponent(cleanedPath)}`;
-        if (forEmbed) {
-            candidates.push(apiRaw);
-        }
-        if (isGitHubPages && appConfig.GITHUB_REPO) {
-            candidates.push(`https://raw.githubusercontent.com/${appConfig.GITHUB_REPO}/${appConfig.GITHUB_BRANCH || 'main'}/${cleanedPath}`);
-        }
-        candidates.push(localFileUrl(cleanedPath));
-        if (!forEmbed) {
-            candidates.push(apiRaw);
-        }
-        const pagesUrl = buildPagesUrl(cleanedPath);
-        if (pagesUrl) candidates.push(pagesUrl);
-        return candidates;
-    };
-    // Do not probe cross-origin candidates with HEAD. GitHub Pages and raw
-    // sources can reject or mishandle HEAD even when the actual file GET works.
-    // resolveSourceUrl only hands back the first candidate; actual fallback for
-    // <img>/<audio>/<video> happens client-side via onMediaError below, which
-    // cycles the element's src through the remaining candidates on load failure.
-    const resolveSourceUrl = (p) => {
-        const candidates = sourceCandidates(p, true);
-        return candidates[0] || localFileUrl(p);
-    };
-    if (!window.__ntbkMediaFallback) {
-        window.__ntbkMediaFallback = (el) => {
-            let list;
-            try { list = JSON.parse(el.dataset.fallbacks || '[]'); } catch (e) { list = []; }
-            const next = list.shift();
-            if (!next) { el.removeAttribute('onerror'); return; }
-            el.dataset.fallbacks = JSON.stringify(list);
-            el.src = next;
-        };
-    }
-    const mediaSrcAttrs = (candidates) => {
-        const [first, ...rest] = candidates;
-        return `src="${first}" data-fallbacks='${JSON.stringify(rest).replace(/'/g, '&#39;')}' onerror="window.__ntbkMediaFallback(this)"`;
-    };
-    const fetchUrlWithFallback = async (p) => {
-        let lastError = null;
-        for (const candidate of sourceCandidates(p)) {
-            try {
-                const response = await fetch(candidate, { cache: 'no-store' });
-                if (response.ok) {
-                    const contentType = response.headers.get('content-type') || '';
-                    if (!contentType.includes('text/html') || candidate.endsWith('.html') || candidate.endsWith('.htm')) {
-                        return await response.text();
-                    }
-                }
-                lastError = new Error(`HTTP ${response.status}`);
-            }
-            catch (error) {
-                lastError = error;
-            }
-        }
-        throw lastError || new Error('Source file unavailable');
-    };
+    const sourceCandidates = (p) => delivery.sourceCandidates({ ...deliveryOptions, path: p });
+    const resolveSourceUrl = (p) => delivery.resolveSourceUrl({ ...deliveryOptions, path: p });
+    const mediaSrcAttrs = (candidates) => delivery.mediaSrcAttrs(candidates);
+    const fetchUrlWithFallback = (p) => delivery.fetchText({ ...deliveryOptions, path: p });
     const rawUrl = await resolveSourceUrl(path);
     try {
         if (/\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(filename)) {
@@ -1970,25 +1805,126 @@ async function fetchFileContent(path, filename, container, winElement = null, re
     }
 }
 // ─── Markdown render helper ───────────────────────────────────────────────────
+function sourceLineFromNode(node) {
+  const element = node && node.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+  const line = element?.closest?.('[data-source-line]')?.dataset.sourceLine;
+  return line ? Number(line) : null;
+}
+
+function sourceRangeForSelection(selection, sourceText) {
+  if (!selection || selection.isCollapsed || !selection.toString().trim()) return null;
+  const selectedText = selection.toString();
+  const rawStart = sourceLineFromNode(selection.anchorNode);
+  const rawEnd = sourceLineFromNode(selection.focusNode);
+  if (rawStart && rawEnd) {
+    const startLine = Math.min(rawStart, rawEnd);
+    const endLine = Math.max(rawStart, rawEnd);
+    const lines = String(sourceText || '').split(/\r?\n/);
+    return { startLine, endLine, selectedText, sourceText: lines.slice(startLine - 1, endLine).join('\n') };
+  }
+  const normalized = selectedText.replace(/\s+/g, ' ').trim();
+  const sourceLines = String(sourceText || '').split(/\r?\n/);
+  let startIndex = String(sourceText || '').indexOf(selectedText);
+  if (startIndex < 0) {
+    startIndex = sourceLines.findIndex((line) => line.replace(/\s+/g, ' ').trim().includes(normalized));
+    if (startIndex >= 0) return { startLine: startIndex + 1, endLine: startIndex + 1, selectedText, sourceText: sourceLines[startIndex] };
+  }
+  if (startIndex < 0) return null;
+  const endIndex = startIndex + selectedText.length;
+  return { startLine: String(sourceText).slice(0, startIndex).split(/\r?\n/).length, endLine: String(sourceText).slice(0, endIndex).split(/\r?\n/).length, selectedText, sourceText: String(sourceText).slice(startIndex, endIndex) };
+}
+
+function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
+  const existing = document.getElementById('suggest-changes-dialog');
+  if (existing) existing.remove();
+  if (!evidence) {
+    showStatus('Select source text that maps to a source line, or use Raw view for exact line selection.');
+    return;
+  }
+  const dialog = document.createElement('div');
+  dialog.id = 'suggest-changes-dialog';
+  dialog.className = 'suggest-changes-dialog';
+  const repo = win?._repo || appConfig.GITHUB_REPO || '';
+  const branch = win?._branch || appConfig.GITHUB_BRANCH || 'main';
+  const stream = typeof getCurrentStreamRoute === 'function' ? getCurrentStreamRoute() : '';
+  dialog.innerHTML = `<div class="suggest-changes-card" role="dialog" aria-modal="true" aria-labelledby="suggest-changes-title"><div class="suggest-changes-header"><div><span class="markdown-mode-label">Issues</span><h2 id="suggest-changes-title">Suggest changes</h2></div><button type="button" class="suggest-changes-close" aria-label="Close">×</button></div><p class="suggest-changes-context">${escapeHTML(repo || 'Source repository')} · ${escapeHTML(filePath)} · lines ${evidence.startLine}–${evidence.endLine}</p><pre class="suggest-changes-selection">${escapeHTML(evidence.sourceText)}</pre><form id="suggest-changes-form"><label>Short title<input name="title" maxlength="200" required placeholder="What should be improved?" /></label><label>Why should this change? <textarea name="body" maxlength="20000" minlength="20" required placeholder="Explain the issue for the reviewer."></textarea></label><div class="suggest-changes-actions"><button type="button" class="landing-secondary" data-suggest-cancel>Cancel</button><button type="submit" class="landing-primary">Raise issue</button><span class="suggest-changes-status" role="status"></span></div></form></div>`;
+  document.body.appendChild(dialog);
+  const close = () => dialog.remove();
+  dialog.querySelector('.suggest-changes-close')?.addEventListener('click', close);
+  dialog.querySelector('[data-suggest-cancel]')?.addEventListener('click', close);
+  dialog.querySelector('#suggest-changes-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const status = form.querySelector('.suggest-changes-status');
+    const token = window.ModernAuthInstance?.getToken?.() || '';
+    if (!token) { if (status) status.textContent = 'Sign in from Settings before raising an issue.'; return; }
+    const values = Object.fromEntries(new FormData(form).entries());
+    const button = form.querySelector('button[type="submit"]');
+    if (button) button.disabled = true;
+    if (status) status.textContent = 'Submitting to NoteBooks-Issues…';
+    try {
+      const response = await fetch('/api/issues/proposals', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` }, credentials: 'same-origin', body: JSON.stringify({ title: values.title, body: values.body, stream, sourceRepository: repo, sourceBranch: branch, sourcePath: win?._repoPath || filePath, sourceStartLine: evidence.startLine, sourceEndLine: evidence.endLine, sourceText: evidence.sourceText, sourceCommit: win?._commit || '' }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `Issue submission failed (${response.status})`);
+      if (status) status.textContent = 'Issue raised for review.';
+      setTimeout(close, 900);
+    } catch (error) { if (status) status.textContent = error.message || 'Issue submission failed.'; if (button) button.disabled = false; }
+  });
+  dialog.querySelector('input')?.focus();
+}
+
+function renderRawMarkdown(text) {
+  const lines = String(text || '').split(/\r?\n/);
+  const renderedLines = lines.map((line, index) => `<span class="raw-source-line" data-source-line="${index + 1}"><span class="raw-line-number" aria-hidden="true">${index + 1}</span><span class="raw-line-text">${escapeHTML(line) || ' '}</span></span>`).join('');
+  return `<pre class="raw-markdown-line-view" data-raw-source="true"><code>${renderedLines}</code></pre>`;
+}
+
 function renderMarkdownIntoContainer(text, filePath, container) {
   const win = container.closest('.floating-window');
   const toolbar = document.createElement('div');
   toolbar.className = 'markdown-mode-toolbar';
-  toolbar.innerHTML = '<span class="markdown-mode-label">Document</span><button type="button" data-mode="preview" class="active">Preview</button><button type="button" data-mode="edit">Edit</button><button type="button" data-mode="raw">RAW</button>';
+  toolbar.innerHTML = '<span class="markdown-mode-label">Document</span><button type="button" data-mode="preview" class="active">Reader</button><button type="button" data-mode="raw">Raw view</button>';
   const wrapper = document.createElement('div');
   wrapper.className = 'markdown-content';
+  wrapper.dataset.sourceFile = filePath || '';
+  let lastEvidence = null;
   wrapper.innerHTML = markdownToHTML(text, filePath);
   container.innerHTML = '';
   container.appendChild(toolbar);
   container.appendChild(wrapper);
-  toolbar.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {
-      toolbar.querySelectorAll('button').forEach((item) => item.classList.toggle('active', item === button));
-      if (button.dataset.mode === 'edit' && win) { toggleSplitEditor(win.dataset.id); return; }
-      if (button.dataset.mode === 'raw') {
-          wrapper.classList.add('raw-markdown'); wrapper.textContent = text;
-      } else {
-          wrapper.classList.remove('raw-markdown'); wrapper.innerHTML = markdownToHTML(text, filePath); setTimeout(() => initMarkdownFeatures(wrapper), 0);
-      }
+
+  const suggestButton = document.createElement('button');
+  suggestButton.type = 'button';
+  suggestButton.dataset.mode = 'suggest';
+  suggestButton.textContent = 'Suggest changes';
+  suggestButton.className = 'markdown-suggest-button';
+  suggestButton.disabled = true;
+  suggestButton.title = 'Select source text first';
+  suggestButton.addEventListener('mousedown', (event) => event.preventDefault());
+  suggestButton.addEventListener('click', () => openSuggestChangesComposer(win, text, filePath, lastEvidence));
+  toolbar.appendChild(suggestButton);
+  wrapper.addEventListener('mouseup', () => {
+    const selection = window.getSelection();
+    if (!selection || !wrapper.contains(selection.anchorNode) || !wrapper.contains(selection.focusNode)) return;
+    lastEvidence = sourceRangeForSelection(selection, text);
+    suggestButton.disabled = !lastEvidence;
+    suggestButton.title = lastEvidence ? `Suggest changes for lines ${lastEvidence.startLine}–${lastEvidence.endLine}` : 'Select source text that maps to source lines';
+  });
+
+  const setMode = (mode) => {
+    toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((item) => item.classList.toggle('active', item.dataset.mode === mode));
+    if (mode === 'raw') {
+      wrapper.classList.add('raw-markdown');
+      wrapper.innerHTML = renderRawMarkdown(text);
+      return;
+    }
+    wrapper.classList.remove('raw-markdown');
+    wrapper.innerHTML = markdownToHTML(text, filePath);
+    setTimeout(() => initMarkdownFeatures(wrapper), 0);
+  };
+
+  toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((button) => button.addEventListener('click', () => {
+    setMode(button.dataset.mode || 'preview');
   }));
   setTimeout(() => initMarkdownFeatures(wrapper), 0);
 }
@@ -2070,7 +2006,7 @@ function toggleSplitEditor(windowId) {
             showStatus('✓ Changes saved to session');
         };
         MarkdownEditor.createEditorUI(editorPane, win._filePath, win._originalContent, onEditorClose, {
-            subject: getCurrentSubjectRoute(),
+            subject: getCurrentStreamRoute(),
             submissionPath: win._repoPath || win._filePath,
             repo: win._repo || '',
             branch: win._branch || '',
@@ -2180,7 +2116,7 @@ function openCommunity() {
         openPreview(path, 'Community 💬');
     }
 }
-window.addEventListener("DOMContentLoaded", async () => {
+async function bootNoteBooks() {
     const treeRail = document.getElementById('treeRail');
     const treeRailToggle = document.getElementById('treeRailToggle');
     treeRailToggle?.addEventListener('click', () => {
@@ -2210,28 +2146,32 @@ window.addEventListener("DOMContentLoaded", async () => {
   initialGuideState();
   initGlobalNav();
   initHomeFeed();
+  if (typeof initLocalLandingDocs === 'function') initLocalLandingDocs();
   initPortalMotion();
   await fetchConfig();
   applyWorkspaceBranding();
-  syncSubjectLandingState();
+  syncStreamLandingState();
+  const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(getCurrentStreamRoute()) || window.location.pathname === '/';
+  if (isPortalRoute) hideSplash();
     // Subject pages are rendered into the dedicated content mount in the shared app shell.
     // We intentionally do not replace the whole app shell here, because that destroys
     // the existing navigation and workspace state and causes the placeholder issue.
-    const subjectContentRoot = document.getElementById('subjectContentRoot');
-    if (subjectContentRoot && getCurrentSubjectRoute()) {
-        subjectContentRoot.hidden = false;
-        const landing = document.getElementById('subjectLanding');
+    const streamContentRoot = document.getElementById('streamContentRoot');
+    if (streamContentRoot && getCurrentStreamRoute()) {
+        streamContentRoot.hidden = false;
+        const landing = document.getElementById('streamLanding');
         if (landing)
             landing.hidden = true;
     }
   const utilityTitle = document.getElementById('utilityWorkspaceTitle');
   if (utilityTitle) utilityTitle.textContent = document.getElementById('workspaceHeader')?.textContent || 'NoteBooks';
-  const activeRoute = getCurrentSubjectRoute();
-  const shouldLoadWorkspace = window.location.pathname === '/' || WORKSPACE_SUBJECTS.has(activeRoute);
+  const activeRoute = getCurrentStreamRoute();
+    const shouldLoadWorkspace = NoteBooksStreamRuntime.streams.has(activeRoute);
   if (shouldLoadWorkspace) {
-    await loadSubjectTree();
+    await NoteBooksStreamRuntime.loadStreamTree();
     await startUpdatePolling();
     await fetchTree();
   }
   maybeShowVercelPopup();
-});
+}
+void bootNoteBooks();

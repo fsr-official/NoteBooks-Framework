@@ -1,17 +1,18 @@
 // ===== MODERN EMAIL + PASSWORD AUTH SYSTEM =====
-function getDecodedAuthRole() {
+function getDecodedAuthPayload() {
     try {
         const token = window.ModernAuthInstance && window.ModernAuthInstance.getToken ? window.ModernAuthInstance.getToken() : '';
-        if (!token || typeof token !== 'string') {
-            return 'user';
-        }
+        if (!token || typeof token !== 'string') return {};
         const payloadPart = token.split('.')[1];
-        if (!payloadPart) {
-            return 'user';
-        }
+        if (!payloadPart) return {};
         const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
         const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-        const payload = JSON.parse(atob(padded));
+        return JSON.parse(atob(padded)) || {};
+    } catch (_err) { return {}; }
+}
+function getDecodedAuthRole() {
+    try {
+        const payload = getDecodedAuthPayload();
         return payload && payload.role ? payload.role : 'user';
     }
     catch (_err) {
@@ -19,7 +20,8 @@ function getDecodedAuthRole() {
     }
 }
 function isCurrentUserAdmin() {
-    return Boolean(window.ModernAuthInstance && window.ModernAuthInstance.isLoggedIn && window.ModernAuthInstance.isLoggedIn()) && getDecodedAuthRole() === 'admin';
+    const payload = getDecodedAuthPayload();
+    return Boolean(window.ModernAuthInstance && window.ModernAuthInstance.isLoggedIn && window.ModernAuthInstance.isLoggedIn()) && (payload.role === 'admin' || payload.roles?.includes('super_admin') || payload.role_keys?.includes('super_admin'));
 }
 // Initialize reCAPTCHA and auth system on page load
 document.addEventListener('DOMContentLoaded', function () {
@@ -31,11 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // ===== CONFIG LOADER =====
 async function loadRecaptchaConfig() {
     try {
-        const response = await fetch('/api/config');
-        if (!response.ok) {
-            return;
-        }
-        const data = await response.json();
+        const data = window.appConfigPromise ? await window.appConfigPromise : (window.appConfig || {});
         const siteKey = data.RECAPTCHA_SITE_KEY || '';
         if (siteKey) {
             window.ModernAuthInstance.setRecaptchaKey(siteKey);
@@ -283,8 +281,8 @@ function isAdmin() {
     return window.ModernAuthInstance.isLoggedIn();
 }
 function isSuperAdmin() {
-    // Super admin logic - can be expanded with database
-    return false;
+    const payload = getDecodedAuthPayload();
+    return Boolean(window.ModernAuthInstance && window.ModernAuthInstance.isLoggedIn && window.ModernAuthInstance.isLoggedIn()) && (payload.roles?.includes('super_admin') || payload.role_keys?.includes('super_admin'));
 }
 function hasPerm(p) {
     // Permission logic can be expanded with roles

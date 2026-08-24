@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v10';
+const CACHE_VERSION = 'webman-v23';
 const OFFLINE_PAGE = 'offline.html';
 
 const APP_SHELL = [
@@ -13,17 +13,38 @@ const APP_SHELL = [
   'index.html',
   'offline.html',
   'public/manifest.json',
-  'favicon.png',
+  'public/favicon-128.png',
   'public/css/style.css',
+  'public/css/tree.css',
+  'public/css/dashboard.css',
+  'public/js/config.js',
+  'public/js/markdown-vendors.js',
   'public/js/app.js',
-  'public/client/subjects.js',
+  'public/js/theme.js',
+  'public/js/landing-docs.js',
+  'public/js/stream-runtime.js',
+  'public/js/raw-delivery.js',
+  'public/js/dashboard.js',
+  'public/js/admin-dashboard.js',
+  'public/client/streams.js',
   'public/js/auth.js',
+  'public/js/modern-auth.js',
   'public/js/upload.js',
   'public/js/mobile.js',
   'public/js/markdown.js',
   'public/js/md-init.js',
   'public/js/obsidian-markdown-it.js',
   'public/css/theme.css',
+  'public/html/settings.html',
+  'public/html/admin.html',
+  'public/html/portal.html',
+  'public/js/portal.js',
+  'public/js/shell-nav.js',
+  'public/json/github-repos.json',
+  'public/json/science-tree.json',
+  'public/json/commerce-tree.json',
+  'public/json/humanities-tree.json',
+  'public/json/repo-registry.json',
   'public/bin/tikzjax/css/fonts.css',
   'public/bin/tikzjax/output/tikzjax.js',
   'https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js',
@@ -44,25 +65,23 @@ const COOP_COEP_HEADERS = {
   'Cross-Origin-Embedder-Policy': 'credentialless',
 };
 
-// In-memory subject trees loaded at install time. Format: { subject: { repos: [...] } }
-const SUBJECT_TREES = {};
+// In-memory stream trees loaded at install time. Format: { stream, root, repos: [...] }.
+const STREAM_TREES = {};
 
-async function loadSubjectTrees() {
-  const subjects = ['science', 'commerce', 'humanities'];
-  await Promise.all(subjects.map(async (s) => {
+async function loadStreamTrees() {
+  const streams = ['science', 'commerce', 'humanities'];
+  await Promise.all(streams.map(async (s) => {
     try {
       const runtimeUrl = `/api/system/${s}`;
       const jsonUrl = `/public/json/${s}-tree.json`;
-      const rootUrl = `/public/${s}-tree.json`;
       let res = await fetch(runtimeUrl, { cache: 'no-store' });
       if (!res.ok) res = await fetch(jsonUrl, { cache: 'no-store' });
-      if (!res.ok) res = await fetch(rootUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error(`no ${s}-tree`);
-      SUBJECT_TREES[s] = await res.json();
+      STREAM_TREES[s] = await res.json();
     } catch (e) {
-      SUBJECT_TREES[s] = null;
-      // don't fail install on missing subject trees
-      console.warn('[service-worker] could not load subject tree for', s, e?.message || e);
+      STREAM_TREES[s] = null;
+      // don't fail install on missing stream trees
+      console.warn('[service-worker] could not load stream tree for', s, e?.message || e);
     }
   }));
 }
@@ -82,8 +101,8 @@ function findFileInNode(node, targetPath) {
   return null;
 }
 
-function findFileForSubject(subject, subpath) {
-  const idx = SUBJECT_TREES[subject];
+function findFileForStream(stream, subpath) {
+  const idx = STREAM_TREES[stream];
   if (!idx || !Array.isArray(idx.repos)) return null;
   const normalized = normalizePath(subpath);
   for (const repoEntry of idx.repos) {
@@ -121,8 +140,9 @@ self.addEventListener('install', event => {
     (async () => {
       const cache = await caches.open(CACHE_VERSION);
       await Promise.allSettled(APP_SHELL.map(url => cache.add(url).catch(() => {})));
-      // Load subject trees into memory so fetch handler can resolve subject files
-      try { await loadSubjectTrees(); } catch (e) { /* ignore */ }
+      // Do not fan out to all remote stream APIs during installation. Stream trees are
+      // already precached as build artifacts and runtime stream/API requests remain lazy.
+      // This keeps SW install fast and avoids making every client refresh all streams.
     })()
   );
   self.skipWaiting();
@@ -203,14 +223,14 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Subject-specific routing: map requests under /science/, /commerce/, /humanities/
+  // Stream-specific routing: map requests under /science/, /commerce/, /humanities/
   try {
     const pathname = url.pathname || '';
-    const subjectMatch = pathname.match(/^\/(science|commerce|humanities)\/(.*)$/);
-    if (subjectMatch && request.method === 'GET') {
-      const subject = subjectMatch[1];
-      const subpath = subjectMatch[2] || '';
-      const resolved = findFileForSubject(subject, subpath);
+    const streamMatch = pathname.match(/^\/(science|commerce|humanities)\/(.*)$/);
+    if (streamMatch && request.method === 'GET') {
+      const stream = streamMatch[1];
+      const subpath = streamMatch[2] || '';
+      const resolved = findFileForStream(stream, subpath);
       if (resolved && resolved.file && resolved.file.raw) {
         event.respondWith(
           fetch(resolved.file.raw)
@@ -231,7 +251,7 @@ self.addEventListener('fetch', event => {
     }
   } catch (e) {
     // ignore lookup errors and fallthrough to normal handling
-    console.warn('[service-worker] subject routing error', e?.message || e);
+    console.warn('[service-worker] stream routing error', e?.message || e);
   }
 
   if (APP_SHELL.includes(request.url) || APP_SHELL.includes(url.pathname.replace(/^\//, ''))) {

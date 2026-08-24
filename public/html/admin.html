@@ -2,20 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin — NoteBooks</title>
-  <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/public/subjects/subjects.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#030811" />
+  <title>NoteBooks Admin Control Center</title>
+  <link rel="stylesheet" href="/public/css/theme.css" />
+  <link rel="stylesheet" href="/public/css/style.css" />
+  <link rel="stylesheet" href="/public/css/dashboard.css" />
 </head>
-<body>
-  <div id="subjectLanding"></div>
-  <script src="/public/client/subjects.js" defer></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function(){
-      if (window.initSubjectShell) {
-        window.initSubjectShell('admin');
-      }
-    });
-  </script>
+<body class="dashboard-page admin-dashboard-page">
+  <nav class="global-nav" aria-label="Primary navigation">
+    <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
+    <div class="global-nav-links">
+      <a href="/settings#personal-space" data-nav="dashboard">My space</a>
+      <a href="/admin" data-nav="admin" aria-current="page">Admin desk</a>
+      <a href="/admin-prs" data-nav="admin-prs">PR review</a>
+      <a href="/community" data-nav="community">Community</a>
+      <a href="/issues" data-nav="issues">Issues</a>
+      <a href="/settings" data-nav="settings">Settings</a>
+    </div>
+    <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+  </nav>
+
+  <main class="dashboard-main" id="adminDashboardRoot" aria-live="polite">
+    <section class="dashboard-hero">
+      <div>
+        <div class="dashboard-kicker">Operations</div>
+        <h1>Admin control center.</h1>
+        <p>One guarded surface for identity, moderation, themes, issue proposals, pull requests, and audit readiness.</p>
+      </div>
+      <div class="dashboard-status" id="adminDashboardStatus"><strong>Checking security boundary</strong>Administrator verification is required.</div>
+    </section>
+
+    <section class="dashboard-grid" aria-label="Admin control center">
+      <article class="dashboard-card dashboard-card--wide">
+        <div class="dashboard-card-kicker">Operational queue</div>
+        <h2>Current counts</h2>
+        <p id="adminDashboardOverview">Loading persisted control-center counts…</p>
+        <div class="dashboard-metrics" id="adminDashboardMetrics"></div>
+      </article>
+
+      <article class="dashboard-card dashboard-card--side">
+        <div class="dashboard-card-kicker">Legacy surface</div>
+        <h2>PR review</h2>
+        <p>The existing GitHub PR review workflow remains available as a separate guarded module while the new issue lifecycle is activated.</p>
+        <a class="dashboard-control-link" href="/admin-prs">Open PR review <span aria-hidden="true">→</span></a>
+      </article>
+
+      <article class="dashboard-card dashboard-card--full">
+        <div class="dashboard-card-kicker">Module registry</div>
+        <h2>Activation boundaries</h2>
+        <div class="dashboard-module-list" id="adminDashboardModules"></div>
+      </article>
+    </section>
+  </main>
+
+  <script src="/public/js/theme.js"></script>
+  <script src="/public/js/admin-dashboard.js" defer></script>
 </body>
 </html>

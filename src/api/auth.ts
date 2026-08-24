@@ -7,7 +7,7 @@ import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
 interface UserRecord {
   email: string;
   password: string;
-  role: 'user';
+  role: string;
   createdAt: string;
   passwordResetAt?: string;
 }
@@ -98,6 +98,7 @@ async function setUser(email: string, userData: UserRecord): Promise<void> {
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
         ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, totp_secret = EXCLUDED.totp_secret, backup_codes = EXCLUDED.backup_codes, password_reset_at = EXCLUDED.password_reset_at, github_id = EXCLUDED.github_id, google_id = EXCLUDED.google_id`,
         [email, (userData as any).password || (userData as any).password_hash, userData.role, (userData as any).totp_secret || null, (userData as any).backup_codes || null, userData.createdAt || new Date().toISOString(), (userData as any).passwordResetAt || null, (userData as any).github_id || null, (userData as any).google_id || null]);
+      await dbQuery("INSERT INTO user_roles(user_id, role_key) SELECT id, 'verified_member' FROM users WHERE email = $1 ON CONFLICT (user_id, role_key) DO NOTHING", [email]).catch(() => {});
       return;
     } catch (err) {
       console.error('[auth][db] setUser error', err);
@@ -112,8 +113,18 @@ async function setUser(email: string, userData: UserRecord): Promise<void> {
   }
 }
 
+async function getRoleKeys(email: string): Promise<string[]> {
+  if (!isDbConfigured()) return [];
+  try {
+    const result = await dbQuery('SELECT role_key FROM user_roles WHERE user_id = (SELECT id FROM users WHERE email = $1 LIMIT 1) ORDER BY assigned_at ASC', [email]);
+    return result.rows.map((row: any) => String(row.role_key));
+  } catch {
+    return [];
+  }
+}
+
 // Exported helpers for other modules (fallback in-memory storage)
-export { getUser, setUser };
+export { getUser, setUser, getRoleKeys };
 
 // Helper to get reset token
 async function getResetToken(token: string): Promise<string | undefined> {
@@ -330,7 +341,8 @@ export async function handleLogin(req: Request, res: Response) {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ email, role: user.role }, getJwtSecret(), { expiresIn: '30d' });
+    const roleKeys = await getRoleKeys(email);
+    const token = jwt.sign({ email, role: user.role, roles: roleKeys }, getJwtSecret(), { expiresIn: '30d' });
 
     if (process.env.USE_SESSION_COOKIE === 'true') {
       res.cookie('session', token, { httpOnly: true, secure: process.env.COOKIE_SECURE !== 'false', sameSite: 'strict', path: '/' });
