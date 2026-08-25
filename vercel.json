@@ -37,16 +37,7 @@
   ],
   "functions": {
     "api/[...all].ts": {
-      "includeFiles": [
-        "GITHUB-REPOSITORIES.md",
-        "files.json",
-        "version.json",
-        "public/json/*.json",
-        "public/html/**/*.html",
-        "public/css/**/*.css",
-        "public/js/**/*.js",
-        "public/client/**/*.js"
-      ]
+      "includeFiles": "{GITHUB-REPOSITORIES.md,files.json,version.json,public/json/*.json,public/html/**/*.html,public/css/**/*.css,public/js/**/*.js,public/client/**/*.js}"
     }
   }
 }
