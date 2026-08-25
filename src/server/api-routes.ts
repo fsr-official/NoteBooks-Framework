@@ -22,6 +22,7 @@ import issuesHandler from '../api/issues.js';
 import * as communityProfileHandler from '../api/community-profile.js';
 import * as communityChannelsHandler from '../api/community-channels.js';
 import * as issueReviewHandler from '../api/issue-review.js';
+import sessionHandler from '../api/session.js';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -39,6 +40,14 @@ const submitPrLimiter = rateLimit({
   message: { error: 'Too many PR submissions. Please try again later.' }
 });
 
+const blobLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many file operations. Please try again later.' }
+});
+
 export function registerApiRoutes(app: express.Application): void {
   app.get('/api/oauth', oauthHandler);
   app.get('/api/oauth.js', oauthHandler);
@@ -48,6 +57,8 @@ export function registerApiRoutes(app: express.Application): void {
   app.get('/api/config', configHandler);
   app.get('/api/config.js', configHandler);
   app.get('/api/dashboard', dashboardHandler);
+  app.get('/api/session', sessionHandler.getSession);
+  app.put('/api/session', express.json(), sessionHandler.updateSession);
   app.get('/api/registry', repoRegistryHandler);
   app.get('/api/registry.js', repoRegistryHandler);
   app.get('/api/system/:stream', systemHandler);
@@ -65,8 +76,8 @@ export function registerApiRoutes(app: express.Application): void {
   app.post('/api/totp.js', permissions.requireAuth, totpHandler);
   app.post('/api/gh', permissions.requireAuth, ghHandler);
   app.post('/api/gh.js', permissions.requireAuth, ghHandler);
-  app.post('/api/blob', permissions.requireTotpEnrolled, blobHandler);
-  app.post('/api/blob.js', permissions.requireTotpEnrolled, blobHandler);
+  app.post('/api/blob', blobLimiter, permissions.requireTotpEnrolled, blobHandler);
+  app.post('/api/blob.js', blobLimiter, permissions.requireTotpEnrolled, blobHandler);
   app.get('/api/raw', rawHandler);
   app.get('/api/raw.js', rawHandler);
   app.options('/api/raw', rawHandler);
@@ -92,7 +103,8 @@ export function registerApiRoutes(app: express.Application): void {
     const body = (req.body && req.body.body) || req.query.body;
     if (!title || !body) return res.status(400).json({ error: 'Missing title or body' });
     try {
-      const issuesTarget = process.env.GITHUB_ISSUES_REPO || '';
+      const configured = await import('../api/_shared.js').then((module) => module.getStreamRepo('issues'));
+      const issuesTarget = configured ? `${configured.owner}/${configured.repo}` : (process.env.GITHUB_ISSUES_REPO || '');
       if (!issuesTarget) return res.status(500).json({ error: 'Issues repo not configured' });
       const [owner, repo] = issuesTarget.split('/').filter(Boolean);
       const octokit = await import('../api/_shared.js').then((module) => module.getOctokit({ allowUnauthenticated: false }));
@@ -166,6 +178,8 @@ export function registerApiRoutes(app: express.Application): void {
   app.get('/api/desmos', desmosHandler);
   app.get('/api/desmos.js', desmosHandler);
 
+  app.get('/api/themes', themeHandler.getThemeCatalog);
+  app.post('/api/themes/select', express.json(), themeHandler.selectTheme);
   app.post('/api/theme', express.json(), themeHandler.setTheme);
   app.get('/api/theme', themeHandler.getTheme);
 }

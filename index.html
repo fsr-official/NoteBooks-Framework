@@ -335,6 +335,16 @@
           <input type="text" id="us2destPath" class="text-input" placeholder="e.g. books/sci-fi (leave blank for root)">
           <div style="font-size:11px;opacity:.5;margin-top:3px">Where in the repository should these files be placed? New folders/subfolders will be created if needed.</div>
         </div>
+        <!-- Optional transparent SVG normalization for diagram images -->
+        <div id="us2diagramSection" style="margin-top:12px">
+          <label for="us2diagramDomain" style="display:block;font-size:13px;font-weight:500;margin-bottom:5px">🧬 Diagram image handling</label>
+          <select id="us2diagramDomain" class="text-input">
+            <option value="">Keep original image format</option>
+            <option value="biology">Biology — convert image to transparent SVG</option>
+            <option value="chemistry">Chemistry — convert image to transparent SVG</option>
+          </select>
+          <div style="font-size:11px;opacity:.5;margin-top:3px">For raster diagrams, near-white background pixels become transparent and the result is stored as an accessible SVG. Existing SVGs are validated and preserved as vectors.</div>
+        </div>
         <!-- Admin: optional re-upload of modified version (single file only) -->
         <div id="us2reuploadSection" style="display:none;margin-top:10px">
           <div style="font-size:13px;font-weight:500;margin-bottom:6px">Replace with modified version (optional)</div>

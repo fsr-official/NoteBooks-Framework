@@ -154,6 +154,7 @@ export async function generateJsonFiles(options: GenerateJsonFilesOptions = {}) 
   const cwd = path.resolve(options.cwd || process.cwd());
   const entries = (await loadRepoRegistry())
     .filter((entry: any) => entry?.enabled !== false && entry?.repo)
+    .filter((entry: any) => isStream(normalizeStream(String(entry.stream || ''))))
     .sort((a: any, b: any) => {
       const priorityA = Number.isFinite(Number(a.priority)) ? Number(a.priority) : Number.MAX_SAFE_INTEGER;
       const priorityB = Number.isFinite(Number(b.priority)) ? Number(b.priority) : Number.MAX_SAFE_INTEGER;

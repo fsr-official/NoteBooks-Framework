@@ -70,9 +70,10 @@ export function registerWorkspaceRoutes(app: express.Application, projectDir: st
   app.get('/api/files.json', async (_req, res) => await sendManifestResponse(res));
   app.get('/api/manifest', async (_req, res) => await sendManifestResponse(res));
   app.get('/api/manifest.js', async (_req, res) => await sendManifestResponse(res));
-  app.get('/files/:filePath(*)', (req, res) => {
-    const params = req.params as { filePath?: string };
-    const filePath = String(params.filePath || '').replace(/^\/+/, '');
+  app.get('/files/{*filePath}', (req, res) => {
+    const params = req.params as { filePath?: string | string[] };
+    const rawFilePath = Array.isArray(params.filePath) ? params.filePath.join('/') : params.filePath;
+    const filePath = String(rawFilePath || '').replace(/^\/+/, '');
     if (!filePath) return res.status(400).json({ error: 'Missing file path' });
     const absolutePath = path.resolve(projectDir, filePath);
     if (!absolutePath.startsWith(projectDir + path.sep) && absolutePath !== projectDir) return res.status(403).json({ error: 'Access denied' });

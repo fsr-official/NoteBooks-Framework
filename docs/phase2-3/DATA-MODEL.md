@@ -1,3 +1,5 @@
+> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
+>
 # NoteBooks Phase-2 / Phase-3 Data Model
 
 **Status:** Design baseline implemented for the role/profile slice; Vercel runtime binding remains separate from Supabase schema state.

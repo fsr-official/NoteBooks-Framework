@@ -2,6 +2,10 @@
   "name": "notebooks-science",
   "version": "1.0.0",
   "description": "NoteBooks XI - A structured knowledge system for students and educators",
+  "engines": {
+    "node": ">=22 <25",
+    "npm": ">=10"
+  },
   "scripts": {
     "clean": "node src/scripts/cleanup-stale-src-js.js",
     "clean:src": "npm run clean",
@@ -19,37 +23,42 @@
     "test": "vitest run",
     "pretest": "node src/scripts/migrate-db.js || true",
     "migrate": "node src/scripts/migrate-db.js",
-    "typecheck": "tsc --noEmit -p tsconfig.server.json"
+    "typecheck": "tsc --noEmit -p tsconfig.server.json",
+    "deps:check": "npm outdated || true; npm audit --omit=dev"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.0",
+    "@types/bcrypt": "^6.0.0",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.1",
     "@types/jsonwebtoken": "^9.0.1",
-    "@types/node": "^22.10.1",
-    "@types/pg": "^8.21.0",
+    "@types/node": "26.2.0",
+    "@types/pg": "^8.23.1",
     "serve": "^14.2.0",
     "supertest": "^7.0.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.4"
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  },
+  "overrides": {
+    "undici": "^6.28.0"
   },
   "dependencies": {
-    "@octokit/auth-app": "^7.1.0",
-    "@octokit/rest": "^20.1.2",
-    "@upstash/redis": "^1.38.0",
-    "@vercel/blob": "^2.3.3",
+    "@octokit/auth-app": "^8.3.0",
+    "@octokit/rest": "^22.0.1",
+    "@upstash/redis": "^1.38.2",
+    "@vercel/blob": "^2.8.0",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "dotenv-cli": "^11.0.0",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.0.0",
+    "express": "5.2.1",
+    "express-rate-limit": "^8.6.2",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.3",
-    "otplib": "^12.0.1",
+    "otplib": "^13.5.0",
     "pg": "^8.23.0",
-    "resend": "^6.12.4",
+    "resend": "^6.22.0",
+    "sharp": "^0.35.3",
     "tsx": "^4.23.12"
   }
 }

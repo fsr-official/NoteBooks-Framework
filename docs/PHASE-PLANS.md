@@ -1,151 +1,43 @@
-con
+# NoteBooks Delivery and Release Plan
 
-# Phase Plan: Staged Upgrade to the Unified Architecture
+**Status:** active plan for the `whoami` staging branch and eventual v1.0.0 release.
 
-This document turns the architecture summary in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) into a practical delivery sequence. The platform is split into a public read-only File Service and a set of account-bearing write-path services, and the rollout should respect that trust boundary.
+This plan reflects the current architecture rather than the older subject/forum design. The public content layer remains read-oriented and eager, while account-bearing Community, Issues, admin, upload, and GitHub write paths are protected separately.
 
-## Phase 0 — Architecture freeze and decision lock
+## Completed foundations
 
-Goal: make the target design explicit before implementation begins.
+| Area | Current state |
+| --- | --- |
+| Registry and stream model | `GITHUB-REPOSITORIES.md` is decomposed into `public/json/github-repos.json`; Science, Commerce, and Humanities have eager tree artifacts; Community and Issues remain registry workspaces. |
+| Raw delivery | `src/api/raw.ts` is the canonical file-byte path with repository/path validation and local path constraints. |
+| Browser reliability | Home restoration, tree readability/keyboard navigation, theme persistence, reader controls, cache versioning, and service-worker behavior have been improved. |
+| Identity and sessions | JWT/OAuth/TOTP foundations and opaque `nb_sid` browser sessions exist, with PostgreSQL persistence and explicit local fallbacks. |
+| Community and Issues | Channels, presence/profile foundations, source-linked proposals, evidence capture, review, and GitHub lifecycle handlers exist. |
+| Markdown renderer | Markdown-it/Obsidian features, MathJax, Mermaid, TikZ, Desmos, highlighting, callouts, figure fences, and accessible note styling are documented and tested. |
+| Diagram assets | Biology and chemistry starter SVGs are stored with licenses; upload normalization supports native sanitized SVG and explicitly labelled embedded-raster SVG output. |
 
-- Confirm the final path-based domain model: /science, /commerce, /humanities, /community, /issues, /volunteers, /admin.
-- Confirm the public trust boundary: the File Service remains anonymous and read-only.
-- Confirm the shared identity model: a single Postgres-style identity store for the write-path services.
-- Confirm the decision set: GitHub App for automated writes, GitHub OAuth for admins/moderators, JWT-based local auth for community/issue/volunteer accounts, and Redis only for sessions and ephemeral caches.
-- Confirm governance expectations: public takedown discussion and a committee-based decision process.
-- Confirm the technical standards: GPL-3.0 licensing, DOM sanitization, CSRF protections, and interactive markdown block restrictions.
+## Release phase A — Reconcile production configuration
 
-Acceptance gate: architecture is signed off, open risks are documented, and no implementation begins without the final trust boundaries in place.
+The first release task is configuration, not new product scope. Link the Vercel project to `fsr-official/NoteBooks-Framework` rather than the currently observed unrelated `hsxtheemperor/NoteBooks-Science-Framework` Next.js project. Configure the server’s actual environment variable names in Vercel, set the correct Node/build behavior, and deploy the `whoami` commit to a preview before production promotion.
 
-## Phase 1 — File Service stabilization and raw-read pipeline
+The Supabase project is active and has the expected broad application table set, but its migration history is behind the local repository’s migration set. Reconcile migrations using a reviewed staging path. The Supabase advisor currently reports sixteen tables with RLS disabled and also reports RLS-enabled tables with no policies. Do not apply a blanket `ENABLE ROW LEVEL SECURITY` statement: each table requires intentional policies for the server’s service-role/connection model, and policy testing must occur before release.
 
-Goal: make the public content layer fast and resilient before account-bearing capabilities are enabled.
+## Release phase B — Exercise protected flows
 
-- Replace the old GitHub API-driven content path with a raw CDN-first delivery model.
-- Standardize `files.json` schema metadata and support legacy manifests without breaking clients.
-- Preserve read-only public behavior for note previews, search, cross-repo aggregation, and offline browsing.
-- Keep a refresh pipeline that invalidates manifest state on content change without exposing write credentials to the public layer.
-- Harden reliability: last-known-good manifests, fallback behavior, cache headers, and graceful 404 handling.
+Complete administrator identity linking and TOTP enrollment. Test login, session cookie behavior, theme persistence, raw reads, source evidence, Community posting/moderation, Issues proposal/review, GitHub PR operations, Blob upload/review, and diagram conversion with staging repositories and reversible records. Confirm that missing credentials fail closed for the associated capability and do not leak secrets.
 
-Acceptance gate: the public layer is stable, fetch-resilient, and independent from write-path services.
+## Release phase C — Browser and operational validation
 
-## Phase 2 — Shared identity and session foundation
+Validate Home → stream → Home restoration, stream tree expansion/collapse, raw line-number view, Markdown figures, MathJax/Mermaid/TikZ fallback states, Settings controls, mobile layout, keyboard focus, and service-worker update behavior in a real browser. Measure initial shell response and tree-render timing on the intended deployment. Exercise refresh invalidation and confirm that stale fallback artifacts are visible only as resilience behavior, not as a silent repository substitution.
 
-Goal: create the single source of truth for who a user is and what they are allowed to do.
+## Release phase D — Tag and promote
 
-- Stand up the Postgres-class identity store for users, volunteer memberships, and admin hierarchy.
-- Add local account auth, JWT sessions, and TOTP-based volunteer verification.
-- Add GitHub OAuth for admin and moderator identity.
-- Add cookie hardening and CSRF protections across all state-changing routes.
-- Centralize rate limiting and logging for write-path APIs.
+When the previous phases pass, record the verified commit SHA and preview URL, run the final automated checks, tag `v1.0.0`, and promote the same commit. Keep `whoami` as the staging line until the production deployment is confirmed. Rollback means promoting the last known-good deployment and reverting only the relevant database/application change according to the migration policy.
 
-Acceptance gate: users can authenticate consistently across the write-path sections with correct permission enforcement.
+## Future phases after v1.0.0
 
-## Phase 3 — Community and issue system rollout
+The following are intentionally outside the first release gate: a separate worker for true Potrace/OpenCV vector tracing; richer frontmatter-driven note metadata and generated outlines; maintained SMILES rendering after dependency/license review; stronger structured monitoring and log retention; expanded governance policy; and additional volunteer workflow automation. Raster-in-SVG packaging must not be described as true vectorization.
 
-Goal: enable public community discourse and issue tracking without letting those flows leak into the File Service.
+## Working rules
 
-- Set up the shared `notebooks-community` Discussions repo and categories for each subject plus policy discussion.
-- Wire bot-authored forum posting through the GitHub App and keep public attribution consistent.
-- Establish moderation controls with GitHub OAuth and minimal lock/pin/delete permissions.
-- Set up the suggestions/issue repo and triage labels for reports, bugs, and upgrade requests.
-- Implement the public takedown request flow and committee resolution path.
-
-Acceptance gate: a registered user can post, a moderator can triage, and a public dispute flow is visible and reviewable.
-
-## Phase 4 — Volunteer and admin submission pipeline
-
-Goal: enable fieldwork contribution and subject review.
-
-- Turn on the volunteers section with strict verification and mandatory 2FA.
-- Add PR-based contribution intake for notes, reference books, and AI-parsed materials.
-- Apply subject-scoped admin review and merge rights.
-- Define Technical Admin and Overall Admin authority boundaries.
-- Make automated repo writes go through the single GitHub App and shared rate-limit-aware client.
-
-Acceptance gate: a verified volunteer can submit work and a subject or overall admin can review it through the proper workflow.
-
-## Phase 5 — Interactive content and AI-assisted markdown intake
-
-Goal: support richer educational content while keeping public rendering safe.
-
-- Add a minimal infrastructure for approved markdown blocks such as quizzes, flashcards, accordions, and Desmos embeds.
-- Maintain a strict allowlist and sanitization policy.
-- Document the `ai-markdown-parser` workflow and versioned skill files.
-- Add review gates around AI-generated structured Markdown before publication.
-
-Acceptance gate: new interactive blocks are render-safe and content review remains controlled.
-
-## Phase 6 — Production hardening, launch, and rollback
-
-Goal: cut over only when each layer is stable under real traffic.
-
-- Validate refresh flows, rate limits, cache behavior, and public read paths.
-- Validate auth flows, cookie scope, CSRF enforcement, and GitHub App use.
-- Validate governance and moderation flows for takedown disputes.
-- Add monitoring for health, invalidations, failed fetches, and error spikes.
-- Run a staged dark launch and cutover with rollback plan and content freeze protections.
-
-Acceptance gate: launch is backed by operational evidence, monitoring, and rollback procedures.
-
----
-
-## Progress Snapshot (automatically maintained by the developer agent)
-
-- **Completed:** Phase 1 (File Service stabilization), Phase 2 (identity & auth foundation), Phase 3 (Community initial), core GitHub App helper and wiring.
-- **In-progress:** Phase 4 (Volunteer/admin submission pipeline) — PR intake automation and safe merge paths; staging deploy wiring.
-- **Pending / Next:** Phase 4 completing PR persistence and webhook verification (this change), Phase 5 (interactive content), Phase 6 (hardening & launch).
-
-## Unified TODO (short actionable list)
-
-- [X]  Phase 1: File Service stabilization — implemented and tested.
-- [X]  Phase 2: Shared identity and session foundation — implemented and tested.
-- [X]  Phase 3: Community endpoints, moderation, and basic GitHub App helpers — implemented and tested.
-- [X]  Add GitHub App helper library and basic automation wiring.
-- [X]  Add webhook receiver to persist installations.
-- [X]  Add CI workflows and staging docs.
-- [X]  Add webhook signature verification (this PR) — implemented.
-- [X]  Persist PR metadata in DB when creating PRs from community posts (this PR) — implemented.
-- [ ]  Persist installation IDs and add webhook handler to handle updates/removed events (expand).
-- [ ]  Add webhook signature verification for other webhook types and verify delivery retries.
-- [ ]  Add DB-backed PR metadata indexing and admin UI for PR review/merge history.
-- [ ]  Add mocked integration tests for GitHub App flows (Octokit mocks).
-- [ ]  Add production CI secrets and rotateable key management instructions.
-- [ ]  Deploy staging with read-only File Service and test GitHub App flows in staging.
-
-Notes: the repository contains `docs/phases/*` skeletons with per-phase checklists to guide further work.
-
-## Recommended delivery order
-
-1. Phase 0 — architecture freeze
-2. Phase 1 — File Service stabilization
-3. Phase 2 — identity and auth foundation
-4. Phase 3 — Community and Issues
-5. Phase 4 — Volunteers and Admin
-6. Phase 5 — interactive content pipeline
-7. Phase 6 — production hardening and launch
-
-This order keeps the public-facing reading experience stable before user accounts and write actions are introduced, reducing risk while aligning the platform to the intended target architecture.
-
-## Scope boundaries
-
-Included:
-
-- path-based routing across a single domain
-- three public read-only sections
-- four account-bearing sections sharing one identity model
-- GitHub App automation and shared rate-limit patterns
-- governance, moderation, and content-review work
-- volunteer contribution and admin review flows
-- production readiness and rollback planning
-
-Excluded:
-
-- collapsing back into a monolith
-- introducing a second identity source
-- granting write credentials to the File Service
-- changing the confirmed trust boundaries
-
-## Exit criteria for each phase
-
-Each phase should finish with a real validation pass: working functionality, operational checks, and a documented rollback path. The project should only move forward when the previous phase is stable enough to support the next layer of risk.
+Every behavior change must update the nearest active documentation and tests. Generated JSON is changed through the registry/generator workflow. Stream pages must not be renamed to subjects, Community and Issues must not be put into content trees, raw delivery must remain dominant, and no credentials or private deployment values may be committed.

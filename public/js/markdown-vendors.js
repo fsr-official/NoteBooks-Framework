@@ -96,8 +96,8 @@
       if (result.status === 'rejected') console.warn('[markdown-vendors]', result.reason);
     });
     if (has(target, '.obsidian-mermaid') && typeof global.mermaid !== 'undefined' && typeof global.mermaid.initialize === 'function') {
-      const dark = global.matchMedia && global.matchMedia('(prefers-color-scheme: dark)').matches;
-      global.mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'loose' });
+      const mode = global.document?.documentElement?.dataset?.themeMode;
+      global.mermaid.initialize({ startOnLoad: false, theme: mode === 'light' ? 'default' : 'dark', securityLevel: 'strict' });
     }
   }
 

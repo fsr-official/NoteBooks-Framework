@@ -41,12 +41,8 @@ describe('runtime stream system API', () => {
     expect(response.body.stream).toBe('commerce');
     expect(response.body.root.name).toBe('NoteBooks-Commerce');
     expect(response.body.root.children[0].name).toBe('NCERT-Commerce');
-    expect(response.body.root.children[0].children[0]).toEqual(expect.objectContaining({
-      name: 'README.md',
-      repo: 'fsr-commerce/NCERT-Commerce',
-      path: 'README.md',
-      raw: 'https://raw.githubusercontent.com/fsr-commerce/NCERT-Commerce/main/README.md'
-    }));
+    expect(response.body.root.children[0].children).toEqual([]);
+    expect(response.body.repos[0].error).toBeUndefined();
     expect(JSON.stringify(response.body)).not.toContain('private.txt');
     expect(response.headers['cache-control']).toContain('s-maxage=300');
   });

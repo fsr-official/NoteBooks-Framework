@@ -45,6 +45,24 @@ async function readRepoRegistryEntries(): Promise<RepoRegistryEntryLike[]> {
   }
 }
 
+function normalizeStreamKey(value: unknown): string {
+  const stream = String(value || '').trim().toLowerCase();
+  if (stream === 'humanity' || stream === 'arts') return 'humanities';
+  return stream;
+}
+
+export async function getStreamRepo(stream: string): Promise<{ owner: string; repo: string; branch?: string; root?: string } | null> {
+  const targetStream = normalizeStreamKey(stream);
+  const entries = (await readRepoRegistryEntries())
+    .filter((entry) => entry.enabled !== false && normalizeStreamKey(entry.stream) === targetStream && entry.repo)
+    .sort((a, b) => Number(a.priority ?? Number.MAX_SAFE_INTEGER) - Number(b.priority ?? Number.MAX_SAFE_INTEGER));
+  const entry = entries[0];
+  if (!entry?.repo) return null;
+  const [owner, repo] = String(entry.repo).split('/').filter(Boolean);
+  if (!owner || !repo) return null;
+  return { owner, repo, branch: entry.branch || process.env.GITHUB_BRANCH || 'main', root: entry.root || '' };
+}
+
 // Looks up a specific "owner/repo" against the configured registry (plus the
 // single-repo GITHUB_REPO env fallback). Used to validate repo/branch query
 // overrides on endpoints like /api/raw so they can serve any known subject

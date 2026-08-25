@@ -70,12 +70,29 @@ function getAuthBody(req: Request): AuthRequestBody {
   return (req.body || {}) as AuthRequestBody;
 }
 
+function normalizeBackupCodes(value: unknown): string[] | null {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [value];
+  } catch {
+    return [value];
+  }
+}
+
 // Helper to get user from Redis or memory
 async function getUser(email: string): Promise<UserRecord | undefined> {
   if (isDbConfigured()) {
     try {
-      const res = await dbQuery('SELECT email, password_hash as password, role, totp_secret, backup_codes, created_at, password_reset_at, github_id, google_id FROM users WHERE email = $1', [email]);
-      if (res.rows.length) return res.rows[0] as any as UserRecord;
+      const res = await dbQuery(`SELECT email, password_hash as password, role, totp_secret, backup_codes, created_at, password_reset_at,
+        github_id, google_id, banned_until, display_name, bio, avatar_color, presence_status, presence_updated_at, profile_public
+        FROM users WHERE email = $1`, [email]);
+      if (res.rows.length) {
+        const user = { ...res.rows[0] } as any;
+        if (user.banned_until == null) delete user.banned_until;
+        return user as UserRecord;
+      }
       return undefined;
     } catch (err) {
       console.error('[auth][db] getUser error', err);
@@ -94,10 +111,22 @@ async function getUser(email: string): Promise<UserRecord | undefined> {
 async function setUser(email: string, userData: UserRecord): Promise<void> {
   if (isDbConfigured()) {
     try {
-      await dbQuery(`INSERT INTO users (email, password_hash, role, totp_secret, backup_codes, created_at, password_reset_at, github_id, google_id)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, totp_secret = EXCLUDED.totp_secret, backup_codes = EXCLUDED.backup_codes, password_reset_at = EXCLUDED.password_reset_at, github_id = EXCLUDED.github_id, google_id = EXCLUDED.google_id`,
-        [email, (userData as any).password || (userData as any).password_hash, userData.role, (userData as any).totp_secret || null, (userData as any).backup_codes || null, userData.createdAt || new Date().toISOString(), (userData as any).passwordResetAt || null, (userData as any).github_id || null, (userData as any).google_id || null]);
+      const data = userData as any;
+      const backupCodes = normalizeBackupCodes(data.backup_codes);
+      await dbQuery(`INSERT INTO users (email, password_hash, role, totp_secret, backup_codes, created_at, password_reset_at, github_id, google_id,
+        banned_until, display_name, bio, avatar_color, presence_status, presence_updated_at, profile_public)
+        VALUES ($1,$2,$3,$4,$5::text[],$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role,
+          totp_secret = EXCLUDED.totp_secret, backup_codes = EXCLUDED.backup_codes, password_reset_at = EXCLUDED.password_reset_at,
+          github_id = EXCLUDED.github_id, google_id = EXCLUDED.google_id, banned_until = EXCLUDED.banned_until,
+          display_name = EXCLUDED.display_name, bio = EXCLUDED.bio, avatar_color = EXCLUDED.avatar_color,
+          presence_status = EXCLUDED.presence_status, presence_updated_at = EXCLUDED.presence_updated_at,
+          profile_public = EXCLUDED.profile_public`,
+        [email, data.password || data.password_hash, data.role, data.totp_secret ?? null, backupCodes,
+          data.createdAt || new Date().toISOString(), data.passwordResetAt || null, data.github_id || null, data.google_id || null,
+          data.banned_until ?? null, data.display_name ?? data.displayName ?? null, data.bio ?? '',
+          data.avatar_color ?? data.avatarColor ?? '#21d4a5', data.presence_status ?? data.presenceStatus ?? 'online',
+          data.presence_updated_at ?? data.presenceUpdatedAt ?? new Date().toISOString(), data.profile_public ?? data.profilePublic ?? true]);
       await dbQuery("INSERT INTO user_roles(user_id, role_key) SELECT id, 'verified_member' FROM users WHERE email = $1 ON CONFLICT (user_id, role_key) DO NOTHING", [email]).catch(() => {});
       return;
     } catch (err) {

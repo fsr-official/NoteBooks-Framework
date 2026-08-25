@@ -9,6 +9,7 @@ import { registerPublicRoutes } from './public-routes.js';
 import { registerObservability } from './observability.js';
 import { registerApiRoutes } from './api-routes.js';
 import { applyDevelopmentDefaults, prepareGeneratedArtifacts } from './startup.js';
+import { browserSessionMiddleware } from '../lib/browser-session.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
@@ -33,6 +34,8 @@ export function createApp() {
 
   // Parse cookies so `req.cookies` is available for CSRF, theme endpoints, etc.
   app.use(cookieParser());
+  // Every browser receives an opaque state cookie. It is not an authentication credential.
+  app.use(browserSessionMiddleware);
 
   // CSRF enforcement (double-submit) for state-changing API routes when enabled
   const enforceCsrf = process.env.ENFORCE_CSRF === 'true';
