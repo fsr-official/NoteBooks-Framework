@@ -1,4 +1,4 @@
-# NoteBooks Framework
+# NoteBooks Framework 
 
 NoteBooks Framework is the framework-light educational knowledge platform used to organize, read, discuss, review, and publish curriculum-aligned study material. The current application serves Science, Commerce, and Humanities as **streams**. Community and Issues are registry-driven workspaces, not additional content-tree streams.
 
