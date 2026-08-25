@@ -68,6 +68,12 @@ Vercel Blob can use a long-lived `BLOB_READ_WRITE_TOKEN`, or Vercel’s OIDC var
 
 Do not add provider-generated `NEXT_PUBLIC_` versions of database URLs, service-role keys, secret keys, Blob tokens, PATs, JWT secrets, OAuth secrets, or App private keys. The static client does not need Supabase privileged credentials.
 
+## Vercel serverless module compatibility
+
+The Vercel runtime evidence showed `ERR_REQUIRE_ESM` while loading `@octokit/rest` from the CommonJS-emitted `src/api/_shared.js`. The current `@octokit/rest` and `@octokit/auth-app` packages are ESM-only according to their package metadata.[7] [8] They must not be statically imported by server files that Vercel wraps as CommonJS. `src/lib/octokit-loader.ts` now performs native dynamic imports at request time, and both the shared GitHub helper and GitHub App helper use that loader. This keeps unrelated public routes such as `/api/config`, `/api/session`, and `/api/themes` from crashing during function initialization; it does not imply that GitHub write credentials are configured.
+
+If a future deployment reports the same error, inspect the compiled helper for a top-level `require("@octokit/rest")` or `require("@octokit/auth-app")`. The correct deployment must contain dynamic `import()` calls instead, followed by a fresh Vercel deployment rather than relying on a previously cached function bundle.
+
 ## GitHub Actions and Vercel project linking
 
 The deployment workflow must use the Vercel project that is linked to `fsr-official/NoteBooks-Framework`. The error `Could not retrieve Project Settings. To link your Project, remove the .vercel directory and deploy again.` means the deployment token, organization ID, and project ID do not resolve to the same accessible Vercel project. It is not a Supabase connection error.
@@ -165,3 +171,5 @@ The following capabilities may remain absent without blocking the basic educatio
 [4]: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app "Creating a GitHub OAuth App"
 [5]: https://vercel.com/docs/cli/global-options "Vercel CLI global options"
 [6]: https://vercel.com/docs/cli/pull "Vercel CLI pull"
+[7]: https://www.npmjs.com/package/@octokit/rest "@octokit/rest package"
+[8]: https://www.npmjs.com/package/@octokit/auth-app "@octokit/auth-app package"

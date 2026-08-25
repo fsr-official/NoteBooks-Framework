@@ -1,4 +1,4 @@
-import { Octokit } from '@octokit/rest';
+import { createOctokit, loadCreateAppAuth } from '../lib/octokit-loader.js';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { parseRepoRegistryMarkdown } from '../lib/github-repositories.js';
@@ -91,7 +91,7 @@ export async function findRegisteredRepo(owner: string, repoName: string): Promi
 export async function getOctokit(options: { allowUnauthenticated?: boolean } = {}) {
   const token = (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
   if (token) {
-    return new Octokit({ auth: token });
+    return await createOctokit({ auth: token });
   }
 
   const appId = process.env.GITHUB_APP_ID?.trim();
@@ -99,7 +99,7 @@ export async function getOctokit(options: { allowUnauthenticated?: boolean } = {
   const installationId = process.env.GITHUB_APP_INSTALLATION_ID?.trim();
 
   if (appId && privateKey && installationId) {
-    const { createAppAuth } = await import('@octokit/auth-app');
+    const createAppAuth = await loadCreateAppAuth();
     const appAuth = createAppAuth({
       appId: Number(appId),
       privateKey,
@@ -107,11 +107,11 @@ export async function getOctokit(options: { allowUnauthenticated?: boolean } = {
     });
 
     const auth = await appAuth({ type: 'installation' });
-    return new Octokit({ auth: auth.token });
+    return await createOctokit({ auth: auth.token });
   }
 
   if (options.allowUnauthenticated !== false) {
-    return new Octokit();
+    return await createOctokit();
   }
 
   throw new Error('GitHub auth is not configured. Set GITHUB_TOKEN, GITHUB_PAT, or GitHub App credentials.');
