@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v23';
+const CACHE_VERSION = 'webman-v31';
 const OFFLINE_PAGE = 'offline.html';
 
 const APP_SHELL = [
@@ -21,6 +21,7 @@ const APP_SHELL = [
   'public/js/markdown-vendors.js',
   'public/js/app.js',
   'public/js/theme.js',
+  'public/js/reading-preferences.js',
   'public/js/landing-docs.js',
   'public/js/stream-runtime.js',
   'public/js/raw-delivery.js',

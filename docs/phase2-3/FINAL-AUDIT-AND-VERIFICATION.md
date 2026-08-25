@@ -1,21 +1,24 @@
+> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
+>
 # NoteBooks Final Stability, Security, and Performance Audit
 
-**Date:** 23 August 2026  
+**Date:** 24 August 2026
 **Author:** Manus AI
 
 ## Executive result
 
 The Settings-owned personal-space change is implemented and verified locally. The canonical user surface is now `/settings#personal-space`; `/dashboard` remains a compatibility redirect to that location. The standalone Dashboard workspace is no longer part of the active route architecture, so a user cannot accidentally inherit Science workspace state merely by opening Dashboard.
 
-The final local verification passed with **27 test files and 73 tests**. The production-shaped server started without remote artifact generation and served the canonical Settings, compatibility redirect, stream, portal, health, registry, stream-artifact, and protected-admin paths successfully.
+The final local verification passed with **32 test files and 93 tests**. The production-shaped server started without remote artifact generation and served the canonical Settings, compatibility redirect, stream, portal, health, registry, stream-artifact, and protected-admin paths successfully. A local Chrome DevTools Protocol check also verified Home → `/science` → Home without a refresh: the returned Home state restored the landing markup, made `#streamLanding` visible, displayed the landing shell, and produced zero console exceptions.
 
 ## Stability verification
 
 | Check | Result | Evidence |
 |---|---:|---|
 | TypeScript typecheck | Passed | `npm run typecheck` completed without TypeScript errors. |
-| Production build | Passed | Clean build regenerated the four canonical JSON artifacts and compiled client/server output. |
-| Regression suite | Passed | 27 test files and 73 tests passed. |
+| Production build | Passed | Clean build regenerated the canonical registry and stream artifacts and compiled client/server output. |
+| Regression suite | Passed | 32 test files and 93 tests passed. |
+| SPA route transition | Passed | CDP browser check completed Home → `/science` → Home with visible landing markup and no console exceptions. |
 | Production startup | Passed | `NODE_ENV=production VERCEL=1` started without remote manifest regeneration or rerun loops. |
 | Settings ownership | Passed | `/settings` serves the Settings shell with `#personal-space`; `/dashboard` returns `302` to `/settings#personal-space`. |
 | Workspace isolation | Passed | `/science` serves `stream-shell-page`; `/community` and `/issues` serve `portal-shell-page`, not the workspace shell. |
@@ -42,11 +45,11 @@ The latest production-shaped local request probe produced the following results.
 | `/api/system/science` | 200 | 761 KB | approximately 10.1–11.2 ms |
 | `/api/admin/dashboard` | 401 | 49 B | approximately 1.0–2.0 ms |
 
-The remaining performance concern is payload size. The registry artifact is approximately 2.07 MB and the Science artifact is approximately 761 KB in the final probe; the broader earlier artifact report also identified a roughly 1.1 MB Science/Humanities static payload concern depending on the measured file and serving path. These are now static reads rather than remote GitHub reconstruction, but they can still be expensive on mobile or high-latency networks. The next performance phase should consider per-repository or lazy subtree artifacts and compression validation. The stale Commerce artifact remains intentionally preserved until `fsr-commerce/NCERT-Commerce` restores its root `files.json` or the registry entry is corrected.
+The remaining performance concern is payload size. The registry artifact is approximately 39 KB compressed at the final local probe and the Science response approximately 23 KB compressed; these static reads are substantially cheaper than remote GitHub reconstruction but can still be optimized for mobile or high-latency networks. The next performance phase should consider per-repository or lazy subtree artifacts and compression validation. Commerce is intentionally represented by a valid empty tree because its repository has no content files; it no longer retains a stale generated fallback or performs repeated manifest requests.
 
 ## Security findings
 
-The bounded review found the expected control boundaries and no accidental production secret file in the scanned project scope. Password-like values found by the simple scan are application fields or test fixtures; they are not evidence of production credentials. This review did not inspect external Vercel, GitHub, or Supabase secret stores.
+The bounded review found the expected control boundaries and no accidental production secret file in the scanned project scope. The latest-major compatibility pass now uses Express 5.2.1, TypeScript 7.0.2, Vitest 4.1.11, and Node types 26.2.0; the required Express named-wildcard and TypeScript client-config migrations are covered by the passing build and suite. Password-like values found by the simple scan are application fields or test fixtures; they are not evidence of production credentials. This review did not inspect external Vercel, GitHub, or Supabase secret stores.
 
 | Control | Finding | Assessment |
 |---|---|---|
@@ -57,7 +60,7 @@ The bounded review found the expected control boundaries and no accidental produ
 | Signature checks | Refresh-signal, system webhook, and GitHub App signature comparisons use timing-safe comparison. | Present and active. |
 | Issue repository trust | Proposal creation validates the source repository against the registered NoteBooks repository list. | Prevents arbitrary client-selected repository targeting. |
 | Database exposure | New Phase-2/3 tables have additive migration definitions with RLS and grant lockdown. | Not applied; Supabase credentials are not configured in this environment. |
-| Dependency advisories | `npm audit` did not complete in the sandbox. | **Open item; no clean audit claim is made.** |
+| Dependency advisories | Production-only `npm audit --omit=dev` reports zero vulnerabilities after resolving `undici` through a compatible 6.28.x override. | Production dependency audit clean; full development-tree audit remains informational and must not be force-fixed blindly. |
 
 Supabase persistence, production database migrations, GitHub App credentials, and production identity activation remain intentionally unclaimed. The current implementation is database-ready and guarded, not production-connected.
 
@@ -67,9 +70,9 @@ The captured 1440 × 1100 Settings screenshot, `ui-verification/settings-persona
 
 ## Remaining follow-up work
 
-The next deployment should be made from the current branch with the updated `vercel.json`, `service-worker.js`, portal shell, compiled output, and generated artifacts. After deployment, verify that Vercel serves `/settings` and `/community` from their intended static shells, `/dashboard` redirects, `/api/registry` and `/api/system/science` resolve through static rewrites, and the first browser route sequence produces no repeated registry/system request fan-out.
+The next deployment should be made from the current branch with the latest-major dependency lockfile, updated Express 5 route patterns, updated `tsconfig.client.json`, `vercel.json`, `service-worker.js`, portal shell, compiled output, and generated artifacts. After deployment, verify that Vercel serves `/settings` and `/community` from their intended static shells, `/dashboard` redirects, `/api/registry` and `/api/system/science` resolve through static rewrites, and the first browser route sequence produces no repeated registry/system request fan-out.
 
-The higher-value remaining performance improvement is to split or compress the largest registry and stream artifacts. Dependency advisory review must also be rerun successfully outside the stalled sandbox command. Finally, the Supabase migration and GitHub App/identity integration should be activated only after real credentials, a non-production smoke test, and explicit production verification are available.
+The higher-value remaining performance improvement is to split or compress the largest registry and stream artifacts. The service-worker cache has been bumped to `webman-v25` for the navigation fix. Finally, the Supabase migration and GitHub App/identity integration should be activated only after real credentials, a non-production smoke test, and explicit production verification are available.
 
 ## References
 

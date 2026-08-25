@@ -6,6 +6,43 @@ window.__markdownRuntimeState = window.__markdownRuntimeState || {
     retries: 0
 };
 
+function escapeMarkdownHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character];
+    });
+}
+function parseDiagramFence(content) {
+    var result = { src: '', alt: '', caption: '', source: '' };
+    String(content || '').split(/\r?\n/).forEach(function (line) {
+        var match = line.match(/^\s*(src|image|alt|caption|source)\s*:\s*(.*?)\s*$/i);
+        if (match)
+            result[match[1].toLowerCase() === 'image' ? 'src' : match[1].toLowerCase()] = match[2];
+    });
+    return result;
+}
+function safeDiagramUrl(value) {
+    var url = String(value || '').trim();
+    if (!url || /^(?:javascript|data|blob|file):/i.test(url) || /^\/\//.test(url))
+        return '';
+    if (/^https?:\/\//i.test(url))
+        return url;
+    return url.charAt(0) === '/' ? url : '/' + url.replace(/^\.\//, '');
+}
+function renderDiagramFence(token, language) {
+    var meta = parseDiagramFence(token.content);
+    var src = safeDiagramUrl(meta.src);
+    var domain = language === 'chem-setup' || language === 'chemistry' ? 'chemistry' : 'biology';
+    var label = meta.alt || (domain === 'chemistry' ? 'Chemistry experimental setup' : 'Biological diagram');
+    if (!src) {
+        return '<div class="diagram-figure diagram-figure-missing" role="note"><strong>Diagram image needed.</strong><span>Add <code>src: /assets/diagrams/…</code> to this ' + escapeMarkdownHtml(language) + ' block.</span></div>\n';
+    }
+    var source = safeDiagramUrl(meta.source);
+    var sourceMarkup = source ? '<a class="diagram-source" href="' + escapeMarkdownHtml(source) + '" target="_blank" rel="noopener noreferrer">Source</a>' : '';
+    var caption = meta.caption ? '<figcaption>' + escapeMarkdownHtml(meta.caption) + sourceMarkup + '</figcaption>' : (sourceMarkup ? '<figcaption>' + sourceMarkup + '</figcaption>' : '');
+    return '<figure class="note-figure diagram-figure diagram-' + domain + '" data-diagram-domain="' + domain + '">' +
+        '<img src="' + escapeMarkdownHtml(src) + '" alt="' + escapeMarkdownHtml(label) + '" decoding="async">' + caption + '</figure>\n';
+}
+
 window.initializeMarkdownRenderer = function () {
     if (window.__markdownRuntimeState.renderer && typeof window.__markdownRuntimeState.renderer.render === 'function') {
         return window.__markdownRuntimeState.renderer;
@@ -62,14 +99,20 @@ window.initializeMarkdownRenderer = function () {
         resolveTag: function (tag) { return '#tag-' + encodeURIComponent(tag); }
     });
     /* Keep fence metadata honest: unlabeled fences stay neutral and never receive an inferred language. */
+    var pluginFence = md.renderer.rules.fence;
     md.renderer.rules.fence = function (tokens, idx, options, env, self) {
         var token = tokens[idx];
         var info = String(token.info || '').trim();
-        var language = info.split(/\s+/)[0] || '';
+        var language = (info.split(/\s+/)[0] || '').toLowerCase();
+        if (language === 'bio' || language === 'biology' || language === 'chem-setup' || language === 'chemistry')
+            return renderDiagramFence(token, language);
+        /* Preserve specialized Obsidian fence renderers (Mermaid, TikZ, Desmos). */
+        if ((language === 'mermaid' || language === 'tikz' || language === 'desmos' || language === 'desmos3d') && pluginFence)
+            return pluginFence(tokens, idx, options, env, self);
         var safeLanguage = language.replace(/[^a-zA-Z0-9_-]/g, '');
         var className = safeLanguage ? ' class="language-' + safeLanguage + '"' : '';
-        var label = language ? '<span class="code-language-label">' + language.replace(/[&<>"']/g, function (c) { return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]; }) + '</span>' : '';
-        var code = token.content.replace(/[&<>"']/g, function (c) { return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]; });
+        var label = language ? '<span class="code-language-label">' + escapeMarkdownHtml(language) + '</span>' : '';
+        var code = escapeMarkdownHtml(token.content);
         return '<div class="code-block-shell">' + label + '<pre><code' + className + '>' + code + '</code></pre></div>\n';
     };
     /* Inject companion CSS once */
@@ -81,14 +124,9 @@ window.initializeMarkdownRenderer = function () {
     }
     /* Initialise Mermaid (startOnLoad:false — we call mermaid.run() manually) */
     if (typeof mermaid !== 'undefined') {
-        var mermaidTheme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'default';
-        mermaid.initialize({ startOnLoad: false, theme: mermaidTheme, securityLevel: 'loose' });
-        /* Re-initialise when the OS colour scheme changes at runtime */
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-                mermaid.initialize({ startOnLoad: false, theme: e.matches ? 'dark' : 'default', securityLevel: 'loose' });
-            });
-        }
+        var mermaidMode = document.documentElement && document.documentElement.dataset.themeMode;
+        var mermaidTheme = mermaidMode === 'light' ? 'default' : 'dark';
+        mermaid.initialize({ startOnLoad: false, theme: mermaidTheme, securityLevel: 'strict' });
     }
     /* Expose the configured instance globally */
     window.md = md;

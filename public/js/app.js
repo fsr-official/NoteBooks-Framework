@@ -39,6 +39,7 @@ let treeCurrentLocation = null;
 let workspaceLocationMarker = null;
 let activeTreePath = '';
 let treeInteractionStarted = false;
+let pendingTreeFocusPath = null;
 const expandedTreePaths = new Set();
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
@@ -182,10 +183,11 @@ function isSharedShellRoute(pathname) {
     return pathname === '/' || SHARED_SHELL_ROUTES.has(slug);
 }
 function getCurrentStreamRoute() {
-    // Prefer the explicit stream set by the shell
-    if (window.CURRENT_STREAM) return window.CURRENT_STREAM;
-    const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0] || '';
-    return slug || '';
+    const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0]?.toLowerCase() || '';
+    // The URL is authoritative. In particular, `/` must clear any stream value
+    // left by the previous SPA transition instead of reopening that workspace.
+    if (!slug) return '';
+    return window.CURRENT_STREAM || slug;
 }
 function updateNavigationState() {
     const current = getCurrentStreamRoute() || (window.location.pathname === '/' ? 'home' : '');
@@ -197,6 +199,7 @@ function updateNavigationState() {
     });
 }
 let routeTransitionSerial = 0;
+let defaultLandingMarkup = null;
 async function navigateToRoute(href, { replace = false } = {}) {
     const url = new URL(href, window.location.href);
     if (url.origin !== window.location.origin || !url.pathname.startsWith('/')) return;
@@ -317,10 +320,14 @@ function formatFeedDate(value) { const date = value ? new Date(value) : null; re
 function initHomeFeed() {
     const feed = document.getElementById('homeFeed');
     if (!feed) return;
-    document.querySelectorAll('[data-feed-sort]').forEach((button) => button.addEventListener('click', () => {
-        document.querySelectorAll('[data-feed-sort]').forEach((item) => item.classList.toggle('is-active', item === button));
-        loadPortalFeed('community', 'homeFeed', button.dataset.feedSort || 'latest');
-    }));
+    document.querySelectorAll('[data-feed-sort]').forEach((button) => {
+        if (button.dataset.homeFeedBound === 'true') return;
+        button.dataset.homeFeedBound = 'true';
+        button.addEventListener('click', () => {
+            document.querySelectorAll('[data-feed-sort]').forEach((item) => item.classList.toggle('is-active', item === button));
+            loadPortalFeed('community', 'homeFeed', button.dataset.feedSort || 'latest');
+        });
+    });
 }
 function initPortalMotion() { const targets = document.querySelectorAll('[data-reveal], .stream-card'); if (!('IntersectionObserver' in window)) { targets.forEach((target) => target.classList.add('is-visible')); return; } const observer = new IntersectionObserver((entries, instance) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); instance.unobserve(entry.target); } }), { threshold: 0.12 }); targets.forEach((target) => observer.observe(target)); }
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
@@ -328,16 +335,26 @@ function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => 
 function syncStreamLandingState() {
     const landing = document.getElementById('streamLanding');
     const shell = document.querySelector('.app-shell');
+    const streamContentRoot = document.getElementById('streamContentRoot');
     const routeKey = getCurrentStreamRoute();
-    const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(routeKey) || window.location.pathname === '/';
+    const isHomeRoute = window.location.pathname === '/' || window.location.pathname === '/index.html';
+    const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(routeKey) || isHomeRoute;
+    if (landing && defaultLandingMarkup === null) defaultLandingMarkup = landing.innerHTML;
+    if (isHomeRoute && landing && defaultLandingMarkup !== null && landing.innerHTML !== defaultLandingMarkup) {
+        landing.innerHTML = defaultLandingMarkup;
+        initHomeFeed();
+        initPortalMotion();
+    }
     renderPublicPortal(routeKey);
 
     if (!landing || !shell) {
         return;
     }
 
+    landing.hidden = !isPortalRoute;
     landing.style.display = isPortalRoute ? 'block' : 'none';
     shell.style.display = isPortalRoute ? 'none' : 'flex';
+    if (streamContentRoot) streamContentRoot.hidden = isPortalRoute;
 
     document.querySelectorAll('#streamGrid a, .portal-doc-links a').forEach((link) => {
         const href = link.getAttribute('href') || '';
@@ -347,7 +364,9 @@ function syncStreamLandingState() {
         else link.removeAttribute('aria-current');
     });
 
-    if (routeKey && SUBJECT_PAGES[routeKey]) {
+    if (isHomeRoute) {
+        document.title = 'NoteBooks';
+    } else if (routeKey && SUBJECT_PAGES[routeKey]) {
         const meta = SUBJECT_PAGES[routeKey];
         document.title = `${meta.title} · NoteBooks`;
         if (window.location.pathname === `/${routeKey}`) {
@@ -871,8 +890,11 @@ function setActiveTreePath(path) {
     if (treeCurrentLocation) {
         const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
         const label = activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root');
-        treeCurrentLocation.textContent = `Current location: ${label}`;
-        treeCurrentLocation.title = activeTreePath || 'workspace root';
+        const locationPath = activeTreePath || 'workspace root';
+        treeCurrentLocation.textContent = `Current location: ${locationPath}`;
+        treeCurrentLocation.title = locationPath;
+        treeCurrentLocation.setAttribute('aria-label', `Current location: ${locationPath}`);
+        treeCurrentLocation.dataset.path = locationPath;
         if (workspaceLocationMarker) {
             workspaceLocationMarker.textContent = `Inside: ${label}`;
             workspaceLocationMarker.title = activeTreePath || 'workspace root';
@@ -933,6 +955,8 @@ function createSidebarTreeItem(node, query) {
         li.classList.add('collapsed');
     const row = document.createElement('div');
     row.className = 'sidebar-tree-row';
+    row.id = `tree-row-${nodePath.replace(/[^a-zA-Z0-9_-]/g, '-') || 'root'}`;
+    row.dataset.treePath = nodePath;
     if (matchesSelf)
         row.classList.add('match');
     row.setAttribute('role', 'treeitem');
@@ -950,9 +974,47 @@ function createSidebarTreeItem(node, query) {
     };
     row.onclick = activateNode;
     row.onkeydown = (event) => {
+        const rows = getVisibleTreeRows();
+        const index = rows.indexOf(row);
+        const level = Number(row.getAttribute('aria-level') || 1);
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             activateNode();
+            return;
+        }
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const target = rows[index + (event.key === 'ArrowDown' ? 1 : -1)];
+            if (target) target.focus();
+            return;
+        }
+        if (event.key === 'Home' || event.key === 'End') {
+            event.preventDefault();
+            const target = event.key === 'Home' ? rows[0] : rows[rows.length - 1];
+            if (target) target.focus();
+            return;
+        }
+        if (event.key === 'ArrowRight' && hasChildren) {
+            event.preventDefault();
+            if (row.getAttribute('aria-expanded') === 'false') {
+                pendingTreeFocusPath = nodePath;
+                toggle.click();
+            } else {
+                const target = rows.slice(index + 1).find((candidate) => Number(candidate.getAttribute('aria-level') || 1) > level);
+                if (target) target.focus();
+            }
+            return;
+        }
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            if (hasChildren && row.getAttribute('aria-expanded') === 'true') {
+                pendingTreeFocusPath = nodePath;
+                toggle.click();
+                return;
+            }
+            const parentLi = row.closest('li')?.parentElement?.closest('li');
+            const parentRow = parentLi?.querySelector(':scope > .sidebar-tree-row');
+            if (parentRow) parentRow.focus();
         }
     };
     const toggle = document.createElement('button');
@@ -966,6 +1028,7 @@ function createSidebarTreeItem(node, query) {
         if (!hasChildren)
             return;
         treeInteractionStarted = true;
+        pendingTreeFocusPath = nodePath;
         if (expandedTreePaths.has(nodePath))
             expandedTreePaths.delete(nodePath);
         else
@@ -991,6 +1054,19 @@ function createSidebarTreeItem(node, query) {
     row.addEventListener('focusout', hideTreeHoverDetails);
     return li;
 }
+function getVisibleTreeRows() {
+    if (!sidebarTree)
+        return [];
+    return [...sidebarTree.querySelectorAll('.sidebar-tree-row')].filter((row) => {
+        let ancestor = row.parentElement?.closest('.sidebar-tree-item');
+        while (ancestor) {
+            if (ancestor.classList.contains('collapsed'))
+                return false;
+            ancestor = ancestor.parentElement?.closest('.sidebar-tree-item');
+        }
+        return true;
+    });
+}
 function renderSidebarTree(root, query = '') {
     if (!sidebarTree)
         return;
@@ -1015,6 +1091,13 @@ function renderSidebarTree(root, query = '') {
         return;
     }
     sidebarTree.appendChild(ul);
+    const activeRow = activeTreePath ? sidebarTree.querySelector(`[data-tree-path="${CSS.escape(activeTreePath)}"]`) : null;
+    if (activeRow) sidebarTree.setAttribute('aria-activedescendant', activeRow.id);
+    if (pendingTreeFocusPath) {
+        const focusRow = sidebarTree.querySelector(`[data-tree-path="${CSS.escape(pendingTreeFocusPath)}"]`);
+        pendingTreeFocusPath = null;
+        if (focusRow) focusRow.focus({ preventScroll: true });
+    }
 }
 function toggleSidebar() {
     const sidebar = document.getElementById('treeRail');

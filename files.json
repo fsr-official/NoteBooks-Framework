@@ -1,19 +1,19 @@
 {
   "type": "folder",
-  "name": "NoteBooks-Framework",
+  "name": "notebooks-framework-git",
   "path": "",
   "children": [
     {
       "type": "file",
       "name": "GITHUB-REPOSITORIES.md",
       "path": "GITHUB-REPOSITORIES.md",
-      "sha": "97e0a89dd3d8f64b799f9c4188574f397eba77359c699d434fd06121cfc921f3"
+      "sha": "0db0e6f159e8e31396a4a28ff1efb38765b5d21602b09c65dd16ef332c0eea62"
     },
     {
       "type": "file",
       "name": "README.md",
       "path": "README.md",
-      "sha": "34bd9b9b6fa24b3e8de69e2ac056a98b3c543aee6227bc67ae5b840ec009cd5f"
+      "sha": "198477d8edc5101153c462e3192db01d71554e6326eef058172352818f571e4a"
     },
     {
       "type": "folder",
@@ -50,25 +50,31 @@
           "type": "file",
           "name": "DEVELOPER-ONBOARDING.md",
           "path": "docs/DEVELOPER-ONBOARDING.md",
-          "sha": "439ae9036643de9016feb1458cb72563631a533571eba360112b47317511fb57"
+          "sha": "b1cf74b5127dc45bbf9e7abf6f39dbe631e7f3ad46337f9744577ce0c95fb05b"
         },
         {
           "type": "file",
           "name": "MARKDOWN-RENDERER.md",
           "path": "docs/MARKDOWN-RENDERER.md",
-          "sha": "742b9d1460cc5bd86bfeeabcf15e758902034dadbbd10495e7bbf20b3d276eed"
+          "sha": "62881cd54f2d4432cf4c1c1b7ac1bcf7aa1c35eaeaf7cc48486a4cd619e8a340"
         },
         {
           "type": "file",
           "name": "PHASE-PLANS.md",
           "path": "docs/PHASE-PLANS.md",
-          "sha": "87b002207de9b84de10631e8f727672ebb474fed66b69a0f0a198a57100bacb2"
+          "sha": "c474c2b1dcc06f689e875f4acae848c6b8233894c02f0c6a0d189943f7d25b1b"
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "docs/README.md",
+          "sha": "5926bd41800b6662430bb28fdb5cefb7a01f5beb9bba0f18b2156bea2d95459f"
         },
         {
           "type": "file",
           "name": "REMAINING.md",
           "path": "docs/REMAINING.md",
-          "sha": "dde3cc4d285f020f55b43060291d3d61f1151e9bfe3d16b3154915c8d9bc2f1d"
+          "sha": "fd55a92c2963854198ab65510c10f8e61ca32aad428bebaf254b911b7f5bdbc9"
         },
         {
           "type": "folder",
@@ -91,19 +97,19 @@
               "type": "file",
               "name": "FILE-RESPONSIBILITY-MANIFEST.md",
               "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md",
-              "sha": "013e95bf05aea54402378f55698b1471561c2a22cbfa3d426f90a02ead59e332"
+              "sha": "4a57eb94f99ba88e65257e72d52d90054ca228db161a47b2ff247ad57cd8f689"
             },
             {
               "type": "file",
               "name": "FILE-REVAMP-DESIGN.md",
               "path": "docs/phase1/FILE-REVAMP-DESIGN.md",
-              "sha": "de121853082b49af9e7ca33349ec27c97307f8a3a430fbf9a7c4495cbe6116d7"
+              "sha": "1ed089d0c00106c56c861a81ae1e4996580866593a1acd6c08be105cf96bf442"
             },
             {
               "type": "file",
               "name": "FINAL-REFACTOR-REPORT.md",
               "path": "docs/phase1/FINAL-REFACTOR-REPORT.md",
-              "sha": "ad0e9ea5e3753280467b73508a2b289b382d4cc4b5e45c3a216d4f9548f3ad1e"
+              "sha": "e07d55a64c9cb73abf7007bb4eff50a14e50b5fe29a5dc6721d5ce0bf9254794"
             },
             {
               "type": "file",
@@ -115,7 +121,7 @@
               "type": "file",
               "name": "LOCAL-MANIFEST-OWNERSHIP.md",
               "path": "docs/phase1/LOCAL-MANIFEST-OWNERSHIP.md",
-              "sha": "45cc5a1541356b3837bacd8ef201938886dea66ae24f4d8e814add01b3bf6300"
+              "sha": "325edc3ca23dfa9698fe782fc03c23001343bb50bcc65ab4350b27dd6c41b547"
             },
             {
               "type": "file",
@@ -127,7 +133,7 @@
               "type": "file",
               "name": "LOOSE-END-DIAGNOSIS.md",
               "path": "docs/phase1/LOOSE-END-DIAGNOSIS.md",
-              "sha": "6ca7fd40deb445d1aae48af07125324386b36c46dd8af6c9a3509eca0abf790f"
+              "sha": "25e85130d2267849a4e3a9dc80bc915911f79b55dfcef8c45d590e39e4053f32"
             },
             {
               "type": "file",
@@ -145,25 +151,25 @@
               "type": "file",
               "name": "NEXT-CLEANUP-ROADMAP.md",
               "path": "docs/phase1/NEXT-CLEANUP-ROADMAP.md",
-              "sha": "32da3436e54c8a8afcf072e2b9eef1668a44f80ac1536ad9f05f8a0c05f96015"
+              "sha": "0ef973a68922c0cfb86d2ba9193f64949fdb5a412ffa56fd1ee49c3838b5600e"
             },
             {
               "type": "file",
               "name": "PHASE-I-PLAN.md",
               "path": "docs/phase1/PHASE-I-PLAN.md",
-              "sha": "d6b314a6683581ac7eda7a17a11b58c422d8a0e69f62f1830488fdda34c93020"
+              "sha": "e303e351fabaf366327c48d0a557097e05ed58b01defa07993105bbf07ee7b71"
             },
             {
               "type": "file",
               "name": "PHASE-I-VERIFICATION.md",
               "path": "docs/phase1/PHASE-I-VERIFICATION.md",
-              "sha": "899482c1e1fef88d0bb44327e059cb5a0285e995cb7cc060a0e7846a16b73e1f"
+              "sha": "68cb2a63c05bf43d3696d9e76741b3fcc21c2828fa656e260dfb804ba0b8a578"
             },
             {
               "type": "file",
               "name": "PRODUCTION-RELIABILITY-FIX.md",
               "path": "docs/phase1/PRODUCTION-RELIABILITY-FIX.md",
-              "sha": "074b75ca59be612200f1a66582a8f3002da90fe4ec60256166dc3a9ffca6222c"
+              "sha": "500520a6425dbbce7e0aede854f449e49cd2766bbc9cc6fe738d33a623bf8b5b"
             },
             {
               "type": "file",
@@ -181,13 +187,13 @@
               "type": "file",
               "name": "REAL-ARCHITECTURE.md",
               "path": "docs/phase1/REAL-ARCHITECTURE.md",
-              "sha": "d936c5a02a5517b2598c69e32367b9dea55879684ee3e1b4605bdb4e5cc4dffc"
+              "sha": "543f2c819f81f0322cb56ed6efe2275efeae702a2c1feca983a12350745ac3c6"
             },
             {
               "type": "file",
               "name": "REFACTOR-BASELINE.md",
               "path": "docs/phase1/REFACTOR-BASELINE.md",
-              "sha": "aec10aeeac36b22c2eea7fc26d0a8f1bea03fd90d9b47ecdc9b459c240cfc34e"
+              "sha": "cb7735f24b4a42159640c731226362c772f0baf88e0c0644a056d1a0800cdf17"
             },
             {
               "type": "file",
@@ -199,19 +205,19 @@
               "type": "file",
               "name": "SERVICE-WORKER-OWNERSHIP.md",
               "path": "docs/phase1/SERVICE-WORKER-OWNERSHIP.md",
-              "sha": "d803e39dadd73cb4102793a4a47c61bd23a8cd15f0c3cb4d5674429b21dc62c9"
+              "sha": "e5b1a2010d4335dcdfb2ad388b30dd3894b3a5baa00345872cf6ddcf460d3340"
             },
             {
               "type": "file",
               "name": "STREAM-CLEANUP-VERIFICATION.md",
               "path": "docs/phase1/STREAM-CLEANUP-VERIFICATION.md",
-              "sha": "21193cf114ff81130ec9afa12751bb1ab76012c62e3db51324f92858728142e2"
+              "sha": "e689274533a305e6736056bb39848a69db007d88fbed367c04651cff3f177e44"
             },
             {
               "type": "file",
               "name": "STREAM-TERMINOLOGY-AUDIT.md",
               "path": "docs/phase1/STREAM-TERMINOLOGY-AUDIT.md",
-              "sha": "d7173e5de004f9445d15e97eb9813d3169af06b8ef191147385f125011efcd1e"
+              "sha": "f9b9abc749a0e2ccfb8914b9e4a8f3890ab7e3a687197eafe078eb6b3f36bd51"
             }
           ]
         },
@@ -224,49 +230,73 @@
               "type": "file",
               "name": "AUDIT-AND-DECISIONS.md",
               "path": "docs/phase2-3/AUDIT-AND-DECISIONS.md",
-              "sha": "5a8b54c1e8fc98cfb0d5655522e69e5f15e91dcf6189a2d6591acc3f1a64aaf4"
+              "sha": "cdc4dacaf5dadb05e5e267e417cd7d2a77ad63e593fc95e1fd8db2e705843020"
             },
             {
               "type": "file",
               "name": "COMMUNITY-CHANNELS.md",
               "path": "docs/phase2-3/COMMUNITY-CHANNELS.md",
-              "sha": "08758ac61d028257fc85c280f7e448001faeb68a8178772e9c780a648fb89baa"
+              "sha": "d7fc34d03c716e60475093dc72f4a3ebd332ce841deedd95418070f25d5d3496"
             },
             {
               "type": "file",
               "name": "DATA-MODEL.md",
               "path": "docs/phase2-3/DATA-MODEL.md",
-              "sha": "0cd1a689e6737f7c3efda1aa50461451bfcd27a140ee23cb78d1a8d673d1bfe5"
+              "sha": "1c0dfcb6834bc7395742723af88d3a989d2e8c5a02954f608fbb3bf398d1545b"
+            },
+            {
+              "type": "file",
+              "name": "DEPLOYMENT-RECOVERY-RUNBOOK.md",
+              "path": "docs/phase2-3/DEPLOYMENT-RECOVERY-RUNBOOK.md",
+              "sha": "935734f8f6c99c61bebc6a04817d7c720db40bda758c80fc4a353bb1e1fcbc7e"
+            },
+            {
+              "type": "file",
+              "name": "DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
+              "path": "docs/phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
+              "sha": "b06efd1109bdb29cbab7d7936c45f1c9f69680e22f0aafa8fbab868f78a9c322"
+            },
+            {
+              "type": "file",
+              "name": "ENVIRONMENT-AND-REMAINING-GAPS.md",
+              "path": "docs/phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md",
+              "sha": "54a019631f348828398c7998648a240ac4c5dc730c75f7c3fd98b176a1d975cc"
             },
             {
               "type": "file",
               "name": "FINAL-AUDIT-AND-VERIFICATION.md",
               "path": "docs/phase2-3/FINAL-AUDIT-AND-VERIFICATION.md",
-              "sha": "358f4f64dba963a3bad2fb614fdf3ff7d1d6a009851cfc1a57acde3c13aec4ec"
+              "sha": "7057ac95d9694327b057424ca24c5a2de56936bab66297de015fa3a432a81788"
+            },
+            {
+              "type": "file",
+              "name": "FINAL-RELEASE-AUDIT-2026-08-25.md",
+              "path": "docs/phase2-3/FINAL-RELEASE-AUDIT-2026-08-25.md",
+              "sha": "9fa4bb79f8ec9be701158b547d8130d021d53821c6994702af7ce978757bc504"
             },
             {
               "type": "file",
               "name": "GITHUB-REPOS-MANIFEST.md",
               "path": "docs/phase2-3/GITHUB-REPOS-MANIFEST.md",
-              "sha": "d9c82e8bf0e1a858d0e1b9598ee7f22642961a53becba630a2b7bb101ca0ab24"
+              "sha": "6fef6a2e4a7bc51827932bebbb8a0d9c768bdabe9147f465127c7975651268a6"
             },
             {
               "type": "file",
               "name": "HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
               "path": "docs/phase2-3/HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
-              "sha": "de36ea2f35bf3b035103d1d86def75a9e9cd299e3e595a4065e8535cd17ad3ab"
+              "sha": "4168ca479711ad593693fe405000c505430c9ad08675fc1eade99c9cb57c9f2c"
             },
             {
               "type": "file",
               "name": "ISSUES-ADMIN-REVIEW.md",
               "path": "docs/phase2-3/ISSUES-ADMIN-REVIEW.md",
-              "sha": "ea64f44928ec7e7a91989d6623bdb0f1d2b764d43f6a41a49d99347ed2845900"
+              "sha": "00c544a2d6f2e18017c0c53d6edd400efd4e5e5f86ddd1a5fcaca46e5b4b5f08"
             },
             {
               "type": "file",
               "name": "PHASE2-3-STATUS.md",
               "path": "docs/phase2-3/PHASE2-3-STATUS.md",
-              "sha": "3f218334ff273af9b7a3006c43e3250051d193079d9d82e3304a46cc4122e87b"
+              "sha": "bdd10015536c72e6b62344449b3b64d2294263e6dee7bd3bedfb929d9b4648e3"
             }
           ]
         },
@@ -279,37 +309,37 @@
               "type": "file",
               "name": "phase-1.md",
               "path": "docs/phases/phase-1.md",
-              "sha": "8c639cd5bf6a730e3627cfda1cc5a9439ac576470456871349e83bdfddab14ea"
+              "sha": "f6357ad845058ccc75ddc01cff37e00af5ab429fd205eb48c6076901f13849fd"
             },
             {
               "type": "file",
               "name": "phase-2.md",
               "path": "docs/phases/phase-2.md",
-              "sha": "df2eb9c584ab5e52cac771fe0ff5906aa82a1df4ce7acdb4c16a2fce66c31d6d"
+              "sha": "e12bd4908d7941717c9adbc718c13f9ba72643f84592eab966b704cc3b6eac08"
             },
             {
               "type": "file",
               "name": "phase-3.md",
               "path": "docs/phases/phase-3.md",
-              "sha": "76398b6d678f550469067a0a63fe03ca1c58a27ee887fffd386359745db5d4dd"
+              "sha": "71045325abb6b101f9802306f2a8d99562993c25bf320aa09d39b7e14b509f50"
             },
             {
               "type": "file",
               "name": "phase-4.md",
               "path": "docs/phases/phase-4.md",
-              "sha": "2c323a5b08e0dc87ce2bbded8f360b76575e37648d355152894689c683bf6fc2"
+              "sha": "b8b23bece68328e07fac8c01435674cdbbd9ca47d6609a8824b3f14211ff20a7"
             },
             {
               "type": "file",
               "name": "phase-5.md",
               "path": "docs/phases/phase-5.md",
-              "sha": "6a3421656540cdef0d0b92d64da212a45abeef291d824d7ccf69de151a47a141"
+              "sha": "c4aa7a08ab5dbe8c632a3a928824459dba89fe2ad61c84f6fe31b4aadedc1f10"
             },
             {
               "type": "file",
               "name": "phase-6.md",
               "path": "docs/phases/phase-6.md",
-              "sha": "ddbed47c58db59989a5f14788b72ed1b3ac41442ab3e67ebb088e198cb88dc37"
+              "sha": "23049dba0465b5a681c88debc3cf149ac90c2ebbecb89bb93574f3e03e4f43a6"
             }
           ]
         }

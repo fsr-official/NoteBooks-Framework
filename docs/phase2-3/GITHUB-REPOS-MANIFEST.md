@@ -1,3 +1,5 @@
+> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
+>
 # Build-Time GitHub Repository Manifest
 
 **Status:** implemented and locally verified  
@@ -39,22 +41,23 @@ The artifact is intentionally deterministic for a given source file. It does not
       "root": "",
       "enabled": true,
       "priority": 1,
-      "pages": true
+      "pages": true,
+      "empty": false
     }
   ]
 }
 ```
 
-The parser preserves the existing columns and semantics: `name`, case-insensitive `stream`, `repo`, `branch`, `root`, `enabled`, numeric `priority`, and `pages`. Empty or malformed source tables fail generation instead of silently writing an empty artifact.
+The parser preserves the existing columns and semantics: `name`, case-insensitive `stream`, `repo`, `branch`, `root`, `enabled`, numeric `priority`, `pages`, and optional `empty`. Empty or malformed source tables fail generation instead of silently writing an empty artifact. The canonical source now includes `COMMUNITY` mapped to `fsr-official/NoteBooks-Community` and `ISSUES` mapped to `fsr-official/NoteBooks-Issues`; these are workspace routing entries, not content streams indexed into stream trees. Commerce is explicitly marked `empty=true` because its repository intentionally has no files manifest.
 
 ## Runtime ownership
 
 The canonical parser and artifact builder live in `src/lib/github-repositories.ts`. `src/scripts/generate-github-repos.ts` reads the Markdown source and writes the artifact atomically. `src/api/repo-registry.ts` and `src/api/_shared.ts` both prefer the artifact and retain Markdown/legacy JSON readers only as compatibility fallbacks for incomplete local checkouts or older deployments.
 
-`generate-json-files.ts` continues to own remote `files.json` retrieval and stream-tree construction. It receives normalized entries from `loadRepoRegistry()` and therefore does not need to know whether the entries came from the artifact or a compatibility fallback.
+`generate-json-files.ts` continues to own remote `files.json` retrieval and content stream-tree construction. It ignores non-content workspace entries such as `COMMUNITY` and `ISSUES` for tree generation. Entries marked `empty=true` produce valid empty repository trees without a remote request; this is the intended Commerce path. Runtime Community and Issues handlers use `getStreamRepo('community')` and `getStreamRepo('issues')` from the same artifact, with `GITHUB_COMMUNITY_REPO` and `GITHUB_ISSUES_REPO` retained only as compatibility fallbacks for older deployments. Repository credentials remain separate server-side secrets (`GITHUB_PAT`, `GITHUB_TOKEN`, or GitHub App credentials).
 
-The artifact is included in the service-worker application shell. The current cache release is `webman-v23`.
+The artifact is included in the service-worker application shell. The current cache release is `webman-v25`, which also invalidates clients holding the previous shell while delivering the Home navigation restoration.
 
 ## Verification
 
-The focused artifact and stream-routing tests pass: **3 test files and 7 tests** in the focused run. The complete suite passes: **31 test files and 90 tests**. Typecheck, the full build, JavaScript syntax checks, and the build-time generator pass. The current generated artifact contains three entries for Science, Commerce, and Humanities, with source SHA-256 `97e0a89dd3d8f64b799f9c4188574f397eba77359c699d434fd06121cfc921f3` for the current Markdown source.
+The focused frontend, Commerce-empty, and registry-routing regressions pass, and the complete suite passes: **32 test files and 93 tests**. Typecheck, the full build, JavaScript syntax checks, and the build-time generator pass. The current generated artifact contains five entries: Science, Commerce, Humanities, Community, and Issues. Its source SHA-256 is regenerated from the current Markdown source during each build. A local CDP browser check also verified Home → Science → Home with no console exceptions; the returned Home state restored the landing markup and made `#streamLanding` visible.

@@ -45,22 +45,50 @@
         <button type="button" class="settings-disabled-button" disabled>Sign in / create account — coming later</button>
       </article>
 
-      <article class="settings-card">
+      <article class="settings-card settings-card--theme" id="appearance" aria-labelledby="appearanceTitle">
         <div class="settings-card-kicker">Appearance</div>
-        <h2>Reading room theme</h2>
-        <p>Theme preferences are local to this browser for now. They are independent of authentication and can be synchronized later.</p>
-        <label class="settings-field" for="themePreset"><span>Preset</span><select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic dark</option><option value="professional">Professional dark</option><option value="contrast">High contrast</option><option value="neon">Neon dark</option><option value="classic">Classic light</option></select></label>
+        <h2 id="appearanceTitle">Reading room theme</h2>
+        <p>Themes are stored for this browser session and can be carried into your account after sign-in. Global presets are selectable; custom tokens remain yours.</p>
+        <p id="themePersistenceStatus" class="settings-inline-status" role="status" aria-live="polite">Preparing your browser session…</p>
+        <div class="settings-theme-mode-row">
+          <div><strong>Color mode</strong><span>Every theme family includes a coordinated light and dark variant.</span></div>
+          <button id="themeModeToggle" class="settings-theme-mode-toggle" type="button" aria-pressed="false" data-mode="dark" onclick="toggleThemeMode()"><span id="themeModeLabel">Dark mode</span><span aria-hidden="true">Light / Dark</span></button>
+        </div>
+        <label class="settings-field" for="themePreset"><span>Theme preset</span><select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic dark</option><option value="professional">Professional dark</option><option value="contrast">High contrast</option><option value="neon">Neon dark</option><option value="classic">Classic light</option><option value="custom">Custom theme</option></select></label>
+        <div id="themePresetGallery" class="theme-preset-gallery" aria-label="Theme presets"></div>
+        <div class="settings-subsection">
+          <div class="settings-subsection-heading"><span class="settings-card-kicker">Custom theme</span><span class="settings-subsection-note">Fine-tune the reading room</span></div>
         <div class="settings-fields-grid">
           <label class="settings-field" for="themeAccent"><span>Accent</span><input id="themeAccent" type="color" onchange="updateCustomTheme('accent', this.value)" /></label>
           <label class="settings-field" for="themeSurface"><span>Surface</span><input id="themeSurface" type="color" onchange="updateCustomTheme('surface', this.value)" /></label>
           <label class="settings-field" for="themeText"><span>Text</span><input id="themeText" type="color" onchange="updateCustomTheme('text', this.value)" /></label>
           <label class="settings-field" for="themeCode"><span>Code surface</span><input id="themeCode" type="color" onchange="updateCustomTheme('code', this.value)" /></label>
         </div>
+        </div>
+        <button type="button" class="settings-secondary-button" onclick="restoreTheme()">Restore saved theme</button>
+      </article>
+
+      <article class="settings-card settings-card--reading" id="reading-controls" aria-labelledby="readingControlsTitle">
+        <div class="settings-card-kicker">Reading controls</div>
+        <h2 id="readingControlsTitle">Make long notes easier to read</h2>
+        <p>These controls apply across the reader and persist with your browser session.</p>
+        <p id="readingPreferencesStatus" class="settings-inline-status" role="status" aria-live="polite">Preparing reading preferences…</p>
+        <div class="settings-fields-grid settings-reading-grid">
+          <label class="settings-field" for="readingFontSize"><span>Text size</span><select id="readingFontSize"><option value="compact">Compact</option><option value="normal">Comfortable</option><option value="large">Large</option></select></label>
+          <label class="settings-field" for="readingWidth"><span>Text width</span><select id="readingWidth"><option value="narrow">Narrow</option><option value="comfortable">Comfortable</option><option value="wide">Wide</option></select></label>
+          <label class="settings-field" for="readingLineHeight"><span>Line spacing</span><select id="readingLineHeight"><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="airy">Airy</option></select></label>
+        </div>
+        <div class="settings-toggle-list">
+          <label class="settings-toggle-row" for="readingCodeWrap"><span><strong>Wrap code blocks</strong><small>Keep long code within the reading pane.</small></span><input id="readingCodeWrap" type="checkbox" /></label>
+          <label class="settings-toggle-row" for="readingReducedMotion"><span><strong>Reduce motion</strong><small>Limit decorative transitions and animations.</small></span><input id="readingReducedMotion" type="checkbox" /></label>
+        </div>
+        <button type="button" class="settings-secondary-button" onclick="resetReadingPreferences()">Reset reading controls</button>
       </article>
     </section>
   </main>
 
   <script src="/public/js/theme.js"></script>
+  <script src="/public/js/reading-preferences.js"></script>
   <script src="/public/js/dashboard.js" defer></script>
   <script src="/public/js/stream-runtime.js"></script>
   <script src="/public/js/app.js" defer></script>

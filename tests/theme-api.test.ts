@@ -21,6 +21,52 @@ describe('theme API', () => {
     expect(loaded.body).toEqual({ theme: { accent: '#123456', bg: '#050505' } });
   });
 
+  it('lists selectable global theme presets', async () => {
+    const app = createApp();
+    const response = await request(app).get('/api/themes');
+
+    expect(response.status).toBe(200);
+    expect(response.body.themes.map((theme: { slug: string }) => theme.slug)).toEqual(['futuristic', 'contrast', 'neon', 'professional', 'classic']);
+    expect(response.body.themes[0]).toHaveProperty('tokens');
+  });
+
+  it('selects a global preset into the browser session', async () => {
+    const app = createApp();
+    const agent = request.agent(app);
+    const selected = await agent.post('/api/themes/select').send({ slug: 'professional' });
+
+    expect(selected.status).toBe(200);
+    expect(selected.body.theme.slug).toBe('professional');
+    expect(selected.body.theme.tokens.bg).toBe('#111827');
+
+    const session = await agent.get('/api/session');
+    expect(session.body.session.selectedThemeSlug).toBe('professional');
+    expect(session.body.session.customTheme).toEqual({});
+  });
+
+  it('selects a light variant while preserving the theme family', async () => {
+    const app = createApp();
+    const agent = request.agent(app);
+    const selected = await agent.post('/api/themes/select').send({ slug: 'contrast', mode: 'light' });
+
+    expect(selected.status).toBe(200);
+    expect(selected.body.theme.slug).toBe('contrast');
+    expect(selected.body.theme.mode).toBe('light');
+    expect(selected.body.theme.tokens.bg).toBe('#ffffff');
+
+    const session = await agent.get('/api/session');
+    expect(session.body.session.selectedThemeSlug).toBe('contrast');
+    expect(session.body.session.themeMode).toBe('light');
+  });
+
+  it('rejects unknown global presets', async () => {
+    const app = createApp();
+    const response = await request(app).post('/api/themes/select').send({ slug: 'does-not-exist' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/unknown theme/i);
+  });
+
   it('rejects unsafe or unknown theme payloads', async () => {
     const app = createApp();
     const response = await request(app).post('/api/theme').send({

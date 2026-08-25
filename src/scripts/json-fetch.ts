@@ -9,6 +9,7 @@ export interface JsonFetchRegistryEntry {
   enabled?: boolean;
   priority?: number;
   pages?: boolean | string;
+  empty?: boolean | string;
 }
 
 export interface JsonFetchNode {
@@ -248,6 +249,21 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
   const normalizedEntry = { ...entry, branch };
   const rawUrl = buildRawFilesJsonUrl(normalizedEntry);
   const pagesEnabled = entry.pages === true || String(entry.pages || '').toLowerCase() === 'true';
+  const explicitlyEmpty = entry.empty === true || String(entry.empty || '').toLowerCase() === 'true';
+  if (explicitlyEmpty) {
+    const normalized = normalizeManifest([], normalizedEntry, stream);
+    return {
+      stream,
+      repo: entry.repo,
+      branch,
+      root: normalizePath(entry.root || ''),
+      name: String(entry.name || repositoryName(entry.repo)),
+      manifestUrl: rawUrl,
+      source: 'raw',
+      files: normalized.files,
+      tree: normalized.tree
+    };
+  }
   const attempts: Array<{ url: string; source: 'raw' | 'pages' }> = [{ url: rawUrl, source: 'raw' }];
   if (pagesEnabled && resolvePagesBaseUrl(entry)) attempts.push({ url: buildPagesFilesJsonUrl(normalizedEntry), source: 'pages' });
 

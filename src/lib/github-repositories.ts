@@ -9,6 +9,7 @@ export interface RepoRegistryEntry {
   enabled?: boolean;
   priority?: number;
   pages?: boolean | string;
+  empty?: boolean | string;
 }
 
 export interface GithubRepositoriesArtifact {
@@ -44,6 +45,7 @@ export function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntry[]
     .map((cells) => {
       const priorityText = valueOf(cells, 'priority');
       const pagesText = valueOf(cells, 'pages');
+      const emptyText = valueOf(cells, 'empty');
       return {
         name: valueOf(cells, 'name'),
         stream: valueOf(cells, 'stream').toLowerCase() || undefined,
@@ -52,7 +54,8 @@ export function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntry[]
         root: valueOf(cells, 'root'),
         enabled: valueOf(cells, 'enabled').toLowerCase() !== 'false',
         priority: Number(priorityText),
-        pages: pagesText ? pagesText.toLowerCase() === 'true' : false
+        pages: pagesText ? pagesText.toLowerCase() === 'true' : false,
+        empty: emptyText ? emptyText.toLowerCase() === 'true' : false
       } satisfies RepoRegistryEntry;
     })
     .filter((entry) => !Number.isNaN(entry.priority));

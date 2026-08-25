@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { authenticator } from 'otplib';
+import { generateSecret, generateURI, verify } from 'otplib';
 import { getUser, setUser } from './auth.js';
 import permissions from '../lib/permissions.js';
 
@@ -13,15 +13,16 @@ function generateBackupCodes(count = 8) {
 }
 
 export async function generateTotpSecretForEmail(email: string) {
-  const secret = authenticator.generateSecret();
-  const otpauth = authenticator.keyuri(email, 'NoteBooks', secret);
+  const secret = generateSecret();
+  const otpauth = generateURI({ issuer: 'NoteBooks', label: email, secret });
   return { secret, otpauth };
 }
 
 export async function verifyTotpForEmail(email: string, token: string): Promise<boolean> {
   const user = await getUser(email);
   if (!user || !(user as any).totp_secret) return false;
-  return authenticator.check(token, (user as any).totp_secret);
+  const result = await verify({ token, secret: (user as any).totp_secret });
+  return Boolean(result.valid);
 }
 
 function authenticatedAccount(req: Request, requestedEmail?: string) {
@@ -76,8 +77,8 @@ export async function verifyAndEnableTotp(req: Request, res: Response) {
     if (account.error) return res.status(account.error.status).json({ error: account.error.message });
     if (!(await ensureAdminCanManageTotp(account.email, account.auth, res))) return;
 
-    const valid = authenticator.check(token, secret);
-    if (!valid) return res.status(400).json({ error: 'Invalid token' });
+    const result = await verify({ token, secret });
+    if (!result.valid) return res.status(400).json({ error: 'Invalid token' });
 
     const user = await getUser(account.email);
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -107,7 +108,8 @@ export async function disableTotp(req: Request, res: Response) {
     const user = await getUser(account.email);
     if (!user) return res.status(404).json({ error: 'User not found' });
     const currentSecret = String((user as any).totp_secret || '');
-    if (!currentSecret || !authenticator.check(token, currentSecret)) {
+    const result = currentSecret ? await verify({ token, secret: currentSecret }) : { valid: false };
+    if (!currentSecret || !result.valid) {
       return res.status(403).json({ error: 'Invalid current TOTP token' });
     }
     (user as any).totp_secret = null;

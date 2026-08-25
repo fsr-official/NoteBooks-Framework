@@ -1,3 +1,5 @@
+> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
+>
 # Homepage Performance and Reliability Postmortem
 
 **Status:** locally verified after the v22 client/cache update  
@@ -51,9 +53,9 @@ The current CSP still allows `'unsafe-inline'`, inline script attributes, `blob:
 
 Rate limiting is partially present for authentication and PR submission, but not standardized across Community writes, Issue proposals, comments, votes, moderation, reviewer decisions, and PR attempts. Add route-specific limits keyed by authenticated user with an IP fallback before production activation. The global 25 MiB JSON parser limit should also be replaced with smaller route-specific limits, with a separate storage/upload path for genuinely large content.
 
-Mermaid is initialized with `securityLevel: 'loose'`. Because Markdown may contain repository or user-controlled content, this should be reviewed as an explicit trust-boundary decision. Prefer strict rendering or a sandboxed preview context unless the project can prove that all rendered diagram sources are trusted and safely escaped.
+Mermaid is now initialized with `securityLevel: 'strict'` and follows the selected NoteBooks theme mode. Markdown still crosses a repository/user-content trust boundary, so the remaining CSP and inline-handler work should continue independently.
 
-The dependency advisory audit remains unverified because `npm audit --omit=dev --json` did not produce a usable result in the sandbox. Re-run it in CI with registry access and preserve the advisory report. Production Vercel compression/cache behavior, deployed environment variables, Supabase runtime connectivity, OAuth/TOTP, GitHub scopes, webhook delivery, and live Octokit PR creation remain outside this local diagnosis.
+The production dependency advisory audit is clean after the image-processing dependency update (`npm audit --omit=dev --audit-level=high`). Re-run it in CI with registry access and preserve the advisory report. Production Vercel compression/cache behavior, deployed environment variables, Supabase runtime connectivity, OAuth/TOTP, GitHub scopes, webhook delivery, and live Octokit PR creation remain outside this local diagnosis.
 
 ## Verification evidence
 

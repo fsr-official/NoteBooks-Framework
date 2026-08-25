@@ -137,9 +137,9 @@ async function previewPending(id) {
     }
     const url = URL.createObjectURL(new Blob([res.bytes]));
     if (isMobile)
-        openMobilePreview(url, u.originalName);
+        openMobilePreview(url, u.storedName || u.originalName);
     else
-        openPreview(url, u.originalName);
+        openPreview(url, u.storedName || u.originalName);
 }
 async function downloadPending(id) {
     const { items } = await wlReadIndex();
@@ -155,7 +155,7 @@ async function downloadPending(id) {
     const url = URL.createObjectURL(new Blob([res.bytes]));
     const a = document.createElement('a');
     a.href = url;
-    a.download = u.originalName;
+    a.download = u.storedName || u.originalName;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
@@ -183,11 +183,11 @@ function reuploadPending(id) {
             ? file.name.slice(0, dotIdx) + '-edited-' + countStr + file.name.slice(dotIdx)
             : file.name + '-edited-' + countStr;
         const newStoredName = sanitizeForPath(newOriginalName);
+        const prepared = await _prepareUploadFile(file, u.diagramDomain || '');
         const reader = new FileReader();
         reader.onload = async () => {
-            const b64 = reader.result.split(',')[1];
-            // Upload new version to Vercel Blob
-            const putOk = await blobUpload(`waiting-list/${id}-${newStoredName}`, b64);
+            // Upload the new original or normalized derivative to Vercel Blob.
+            const putOk = await blobUpload(`waiting-list/${id}-${sanitizeForPath(prepared.filename)}`, prepared.content);
             if (!putOk.ok) {
                 showStatus(`✗ Re-upload failed: ${putOk.error}`);
                 return;
@@ -197,7 +197,7 @@ function reuploadPending(id) {
                 await blobDelete(u.blobUrl);
             // Update index with new blob URL
             const newItems = items.map(x => x.id === id
-                ? { ...x, blobUrl: putOk.url, originalName: newOriginalName, size: file.size, reuploadCount: count + 1 }
+                ? { ...x, blobUrl: putOk.url, originalName: newOriginalName, storedName: prepared.filename, sourceFormat: prepared.sourceFormat || file.type || 'unknown', conversionMode: prepared.mode, size: prepared.size, reuploadCount: count + 1 }
                 : x);
             await wlWriteIndex(newItems, idxSha, `Re-upload: ${newOriginalName}`);
             showStatus(`✓ Re-uploaded as: ${newOriginalName}`);
@@ -227,13 +227,14 @@ async function approvePending(id) {
     const b64Content = btoa(binary);
     // Check if destination file already exists (need its sha to update)
     const destPath = (u.destPath || '').trim().replace(/^\/|\/$/g, '');
-    const filePath = destPath ? `${destPath}/${u.originalName}` : u.originalName;
+    const publishName = u.storedName || u.originalName;
+    const filePath = destPath ? `${destPath}/${publishName}` : publishName;
     const destCheck = await ghProxy('getFile', { path: filePath });
     const destSha = destCheck.ok ? destCheck.data.sha : null;
     // Commit to destination in GitHub
     const approveOk = await ghProxy('putFile', {
         path: filePath, content: b64Content,
-        message: `Approve upload: ${u.originalName}`, sha: destSha
+        message: `Approve upload: ${publishName}`, sha: destSha
     });
     if (!approveOk.ok) {
         showStatus(`✗ Failed to publish: ${approveOk.error}`);
@@ -325,6 +326,9 @@ function hideUploadScreen() {
         _reuploadFile = null;
         document.getElementById('filePickerInput').value = '';
         document.getElementById('us2destPath').value = '';
+        const diagramDomain = document.getElementById('us2diagramDomain');
+        if (diagramDomain)
+            diagramDomain.value = '';
         document.getElementById('usResult').style.display = 'none';
         uploadGoStep1();
     }, 380);
@@ -466,12 +470,51 @@ function populateStep2UI() {
         : `${count} file${count > 1 ? 's' : ''} will be held for admin review before being published.`;
     document.getElementById('reuploadInfo').textContent = '';
 }
+function _isConvertibleImage(file) {
+    return /\.(svg|png|jpe?g|webp|gif|avif|tiff?)$/i.test(file.name || '') || /^image\//i.test(file.type || '');
+}
+function _readFileBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Could not read the selected file'));
+        reader.readAsDataURL(file);
+    });
+}
+async function _prepareUploadFile(file, diagramDomain) {
+    const originalContent = await _readFileBase64(file);
+    const safeFilename = sanitizeForPath(file.name || 'upload');
+    if (!diagramDomain || !_isConvertibleImage(file)) {
+        return { filename: safeFilename, content: originalContent, originalName: file.name, size: file.size, mode: 'original' };
+    }
+    const response = await fetch('/api/blob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'convert-svg', filename: file.name, content: originalContent, domain: diagramDomain })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.content || !payload.filename) {
+        throw new Error(payload.error || 'Diagram conversion failed');
+    }
+    return {
+        filename: payload.filename,
+        content: payload.content,
+        originalName: file.name,
+        size: Math.ceil(payload.content.length * 0.75),
+        mode: payload.mode || 'embedded-raster',
+        sourceFormat: payload.sourceFormat || 'unknown'
+    };
+}
+function _selectedDiagramDomain() {
+    const value = document.getElementById('us2diagramDomain')?.value || '';
+    return value === 'biology' || value === 'chemistry' ? value : '';
+}
 function _setUploadProgress(done, total) {
     const pct = total ? Math.round((done / total) * 100) : 0;
     document.getElementById('us3progressBar').style.width = pct + '%';
     document.getElementById('us3progressLabel').textContent = `Uploading ${done} of ${total}… (${pct}%)`;
 }
-async function finalizeUpload() {
+async function _finalizeUploadImpl() {
     const files = (_reuploadFile && _pendingFiles.length === 1) ? [_reuploadFile] : _pendingFiles;
     if (!files.length)
         return;
@@ -481,6 +524,7 @@ async function finalizeUpload() {
     backBtn.disabled = true;
     btn.textContent = 'Uploading…';
     const dest = (document.getElementById('us2destPath').value || '').trim().replace(/^\/|\/$/g, '');
+    const diagramDomain = _selectedDiagramDomain();
     const total = files.length;
     const results = [];
     if (isAdmin()) {
@@ -489,15 +533,10 @@ async function finalizeUpload() {
         for (let i = 0; i < total; i++) {
             const file = files[i];
             _setUploadProgress(i, total);
-            const b64 = await new Promise((res, rej) => {
-                const r = new FileReader();
-                r.onload = () => res(r.result.split(',')[1]);
-                r.onerror = () => rej(new Error('Read failed'));
-                r.readAsDataURL(file);
-            });
-            const filePath = dest ? `${dest}/${file.name}` : file.name;
-            const ok = await commitFileToGitHub(filePath, b64);
-            results.push({ name: file.name, ok });
+            const prepared = await _prepareUploadFile(file, diagramDomain);
+            const filePath = dest ? `${dest}/${prepared.filename}` : prepared.filename;
+            const ok = await commitFileToGitHub(filePath, prepared.content);
+            results.push({ name: file.name, ok, outputName: prepared.filename, mode: prepared.mode });
         }
         _setUploadProgress(total, total);
         fetchTree();
@@ -518,25 +557,24 @@ async function finalizeUpload() {
         for (let i = 0; i < total; i++) {
             const file = files[i];
             _setUploadProgress(i, total);
-            const b64 = await new Promise((res, rej) => {
-                const r = new FileReader();
-                r.onload = () => res(r.result.split(',')[1]);
-                r.onerror = () => rej(new Error('Read failed'));
-                r.readAsDataURL(file);
-            });
+            const prepared = await _prepareUploadFile(file, diagramDomain);
             const id = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
-            const storedName = sanitizeForPath(file.name);
-            // Upload bytes to Vercel Blob
-            const blobOk = await blobUpload(`waiting-list/${id}-${storedName}`, b64);
-            results.push({ name: file.name, ok: blobOk.ok, error: blobOk.error });
+            const storedName = sanitizeForPath(prepared.filename);
+            // Upload original or normalized bytes to Vercel Blob.
+            const blobOk = await blobUpload(`waiting-list/${id}-${storedName}`, prepared.content);
+            results.push({ name: file.name, ok: blobOk.ok, error: blobOk.error, outputName: prepared.filename, mode: prepared.mode });
             if (blobOk.ok) {
                 items.push({
                     id,
-                    blobUrl: blobOk.url, // Vercel Blob URL — replaces storedName in GitHub
+                    blobUrl: blobOk.url,
                     originalName: file.name,
+                    storedName: prepared.filename,
+                    sourceFormat: prepared.sourceFormat || file.type || 'unknown',
+                    conversionMode: prepared.mode,
+                    diagramDomain: diagramDomain || null,
                     destPath: dest,
                     uploadedAt: new Date().toISOString(),
-                    size: file.size,
+                    size: prepared.size,
                     reuploadCount: 0
                 });
             }
@@ -560,6 +598,20 @@ async function finalizeUpload() {
         _pendingFiles = [];
         btn.disabled = false;
         backBtn.disabled = false;
+    }
+}
+async function finalizeUpload() {
+    try {
+        await _finalizeUploadImpl();
+    }
+    catch (error) {
+        const btn = document.getElementById('us3approveBtn');
+        const backBtn = document.getElementById('us3backBtn');
+        if (btn)
+            btn.disabled = false;
+        if (backBtn)
+            backBtn.disabled = false;
+        showUploadResultUI(false, error?.message || 'Upload failed. No file was published.');
     }
 }
 function showUploadResultUI(ok, msg) {

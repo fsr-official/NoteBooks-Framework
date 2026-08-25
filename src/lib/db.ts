@@ -67,26 +67,24 @@ export async function migrate() {
     throw new Error('DATABASE_URL is not configured');
   }
 
-  // Migration runner: apply SQL files in `src/db/migrations` in filename order.
   const migrationsDir = path.join(process.cwd(), 'src', 'db', 'migrations');
+  const baseSchemaPath = path.join(process.cwd(), 'src', 'db', 'init_identity_schema.sql');
   if (!fs.existsSync(migrationsDir)) {
-    const sqlPath = path.join(process.cwd(), 'src', 'db', 'init_identity_schema.sql');
-    const sql = await readFile(sqlPath, 'utf8');
+    const sql = await readFile(baseSchemaPath, 'utf8');
     return query(sql);
   }
 
   const db = await ensurePool();
   await db.query('CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())');
-  const files = fs.readdirSync(migrationsDir).filter((file) => file.endsWith('.sql')).sort();
-  for (const file of files) {
-    const already = await db.query('SELECT 1 FROM schema_migrations WHERE id = $1', [file]);
-    if (already && already.rowCount > 0) continue;
-    const sql = await readFile(path.join(migrationsDir, file), 'utf8');
+
+  const applyMigration = async (id: string, sql: string) => {
+    const already = await db.query('SELECT 1 FROM schema_migrations WHERE id = $1', [id]);
+    if (already && already.rowCount > 0) return;
     const migrationClient = await db.connect();
     try {
       await migrationClient.query('BEGIN');
       await migrationClient.query(sql);
-      await migrationClient.query('INSERT INTO schema_migrations(id) VALUES($1)', [file]);
+      await migrationClient.query('INSERT INTO schema_migrations(id) VALUES($1)', [id]);
       await migrationClient.query('COMMIT');
     } catch (error) {
       try { await migrationClient.query('ROLLBACK'); } catch {}
@@ -94,6 +92,30 @@ export async function migrate() {
     } finally {
       migrationClient.release();
     }
+  };
+
+  // The base schema lives outside the dated directory for compatibility with
+  // older checkouts. Apply it explicitly first so add-* migrations cannot
+  // create indexes against tables that do not exist on a fresh CI database.
+  if (fs.existsSync(baseSchemaPath)) {
+    await applyMigration('0000-init-identity-schema', await readFile(baseSchemaPath, 'utf8'));
+  }
+
+  const migrationPriority = ['2026-08-23-phase2-foundations.sql'];
+  const files = fs.readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
+    .sort((a, b) => {
+      const aPriority = migrationPriority.indexOf(a);
+      const bPriority = migrationPriority.indexOf(b);
+      if (aPriority >= 0 || bPriority >= 0) {
+        if (aPriority < 0) return 1;
+        if (bPriority < 0) return -1;
+        return aPriority - bPriority;
+      }
+      return a.localeCompare(b);
+    });
+  for (const file of files) {
+    await applyMigration(file, await readFile(path.join(migrationsDir, file), 'utf8'));
   }
 }
 
