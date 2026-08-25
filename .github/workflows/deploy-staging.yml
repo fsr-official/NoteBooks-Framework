@@ -1,4 +1,4 @@
-name: Deploy Staging
+name: Deploy NoteBooks to Vercel
 
 on:
   push:
@@ -7,24 +7,64 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      VERCEL_ENVIRONMENT: production
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Install dependencies
         run: npm ci
-      - name: Build
+
+      - name: Build application
         run: npm run build
-      - name: Deploy to Vercel (staging)
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./
-          vercel-args: "--yes"
+
+      - name: Validate Vercel deployment inputs
         env:
-          GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
-          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          test -n "$VERCEL_TOKEN" || { echo "Missing VERCEL_TOKEN" >&2; exit 1; }
+          test -n "$VERCEL_ORG_ID" || { echo "Missing VERCEL_ORG_ID" >&2; exit 1; }
+          test -n "$VERCEL_PROJECT_ID" || { echo "Missing VERCEL_PROJECT_ID" >&2; exit 1; }
+
+      - name: Pull Vercel project settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: >-
+          npx --yes vercel@59.5.0 pull --yes
+          --environment="$VERCEL_ENVIRONMENT"
+          --project="$VERCEL_PROJECT_ID"
+          --scope="$VERCEL_ORG_ID"
+          --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel output
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: >-
+          npx --yes vercel@59.5.0 build
+          --target="$VERCEL_ENVIRONMENT"
+          --project="$VERCEL_PROJECT_ID"
+          --scope="$VERCEL_ORG_ID"
+          --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt output
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: >-
+          npx --yes vercel@59.5.0 deploy --prebuilt
+          --target="$VERCEL_ENVIRONMENT"
+          --project="$VERCEL_PROJECT_ID"
+          --scope="$VERCEL_ORG_ID"
+          --token="$VERCEL_TOKEN"
