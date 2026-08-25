@@ -5,6 +5,12 @@
   "children": [
     {
       "type": "file",
+      "name": "COPYLEFT-NOTICES.md",
+      "path": "COPYLEFT-NOTICES.md",
+      "sha": "f06117c3acd4f9cdc019c95e61843b7024a887cc7014871d757bc898c5a6f6e4"
+    },
+    {
+      "type": "file",
       "name": "GITHUB-REPOSITORIES.md",
       "path": "GITHUB-REPOSITORIES.md",
       "sha": "0db0e6f159e8e31396a4a28ff1efb38765b5d21602b09c65dd16ef332c0eea62"
@@ -13,7 +19,7 @@
       "type": "file",
       "name": "README.md",
       "path": "README.md",
-      "sha": "198477d8edc5101153c462e3192db01d71554e6326eef058172352818f571e4a"
+      "sha": "20faa102a4d2d3573b6151bb71a89714e7b4968e850c8629786b268a3f948602"
     },
     {
       "type": "folder",
@@ -68,7 +74,7 @@
           "type": "file",
           "name": "README.md",
           "path": "docs/README.md",
-          "sha": "05c6b125325fdf03531fd51f3c949da277ec5486367a1ef5e778953afd53774e"
+          "sha": "f601d04ce423dc3f2bec5928035e0547aa978cc6357ea8969f26231b59c99248"
         },
         {
           "type": "file",
