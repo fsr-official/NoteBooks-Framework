@@ -1,6 +1,6 @@
 {
   "type": "folder",
-  "name": "notebooks-framework-git",
+  "name": "NoteBooks-Framework",
   "path": "",
   "children": [
     {
@@ -266,7 +266,7 @@
               "type": "file",
               "name": "FINAL-AUDIT-AND-VERIFICATION.md",
               "path": "docs/phase2-3/FINAL-AUDIT-AND-VERIFICATION.md",
-              "sha": "7057ac95d9694327b057424ca24c5a2de56936bab66297de015fa3a432a81788"
+              "sha": "05829e1fc7392a6f949f32b91ac8327ca0bf706c9f8c78c18c6b1c9bad6bed5a"
             },
             {
               "type": "file",
