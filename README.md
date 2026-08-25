@@ -10,6 +10,10 @@ The foundational project direction and parts of the early application structure 
 
 The project is maintained within the FSR/NoteBooks initiative. External visual assets are credited independently in [`public/assets/diagrams/starter/ATTRIBUTIONS.md`](public/assets/diagrams/starter/ATTRIBUTIONS.md), including the required CC BY-SA 3.0 attribution for the biological-cell and fractional-distillation assets.
 
+## License and copyleft notices
+
+The repository is licensed under the **GNU General Public License, version 3 or any later version (GPL-3.0-or-later)**; the complete text is [`LICENSE`](LICENSE). File-level Ada provenance, the layered frontend notice, the original NoteBooks backend notice, and the boundary for third-party materials are recorded in [`COPYLEFT-NOTICES.md`](COPYLEFT-NOTICES.md). The notice index does not replace upstream licenses for dependencies, CDN-delivered libraries, or separately credited visual assets.
+
 ## What the application does
 
 NoteBooks provides a public landing page, stream workspaces, a Markdown reader, raw source delivery, repository tree navigation, authenticated community features, Issues proposals, administrative review, theme and reading preferences, anonymous upload staging, and GitHub-backed publication workflows.
@@ -163,6 +167,14 @@ Uploaded binary files do not enter PostgreSQL. Admin uploads can commit to the c
 | Staged binary bytes | Private Vercel Blob | Blob operations fail clearly when the token is absent. |
 | Curriculum content | GitHub repositories and Pages manifests | Generated JSON and local `files.json` snapshots. |
 | Browser preferences | Opaque `nb_sid` session plus local browser state | Volatile session state when no database exists. |
+
+## Vercel observability
+
+The browser client uses the official [`@vercel/analytics`](https://vercel.com/docs/analytics/package) `inject()` API and [`@vercel/speed-insights`](https://vercel.com/docs/speed-insights/package) `injectSpeedInsights()` API. This is the supported browser-level approach for this Express plus static vanilla-JavaScript application; the Next.js `<Analytics />` and `<SpeedInsights />` components are intentionally not used. A small browser bundle is emitted as `public/client/observability.js` and loaded by every HTML shell, including the landing page, stream workspace, settings/personal space, portal pages, and admin surfaces.
+
+The module uses development mode on local hosts and production mode on deployed hosts. It removes query strings and fragments from telemetry URLs before sending them, prevents duplicate initialization, and does not define custom events. Vercel Web Analytics and Speed Insights must be enabled for the correct Vercel project in the dashboard; no new application environment variable is required. After deployment, visit the site and navigate between at least two pages, then allow time for the Vercel dashboards to receive data. Content blockers, browser privacy settings, or a deployment linked to a different project can prevent data from appearing.
+
+The service worker cache is bumped whenever the observability asset is introduced, and `public/client/observability.js` is included in the app-shell precache list. The package metadata and upstream licenses are tracked separately from the NoteBooks copyleft notices.
 
 ## Environment variables
 

@@ -80,7 +80,8 @@ export function createApp() {
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://www.google.com',
-          'https://www.gstatic.com'
+          'https://www.gstatic.com',
+          'https://va.vercel-scripts.com'
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         scriptSrcElem: [
@@ -90,7 +91,8 @@ export function createApp() {
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://www.google.com',
-          'https://www.gstatic.com'
+          'https://www.gstatic.com',
+          'https://va.vercel-scripts.com'
         ],
         workerSrc: ["'self'", 'blob:'],
         connectSrc: [

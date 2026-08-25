@@ -23,6 +23,7 @@ describe('frontend stream shell', () => {
     expect(shell.text).toContain('id="mobilePreview"');
     expect(shell.text).toContain('/public/css/tree.css');
     expect(shell.text).toContain('/public/js/config.js');
+    expect(shell.text).toContain('/public/client/observability.js');
 
     const dashboard = await request(app).get('/dashboard');
     expect(dashboard.status).toBe(302);
@@ -38,6 +39,7 @@ describe('frontend stream shell', () => {
     expect(settings.text).toContain('id="themePresetGallery"');
     expect(settings.text).toContain('id="themeModeToggle"');
     expect(settings.text).toContain('Every theme family includes a coordinated light and dark variant.');
+    expect(settings.text).toContain('/public/client/observability.js');
     expect(settings.text).toContain('id="reading-controls"');
     expect(settings.text).toContain('id="readingFontSize"');
     expect(settings.text).toContain('id="readingWidth"');
@@ -113,7 +115,8 @@ describe('frontend stream shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v31'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v32'");
+    expect(serviceWorker.text).toContain('public/client/observability.js');
     expect(serviceWorker.text).toContain('public/css/tree.css');
     expect(serviceWorker.text).toContain('Admin routes must always follow the server/Vercel route decision.');
     expect(serviceWorker.text).toContain('Do not fan out to all remote stream APIs during installation.');
@@ -135,6 +138,7 @@ describe('frontend stream shell', () => {
     expect(portal.status).toBe(200);
     expect(portal.text).toContain('class="portal-shell-page"');
     expect(portal.text).toContain('/public/js/portal.js');
+    expect(portal.text).toContain('/public/client/observability.js');
     expect(portal.text).not.toContain('/public/js/app.js');
 
     const admin = await request(app).get('/admin-prs');
