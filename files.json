@@ -68,7 +68,7 @@
           "type": "file",
           "name": "README.md",
           "path": "docs/README.md",
-          "sha": "5926bd41800b6662430bb28fdb5cefb7a01f5beb9bba0f18b2156bea2d95459f"
+          "sha": "05c6b125325fdf03531fd51f3c949da277ec5486367a1ef5e778953afd53774e"
         },
         {
           "type": "file",
@@ -297,6 +297,12 @@
               "name": "PHASE2-3-STATUS.md",
               "path": "docs/phase2-3/PHASE2-3-STATUS.md",
               "sha": "bdd10015536c72e6b62344449b3b64d2294263e6dee7bd3bedfb929d9b4648e3"
+            },
+            {
+              "type": "file",
+              "name": "PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
+              "path": "docs/phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
+              "sha": "b9e5edfc225c3c5d565b43323f40077cecdfba1d5b9ec2f97470f8468171d874"
             }
           ]
         },
