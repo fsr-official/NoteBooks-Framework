@@ -3,12 +3,13 @@ name: Deploy NoteBooks to Vercel
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      VERCEL_ENVIRONMENT: production
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -26,45 +27,32 @@ jobs:
       - name: Validate Vercel deployment inputs
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           test -n "$VERCEL_TOKEN" || { echo "Missing VERCEL_TOKEN" >&2; exit 1; }
-          test -n "$VERCEL_ORG_ID" || { echo "Missing VERCEL_ORG_ID" >&2; exit 1; }
           test -n "$VERCEL_PROJECT_ID" || { echo "Missing VERCEL_PROJECT_ID" >&2; exit 1; }
 
       - name: Pull Vercel project settings
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: >-
           npx --yes vercel@59.5.0 pull --yes
-          --environment="$VERCEL_ENVIRONMENT"
+          --environment=production
           --project="$VERCEL_PROJECT_ID"
-          --scope="$VERCEL_ORG_ID"
-          --token="$VERCEL_TOKEN"
 
       - name: Build Vercel output
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: >-
-          npx --yes vercel@59.5.0 build
-          --target="$VERCEL_ENVIRONMENT"
+          npx --yes vercel@59.5.0 build --prod
           --project="$VERCEL_PROJECT_ID"
-          --scope="$VERCEL_ORG_ID"
-          --token="$VERCEL_TOKEN"
 
       - name: Deploy prebuilt output
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: >-
-          npx --yes vercel@59.5.0 deploy --prebuilt
-          --target="$VERCEL_ENVIRONMENT"
+          npx --yes vercel@59.5.0 deploy --prebuilt --prod
           --project="$VERCEL_PROJECT_ID"
-          --scope="$VERCEL_ORG_ID"
-          --token="$VERCEL_TOKEN"
