@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v32';
+const CACHE_VERSION = 'webman-v33';
 const OFFLINE_PAGE = 'offline.html';
 
 const APP_SHELL = [
@@ -42,6 +42,7 @@ const APP_SHELL = [
   'public/html/portal.html',
   'public/js/portal.js',
   'public/js/shell-nav.js',
+  'public/js/session-state.js',
   'public/json/github-repos.json',
   'public/json/science-tree.json',
   'public/json/commerce-tree.json',

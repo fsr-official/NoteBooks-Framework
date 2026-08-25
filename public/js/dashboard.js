@@ -45,13 +45,13 @@
       : `<div class="dashboard-empty">${viewer.signedIn ? 'No linked activity has been recorded yet.' : 'Sign in to connect your activity to this Dashboard.'}</div>`;
   };
 
-  fetch('/api/dashboard', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
-    .then((response) => {
+  const request = typeof window.noteBooksRequestJson === 'function'
+    ? window.noteBooksRequestJson('/api/dashboard', { headers: { Accept: 'application/json' }, credentials: 'same-origin' }, 1800)
+    : fetch('/api/dashboard', { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then((response) => {
       if (!response.ok) throw new Error(`Dashboard request failed (${response.status})`);
       return response.json();
-    })
-    .then(render)
-    .catch((error) => {
+    });
+  request.then(render).catch((error) => {
       status.innerHTML = '<strong>Dashboard unavailable</strong>Showing the offline project outline.';
       overview.textContent = error?.message || 'The Dashboard data service is temporarily unavailable.';
       metrics.innerHTML = '<div class="dashboard-empty">Project metrics are unavailable.</div>';

@@ -40,6 +40,10 @@ describe('frontend stream shell', () => {
     expect(settings.text).toContain('id="themeModeToggle"');
     expect(settings.text).toContain('Every theme family includes a coordinated light and dark variant.');
     expect(settings.text).toContain('/public/client/observability.js');
+    expect(settings.text).toContain('/public/js/shell-nav.js');
+    expect(settings.text).toContain('/public/js/session-state.js');
+    expect(settings.text).not.toContain('/public/js/app.js');
+    expect(settings.text).not.toContain('/public/js/stream-runtime.js');
     expect(settings.text).toContain('id="reading-controls"');
     expect(settings.text).toContain('id="readingFontSize"');
     expect(settings.text).toContain('id="readingWidth"');
@@ -63,6 +67,13 @@ describe('frontend stream shell', () => {
     expect(themes.status).toBe(200);
     expect(themes.body.themes.length).toBeGreaterThanOrEqual(5);
 
+    const sessionStateJs = await request(app).get('/public/js/session-state.js');
+    expect(sessionStateJs.status).toBe(200);
+    expect(sessionStateJs.text).toContain('noteBooksSession');
+    expect(sessionStateJs.text).toContain('AbortController');
+    const dashboardJs = await request(app).get('/public/js/dashboard.js');
+    expect(dashboardJs.status).toBe(200);
+    expect(dashboardJs.text).toContain('noteBooksRequestJson');
     const readingJs = await request(app).get('/public/js/reading-preferences.js');
     expect(readingJs.status).toBe(200);
     expect(readingJs.text).toContain('persistReadingPreferences');
@@ -115,12 +126,12 @@ describe('frontend stream shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v32'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v33'");
     expect(serviceWorker.text).toContain('public/client/observability.js');
     expect(serviceWorker.text).toContain('public/css/tree.css');
     expect(serviceWorker.text).toContain('Admin routes must always follow the server/Vercel route decision.');
     expect(serviceWorker.text).toContain('Do not fan out to all remote stream APIs during installation.');
-    for (const asset of ['public/favicon-128.png', 'public/json/github-repos.json', 'public/js/markdown-vendors.js', 'public/js/theme.js', 'public/js/reading-preferences.js', 'public/js/landing-docs.js', 'public/js/stream-runtime.js', 'public/js/raw-delivery.js', 'public/js/portal.js', 'public/js/shell-nav.js', 'public/html/settings.html', 'public/html/portal.html', 'public/json/science-tree.json', 'public/json/commerce-tree.json', 'public/json/humanities-tree.json']) {
+    for (const asset of ['public/favicon-128.png', 'public/json/github-repos.json', 'public/js/markdown-vendors.js', 'public/js/theme.js', 'public/js/reading-preferences.js', 'public/js/landing-docs.js', 'public/js/stream-runtime.js', 'public/js/raw-delivery.js', 'public/js/portal.js', 'public/js/shell-nav.js', 'public/js/session-state.js', 'public/html/settings.html', 'public/html/portal.html', 'public/json/science-tree.json', 'public/json/commerce-tree.json', 'public/json/humanities-tree.json']) {
       expect(serviceWorker.text).toContain(asset);
     }
 
