@@ -4,6 +4,7 @@ This directory contains the active technical documentation and historical decisi
 
 | Document | Use it for | Authority |
 | --- | --- | --- |
+| [`../COPYLEFT-NOTICES.md`](../COPYLEFT-NOTICES.md) | File-level Ada provenance, NoteBooks copyleft notices, and third-party attribution boundaries. | Active legal-notice index. |
 | [`DEVELOPER-ONBOARDING.md`](DEVELOPER-ONBOARDING.md) | Local setup, safe change workflow, file ownership, and contributor rules. | Active. |
 | [`phase1/REAL-ARCHITECTURE.md`](phase1/REAL-ARCHITECTURE.md) | Current Express, browser, registry, raw delivery, persistence, security, and integration architecture. | Active source of truth. |
 | [`MARKDOWN-RENDERER.md`](MARKDOWN-RENDERER.md) | Markdown syntax, rendering lifecycle, file responsibilities, figure fences, and renderer security. | Active source of truth. |

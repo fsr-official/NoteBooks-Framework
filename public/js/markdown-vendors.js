@@ -1,4 +1,28 @@
 /* Load expensive Markdown rendering vendors only when a preview needs them. */
+// ============= COPYLEFT NOTICE (FRONTEND) ===============
+// This file is based on Ada (https://github.com/Pratyush-Chanda/Ada)
+// Copyright (C) 2025  Pratyush Chanda [Ada]
+//
+// Modifications and integration into NoteBooks-Framework:
+// Copyright (C) 2024-2026  Federation of Socialist Republics,
+// United Boys Socialist Republic
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+// ===========================================================
+
 (function (global) {
   'use strict';
 

@@ -72,13 +72,13 @@ Do not add provider-generated `NEXT_PUBLIC_` versions of database URLs, service-
 
 The deployment workflow must use the Vercel project that is linked to `fsr-official/NoteBooks-Framework`. The error `Could not retrieve Project Settings. To link your Project, remove the .vercel directory and deploy again.` means the deployment token, organization ID, and project ID do not resolve to the same accessible Vercel project. It is not a Supabase connection error.
 
-The deployment workflow now uses Vercel’s explicit CLI sequence rather than relying on the third-party `amondnet/vercel-action` project-link behavior:
+The deployment workflow now uses Vercel’s explicit CLI sequence rather than relying on the third-party `amondnet/vercel-action` project-link behavior. Vercel documents `--project` as accepting a project name or ID, and `--environment=production` as the production pull target.[5]
 
 ```text
 npm run build
-npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-npx vercel build --prod --token="$VERCEL_TOKEN"
-npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+npx vercel pull --yes --environment=production --project="$VERCEL_PROJECT_ID"
+npx vercel build --prod --project="$VERCEL_PROJECT_ID"
+npx vercel deploy --prebuilt --prod --project="$VERCEL_PROJECT_ID"
 ```
 
 Configure these as GitHub Actions repository secrets, not as Vercel runtime variables:
@@ -86,10 +86,11 @@ Configure these as GitHub Actions repository secrets, not as Vercel runtime vari
 | GitHub secret | Where to obtain it | Rule |
 |---|---|---|
 | `VERCEL_TOKEN` | Vercel account settings → Tokens | Create a token with access to the team/project used by the workflow. |
-| `VERCEL_ORG_ID` | Correct Vercel team/project metadata or `.vercel/project.json` after linking locally | Must belong to the same Vercel team as `VERCEL_PROJECT_ID`. |
 | `VERCEL_PROJECT_ID` | Correct Vercel project settings or `.vercel/project.json` after linking locally | Must be the project linked to `fsr-official/NoteBooks-Framework`. |
 
-To obtain matching IDs locally without committing them, run `npx vercel link`, select the correct team and project, then read `.vercel/project.json`. Delete `.vercel` after extracting the IDs if it is not intended to be part of the repository. Never commit the token or a file containing secret values.
+`VERCEL_ENVIRONMENT` is **not** a secret and is no longer read by the workflow; production is intentionally selected with the literal `--environment=production` and `--prod` flags. `VERCEL_ORG_ID` is also not required by the corrected workflow because it passes the project ID directly. Do not create placeholder secrets for either name.
+
+To obtain the project ID locally without committing it, run `npx vercel link`, select the correct team and project, then read `.vercel/project.json`. Delete `.vercel` after extracting the ID if it is not intended to be part of the repository. Never commit the token or a file containing secret values. If the token cannot access the project by ID, create a new token under the correct Vercel account/team or use the correct project ID; do not restore an invalid `--scope` value.
 
 The repository branch and deployment trigger must also agree. A workflow configured for `push.branches: [main]` will not run for a `whoami` push. Use `whoami` for staging/Preview or create a separate production workflow for `main`; do not label a `main` deployment as staging unless that is intentional.
 
@@ -162,3 +163,5 @@ The following capabilities may remain absent without blocking the basic educatio
 [2]: https://vercel.com/docs/vercel-blob/using-blob-sdk "Vercel Blob SDK and environment variables"
 [3]: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation "GitHub App installation authentication"
 [4]: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app "Creating a GitHub OAuth App"
+[5]: https://vercel.com/docs/cli/global-options "Vercel CLI global options"
+[6]: https://vercel.com/docs/cli/pull "Vercel CLI pull"
