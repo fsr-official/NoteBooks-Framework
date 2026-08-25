@@ -74,6 +74,8 @@ The Vercel runtime evidence showed `ERR_REQUIRE_ESM` while loading `@octokit/res
 
 If a future deployment reports the same error, first inspect the deployed lockfile/package metadata and confirm that the CommonJS-compatible Octokit versions are installed. Then inspect the compiled helper for an unexpected ESM-only package version or a top-level import that bypasses `src/lib/octokit-loader.ts`. The serverless bundle should retain the opaque `return import(specifier)` fallback and must be deployed as a fresh Vercel build rather than relying on a previously cached function bundle.
 
+The supplied production evidence is preserved in [`VERCEL-RUNTIME-INCIDENT-2026-08-25.md`](./VERCEL-RUNTIME-INCIDENT-2026-08-25.md), including the subsequent `@otplib/plugin-base32-scure` → `@scure/base` failure that blocked all shared API routes.
+
 ## GitHub Actions and Vercel project linking
 
 The deployment workflow must use the Vercel project that is linked to `fsr-official/NoteBooks-Framework`. The error `Could not retrieve Project Settings. To link your Project, remove the .vercel directory and deploy again.` means the deployment token, organization ID, and project ID do not resolve to the same accessible Vercel project. It is not a Supabase connection error.

@@ -308,7 +308,13 @@
               "type": "file",
               "name": "PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
               "path": "docs/phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
-              "sha": "06f5b6ab59be067bd40bfbbba455e2adb01d544250380563a63da490d2782db2"
+              "sha": "c7a44fe169da27213133c61c4b38038ea6b95d851ffba35f12e78ec9916cca2a"
+            },
+            {
+              "type": "file",
+              "name": "VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
+              "path": "docs/phase2-3/VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
+              "sha": "ba0a6886ac5fbf3fc0850287bb094ef15feb4341b7c329a99f02ad6d9b50b48c"
             }
           ]
         },

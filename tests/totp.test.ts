@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 beforeAll(() => {
   process.env.JWT_SECRET = 'test-secret';
 });
-import { generate, generateSecret } from 'otplib';
+import { authenticator } from 'otplib';
 import { disableTotp, generateTotpSecretForEmail, verifyAndEnableTotp } from '../src/api/totp';
 import { getUser, setUser } from '../src/api/auth';
 
@@ -16,7 +16,7 @@ describe('TOTP enroll/verify flow', () => {
     expect(otpauth).toContain(secret);
 
     // Generate a valid token using the same secret
-    const token = await generate({ secret });
+    const token = authenticator.generate(secret);
 
     // Create a user first (in-memory) so enable can persist
     await setUser(email, { email, password: 'x', role: 'user', createdAt: new Date().toISOString() } as any);
@@ -60,7 +60,7 @@ describe('TOTP enroll/verify flow', () => {
 
   it('requires and accepts the current TOTP token when disabling enrollment', async () => {
     const email = 'totp-disable@example.com';
-    const secret = generateSecret();
+    const secret = authenticator.generateSecret();
     await setUser(email, {
       email,
       password: 'x',
@@ -70,7 +70,7 @@ describe('TOTP enroll/verify flow', () => {
       createdAt: new Date().toISOString()
     } as any);
     const authToken = jwt.sign({ email, role: 'user' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
-    const token = await generate({ secret });
+    const token = authenticator.generate(secret);
     const req: any = {
       method: 'POST',
       body: { email, token },
