@@ -68,6 +68,31 @@ Vercel Blob can use a long-lived `BLOB_READ_WRITE_TOKEN`, or Vercel’s OIDC var
 
 Do not add provider-generated `NEXT_PUBLIC_` versions of database URLs, service-role keys, secret keys, Blob tokens, PATs, JWT secrets, OAuth secrets, or App private keys. The static client does not need Supabase privileged credentials.
 
+## GitHub Actions and Vercel project linking
+
+The deployment workflow must use the Vercel project that is linked to `fsr-official/NoteBooks-Framework`. The error `Could not retrieve Project Settings. To link your Project, remove the .vercel directory and deploy again.` means the deployment token, organization ID, and project ID do not resolve to the same accessible Vercel project. It is not a Supabase connection error.
+
+The deployment workflow now uses Vercel’s explicit CLI sequence rather than relying on the third-party `amondnet/vercel-action` project-link behavior:
+
+```text
+npm run build
+npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+npx vercel build --prod --token="$VERCEL_TOKEN"
+npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+```
+
+Configure these as GitHub Actions repository secrets, not as Vercel runtime variables:
+
+| GitHub secret | Where to obtain it | Rule |
+|---|---|---|
+| `VERCEL_TOKEN` | Vercel account settings → Tokens | Create a token with access to the team/project used by the workflow. |
+| `VERCEL_ORG_ID` | Correct Vercel team/project metadata or `.vercel/project.json` after linking locally | Must belong to the same Vercel team as `VERCEL_PROJECT_ID`. |
+| `VERCEL_PROJECT_ID` | Correct Vercel project settings or `.vercel/project.json` after linking locally | Must be the project linked to `fsr-official/NoteBooks-Framework`. |
+
+To obtain matching IDs locally without committing them, run `npx vercel link`, select the correct team and project, then read `.vercel/project.json`. Delete `.vercel` after extracting the IDs if it is not intended to be part of the repository. Never commit the token or a file containing secret values.
+
+The repository branch and deployment trigger must also agree. A workflow configured for `push.branches: [main]` will not run for a `whoami` push. Use `whoami` for staging/Preview or create a separate production workflow for `main`; do not label a `main` deployment as staging unless that is intentional.
+
 ## Provider-managed Supabase variables
 
 Vercel may generate names such as `NOTEBOOKS_STORAGE_POSTGRES_URL`, `NOTEBOOKS_STORAGE_POSTGRES_URL_NON_POOLING`, `NOTEBOOKS_STORAGE_POSTGRES_PRISMA_URL`, `NOTEBOOKS_STORAGE_SUPABASE_URL`, `NOTEBOOKS_STORAGE_SUPABASE_ANON_KEY`, and related publishable/service keys when a Supabase integration is connected. These are integration metadata and alternate connection forms. They are not substitutes for `DATABASE_URL` unless the application is explicitly changed to read one of them.

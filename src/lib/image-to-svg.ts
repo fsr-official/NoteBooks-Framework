@@ -1,4 +1,13 @@
-import sharp from 'sharp';
+type SharpFactory = (input?: Buffer | Uint8Array, options?: Record<string, unknown>) => any;
+let sharpFactory: SharpFactory | null = null;
+
+async function getSharp(): Promise<SharpFactory> {
+  if (!sharpFactory) {
+    const loaded = await import('sharp');
+    sharpFactory = (loaded.default || loaded) as unknown as SharpFactory;
+  }
+  return sharpFactory;
+}
 
 export type DiagramDomain = 'biology' | 'chemistry';
 
@@ -78,6 +87,7 @@ function makeEmbeddedRasterSvg(png: Buffer, width: number, height: number, filen
 }
 
 async function transparentPng(input: Buffer): Promise<{ png: Buffer; width: number; height: number }> {
+  const sharp = await getSharp();
   const prepared = await sharp(input, { limitInputPixels: MAX_PIXELS }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { data, info } = prepared;
   for (let index = 0; index < data.length; index += info.channels) {
@@ -105,6 +115,7 @@ export async function convertImageToSvg(input: Buffer, filename: string, domain:
     return { svg, filename: normalizedFilename.replace(/\.svg$/i, '') + '.svg', bytes: Buffer.byteLength(svg), sourceFormat: 'svg', mode: 'vector' };
   }
 
+  const sharp = await getSharp();
   const metadata = await sharp(input, { limitInputPixels: MAX_PIXELS }).metadata();
   const format = String(metadata.format || '').toLowerCase();
   if (!ALLOWED_RASTER_FORMATS.has(format)) throw new Error('Only SVG, PNG, JPEG, WebP, GIF, AVIF, TIFF images are supported');
