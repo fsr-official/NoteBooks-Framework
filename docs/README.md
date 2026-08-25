@@ -11,6 +11,7 @@ This directory contains the active technical documentation and historical decisi
 | [`REMAINING.md`](REMAINING.md) | Production blockers and required release verification. | Active release register. |
 | [`phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md`](phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md) | SVG assets, conversion modes, licensing, and future vector tracing. | Active feature plan. |
 | [`phase2-3/FINAL-RELEASE-AUDIT-2026-08-25.md`](phase2-3/FINAL-RELEASE-AUDIT-2026-08-25.md) | Final GitHub, Vercel, Supabase, environment, security, and automated validation findings. | Active release audit. |
+| [`phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md`](phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md) | Current Vercel/Supabase environment contract, secure admin provisioning boundary, implemented scope, and not-yet-implemented roadmap. | Active operational reference. |
 | [`phase2-3/FINAL-AUDIT-AND-VERIFICATION.md`](phase2-3/FINAL-AUDIT-AND-VERIFICATION.md) | Prior audit evidence and verification history. | Historical evidence; reconcile with current audit results. |
 | [`phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md`](phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md) | Earlier deployment/configuration findings. | Historical evidence; current variables are in the root README. |
 | `phase1/*.md`, `phase2-3/*.md`, `phases/*.md` | Detailed phase decisions, migration notes, and historical implementation records. | Historical unless explicitly marked active above. |
