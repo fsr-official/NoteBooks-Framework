@@ -1,8 +1,8 @@
 /**
- * Load Octokit’s ESM-only packages without creating a CommonJS require at
- * module initialization. Vercel’s Node function wrapper can execute native
- * dynamic imports from the CommonJS server output, but cannot require these
- * packages because their exports are ESM-only.
+ * Load Octokit lazily so public API routes do not initialize GitHub clients
+ * until a route actually needs one. The pinned releases are CommonJS-compatible
+ * with Vercel’s server function wrapper while remaining usable through dynamic
+ * import from the TypeScript server build.
  */
 export async function createOctokit(options: Record<string, unknown> = {}) {
   const { Octokit } = await import('@octokit/rest');
