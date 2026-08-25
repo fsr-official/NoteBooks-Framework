@@ -58,7 +58,7 @@ describe('workspace env routing', () => {
     expect(response.body).toEqual(expect.objectContaining({
       viewer: expect.objectContaining({ signedIn: false }),
       metrics: expect.objectContaining({ streams: 3 }),
-      capabilities: expect.objectContaining({ database: false }),
+      capabilities: expect.objectContaining({ database: Boolean(process.env.DATABASE_URL) }),
     }));
   });
 
