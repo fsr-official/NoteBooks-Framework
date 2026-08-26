@@ -3834,3 +3834,167 @@ body {
   .settings-main { width: calc(100% - 20px); margin-top: 30px; }
   .settings-section-nav { grid-template-columns: 1fr; }
 }
+
+/* Global theme bridge: legacy shells and renderer surfaces must consume the same tokens. */
+:root {
+  --surface: var(--item);
+  --surface-strong: var(--panel);
+  --input-bg: var(--surface-muted);
+  --card-bg: var(--panel);
+  --card-hover: var(--hover);
+  --link: var(--accent);
+  --focus: var(--accent);
+  --overlay: color-mix(in srgb, var(--bg) 78%, transparent);
+  --code-fg: var(--fg);
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+}
+
+/* These selectors intentionally come last: they bridge older visual layers without
+   changing the eager tree layout or the Markdown renderer’s DOM contract. */
+body,
+.stream-shell-page,
+.portal-page,
+.settings-page,
+.admin-page {
+  background-color: var(--bg);
+  color: var(--fg);
+}
+
+.app-shell,
+.workspace-window,
+.tree-rail,
+.list-view,
+.toolbar,
+.path-nav,
+.sidebar-tree,
+.sidebar-section,
+.global-nav,
+.portal-panel,
+.stream-card,
+.settings-card,
+.settings-sidebar,
+.admin-card,
+.markdown-preview,
+.markdown-renderer,
+.renderer-surface {
+  background-color: var(--surface);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.app-shell { background: var(--bg); border-top-color: var(--border); }
+.workspace-window { background: var(--surface); }
+.tree-rail, .sidebar-tree { background: var(--surface-strong); }
+.toolbar, .path-nav { background: var(--panel); border-color: var(--border); }
+.global-nav { background: color-mix(in srgb, var(--panel) 94%, var(--bg)); border-color: var(--border); }
+.global-nav-links a { color: var(--text-muted); }
+.global-nav-links a:hover,
+.global-nav-links a:focus-visible,
+.global-nav-links a.is-current { color: var(--fg); background: var(--accent-subtle); }
+.global-nav-mark { background: var(--accent); color: var(--bg); }
+
+.toolbar h1,
+.tree-rail-title,
+.sidebar-section-title,
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6,
+.markdown-renderer h1,
+.markdown-renderer h2,
+.markdown-renderer h3,
+.markdown-renderer h4,
+.markdown-renderer h5,
+.markdown-renderer h6 { color: var(--fg); }
+
+.toolbar button,
+#loginBtnToolbar,
+.sidebar-collapse-control,
+button,
+select,
+input,
+textarea {
+  background-color: var(--input-bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+button:hover,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.sidebar-tree-row:hover,
+.file-item:hover,
+.file-row:hover { border-color: var(--accent); background-color: var(--card-hover); }
+
+.path-segment,
+a,
+.markdown-renderer a,
+.markdown-preview a { color: var(--link); }
+
+.list-view .file-item,
+.list-view .file-row,
+.stream-workspace-main .workspace-window,
+.stream-workspace-main .tree-rail,
+.stream-workspace-main .toolbar,
+.stream-workspace-main .path-nav,
+.stream-workspace-main .sidebar-tree,
+.stream-workspace-main .list-view .file-item,
+.stream-workspace-main .list-view .file-row {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--fg);
+}
+
+pre,
+code,
+.markdown-renderer pre,
+.markdown-preview pre,
+.code-block,
+.raw-view {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-color: var(--border);
+}
+
+blockquote,
+table,
+th,
+td,
+.markdown-renderer hr,
+.markdown-preview hr { border-color: var(--border); }
+th { background: var(--surface-strong); color: var(--fg); }
+
+.modal,
+.dialog,
+.overlay-card,
+.account-settings,
+.toast,
+.popover { background: var(--overlay); color: var(--fg); border-color: var(--border); }
+
+.landing-hero h1,
+.portal-panel-header strong,
+.landing-doc-card,
+.portal-doc-links a,
+.landing-secondary,
+.stream-card { color: var(--fg); }
+.landing-panel,
+.portal-panel,
+.landing-doc-card,
+.portal-doc-links a,
+.landing-secondary { background: var(--surface); border-color: var(--border); }
+.landing-hero p,
+.portal-panel-header,
+.mini-theme-panel label,
+.tree-rail-kicker,
+.feed-item span,
+.feed-empty { color: var(--text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
