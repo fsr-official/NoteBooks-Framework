@@ -663,7 +663,7 @@ async function appendConfiguredRepositoryTrees(localTree) {
     if (!registryUrl || !localTree || !Array.isArray(localTree.children))
         return localTree;
     try {
-        const registryResponse = await fetch(`${registryUrl}?v=${Date.now()}`, { cache: 'no-store' });
+        const registryResponse = await fetch(registryUrl, { cache: 'no-cache' });
         if (!registryResponse.ok)
             return localTree;
         const entries = await registryResponse.json();
@@ -674,7 +674,7 @@ async function appendConfiguredRepositoryTrees(localTree) {
             if (!baseUrl)
                 continue;
             try {
-                const response = await fetch(`${baseUrl.replace(/\/$/, '')}/files.json`, { cache: 'no-store' });
+                const response = await fetch(`${baseUrl.replace(/\/$/, '')}/files.json`, { cache: 'no-cache' });
                 if (!response.ok)
                     continue;
                 const remoteTree = await response.json();
@@ -1078,7 +1078,7 @@ function toggleSidebar() {
   const isGitHubPagesHost = window.location.hostname.endsWith('github.io');
         if (!tree && !isGitHubPagesHost) {
             try {
-                const registryRes = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
+                const registryRes = await fetch('/api/registry', { cache: 'no-store' });
                 if (registryRes.ok) {
                     tree = await registryRes.json();
                     console.info('[tree] Loaded local files plus configured repository registry');
@@ -1103,7 +1103,7 @@ function toggleSidebar() {
         }
         if (!tree) {
             try {
-                const fallbackRes = await fetch(`/files.json?${Date.now()}`, { cache: 'no-store' });
+                const fallbackRes = await fetch('/files.json', { cache: 'no-cache' });
                 if (!fallbackRes.ok)
                     throw new Error(`Failed to fetch: ${fallbackRes.status}`);
                 tree = await fallbackRes.json();
@@ -1113,7 +1113,7 @@ function toggleSidebar() {
             }
         }
         if (!tree) {
-            const res = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
+            const res = await fetch('/api/registry', { cache: 'no-store' });
             if (!res.ok)
                 throw new Error(`Failed to fetch registry: ${res.status}`);
             tree = await res.json();

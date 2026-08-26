@@ -126,6 +126,8 @@ describe('frontend stream shell', () => {
     expect(appJs.text).toContain('if (isPortalRoute) hideSplash();');
     expect(appJs.text).toContain('const proxied = await resolveSourceUrl(targetPath);');
     expect(appJs.text).not.toContain('resolvePdfPreviewUrl');
+    expect(appJs.text).not.toContain('/api/registry?${Date.now()}');
+    expect(appJs.text).not.toContain('/files.json?${Date.now()}');
 
     const vendorLoader = await request(app).get('/public/js/markdown-vendors.js');
     expect(vendorLoader.status).toBe(200);
