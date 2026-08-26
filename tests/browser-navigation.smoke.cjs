@@ -30,6 +30,16 @@ async function main() {
     assert.equal(await page.locator('script[src*="/public/js/app.js"]').count(), 0);
     assert.equal(await page.locator('script[src*="stream-runtime.js"]').count(), 0);
     assert.equal(await page.locator('.global-nav-toggle').getAttribute('aria-expanded'), 'false');
+    const settingsThemeState = await page.evaluate(() => ({
+      mode: document.documentElement.dataset.theme,
+      modeMirror: document.documentElement.dataset.themeMode,
+      texture: document.documentElement.dataset.themeTexture,
+      background: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),
+      foreground: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim()
+    }));
+    assert.ok(['dark', 'light'].includes(settingsThemeState.mode), `invalid Settings theme mode: ${settingsThemeState.mode}`);
+    assert.equal(settingsThemeState.mode, settingsThemeState.modeMirror);
+    assert.ok(settingsThemeState.background && settingsThemeState.foreground, 'Settings theme variables are empty');
     await page.locator('.global-nav-toggle').click();
     assert.equal(await page.locator('.global-nav-toggle').getAttribute('aria-expanded'), 'true');
     await page.locator('.global-nav-toggle').click();
@@ -57,6 +67,14 @@ async function main() {
     assert.equal(new URL(page.url()).pathname, '/');
     assert.equal(await page.locator('.global-nav').count(), 1);
     assert.equal(await page.locator('a[data-nav="dashboard"]').count(), 0);
+    const homeThemeState = await page.evaluate(() => ({
+      mode: document.documentElement.dataset.theme,
+      texture: document.documentElement.dataset.themeTexture,
+      background: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),
+      foreground: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim()
+    }));
+    assert.ok(['dark', 'light'].includes(homeThemeState.mode), `invalid Home theme mode: ${homeThemeState.mode}`);
+    assert.ok(homeThemeState.background && homeThemeState.foreground, 'Home theme variables are empty');
 
     const navProblems = await page.locator('.global-nav a').evaluateAll((elements) => elements
       .filter((element) => !(element.textContent || element.getAttribute('aria-label') || '').trim())
