@@ -177,73 +177,14 @@ const SUBJECT_PAGES = {
 about: { icon: '◌', title: 'About NoteBooks', description: 'A shared shelf for clearer, kinder learning.' }
 };
 
-const SHARED_SHELL_ROUTES = new Set(['science', 'commerce', 'humanities', 'community', 'issues', 'volunteers', 'accounts', 'about']);
-function isSharedShellRoute(pathname) {
-    const slug = pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean)[0]?.toLowerCase() || '';
-    return pathname === '/' || SHARED_SHELL_ROUTES.has(slug);
-}
 function getCurrentStreamRoute() {
     const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0]?.toLowerCase() || '';
     // The URL is authoritative. In particular, `/` must clear any stream value
-    // left by the previous SPA transition instead of reopening that workspace.
+    // left by a previous page instance instead of reopening that workspace.
     if (!slug) return '';
     return window.CURRENT_STREAM || slug;
 }
-function updateNavigationState() {
-    const current = getCurrentStreamRoute() || (window.location.pathname === '/' ? 'home' : '');
-    document.querySelectorAll('.global-nav-links a').forEach((link) => {
-        const active = link.dataset.nav === current;
-        link.classList.toggle('is-current', active);
-        if (active) link.setAttribute('aria-current', 'page');
-        else link.removeAttribute('aria-current');
-    });
-}
-let routeTransitionSerial = 0;
 let defaultLandingMarkup = null;
-async function navigateToRoute(href, { replace = false } = {}) {
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin || !url.pathname.startsWith('/')) return;
-    const transitionId = ++routeTransitionSerial;
-    if (replace) window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
-    else window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
-
-    const slug = url.pathname.replace(/^\/+|\/+$/g, '').split('/')[0]?.toLowerCase() || '';
-    window.CURRENT_STREAM = slug;
-    document.body.dataset.stream = slug;
-    NoteBooksStreamRuntime.reset();
-    appConfig.REPOS = [];
-    updateNavigationState();
-    syncStreamLandingState();
-
-    const shouldLoadWorkspace = NoteBooksStreamRuntime.streams.has(slug);
-    if (shouldLoadWorkspace) {
-        await fetchTree(transitionId);
-    }
-}
-function initGlobalNav() {
-    updateNavigationState();
-    const toggle = document.querySelector('.global-nav-toggle');
-    const links = document.querySelector('.global-nav-links');
-    toggle?.addEventListener('click', () => { const open = links.classList.toggle('is-open'); toggle.setAttribute('aria-expanded', String(open)); });
-    document.querySelector('[data-nav="accounts"]')?.addEventListener('click', () => { setTimeout(() => { if (window.location.hash === '#settings') document.getElementById('accountSettings')?.removeAttribute('hidden'); }, 0); });
-    document.querySelector('[data-close-settings]')?.addEventListener('click', () => document.getElementById('accountSettings')?.setAttribute('hidden', ''));
-    document.addEventListener('click', (event) => {
-        const target = event.target instanceof Element ? event.target : null;
-        const link = target?.closest('a[data-nav], a.stream-card, a.landing-primary, a.landing-secondary, a.portal-inline-link, .portal-doc-links a');
-        if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        const href = link.getAttribute('href');
-        if (!href || href.startsWith('#')) return;
-        const targetUrl = new URL(href, window.location.href);
-        // Dashboard, Settings, and admin routes have standalone HTML shells. Let the
-        // browser perform a real navigation so their DOM and ownership boundaries load.
-        if (!isSharedShellRoute(targetUrl.pathname) || !isSharedShellRoute(window.location.pathname)) return;
-        event.preventDefault();
-        navigateToRoute(href).catch((error) => console.warn('[navigation] route transition failed', error));
-    });
-    window.addEventListener('popstate', () => {
-        if (isSharedShellRoute(window.location.pathname)) navigateToRoute(window.location.href, { replace: true }).catch((error) => console.warn('[navigation] history transition failed', error));
-    });
-}
 
 function renderPublicPortal(subject) {
     const landing = document.getElementById('streamLanding');
@@ -1176,7 +1117,8 @@ function toggleSidebar() {
                 throw new Error(`Failed to fetch registry: ${res.status}`);
             tree = await res.json();
         }
-        if (routeToken && routeToken !== routeTransitionSerial) return;
+        // A full-document navigation owns route changes; ignore any result if the
+        // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
         fileIndex = buildFileIndex(treeRoot);
@@ -2227,7 +2169,6 @@ async function bootNoteBooks() {
     }
   restoreTheme();
   initialGuideState();
-  initGlobalNav();
   initHomeFeed();
   if (typeof initLocalLandingDocs === 'function') initLocalLandingDocs();
   initPortalMotion();

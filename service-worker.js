@@ -43,6 +43,7 @@ const APP_SHELL = [
   'public/js/portal.js',
   'public/js/shell-nav.js',
   'public/js/sw-register.js',
+  'public/js/settings-nav.js',
   'public/js/session-state.js',
   'public/json/github-repos.json',
   'public/json/science-tree.json',

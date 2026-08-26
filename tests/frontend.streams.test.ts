@@ -10,6 +10,9 @@ describe('frontend stream shell', () => {
     expect(home.status).toBe(200);
     expect(home.text).toContain('id="splash"');
     expect(home.text).toContain('<script src="/public/js/markdown-vendors.js"></script>');
+    expect(home.text).toContain('<script src="/public/js/shell-nav.js" defer></script>');
+    expect(home.text).not.toContain('data-nav="dashboard"');
+    for (const nav of ['home', 'science', 'commerce', 'humanities', 'community', 'issues', 'volunteers', 'accounts', 'settings', 'about']) expect(home.text).toContain(`data-nav="${nav}"`);
     expect(home.text).not.toContain('mathjax@3/es5/tex-svg.js');
     expect(home.text).not.toContain('mermaid@11/dist/mermaid.min.js');
 
@@ -23,6 +26,8 @@ describe('frontend stream shell', () => {
     expect(shell.text).toContain('id="mobilePreview"');
     expect(shell.text).toContain('/public/css/tree.css');
     expect(shell.text).toContain('/public/js/config.js');
+    expect(shell.text).toContain('/public/js/shell-nav.js');
+    expect(shell.text).not.toContain('/public/client/streams.js');
     expect(shell.text).toContain('/public/client/observability.js');
 
     const dashboard = await request(app).get('/dashboard');
@@ -32,6 +37,12 @@ describe('frontend stream shell', () => {
     const settings = await request(app).get('/settings');
     expect(settings.status).toBe(200);
     expect(settings.text).toContain('Your Dashboard');
+    expect(settings.text).toContain('class="settings-sidebar"');
+    expect(settings.text).toContain('href="#personal-space"');
+    expect(settings.text).toContain('href="#appearance"');
+    expect(settings.text).toContain('href="#reading-controls"');
+    expect(settings.text).toContain('href="#account-settings"');
+    expect(settings.text).not.toContain('data-nav="dashboard"');
     expect(settings.text).toContain('id="personal-space"');
     expect(settings.text).toContain('id="themePreset"');
     expect(settings.text).toContain('id="themePersistenceStatus"');
@@ -43,6 +54,7 @@ describe('frontend stream shell', () => {
     expect(settings.text).toContain('/public/js/shell-nav.js');
     expect(settings.text).toContain('/public/js/session-state.js');
     expect(settings.text).toContain('/public/js/sw-register.js');
+    expect(settings.text).toContain('/public/js/settings-nav.js');
     expect(settings.text).not.toContain('/public/js/app.js');
     expect(settings.text).not.toContain('/public/js/stream-runtime.js');
     expect(settings.text).toContain('id="reading-controls"');
@@ -52,6 +64,12 @@ describe('frontend stream shell', () => {
     expect(settings.text).toContain('id="readingCodeWrap"');
     expect(settings.text).toContain('id="readingReducedMotion"');
     expect(settings.text).toContain('class="settings-subsection"');
+    const shellNavJs = await request(app).get('/public/js/shell-nav.js');
+    expect(shellNavJs.status).toBe(200);
+    expect(shellNavJs.text).toContain('__noteBooksShellNavInitialized');
+    const settingsNavJs = await request(app).get('/public/js/settings-nav.js');
+    expect(settingsNavJs.status).toBe(200);
+    expect(settingsNavJs.text).toContain('__noteBooksSettingsNavInitialized');
     const themeJs = await request(app).get('/public/js/theme.js');
     expect(themeJs.status).toBe(200);
     expect(themeJs.text).toContain('/api/themes');
@@ -96,7 +114,8 @@ describe('frontend stream shell', () => {
     expect(appJs.text).not.toContain("method: 'HEAD'");
     expect(appJs.text).toContain('const rawUrl = await resolveSourceUrl(path);');
     expect(appJs.text).toContain('const targetPath = repo ? (repoPath || path) : path;');
-    expect(appJs.text).toContain('const SHARED_SHELL_ROUTES');
+    expect(appJs.text).not.toContain('navigateToRoute(');
+    expect(appJs.text).not.toContain('window.addEventListener(\'popstate\'');
     expect(appJs.text).toContain("if (!slug) return '';");
     expect(appJs.text).toContain('let defaultLandingMarkup = null;');
     expect(appJs.text).toContain('landing.innerHTML = defaultLandingMarkup;');
@@ -158,6 +177,13 @@ describe('frontend stream shell', () => {
     expect(portal.text).toContain('/public/js/portal.js');
     expect(portal.text).toContain('/public/client/observability.js');
     expect(portal.text).not.toContain('/public/js/app.js');
+    expect(portal.text).not.toContain('data-nav="dashboard"');
+    expect(portal.text).toContain('data-nav="volunteers"');
+    expect(portal.text).toContain('data-nav="about"');
+
+    const adminShell = await request(app).get('/admin');
+    expect(adminShell.status).toBe(200);
+    expect(adminShell.text).not.toContain('data-nav="dashboard"');
 
     const admin = await request(app).get('/admin-prs');
     expect(admin.status).toBe(200);
