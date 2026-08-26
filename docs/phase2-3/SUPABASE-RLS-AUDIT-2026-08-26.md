@@ -11,7 +11,7 @@
 
 Supabase reports that Row Level Security is disabled on 17 public tables: `users`, `volunteer_groups`, `user_groups`, `admin_hierarchy`, `reset_tokens`, `reset_cooldowns`, `community_posts`, `github_installations`, `webhook_deliveries`, `dashboard_activity`, `theme_presets`, `theme_preferences`, `issue_proposals`, `issue_votes`, `pr_lifecycle`, `audit_events`, and `browser_sessions`.
 
-Supabase explicitly warns that these tables are exposed to the anon and authenticated roles used by Supabase client libraries. It also explicitly warns not to auto-apply the remediation SQL because enabling RLS without policies blocks access. No production RLS mutation has been performed.
+Supabase explicitly warned that these tables were exposed to the anon and authenticated roles used by Supabase client libraries. It also warned not to auto-apply the remediation SQL because enabling RLS without policies blocks access. After explicit user approval, the 17-table deny-by-default change was applied to the empty active project through the named database change `enable_rls_deny_by_default_public_tables`.
 
 ## Additional security findings
 
@@ -27,6 +27,8 @@ The application uses a server-side `pg` connection and application-level permiss
 
 Sensitive tables such as `users`, `reset_tokens`, `reset_cooldowns`, `github_installations`, `webhook_deliveries`, `audit_events`, and `browser_sessions` require deny-by-default policies or server-only access. Public feed and theme preset tables need narrowly scoped read policies. User-owned preference, vote, activity, and proposal records require identity-scoped policies. Role and admin tables require admin-only policy paths.
 
-## Current action
+## Post-change verification
 
-RLS inventory is complete enough to surface the critical issue, but production policy changes are intentionally paused pending confirmation of the database role architecture and the user’s approval of the table-by-table migration plan. The Supabase RLS documentation and linter guidance are available at https://supabase.com/docs/guides/database/postgres/row-level-security and https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy.
+All 26 public tables now report `rls_enabled: true`. The project contained one existing user row, 15 app-role rows, one user-role row, and seven community-channel rows; no rows were modified or deleted. The nine tables that already had RLS enabled and no policies remain deny-by-default. Because the application uses server-side `pg`, direct anon/authenticated table access is not required by the current architecture. Any future direct Supabase client access must receive an explicit, table-specific policy and integration test.
+
+The Supabase RLS documentation and linter guidance are available at https://supabase.com/docs/guides/database/postgres/row-level-security and https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy.
