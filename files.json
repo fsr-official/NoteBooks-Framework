@@ -312,6 +312,12 @@
             },
             {
               "type": "file",
+              "name": "SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
+              "path": "docs/phase2-3/SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
+              "sha": "4a9fc3e42ce9405afaa849839045add0f57ff9b64fe6701b6198cc87e70e6890"
+            },
+            {
+              "type": "file",
               "name": "VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
               "path": "docs/phase2-3/VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
               "sha": "ba0a6886ac5fbf3fc0850287bb094ef15feb4341b7c329a99f02ad6d9b50b48c"

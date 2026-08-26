@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v32';
+const CACHE_VERSION = 'webman-v34';
 const OFFLINE_PAGE = 'offline.html';
 
 const APP_SHELL = [
@@ -42,6 +42,7 @@ const APP_SHELL = [
   'public/html/portal.html',
   'public/js/portal.js',
   'public/js/shell-nav.js',
+  'public/js/session-state.js',
   'public/json/github-repos.json',
   'public/json/science-tree.json',
   'public/json/commerce-tree.json',
@@ -135,6 +136,16 @@ function withExtraHeaders(response, extra) {
     statusText: response.statusText,
     headers,
   });
+}
+
+function cacheStaticResponse(request, response) {
+  if (!response.ok || request.method !== 'GET') return;
+  const clone = response.clone();
+  caches.open(CACHE_VERSION)
+    .then(cache => cache.put(request, clone))
+    .catch(() => {
+      // Cache failures must never reject the page's fetch event.
+    });
 }
 
 self.addEventListener('install', event => {
@@ -257,15 +268,15 @@ self.addEventListener('fetch', event => {
   }
 
   if (APP_SHELL.includes(request.url) || APP_SHELL.includes(url.pathname.replace(/^\//, ''))) {
+    const networkFetch = () => fetch(request).then(res => {
+      cacheStaticResponse(request, res);
+      return res;
+    });
     event.respondWith(
-      caches.match(request).then(cached => {
-        const networkFetch = fetch(request).then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
-          return res;
-        });
-        return cached || networkFetch;
-      })
+      caches.match(request)
+        .catch(() => null)
+        .then(cached => cached || networkFetch())
+        .catch(() => networkFetch())
     );
     return;
   }

@@ -54,8 +54,11 @@ async function bootstrapReadingPreferences() {
     try { local = JSON.parse(localStorage.getItem(READING_STORAGE_KEY) || '{}'); } catch (_) { }
     applyReadingPreferences(local, { skipLocal: true }); bindReadingControls();
     try {
-        const response = await fetch('/api/session', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
-        if (response.ok) { const data = await response.json(); applyReadingPreferences(data.session?.preferences || local, { skipLocal: true }); readingStatus(data.session?.persisted ? 'Reading preferences are saved to this browser session.' : 'Reading preferences are saved locally in this browser.'); }
+        const data = typeof window.noteBooksSession === 'function'
+            ? await window.noteBooksSession()
+            : await fetch('/api/session', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then((response) => response.ok ? response.json() : { session: {}, persisted: false });
+        applyReadingPreferences(data.session?.preferences || local, { skipLocal: true });
+        readingStatus(data.session?.persisted ? 'Reading preferences are saved to this browser session.' : 'Reading preferences are saved locally in this browser.');
     } catch (_) { readingStatus('Reading preferences are saved locally in this browser.'); }
 }
 window.updateReadingPreference = updateReadingPreference;
