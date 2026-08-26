@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/public/css/streams.css" />
   <link rel="stylesheet" href="/public/css/tree.css" />
   <script type="module" src="/public/client/observability.js"></script>
+  <script src="/public/js/request.js"></script>
 </head>
 <body class="stream-shell-page">
   <nav class="global-nav" aria-label="Primary navigation">
@@ -70,7 +71,7 @@
   </div>
   <div id="status" role="status" aria-live="polite"></div>
 
-    <script src="/public/js/config.js"></script>
+    <script src="/public/js/config.js" defer></script>
   <script src="/public/js/modern-auth.js" defer></script>
   <!-- Keep the stream shell preview stack aligned with the main app shell. -->
   <script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js" defer></script>
@@ -81,7 +82,6 @@
   <script src="/public/js/md-init.js" defer></script>
   <script src="/public/js/markdown-editor.js" defer></script>
   <script src="/public/js/markdown.js" defer></script>
-  <script src="/public/client/streams.js" defer></script>
   <script>
 
     // Determine current stream from path or query and expose it for app.js
@@ -99,12 +99,13 @@
       } catch(e) { window.CURRENT_STREAM = 'science'; }
     })();
   </script>
-    <script src="/public/js/theme.js"></script>
-    <script src="/public/js/reading-preferences.js"></script>
-    <script src="/public/js/stream-runtime.js"></script>
-    <script src="/public/js/raw-delivery.js"></script>
+    <script src="/public/js/theme.js" defer></script>
+    <script src="/public/js/reading-preferences.js" defer></script>
+    <script src="/public/js/stream-runtime.js" defer></script>
+    <script src="/public/js/raw-delivery.js" defer></script>
     <script src="/public/js/app.js" defer></script>
   <script src="/public/js/auth.js" defer></script>
+  <script src="/public/js/shell-nav.js" defer></script>
   <!-- community.js archived → archive/removed-public-js/community.js (forum feature) -->
 </body>
 </html>

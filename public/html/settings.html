@@ -9,87 +9,108 @@
   <link rel="stylesheet" href="/public/css/style.css" />
   <link rel="stylesheet" href="/public/css/dashboard.css" />
   <script type="module" src="/public/client/observability.js"></script>
+  <script src="/public/js/request.js"></script>
   <script src="/public/js/sw-register.js" defer></script>
 </head>
 <body class="settings-page">
   <nav class="global-nav" aria-label="Primary navigation">
     <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
     <div class="global-nav-links">
-      <a href="/" data-nav="home">Home</a><a href="/science" data-nav="science">Science</a><a href="/commerce" data-nav="commerce">Commerce</a><a href="/humanities" data-nav="humanities">Humanities</a><a href="/community" data-nav="community">Community</a><a href="/settings" data-nav="settings" aria-current="page">Settings</a>
+      <a href="/" data-nav="home">Home</a><a href="/science" data-nav="science">Science</a><a href="/commerce" data-nav="commerce">Commerce</a><a href="/humanities" data-nav="humanities">Humanities</a><a href="/community" data-nav="community">Community</a><a href="/issues" data-nav="issues">Issues</a><a href="/volunteers" data-nav="volunteers">Volunteers</a><a href="/accounts" data-nav="accounts">Account</a><a href="/settings" data-nav="settings" aria-current="page">Settings</a><a href="/about" data-nav="about">About</a>
     </div>
     <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
   </nav>
 
   <main class="settings-main">
-    <header class="settings-hero">
-      <span class="landing-kicker">Workspace preferences</span>
-      <h1>Settings</h1>
-      <p>Shape your reading room now. Sign-in and account synchronization will be connected in a later phase.</p>
-    </header>
+    <div class="settings-layout">
+      <aside class="settings-sidebar" aria-label="Settings sections">
+        <div class="settings-sidebar-heading">
+          <span class="settings-card-kicker">Settings</span>
+          <strong>Workspace controls</strong>
+        </div>
+        <nav class="settings-section-nav" aria-label="Settings navigation">
+          <a href="#personal-space" aria-current="page"><span>01</span><strong>Personal space</strong><small>Your dashboard and activity</small></a>
+          <a href="#appearance"><span>02</span><strong>Appearance</strong><small>Themes and color mode</small></a>
+          <a href="#reading-controls"><span>03</span><strong>Reading controls</strong><small>Text and motion preferences</small></a>
+          <a href="#account-settings"><span>04</span><strong>Account</strong><small>Sign-in and profile access</small></a>
+        </nav>
+        <a class="settings-sidebar-exit" href="/">← Return home</a>
+      </aside>
 
-    <div class="settings-grid" aria-label="Settings sections">
-      <section class="settings-card settings-card--personal" id="personal-space" aria-labelledby="personalSpaceTitle">
-        <div class="settings-card-kicker">Personal space</div>
-        <h2 id="personalSpaceTitle">Your Dashboard</h2>
-        <p>Keep your NoteBooks presence, activity, learning streams, and project participation in one private-facing space.</p>
-        <div class="dashboard-status settings-dashboard-status" id="dashboardStatus"><strong>Loading your space</strong>Preparing your project view…</div>
-        <p id="dashboardOverview">Loading current project metrics…</p>
-        <div class="dashboard-metrics" id="dashboardMetrics"></div>
-        <div class="settings-personal-grid">
-          <div><div class="settings-card-kicker">Explore</div><div class="dashboard-links" id="dashboardStreams"></div></div>
-          <div><div class="settings-card-kicker">Recent activity</div><div class="dashboard-activity" id="dashboardActivity"><div class="dashboard-empty">Sign in to connect activity to your personal space.</div></div></div>
-        </div>
-      </section>
-      <article class="settings-card settings-card--account">
-        <div class="settings-card-kicker">Account</div>
-        <h2>Sign in later</h2>
-        <p>Account access is intentionally deferred. This placeholder preserves the future integration boundary without changing the current public browsing experience.</p>
-        <button type="button" class="settings-disabled-button" disabled>Sign in / create account — coming later</button>
-      </article>
+      <div class="settings-content">
+        <header class="settings-hero">
+          <span class="landing-kicker">Workspace preferences</span>
+          <h1>Settings</h1>
+          <p>Keep your personal space, appearance, reading preferences, and account controls in one predictable place.</p>
+        </header>
 
-      <article class="settings-card settings-card--theme" id="appearance" aria-labelledby="appearanceTitle">
-        <div class="settings-card-kicker">Appearance</div>
-        <h2 id="appearanceTitle">Reading room theme</h2>
-        <p>Themes are stored for this browser session and can be carried into your account after sign-in. Global presets are selectable; custom tokens remain yours.</p>
-        <p id="themePersistenceStatus" class="settings-inline-status" role="status" aria-live="polite">Preparing your browser session…</p>
-        <div class="settings-theme-mode-row">
-          <div><strong>Color mode</strong><span>Every theme family includes a coordinated light and dark variant.</span></div>
-          <button id="themeModeToggle" class="settings-theme-mode-toggle" type="button" aria-pressed="false" data-mode="dark" onclick="toggleThemeMode()"><span id="themeModeLabel">Dark mode</span><span aria-hidden="true">Light / Dark</span></button>
-        </div>
-        <label class="settings-field" for="themePreset"><span>Theme preset</span><select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic dark</option><option value="professional">Professional dark</option><option value="contrast">High contrast</option><option value="neon">Neon dark</option><option value="classic">Classic light</option><option value="custom">Custom theme</option></select></label>
-        <div id="themePresetGallery" class="theme-preset-gallery" aria-label="Theme presets"></div>
-        <div class="settings-subsection">
-          <div class="settings-subsection-heading"><span class="settings-card-kicker">Custom theme</span><span class="settings-subsection-note">Fine-tune the reading room</span></div>
-        <div class="settings-fields-grid">
-          <label class="settings-field" for="themeAccent"><span>Accent</span><input id="themeAccent" type="color" onchange="updateCustomTheme('accent', this.value)" /></label>
-          <label class="settings-field" for="themeSurface"><span>Surface</span><input id="themeSurface" type="color" onchange="updateCustomTheme('surface', this.value)" /></label>
-          <label class="settings-field" for="themeText"><span>Text</span><input id="themeText" type="color" onchange="updateCustomTheme('text', this.value)" /></label>
-          <label class="settings-field" for="themeCode"><span>Code surface</span><input id="themeCode" type="color" onchange="updateCustomTheme('code', this.value)" /></label>
-        </div>
-        </div>
-        <button type="button" class="settings-secondary-button" onclick="restoreTheme()">Restore saved theme</button>
-      </article>
+        <section class="settings-grid" aria-label="Settings sections">
+          <section class="settings-card settings-card--personal" id="personal-space" aria-labelledby="personalSpaceTitle">
+            <div class="settings-card-kicker">Personal space</div>
+            <h2 id="personalSpaceTitle">Your Dashboard</h2>
+            <p>Keep your NoteBooks presence, activity, learning streams, and project participation in one private-facing space.</p>
+            <div class="dashboard-status settings-dashboard-status" id="dashboardStatus"><strong>Loading your space</strong>Preparing your project view…</div>
+            <p id="dashboardOverview">Loading current project metrics…</p>
+            <div class="dashboard-metrics" id="dashboardMetrics"></div>
+            <div class="settings-personal-grid">
+              <div><div class="settings-card-kicker">Explore</div><div class="dashboard-links" id="dashboardStreams"></div></div>
+              <div><div class="settings-card-kicker">Recent activity</div><div class="dashboard-activity" id="dashboardActivity"><div class="dashboard-empty">Sign in to connect activity to your personal space.</div></div></div>
+            </div>
+          </section>
 
-      <article class="settings-card settings-card--reading" id="reading-controls" aria-labelledby="readingControlsTitle">
-        <div class="settings-card-kicker">Reading controls</div>
-        <h2 id="readingControlsTitle">Make long notes easier to read</h2>
-        <p>These controls apply across the reader and persist with your browser session.</p>
-        <p id="readingPreferencesStatus" class="settings-inline-status" role="status" aria-live="polite">Preparing reading preferences…</p>
-        <div class="settings-fields-grid settings-reading-grid">
-          <label class="settings-field" for="readingFontSize"><span>Text size</span><select id="readingFontSize"><option value="compact">Compact</option><option value="normal">Comfortable</option><option value="large">Large</option></select></label>
-          <label class="settings-field" for="readingWidth"><span>Text width</span><select id="readingWidth"><option value="narrow">Narrow</option><option value="comfortable">Comfortable</option><option value="wide">Wide</option></select></label>
-          <label class="settings-field" for="readingLineHeight"><span>Line spacing</span><select id="readingLineHeight"><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="airy">Airy</option></select></label>
-        </div>
-        <div class="settings-toggle-list">
-          <label class="settings-toggle-row" for="readingCodeWrap"><span><strong>Wrap code blocks</strong><small>Keep long code within the reading pane.</small></span><input id="readingCodeWrap" type="checkbox" /></label>
-          <label class="settings-toggle-row" for="readingReducedMotion"><span><strong>Reduce motion</strong><small>Limit decorative transitions and animations.</small></span><input id="readingReducedMotion" type="checkbox" /></label>
-        </div>
-        <button type="button" class="settings-secondary-button" onclick="resetReadingPreferences()">Reset reading controls</button>
-      </article>
-    </section>
+          <article class="settings-card settings-card--account" id="account-settings">
+            <div class="settings-card-kicker">Account</div>
+            <h2>Sign in later</h2>
+            <p>Account access is intentionally deferred. This placeholder preserves the future integration boundary without changing the current public browsing experience.</p>
+            <button type="button" class="settings-disabled-button" disabled>Sign in / create account — coming later</button>
+          </article>
+
+          <article class="settings-card settings-card--theme" id="appearance" aria-labelledby="appearanceTitle">
+            <div class="settings-card-kicker">Appearance</div>
+            <h2 id="appearanceTitle">Reading room theme</h2>
+            <p>Themes are stored for this browser session and can be carried into your account after sign-in. Global presets are selectable; custom tokens remain yours.</p>
+            <p id="themePersistenceStatus" class="settings-inline-status" role="status" aria-live="polite">Preparing your browser session…</p>
+            <div class="settings-theme-mode-row">
+              <div><strong>Color mode</strong><span>Every theme family includes a coordinated light and dark variant.</span></div>
+              <button id="themeModeToggle" class="settings-theme-mode-toggle" type="button" aria-pressed="false" data-mode="dark" onclick="toggleThemeMode()"><span id="themeModeLabel">Dark mode</span><span aria-hidden="true">Light / Dark</span></button>
+            </div>
+            <label class="settings-field" for="themePreset"><span>Theme preset</span><select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic dark</option><option value="professional">Professional dark</option><option value="contrast">High contrast</option><option value="neon">Neon dark</option><option value="classic">Classic light</option><option value="custom">Custom theme</option></select></label>
+            <div id="themePresetGallery" class="theme-preset-gallery" aria-label="Theme presets"></div>
+            <div class="settings-subsection">
+              <div class="settings-subsection-heading"><span class="settings-card-kicker">Custom theme</span><span class="settings-subsection-note">Fine-tune the reading room</span></div>
+              <div class="settings-fields-grid">
+                <label class="settings-field" for="themeAccent"><span>Accent</span><input id="themeAccent" type="color" onchange="updateCustomTheme('accent', this.value)" /></label>
+                <label class="settings-field" for="themeSurface"><span>Surface</span><input id="themeSurface" type="color" onchange="updateCustomTheme('surface', this.value)" /></label>
+                <label class="settings-field" for="themeText"><span>Text</span><input id="themeText" type="color" onchange="updateCustomTheme('text', this.value)" /></label>
+                <label class="settings-field" for="themeCode"><span>Code surface</span><input id="themeCode" type="color" onchange="updateCustomTheme('code', this.value)" /></label>
+              </div>
+            </div>
+            <button type="button" class="settings-secondary-button" onclick="restoreTheme()">Restore saved theme</button>
+          </article>
+
+          <article class="settings-card settings-card--reading" id="reading-controls" aria-labelledby="readingControlsTitle">
+            <div class="settings-card-kicker">Reading controls</div>
+            <h2 id="readingControlsTitle">Make long notes easier to read</h2>
+            <p>These controls apply across the reader and persist with your browser session.</p>
+            <p id="readingPreferencesStatus" class="settings-inline-status" role="status" aria-live="polite">Preparing reading preferences…</p>
+            <div class="settings-fields-grid settings-reading-grid">
+              <label class="settings-field" for="readingFontSize"><span>Text size</span><select id="readingFontSize"><option value="compact">Compact</option><option value="normal">Comfortable</option><option value="large">Large</option></select></label>
+              <label class="settings-field" for="readingWidth"><span>Text width</span><select id="readingWidth"><option value="narrow">Narrow</option><option value="comfortable">Comfortable</option><option value="wide">Wide</option></select></label>
+              <label class="settings-field" for="readingLineHeight"><span>Line spacing</span><select id="readingLineHeight"><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="airy">Airy</option></select></label>
+            </div>
+            <div class="settings-toggle-list">
+              <label class="settings-toggle-row" for="readingCodeWrap"><span><strong>Wrap code blocks</strong><small>Keep long code within the reading pane.</small></span><input id="readingCodeWrap" type="checkbox" /></label>
+              <label class="settings-toggle-row" for="readingReducedMotion"><span><strong>Reduce motion</strong><small>Limit decorative transitions and animations.</small></span><input id="readingReducedMotion" type="checkbox" /></label>
+            </div>
+            <button type="button" class="settings-secondary-button" onclick="resetReadingPreferences()">Reset reading controls</button>
+          </article>
+        </section>
+      </div>
+    </div>
   </main>
 
   <script src="/public/js/shell-nav.js" defer></script>
+  <script src="/public/js/settings-nav.js" defer></script>
   <script src="/public/js/session-state.js"></script>
   <script src="/public/js/theme.js"></script>
   <script src="/public/js/reading-preferences.js"></script>

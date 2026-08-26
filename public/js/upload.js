@@ -19,7 +19,7 @@ function b64decode(b64) {
 // Upload a file to Vercel Blob; returns { ok, url } or { ok: false, error }
 async function blobUpload(filename, base64Data) {
     try {
-        const r = await fetch('/api/blob', {
+        const r = await (window.noteBooksRequest || fetch)('/api/blob', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'upload', filename, content: base64Data })
@@ -36,7 +36,7 @@ async function blobUpload(filename, base64Data) {
 // Delete a blob by its URL
 async function blobDelete(url) {
     try {
-        const r = await fetch('/api/blob', {
+        const r = await (window.noteBooksRequest || fetch)('/api/blob', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'delete', url })
@@ -51,7 +51,7 @@ async function blobDelete(url) {
 // Fetch a blob's bytes as a Uint8Array (for preview / download / approve)
 async function blobFetch(url) {
     try {
-        const r = await fetch('/api/blob', {
+        const r = await (window.noteBooksRequest || fetch)('/api/blob', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'fetch', url })
@@ -487,7 +487,7 @@ async function _prepareUploadFile(file, diagramDomain) {
     if (!diagramDomain || !_isConvertibleImage(file)) {
         return { filename: safeFilename, content: originalContent, originalName: file.name, size: file.size, mode: 'original' };
     }
-    const response = await fetch('/api/blob', {
+    const response = await (window.noteBooksRequest || fetch)('/api/blob', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'convert-svg', filename: file.name, content: originalContent, domain: diagramDomain })

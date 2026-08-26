@@ -3,7 +3,8 @@
   const requestJson = (url, options = {}, timeoutMs = 1800) => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-    return fetch(url, { ...options, signal: controller.signal })
+    const send = typeof window.noteBooksRequest === 'function' ? window.noteBooksRequest : fetch;
+    return send(url, { ...options, signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error(`Request failed (${response.status})`);
         return response.json();

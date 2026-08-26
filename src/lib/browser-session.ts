@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { isConfigured as isDbConfigured, query as dbQuery } from './db.js';
 
 export const BROWSER_SESSION_COOKIE = 'nb_sid';
+export const CSRF_COOKIE = 'csrf';
 const SESSION_TTL_SECONDS = 365 * 24 * 60 * 60;
 const SESSION_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 const MAX_PREFERENCES_BYTES = 4096;
@@ -110,6 +111,11 @@ async function createOrLoadPersistedSession(tokenHash: string, userId: number | 
 }
 
 export async function ensureBrowserSession(req: Request, res: Response): Promise<BrowserSessionState> {
+  const csrf = String(req.cookies?.[CSRF_COOKIE] || '').trim();
+  if (!SESSION_TOKEN_PATTERN.test(csrf)) {
+    res.cookie(CSRF_COOKIE, newToken(), { ...cookieOptions(), httpOnly: false });
+  }
+
   let token = String(req.cookies?.[BROWSER_SESSION_COOKIE] || '').trim();
   if (!SESSION_TOKEN_PATTERN.test(token)) {
     token = newToken();
