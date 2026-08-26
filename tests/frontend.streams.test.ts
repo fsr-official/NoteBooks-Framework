@@ -126,8 +126,10 @@ describe('frontend stream shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v33'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v34'");
     expect(serviceWorker.text).toContain('public/client/observability.js');
+    expect(serviceWorker.text).toContain('function cacheStaticResponse');
+    expect(serviceWorker.text).toContain('Cache failures must never reject the page');
     expect(serviceWorker.text).toContain('public/css/tree.css');
     expect(serviceWorker.text).toContain('Admin routes must always follow the server/Vercel route decision.');
     expect(serviceWorker.text).toContain('Do not fan out to all remote stream APIs during installation.');
