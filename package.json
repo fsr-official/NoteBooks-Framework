@@ -18,6 +18,7 @@
     "generate:json-files": "tsx src/scripts/generate-json-files.ts",
     "build:client": "tsc -p tsconfig.client.json && esbuild src/client/observability.ts --bundle --format=esm --platform=browser --target=es2020 --outfile=public/client/observability.js",
     "build:server": "tsc -p tsconfig.server.json",
+    "verify:release": "node src/scripts/verify-release.mjs",
     "backend": "node dist/server/server/server.js",
     "prepare:json": "npm run generate:github-repos && npm run generate:json-files",
     "setup": "npm run dev",

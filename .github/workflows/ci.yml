@@ -23,3 +23,5 @@ jobs:
         run: npm test
       - name: Run production build
         run: npm run build
+      - name: Verify release compatibility
+        run: npm run verify:release
