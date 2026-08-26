@@ -79,6 +79,11 @@ describe('frontend stream shell', () => {
     expect(themeJs.text).toContain('aria-pressed');
     expect(themeJs.text).toContain('toggleThemeMode');
     expect(themeJs.text).toContain('themeMode');
+    expect(themeJs.text).toContain("surfaceStrong");
+    expect(themeJs.text).toContain("inputBg");
+    expect(themeJs.text).toContain("codeText");
+    expect(themeJs.text).toContain("surface: '#262b32'");
+    expect(themeJs.text).toContain("bg: '#1b1f24'");
     const session = await request(app).get('/api/session');
     expect(session.status).toBe(200);
     expect(session.headers['set-cookie']?.some((cookie: string) => cookie.startsWith('nb_sid='))).toBe(true);
@@ -152,7 +157,7 @@ describe('frontend stream shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v35'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v36'");
     expect(serviceWorker.text).toContain('public/client/observability.js');
     expect(serviceWorker.text).toContain('function cacheStaticResponse');
     expect(serviceWorker.text).toContain('Cache failures must never reject the page');
@@ -168,6 +173,9 @@ describe('frontend stream shell', () => {
     const styleCss = await request(app).get('/public/css/style.css');
     expect(styleCss.status).toBe(200);
     expect(styleCss.text).toContain('.stream-card');
+    expect(styleCss.text).toContain('Global theme bridge');
+    expect(styleCss.text).toContain('.markdown-renderer pre');
+    expect(styleCss.text).toContain('--surface-strong');
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);
