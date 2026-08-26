@@ -52,7 +52,10 @@ function applyTheme(theme, options = {}) {
     const root = document.documentElement;
     const fallback = THEME_PRESETS.futuristic[themeMode];
     const values = { ...fallback, ...theme };
-    root.dataset.theme = values.texture || 'none'; root.dataset.themeMode = themeMode; root.classList.toggle('theme-light', themeMode === 'light');
+    root.dataset.theme = themeMode;
+    root.dataset.themeMode = themeMode;
+    root.dataset.themeTexture = values.texture || 'none';
+    root.classList.toggle('theme-light', themeMode === 'light');
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', values.bg);
     const tokenValues = {
         '--accent': values.accent,
