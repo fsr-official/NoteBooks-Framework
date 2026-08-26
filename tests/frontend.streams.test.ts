@@ -42,6 +42,7 @@ describe('frontend stream shell', () => {
     expect(settings.text).toContain('/public/client/observability.js');
     expect(settings.text).toContain('/public/js/shell-nav.js');
     expect(settings.text).toContain('/public/js/session-state.js');
+    expect(settings.text).toContain('/public/js/sw-register.js');
     expect(settings.text).not.toContain('/public/js/app.js');
     expect(settings.text).not.toContain('/public/js/stream-runtime.js');
     expect(settings.text).toContain('id="reading-controls"');
@@ -78,8 +79,12 @@ describe('frontend stream shell', () => {
     expect(readingJs.status).toBe(200);
     expect(readingJs.text).toContain('persistReadingPreferences');
     expect(readingJs.text).toContain('--reader-content-width');
+    const swRegisterJs = await request(app).get('/public/js/sw-register.js');
+    expect(swRegisterJs.status).toBe(200);
+    expect(swRegisterJs.text).toContain('20260826-sw-v34');
     const appJs = await request(app).get('/public/js/app.js');
     expect(appJs.status).toBe(200);
+    expect(appJs.text).toContain('20260826-sw-v34');
     expect(appJs.text).toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
     expect(appJs.text).toContain('window.NoteBooksRawDelivery');
@@ -133,7 +138,7 @@ describe('frontend stream shell', () => {
     expect(serviceWorker.text).toContain('public/css/tree.css');
     expect(serviceWorker.text).toContain('Admin routes must always follow the server/Vercel route decision.');
     expect(serviceWorker.text).toContain('Do not fan out to all remote stream APIs during installation.');
-    for (const asset of ['public/favicon-128.png', 'public/json/github-repos.json', 'public/js/markdown-vendors.js', 'public/js/theme.js', 'public/js/reading-preferences.js', 'public/js/landing-docs.js', 'public/js/stream-runtime.js', 'public/js/raw-delivery.js', 'public/js/portal.js', 'public/js/shell-nav.js', 'public/js/session-state.js', 'public/html/settings.html', 'public/html/portal.html', 'public/json/science-tree.json', 'public/json/commerce-tree.json', 'public/json/humanities-tree.json']) {
+    for (const asset of ['public/favicon-128.png', 'public/json/github-repos.json', 'public/js/markdown-vendors.js', 'public/js/theme.js', 'public/js/reading-preferences.js', 'public/js/landing-docs.js', 'public/js/stream-runtime.js', 'public/js/raw-delivery.js', 'public/js/portal.js', 'public/js/shell-nav.js', 'public/js/session-state.js', 'public/js/sw-register.js', 'public/html/settings.html', 'public/html/portal.html', 'public/json/science-tree.json', 'public/json/commerce-tree.json', 'public/json/humanities-tree.json']) {
       expect(serviceWorker.text).toContain(asset);
     }
 

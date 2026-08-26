@@ -417,7 +417,7 @@ const FILE_ICONS = {
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js?v=20260808-pathfix").then(() => {
+    navigator.serviceWorker.register("/service-worker.js?v=20260826-sw-v34", { updateViaCache: "none" }).then(() => {
         console.log("Service Worker registered");
     }).catch(err => {
         console.error("SW registration failed:", err);
