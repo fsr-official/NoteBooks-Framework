@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildLocalFilesManifest } from '../api/files-manifest.js';
+import { isSafePublishedFilePath } from '../lib/safe-file-path.js';
 
 export function getWorkspaceEnv(): string {
   return process.env.WORKSPACE?.trim() || '';
@@ -75,6 +76,7 @@ export function registerWorkspaceRoutes(app: express.Application, projectDir: st
     const rawFilePath = Array.isArray(params.filePath) ? params.filePath.join('/') : params.filePath;
     const filePath = String(rawFilePath || '').replace(/^\/+/, '');
     if (!filePath) return res.status(400).json({ error: 'Missing file path' });
+    if (!isSafePublishedFilePath(filePath)) return res.status(403).json({ error: 'Access denied' });
     const absolutePath = path.resolve(projectDir, filePath);
     if (!absolutePath.startsWith(projectDir + path.sep) && absolutePath !== projectDir) return res.status(403).json({ error: 'Access denied' });
     if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) return res.status(404).json({ error: 'File not found' });

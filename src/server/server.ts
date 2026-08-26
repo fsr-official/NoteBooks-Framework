@@ -29,6 +29,7 @@ export function createApp() {
   app.use((_req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
     next();
   });
 
@@ -102,7 +103,8 @@ export function createApp() {
           'https://raw.githubusercontent.com',
           'https://www.google.com',
           'https://www.gstatic.com',
-          'https://cdnjs.cloudflare.com'
+          'https://cdnjs.cloudflare.com',
+          'https://va.vercel-scripts.com'
         ],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
         mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],

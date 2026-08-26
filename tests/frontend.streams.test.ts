@@ -9,7 +9,7 @@ describe('frontend stream shell', () => {
     const home = await request(app).get('/');
     expect(home.status).toBe(200);
     expect(home.text).toContain('id="splash"');
-    expect(home.text).toContain('<script src="/public/js/markdown-vendors.js"></script>');
+    expect(home.text).toContain('<script src="/public/js/markdown-vendors.js" defer></script>');
     expect(home.text).toContain('<script src="/public/js/shell-nav.js" defer></script>');
     expect(home.text).not.toContain('data-nav="dashboard"');
     for (const nav of ['home', 'science', 'commerce', 'humanities', 'community', 'issues', 'volunteers', 'accounts', 'settings', 'about']) expect(home.text).toContain(`data-nav="${nav}"`);
