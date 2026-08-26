@@ -318,6 +318,12 @@
             },
             {
               "type": "file",
+              "name": "SUPABASE-RLS-AUDIT-2026-08-26.md",
+              "path": "docs/phase2-3/SUPABASE-RLS-AUDIT-2026-08-26.md",
+              "sha": "99006bd1cdf611a42734f4373b02e9e252d9a8ac9d2f6f47da355982e3b862c5"
+            },
+            {
+              "type": "file",
               "name": "UPGRADE-ROADMAP-2026-08-26.md",
               "path": "docs/phase2-3/UPGRADE-ROADMAP-2026-08-26.md",
               "sha": "a9acdc59a77b6bad73fea2f9cd5e78634aab1a85c8f4036af7fdbc03dea6b3e0"
