@@ -39,7 +39,7 @@ function applyReadingPreferences(next, options = {}) {
 }
 async function persistReadingPreferences() {
     try {
-        const response = await fetch('/api/session', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ preferences: readingPreferences }) });
+        const response = await (window.noteBooksRequest || fetch)('/api/session', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ preferences: readingPreferences }) });
         readingStatus(response.ok ? 'Reading preferences saved to this browser session.' : 'Applied locally; session persistence is unavailable.');
     } catch (_) { readingStatus('Applied locally; session persistence is unavailable.'); }
 }
@@ -56,7 +56,7 @@ async function bootstrapReadingPreferences() {
     try {
         const data = typeof window.noteBooksSession === 'function'
             ? await window.noteBooksSession()
-            : await fetch('/api/session', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then((response) => response.ok ? response.json() : { session: {}, persisted: false });
+            : await (window.noteBooksRequest || fetch)('/api/session', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then((response) => response.ok ? response.json() : { session: {}, persisted: false });
         applyReadingPreferences(data.session?.preferences || local, { skipLocal: true });
         readingStatus(data.session?.persisted ? 'Reading preferences are saved to this browser session.' : 'Reading preferences are saved locally in this browser.');
     } catch (_) { readingStatus('Reading preferences are saved locally in this browser.'); }

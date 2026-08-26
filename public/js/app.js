@@ -240,7 +240,8 @@ function attachIssueVoteHandlers(feed) {
         if (!issueId) return;
         button.disabled = true;
         try {
-            const response = await fetch(`/api/issues/${encodeURIComponent(issueId)}/vote`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ value: Number(button.dataset.issueVote) }) });
+            const send = window.noteBooksRequest || fetch;
+            const response = await send(`/api/issues/${encodeURIComponent(issueId)}/vote`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ value: Number(button.dataset.issueVote) }) });
             const data = await response.json().catch(() => ({}));
             if (response.status === 401) throw new Error('Sign in to vote on issues.');
             if (!response.ok) throw new Error(data.error || 'Vote could not be recorded.');

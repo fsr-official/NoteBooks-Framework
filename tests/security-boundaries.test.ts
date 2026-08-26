@@ -23,6 +23,26 @@ describe('security boundaries', () => {
     expect(response.headers['x-content-type-options']).toBe('nosniff');
   });
 
+  it('enforces CSRF for production browser-cookie mutations', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const app = createApp();
+      const agent = request.agent(app);
+      const bootstrap = await agent.get('/settings');
+      const csrfCookie = (bootstrap.headers['set-cookie'] || []).find((cookie) => cookie.startsWith('csrf='));
+      expect(csrfCookie).toBeTruthy();
+      const token = csrfCookie?.split(';', 1)[0].slice('csrf='.length);
+      const blocked = await agent.put('/api/session').send({ preferences: { readerWidth: 'wide' } });
+      expect(blocked.status).toBe(403);
+      const allowed = await agent.put('/api/session').set('Cookie', `csrf=${token || ''}`).set('x-csrf-token', token || '').send({ preferences: { readerWidth: 'wide' } });
+      expect(allowed.status).not.toBe(403);
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
+    }
+  });
+
   it('rejects private paths from local file delivery', async () => {
     const app = createApp();
     const traversal = await request(app).get('/files/../.env');
