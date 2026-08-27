@@ -324,6 +324,12 @@
             },
             {
               "type": "file",
+              "name": "THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
+              "path": "docs/phase2-3/THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
+              "sha": "dd88158f174e359f95879e3249ca1a668b6f38f3ea61deb3e4bbdd4048441c0b"
+            },
+            {
+              "type": "file",
               "name": "THEME-ROUTE-MAP-2026-08-26.txt",
               "path": "docs/phase2-3/THEME-ROUTE-MAP-2026-08-26.txt",
               "sha": "9122e72899680347431af0ab09e0958c2619324fcad38f03622df0c26fd1386d"
