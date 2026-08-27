@@ -1,0 +1,278 @@
+=== refs ===
+## [32mwhoami[m...[31morigin/whoami[m
+[33m0aff993[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mwhoami[m[33m, [m[1;31morigin/whoami[m[33m)[m fix: refresh theme runtime cache
+[33m609f69b[m fix: separate theme mode from texture state
+[33m6d1758e[m fix: propagate global themes across all surfaces
+[33m0525796[m perf: reuse cached eager registry manifests
+[33m603174a[m Merge remote-tracking branch 'origin/whoami' into whoami
+[33maa9d3fe[m test: add browser navigation smoke gate
+[33m0b12556[m chore: update files.json [skip ci]
+[33ma860d4d[m Merge remote-tracking branch 'origin/whoami' into whoami
+=== theme state ===
+index.html:633:<script src="/public/js/theme.js" defer></script>
+public/html/portal.html:34:  <script src="/public/js/theme.js" defer></script>
+public/html/admin-prs.html:210:          const token = auth && auth.getToken ? auth.getToken() : localStorage.getItem('auth_token');
+public/html/admin.html:67:  <script src="/public/js/theme.js"></script>
+public/html/settings.html:75:              <button id="themeModeToggle" class="settings-theme-mode-toggle" type="button" aria-pressed="false" data-mode="dark" onclick="toggleThemeMode()"><span id="themeModeLabel">Dark mode</span><span aria-hidden="true">Light / Dark</span></button>
+public/html/settings.html:77:            <label class="settings-field" for="themePreset"><span>Theme preset</span><select id="themePreset" onchange="applyThemePreset(this.value)"><option value="futuristic">Futuristic dark</option><option value="professional">Professional dark</option><option value="contrast">High contrast</option><option value="neon">Neon dark</option><option value="classic">Classic light</option><option value="custom">Custom theme</option></select></label>
+public/html/settings.html:115:  <script src="/public/js/theme.js"></script>
+public/html/streams.html:102:    <script src="/public/js/theme.js" defer></script>
+public/js/auth.js:265:    // Try to restore from localStorage if available
+public/js/md-init.js:151:        var mermaidMode = document.documentElement && document.documentElement.dataset.themeMode;
+public/js/modern-auth.js:31:            const token = localStorage.getItem('auth_token');
+public/js/modern-auth.js:32:            const email = localStorage.getItem('auth_email');
+public/js/modern-auth.js:45:            localStorage.setItem('auth_token', token);
+public/js/modern-auth.js:46:            localStorage.setItem('auth_email', email);
+public/js/modern-auth.js:57:            localStorage.removeItem('auth_token');
+public/js/modern-auth.js:58:            localStorage.removeItem('auth_email');
+public/js/markdown-editor.js:27:// Edits are stored in sessionStorage and survive page navigation within the session.
+public/js/markdown-editor.js:279:                sessionStorage.setItem(storageKey, ta.value);
+public/js/markdown-editor.js:366:        var savedContent = sessionStorage.getItem(storageKey);
+public/js/markdown-editor.js:469:            sessionStorage.setItem(storageKey, textarea.value);
+public/js/markdown-editor.js:479:            sessionStorage.removeItem(storageKey);
+public/js/markdown-editor.js:565:            sessionStorage.setItem(storageKey, textarea.value);
+public/js/markdown-editor.js:593:    function clearSession(filePath) { sessionStorage.removeItem(_key(filePath)); }
+public/js/markdown-editor.js:594:    function hasUnsavedEdits(filePath) { return sessionStorage.getItem(_key(filePath)) !== null; }
+public/js/markdown-editor.js:595:    function getSavedContent(filePath) { return sessionStorage.getItem(_key(filePath)); }
+public/js/app.js:440:            const value = localStorage.getItem(key);
+public/js/app.js:445:        localStorage.clear();
+public/js/app.js:447:            localStorage.setItem(key, value);
+public/js/theme.js:2:const THEME_KEY = 'notebooks-theme-global';
+public/js/theme.js:3:const THEME_FAMILY_KEY = 'notebooks-theme-family';
+public/js/theme.js:4:const THEME_MODE_KEY = 'notebooks-theme-mode';
+public/js/theme.js:5:const THEME_COOKIE = 'notebooks-theme';
+public/js/theme.js:13:let themeMode = 'dark';
+public/js/theme.js:18:function readSavedTheme() { try { const local = localStorage.getItem(THEME_KEY); if (local) return JSON.parse(local); } catch (_) { } try { const cookie = getCookie(THEME_COOKIE); if (cookie) return JSON.parse(cookie); } catch (_) { } return null; }
+public/js/theme.js:19:function savedFamily() { try { return localStorage.getItem(THEME_FAMILY_KEY) || 'futuristic'; } catch (_) { return 'futuristic'; } }
+public/js/theme.js:20:function savedMode() { try { return localStorage.getItem(THEME_MODE_KEY) === 'light' ? 'light' : 'dark'; } catch (_) { return 'dark'; } }
+public/js/theme.js:22:function tokensFor(theme, mode = themeMode) { return theme?.variants?.[mode] || theme?.variants?.dark || theme?.tokens || theme || {}; }
+public/js/theme.js:25:    const toggle = document.getElementById('themeModeToggle');
+public/js/theme.js:26:    const label = document.getElementById('themeModeLabel');
+public/js/theme.js:27:    if (toggle) { toggle.setAttribute('aria-pressed', String(themeMode === 'light')); toggle.dataset.mode = themeMode; }
+public/js/theme.js:28:    if (label) label.textContent = themeMode === 'light' ? 'Light mode' : 'Dark mode';
+public/js/theme.js:32:    document.querySelectorAll('[data-theme-preset]').forEach((el) => {
+public/js/theme.js:33:        const active = el.getAttribute('data-theme-preset') === slug;
+public/js/theme.js:45:        button.type = 'button'; button.className = 'theme-preset-tile'; button.setAttribute('data-theme-preset', theme.slug); button.setAttribute('aria-pressed', 'false'); button.setAttribute('aria-label', `Use ${theme.name || theme.slug} theme in ${themeMode} mode`);
+public/js/theme.js:47:        const copy = document.createElement('span'); copy.className = 'theme-preset-copy'; const name = document.createElement('strong'); name.textContent = theme.name || theme.slug; const description = document.createElement('small'); description.textContent = `${themeMode} · ${theme.description || 'Reading-room preset'}`; copy.append(name, description); button.append(swatch, copy); button.addEventListener('click', () => applyThemePreset(theme.slug)); gallery.append(button);
+public/js/theme.js:51:function applyTheme(theme, options = {}) {
+public/js/theme.js:53:    const fallback = THEME_PRESETS.futuristic[themeMode];
+public/js/theme.js:55:    root.dataset.theme = themeMode;
+public/js/theme.js:56:    root.dataset.themeMode = themeMode;
+public/js/theme.js:58:    root.classList.toggle('theme-light', themeMode === 'light');
+public/js/theme.js:98:    if (!options.skipPersist) { try { localStorage.setItem(THEME_KEY, JSON.stringify(values)); localStorage.setItem(THEME_MODE_KEY, themeMode); } catch (_) { } try { setCookie(THEME_COOKIE, JSON.stringify(values), 365); } catch (_) { } }
+public/js/theme.js:100:async function persistThemeSelection(slug) { try { localStorage.setItem(THEME_FAMILY_KEY, slug); } catch (_) { } try { const response = await (window.noteBooksRequest || fetch)('/api/themes/select', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ slug, mode: themeMode }) }); setThemeStatus(response.ok ? `${themeMode === 'light' ? 'Light' : 'Dark'} mode saved to this browser session.` : 'Theme applied locally; session persistence is unavailable.'); } catch (_) { setThemeStatus('Theme applied locally; session persistence is unavailable.'); } }
+public/js/theme.js:101:async function persistCustomTheme(theme) { try { const response = await (window.noteBooksRequest || fetch)('/api/theme', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ theme, mode: themeMode }) }); setThemeStatus(response.ok ? 'Custom theme saved to this browser session.' : 'Custom theme applied locally; session persistence is unavailable.'); } catch (_) { setThemeStatus('Custom theme applied locally; session persistence is unavailable.'); } }
+public/js/theme.js:102:async function persistThemeMode() { try { localStorage.setItem(THEME_MODE_KEY, themeMode); } catch (_) { } const family = document.querySelector('#themePreset')?.value || savedFamily(); if (family && family !== 'custom') return persistThemeSelection(family); try { const response = await (window.noteBooksRequest || fetch)('/api/session', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ themeMode }) }); setThemeStatus(response.ok ? `${themeMode === 'light' ? 'Light' : 'Dark'} mode saved to this browser session.` : 'Mode applied locally; session persistence is unavailable.'); } catch (_) { setThemeStatus('Mode applied locally; session persistence is unavailable.'); } }
+public/js/theme.js:103:async function setThemeMode(mode) { themeMode = mode === 'light' ? 'light' : 'dark'; const family = document.querySelector('#themePreset')?.value || savedFamily(); const preset = findCatalogTheme(family); if (preset) applyTheme(tokensFor(preset), { skipPersist: false }); else applyTheme(readSavedTheme() || THEME_PRESETS.futuristic[themeMode], { skipPersist: false }); renderThemePresetGallery(); await persistThemeMode(); }
+public/js/theme.js:104:function toggleThemeMode() { return setThemeMode(themeMode === 'dark' ? 'light' : 'dark'); }
+public/js/theme.js:106:async function bootstrapThemeState() { themeMode = savedMode(); syncThemeModeControl(); restoreTheme(); const catalogPromise = loadThemeCatalog(); const sessionPromise = typeof window.noteBooksSession === 'function' ? window.noteBooksSession() : (window.noteBooksRequest || fetch)('/api/session', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then((response) => response.ok ? response.json() : { session: {}, persisted: false }).catch(() => ({ session: {}, persisted: false })); await catalogPromise; try { const data = await sessionPromise; const session = data.session || {}; themeMode = session.themeMode === 'light' ? 'light' : themeMode; syncThemeModeControl(); const selected = session.selectedThemeSlug && findCatalogTheme(session.selectedThemeSlug); if (selected) { try { localStorage.setItem(THEME_FAMILY_KEY, selected.slug); } catch (_) { } applyTheme(tokensFor(selected), { skipPersist: true }); setThemeStatus(session.persisted ? `Using saved ${themeMode} mode.` : `Using local ${themeMode} mode.`); return; } if (session.customTheme && Object.keys(session.customTheme).length) { applyTheme(session.customTheme, { skipPersist: true }); setThemeStatus(session.persisted ? `Using saved custom ${themeMode} theme.` : `Using local custom ${themeMode} theme.`); return; } } catch (_) { } restoreTheme(); }
+public/js/theme.js:107:function applyThemePreset(name) { if (name === 'custom') { restoreTheme(); syncThemeSelection('custom'); return; } const preset = findCatalogTheme(name) || { slug: name, variants: THEME_PRESETS[name] }; if (!preset?.variants && !preset?.tokens) return; try { localStorage.setItem(THEME_FAMILY_KEY, name); } catch (_) { } applyTheme(tokensFor(preset), { skipPersist: false }); renderThemePresetGallery(); persistThemeSelection(name); }
+public/js/theme.js:108:function updateCustomTheme(key, value) { const next = { ...(readSavedTheme() || {}), [key]: value }; try { localStorage.setItem(THEME_FAMILY_KEY, 'custom'); } catch (_) { } applyTheme(next); syncThemeSelection('custom'); persistCustomTheme(next); }
+public/js/theme.js:109:function restoreTheme() { applyTheme(readSavedTheme() || tokensFor(findCatalogTheme(savedFamily()) || { variants: THEME_PRESETS.futuristic }), { skipPersist: true }); syncThemeModeControl(); }
+public/js/theme.js:110:window.addEventListener('storage', (event) => { if (event.key === THEME_KEY && event.newValue) applyTheme(JSON.parse(event.newValue), { skipPersist: true }); if (event.key === THEME_MODE_KEY) setThemeMode(event.newValue === 'light' ? 'light' : 'dark'); });
+public/js/theme.js:111:window.loadThemeCatalog = loadThemeCatalog; window.toggleThemeMode = toggleThemeMode; window.setThemeMode = setThemeMode;
+public/js/theme.js:113:if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootstrapThemeState, { once: true }); else bootstrapThemeState();
+public/js/markdown-vendors.js:123:      const mode = global.document?.documentElement?.dataset?.themeMode;
+public/js/reading-preferences.js:38:    if (!options.skipLocal) { try { localStorage.setItem(READING_STORAGE_KEY, JSON.stringify(readingPreferences)); } catch (_) { } }
+public/js/reading-preferences.js:54:    try { local = JSON.parse(localStorage.getItem(READING_STORAGE_KEY) || '{}'); } catch (_) { }
+public/css/style.css:1572:[data-theme="grid"] body { background-image:linear-gradient(rgba(52,211,153,.055) 1px, transparent 1px),linear-gradient(90deg, rgba(52,211,153,.055) 1px, transparent 1px); background-size:28px 28px; }
+public/css/style.css:1573:[data-theme="scanlines"] body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:20; opacity:.08; background:repeating-linear-gradient(0deg, transparent 0 3px, var(--accent) 4px); }
+public/css/style.css:1574:[data-theme="scanlines"] .tree-rail, [data-theme="scanlines"] .workspace-window { box-shadow:0 0 34px color-mix(in srgb, var(--accent) 26%, transparent); }
+public/css/theme.css:9:html[data-theme="dark"] {
+public/css/theme.css:45:html[data-theme="light"] {
+public/css/theme.css:104:html[data-theme-texture="grid"] {
+src/api/theme.ts:8:const THEME_COOKIE = 'notebooks-theme';
+src/api/theme.ts:9:const VISITOR_COOKIE = 'notebooks-theme-visitor';
+src/api/theme.ts:115:    if (preset) theme = themeTokensForMode(preset, session.themeMode || 'dark');
+src/api/theme.ts:137:  const mode: ThemeMode = req.body?.mode === 'light' ? 'light' : req.body?.mode === 'dark' ? 'dark' : ((getBrowserSession(req)?.themeMode || 'dark') as ThemeMode);
+src/api/theme.ts:138:  const session = await updateBrowserSession(req, res, { selectedThemeSlug: preset.slug, customTheme: {}, themeMode: mode });
+src/api/session.ts:14:      themeMode: body.themeMode === 'light' ? 'light' : body.themeMode === 'dark' ? 'dark' : undefined,
+src/lib/browser-session.ts:18:  themeMode: 'dark' | 'light';
+src/lib/browser-session.ts:92:    themeMode: row?.selected_theme_mode === 'light' ? 'light' : 'dark',
+src/lib/browser-session.ts:141:      state = volatileSessions.get(tokenHash) || { tokenHash, userId: null, selectedThemeSlug: null, themeMode: 'dark', customTheme: {}, preferences: {}, persisted: false };
+src/lib/browser-session.ts:145:    state = volatileSessions.get(tokenHash) || { tokenHash, userId: null, selectedThemeSlug: null, themeMode: 'dark', customTheme: {}, preferences: {}, persisted: false };
+src/lib/browser-session.ts:169:  input: { selectedThemeSlug?: string | null; themeMode?: 'dark' | 'light'; customTheme?: unknown; preferences?: unknown }
+src/lib/browser-session.ts:175:  const themeMode = input.themeMode === 'light' ? 'light' : input.themeMode === 'dark' ? 'dark' : current.themeMode;
+src/lib/browser-session.ts:181:  const next = { ...current, selectedThemeSlug, themeMode, customTheme, preferences };
+src/lib/browser-session.ts:188:        [selectedThemeSlug, themeMode, JSON.stringify(customTheme), JSON.stringify(preferences), current.tokenHash]
+src/lib/browser-session.ts:209:    themeMode: session?.themeMode || 'dark',
+src/server/api-routes.ts:20:import themeHandler from '../api/theme.js';
+=== route/history ownership ===
+public/html/admin-prs.html:312:          const makeButton = (label, className, handler) => { const button = document.createElement('button'); button.type = 'button'; button.textContent = label; if (className) button.className = className; button.addEventListener('click', handler); return button; };
+public/html/admin-prs.html:429:        document.getElementById('link-github-button').addEventListener('click', async () => {
+public/html/admin-prs.html:437:            window.location.assign(data.url);
+public/html/admin-prs.html:510:          window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+public/html/admin-prs.html:537:        logoutButton.addEventListener('click', () => {
+public/html/community.html:15:    document.addEventListener('DOMContentLoaded', function(){
+public/html/volunteers.html:15:    document.addEventListener('DOMContentLoaded', function(){
+public/html/streams.html:90:        const url = new URL(window.location.href);
+public/js/auth.js:27:document.addEventListener('DOMContentLoaded', function () {
+public/js/obsidian-markdown-it.js:1042:            btn.addEventListener('click', function (e) { e.stopPropagation(); tbClick(btn.dataset.a); });
+public/js/obsidian-markdown-it.js:1461:        btn.addEventListener('click', function () {
+public/js/obsidian-markdown-it.js:1640:        'el.addEventListener("click",function(){' +
+public/js/obsidian-markdown-it.js:1710:            el.addEventListener('click', function () {
+public/js/obsidian-markdown-it.js:1937:                btn.addEventListener('click', function (e) {
+public/js/markdown-editor.js:381:            btn.addEventListener('click', onClick);
+public/js/markdown-editor.js:521:                    window.open(data.prUrl, '_blank');
+public/js/mobile.js:9:document.addEventListener('click', e => {
+public/js/mobile.js:120:document.addEventListener('click', (e) => {
+public/js/mobile.js:227:window.addEventListener('DOMContentLoaded', async () => {
+public/js/app.js:204:        document.querySelectorAll('[data-portal-sort]').forEach((button) => { button.classList.toggle('is-active', button.dataset.portalSort === initialSort); button.addEventListener('click', () => { document.querySelectorAll('[data-portal-sort]').forEach((item) => item.classList.toggle('is-active', item === button)); loadPortalFeed(subject, 'portalFeed', button.dataset.portalSort || 'latest'); }); });
+public/js/app.js:237:    feed.querySelectorAll('[data-issue-vote]').forEach((button) => button.addEventListener('click', async () => {
+public/js/app.js:268:        button.addEventListener('click', () => {
+public/js/app.js:1413:document.addEventListener("click", () => {
+public/js/app.js:1879:  dialog.querySelector('.suggest-changes-close')?.addEventListener('click', close);
+public/js/app.js:1880:  dialog.querySelector('[data-suggest-cancel]')?.addEventListener('click', close);
+public/js/app.js:1930:  suggestButton.addEventListener('click', () => openSuggestChangesComposer(win, text, filePath, lastEvidence));
+public/js/app.js:1952:  toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((button) => button.addEventListener('click', () => {
+public/js/app.js:2096:document.addEventListener("click", (e) => {
+public/js/app.js:2120:    window.location.href = appConfig.APP_URL;
+public/js/app.js:2148:    treeRailToggle?.addEventListener('click', () => {
+public/js/app.js:2161:    document.getElementById('sidebarCollapseBtn')?.addEventListener('click', toggleSidebar);
+public/js/theme.js:47:        const copy = document.createElement('span'); copy.className = 'theme-preset-copy'; const name = document.createElement('strong'); name.textContent = theme.name || theme.slug; const description = document.createElement('small'); description.textContent = `${themeMode} · ${theme.description || 'Reading-room preset'}`; copy.append(name, description); button.append(swatch, copy); button.addEventListener('click', () => applyThemePreset(theme.slug)); gallery.append(button);
+public/js/theme.js:112:if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderThemePresetGallery, { once: true }); else renderThemePresetGallery();
+public/js/theme.js:113:if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootstrapThemeState, { once: true }); else bootstrapThemeState();
+public/js/shell-nav.js:7:  toggle?.addEventListener('click', () => {
+public/js/portal.js:71:      list.querySelectorAll('[data-channel-slug]').forEach((button) => button.addEventListener('click', () => selectChannel(button.dataset.channelSlug)));
+public/js/portal.js:99:      messageList?.querySelectorAll('[data-report-message]').forEach((button) => button.addEventListener('click', () => reportMessage(button.dataset.reportMessage)));
+public/js/portal.js:135:      list.querySelectorAll('[data-moderate-report]').forEach((button) => button.addEventListener('click', async () => {
+public/js/portal.js:232:  document.querySelectorAll('[data-portal-sort]').forEach((button) => button.addEventListener('click', () => {
+public/js/reading-preferences.js:67:if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootstrapReadingPreferences, { once: true }); else bootstrapReadingPreferences();
+public/js/settings-nav.js:16:  links.forEach((link) => link.addEventListener('click', () => {
+public/js/settings-nav.js:19:  window.addEventListener('hashchange', sync, { passive: true });
+public/js/request.js:17:    const target = new URL(url, window.location.href);
+public/client/main.js:10:    toggle.addEventListener('click', () => {
+public/client/main.js:16:document.addEventListener('DOMContentLoaded', setupTypedClientShell);
+public/client/streams.js:87:            btn.addEventListener('click', () => {
+public/client/streams.js:104:            btn.addEventListener('click', () => {
+public/client/streams.js:141:        link.addEventListener('click', (event) => {
+public/client/streams.js:227:document.addEventListener('DOMContentLoaded', bootstrapStreamRouting);
+src/client/main.ts:15:  toggle.addEventListener('click', () => {
+src/client/main.ts:22:document.addEventListener('DOMContentLoaded', setupTypedClientShell)
+src/client/streams.ts:101:      btn.addEventListener('click', () => {
+src/client/streams.ts:117:      btn.addEventListener('click', () => {
+src/client/streams.ts:157:    link.addEventListener('click', (event) => {
+src/client/streams.ts:250:document.addEventListener('DOMContentLoaded', bootstrapStreamRouting);
+=== routing config ===
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/dashboard", "destination": "/settings#personal-space", "permanent": false },
+    { "source": "/dashboard/", "destination": "/settings#personal-space", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/api/registry", "destination": "/public/json/repo-registry.json" },
+    { "source": "/api/system/:stream", "destination": "/public/json/:stream-tree.json" },
+    { "source": "/settings", "destination": "/public/html/settings" },
+    { "source": "/settings/", "destination": "/public/html/settings" },
+    { "source": "/admin", "destination": "/public/html/admin" },
+    { "source": "/admin/", "destination": "/public/html/admin" },
+    { "source": "/admin-prs", "destination": "/public/html/admin-prs" },
+    { "source": "/admin-prs/", "destination": "/public/html/admin-prs" },
+    { "source": "/science", "destination": "/public/html/streams" },
+    { "source": "/science/", "destination": "/public/html/streams" },
+    { "source": "/commerce", "destination": "/public/html/streams" },
+    { "source": "/commerce/", "destination": "/public/html/streams" },
+    { "source": "/humanities", "destination": "/public/html/streams" },
+    { "source": "/humanities/", "destination": "/public/html/streams" },
+    { "source": "/community", "destination": "/public/html/portal" },
+    { "source": "/community/", "destination": "/public/html/portal" },
+    { "source": "/issues", "destination": "/public/html/portal" },
+    { "source": "/issues/", "destination": "/public/html/portal" },
+    { "source": "/volunteers", "destination": "/public/html/portal" },
+    { "source": "/volunteers/", "destination": "/public/html/portal" },
+    { "source": "/accounts", "destination": "/public/html/portal" },
+    { "source": "/accounts/", "destination": "/public/html/portal" },
+    { "source": "/about", "destination": "/public/html/portal" },
+    { "source": "/about/", "destination": "/public/html/portal" }
+  ],
+  "functions": {
+    "api/[...all].ts": {
+      "includeFiles": "{GITHUB-REPOSITORIES.md,files.json,version.json,public/json/*.json,public/html/**/*.html,public/css/**/*.css,public/js/**/*.js,public/client/**/*.js}"
+    }
+  }
+}
+=== scripts per shell ===
+--- index.html
+/public/client/observability.js
+/public/js/request.js
+https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js
+https://cdn.jsdelivr.net/npm/markdown-it-sub@1/dist/markdown-it-sub.min.js
+https://cdn.jsdelivr.net/npm/markdown-it-sup@1/dist/markdown-it-sup.min.js
+https://cdn.jsdelivr.net/npm/markdown-it-footnote@3/dist/markdown-it-footnote.min.js
+/public/js/obsidian-markdown-it.js
+/public/js/modern-auth.js
+/public/js/md-init.js
+/public/js/markdown-editor.js
+/public/js/markdown-vendors.js
+/public/js/markdown.js
+/public/js/config.js
+/public/js/theme.js
+/public/js/landing-docs.js
+/public/js/stream-runtime.js
+/public/js/raw-delivery.js
+/public/js/app.js?v=20260808-pathfix
+/public/js/auth.js
+/public/js/upload.js
+/public/js/mobile.js
+/public/js/shell-nav.js
+--- public/html/admin-prs.html
+/public/client/observability.js
+/public/js/request.js
+/public/js/modern-auth.js
+--- public/html/admin.html
+/public/client/observability.js
+/public/js/request.js
+/public/js/theme.js
+/public/js/shell-nav.js
+/public/js/admin-dashboard.js
+--- public/html/community.html
+/public/client/observability.js
+/public/client/streams.js
+--- public/html/portal.html
+/public/client/observability.js
+/public/js/request.js
+/public/js/config.js
+/public/js/theme.js
+/public/js/modern-auth.js
+/public/js/auth.js
+/public/js/shell-nav.js
+/public/js/portal.js
+--- public/html/settings.html
+/public/client/observability.js
+/public/js/request.js
+/public/js/sw-register.js
+/public/js/shell-nav.js
+/public/js/settings-nav.js
+/public/js/session-state.js
+/public/js/theme.js
+/public/js/reading-preferences.js
+/public/js/dashboard.js
+--- public/html/streams.html
+/public/client/observability.js
+/public/js/request.js
+/public/js/config.js
+/public/js/modern-auth.js
+https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js
+https://cdn.jsdelivr.net/npm/markdown-it-sub@1/dist/markdown-it-sub.min.js
+https://cdn.jsdelivr.net/npm/markdown-it-sup@1/dist/markdown-it-sup.min.js
+https://cdn.jsdelivr.net/npm/markdown-it-footnote@3/dist/markdown-it-footnote.min.js
+/public/js/obsidian-markdown-it.js
+/public/js/md-init.js
+/public/js/markdown-editor.js
+/public/js/markdown.js
+/public/js/theme.js
+/public/js/reading-preferences.js
+/public/js/stream-runtime.js
+/public/js/raw-delivery.js
+/public/js/app.js
+/public/js/auth.js
+/public/js/shell-nav.js
+--- public/html/volunteers.html
+/public/client/observability.js
+/public/client/streams.js

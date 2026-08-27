@@ -1,7 +1,9 @@
 export const THEME_ALLOWED_KEYS = new Set([
   'accent', 'accentHover', 'accentSubtle', 'surface', 'surfaceMuted', 'text', 'textMuted',
-  'code', 'font', 'bg', 'panel', 'border', 'borderSubtle', 'radius', 'density', 'shadow',
-  'texture', 'heading', 'hover', 'selected', 'btnBg', 'btnHover'
+  'code', 'codeText', 'font', 'bg', 'panel', 'surfaceStrong', 'surfaceMuted', 'inputBg',
+  'cardBg', 'cardHover', 'border', 'borderSubtle', 'radius', 'density', 'shadow', 'overlay',
+  'texture', 'heading', 'hover', 'selected', 'btnBg', 'btnHover', 'link', 'focus',
+  'danger', 'success', 'warning'
 ]);
 
 export type ThemeMode = 'dark' | 'light';
@@ -39,8 +41,8 @@ export const BUILTIN_THEME_PRESETS: ThemePreset[] = [
   preset('professional', 'Professional', 'A restrained blue-gray family for long study and review sessions.',
     { accent: '#60a5fa', surface: '#172033', text: '#e5edf8', code: '#0d1524', font: 'Inter', bg: '#111827', panel: '#1f2937', border: '#334155', radius: '8px', density: '.98', shadow: '0 10px 28px rgba(0,0,0,.2)', texture: 'none', heading: 'Inter' },
     { accent: '#1d4ed8', surface: '#f1f5fb', text: '#162033', code: '#eaf0f8', font: 'Inter', bg: '#f7faff', panel: '#ffffff', border: '#b9c9df', radius: '8px', density: '.98', shadow: '0 10px 28px rgba(31,41,55,.12)', texture: 'none', heading: 'Inter' }),
-  preset('classic', 'Classic', 'A quiet paper-like family for bright reading environments.',
-    { accent: '#0969da', surface: '#ffffff', text: '#1f2328', code: '#f6f8fa', font: 'system-ui', bg: '#f6f8fa', panel: '#ffffff', border: '#d0d7de', radius: '6px', density: '.94', shadow: '0 1px 2px rgba(31,35,40,.08)', texture: 'none', heading: 'system-ui' },
+  preset('classic', 'Classic', 'A quiet grey-charcoal family for focused reading in dark mode and restrained paper reading in light mode.',
+    { accent: '#79c0ff', surface: '#262b32', surfaceStrong: '#30363d', surfaceMuted: '#20252b', inputBg: '#1d2228', cardBg: '#2b3138', cardHover: '#343b44', link: '#79c0ff', focus: '#58a6ff', accentSubtle: 'rgba(88,166,255,.16)', text: '#e6edf3', textMuted: '#aab4c0', code: '#161b22', codeText: '#e6edf3', overlay: 'rgba(13,17,23,.82)', font: 'system-ui', bg: '#1b1f24', panel: '#2b3138', border: '#4b5563', borderSubtle: 'rgba(139,148,158,.35)', radius: '6px', density: '.94', shadow: '0 8px 24px rgba(0,0,0,.28)', texture: 'none', heading: 'system-ui' },
     { accent: '#0969da', surface: '#ffffff', text: '#1f2328', code: '#f6f8fa', font: 'system-ui', bg: '#f6f8fa', panel: '#ffffff', border: '#d0d7de', radius: '6px', density: '.94', shadow: '0 1px 2px rgba(31,35,40,.08)', texture: 'none', heading: 'system-ui' })
 ];
 
