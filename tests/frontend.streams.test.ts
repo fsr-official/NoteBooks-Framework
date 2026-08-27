@@ -148,6 +148,15 @@ describe('frontend stream shell', () => {
     expect(mobileJs.text).toContain('Edit existing Markdown file');
     expect(mobileJs.text).toContain("selected.repo || ''");
 
+    const streamShell = await request(app).get('/public/html/streams.html');
+    expect(streamShell.status).toBe(200);
+    expect(streamShell.text).toContain('/public/js/session-state.js');
+    expect(streamShell.text.indexOf('/public/js/session-state.js')).toBeLessThan(streamShell.text.indexOf('/public/js/theme.js'));
+    const portalShell = await request(app).get('/public/html/portal.html');
+    expect(portalShell.status).toBe(200);
+    expect(portalShell.text).toContain('/public/js/session-state.js');
+    expect(portalShell.text).not.toContain('/public/js/config.js');
+
     const streamsJs = await request(app).get('/public/client/streams.js');
     expect(streamsJs.status).toBe(200);
     expect(streamsJs.text).toContain('initStreamShell');
