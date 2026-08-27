@@ -10,6 +10,11 @@ async function main() {
     args: ['--no-sandbox', '--disable-dev-shm-usage']
   });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await page.addInitScript(() => {
+    localStorage.setItem('notebooks-theme-family', 'classic');
+    localStorage.setItem('notebooks-theme-mode', 'dark');
+    localStorage.removeItem('notebooks-theme-global');
+  });
   const timings = {};
 
   async function open(pathname) {
@@ -40,6 +45,14 @@ async function main() {
     assert.ok(['dark', 'light'].includes(settingsThemeState.mode), `invalid Settings theme mode: ${settingsThemeState.mode}`);
     assert.equal(settingsThemeState.mode, settingsThemeState.modeMirror);
     assert.ok(settingsThemeState.background && settingsThemeState.foreground, 'Settings theme variables are empty');
+    assert.equal(settingsThemeState.mode, 'dark');
+    assert.equal(settingsThemeState.background, '#1b1f24');
+    const settingsSurfaceState = await page.evaluate(() => ({
+      surface: getComputedStyle(document.querySelector('.settings-card')).backgroundColor,
+      panel: getComputedStyle(document.querySelector('.settings-sidebar')).backgroundColor
+    }));
+    assert.equal(settingsSurfaceState.surface, 'rgb(38, 43, 50)');
+    assert.equal(settingsSurfaceState.panel, 'rgb(38, 43, 50)');
     await page.locator('.global-nav-toggle').click();
     assert.equal(await page.locator('.global-nav-toggle').getAttribute('aria-expanded'), 'true');
     await page.locator('.global-nav-toggle').click();
@@ -60,6 +73,14 @@ async function main() {
     assert.equal(await page.locator('script[src*="stream-runtime.js"]').count(), 1);
     const streamScripts = await page.locator('script[src]').evaluateAll((elements) => elements.map((element) => element.src));
     assert.equal(new Set(streamScripts).size, streamScripts.length, 'Science contains duplicate script URLs');
+    const scienceThemeState = await page.evaluate(() => ({
+      nav: getComputedStyle(document.querySelector('.global-nav')).backgroundColor,
+      shell: getComputedStyle(document.querySelector('.stream-shell-page')).backgroundImage,
+      background: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
+    }));
+    assert.equal(scienceThemeState.background, '#1b1f24');
+    assert.equal(scienceThemeState.shell, 'none');
+    assert.notEqual(scienceThemeState.nav, 'rgba(2, 5, 4, 0.88)');
 
     await page.goBack({ waitUntil: 'domcontentloaded' });
     assert.equal(new URL(page.url()).pathname, '/settings');
@@ -75,6 +96,8 @@ async function main() {
     }));
     assert.ok(['dark', 'light'].includes(homeThemeState.mode), `invalid Home theme mode: ${homeThemeState.mode}`);
     assert.ok(homeThemeState.background && homeThemeState.foreground, 'Home theme variables are empty');
+    assert.equal(homeThemeState.mode, 'dark');
+    assert.equal(homeThemeState.background, '#1b1f24');
 
     const navProblems = await page.locator('.global-nav a').evaluateAll((elements) => elements
       .filter((element) => !(element.textContent || element.getAttribute('aria-label') || '').trim())

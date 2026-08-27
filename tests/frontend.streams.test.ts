@@ -50,6 +50,8 @@ describe('frontend stream shell', () => {
     expect(settings.text).toContain('id="themePresetGallery"');
     expect(settings.text).toContain('id="themeModeToggle"');
     expect(settings.text).toContain('Every theme family includes a coordinated light and dark variant.');
+    expect(settings.text).toContain('<option value="classic">Classic</option>');
+    expect(settings.text).not.toContain('<option value="classic">Classic light</option>');
     expect(settings.text).toContain('/public/client/observability.js');
     expect(settings.text).toContain('/public/js/shell-nav.js');
     expect(settings.text).toContain('/public/js/session-state.js');
@@ -80,6 +82,8 @@ describe('frontend stream shell', () => {
     expect(themeJs.text).toContain('toggleThemeMode');
     expect(themeJs.text).toContain('themeMode');
     expect(themeJs.text).toContain("surfaceStrong");
+    expect(themeJs.text).toContain("session.themeMode === 'dark'");
+    expect(themeJs.text).not.toContain("data-theme = values.texture");
     expect(themeJs.text).toContain("inputBg");
     expect(themeJs.text).toContain("codeText");
     expect(themeJs.text).toContain("surface: '#262b32'");
@@ -104,10 +108,10 @@ describe('frontend stream shell', () => {
     expect(readingJs.text).toContain('--reader-content-width');
     const swRegisterJs = await request(app).get('/public/js/sw-register.js');
     expect(swRegisterJs.status).toBe(200);
-    expect(swRegisterJs.text).toContain('20260826-sw-v34');
+    expect(swRegisterJs.text).toContain('20260828-sw-v35');
     const appJs = await request(app).get('/public/js/app.js');
     expect(appJs.status).toBe(200);
-    expect(appJs.text).toContain('20260826-sw-v34');
+    expect(appJs.text).toContain('20260828-sw-v35');
     expect(appJs.text).toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
     expect(appJs.text).toContain('window.NoteBooksRawDelivery');
@@ -168,7 +172,7 @@ describe('frontend stream shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v38'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v39'");
     expect(serviceWorker.text).toContain('public/client/observability.js');
     expect(serviceWorker.text).toContain('function cacheStaticResponse');
     expect(serviceWorker.text).toContain('Cache failures must never reject the page');
@@ -187,6 +191,8 @@ describe('frontend stream shell', () => {
     expect(styleCss.text).toContain('Global theme bridge');
     expect(styleCss.text).toContain('.markdown-renderer pre');
     expect(styleCss.text).toContain('--surface-strong');
+    expect(styleCss.text).toContain('html[data-theme-texture="grid"] .stream-shell-page');
+    expect(styleCss.text).toContain('.stream-shell-page .global-nav { background: color-mix');
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);

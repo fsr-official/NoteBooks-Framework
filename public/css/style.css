@@ -3889,6 +3889,18 @@ body,
 .tree-rail, .sidebar-tree { background: var(--surface-strong); }
 .toolbar, .path-nav { background: var(--panel); border-color: var(--border); }
 .global-nav { background: color-mix(in srgb, var(--panel) 94%, var(--bg)); border-color: var(--border); }
+.stream-shell-page { background-color: var(--bg); background-image: none; }
+html[data-theme-texture="grid"] .stream-shell-page {
+  background-image: linear-gradient(color-mix(in srgb, var(--accent) 10%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--accent) 10%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+html[data-theme-texture="scanlines"] .stream-shell-page {
+  background-image: linear-gradient(color-mix(in srgb, var(--accent) 8%, transparent) 1px, transparent 1px);
+  background-size: 100% 4px;
+}
+.stream-shell-page .global-nav { background: color-mix(in srgb, var(--panel) 94%, var(--bg)); border-color: var(--border); }
+.stream-shell-page .global-nav-brand { color: var(--fg); }
+.stream-shell-page .global-nav-links a { color: var(--text-muted); }
 .global-nav-links a { color: var(--text-muted); }
 .global-nav-links a:hover,
 .global-nav-links a:focus-visible,

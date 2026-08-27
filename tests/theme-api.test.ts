@@ -28,6 +28,8 @@ describe('theme API', () => {
     expect(response.status).toBe(200);
     expect(response.body.themes.map((theme: { slug: string }) => theme.slug)).toEqual(['futuristic', 'contrast', 'neon', 'professional', 'classic']);
     expect(response.body.themes[0]).toHaveProperty('tokens');
+    const classic = response.body.themes.find((theme: { slug: string }) => theme.slug === 'classic');
+    expect(classic.variants.dark).toMatchObject({ bg: '#1b1f24', surface: '#262b32', panel: '#2b3138' });
   });
 
   it('selects a global preset into the browser session', async () => {
@@ -57,6 +59,32 @@ describe('theme API', () => {
     const session = await agent.get('/api/session');
     expect(session.body.session.selectedThemeSlug).toBe('contrast');
     expect(session.body.session.themeMode).toBe('light');
+  });
+
+  it('keeps Classic dark charcoal even when a stale theme cookie exists', async () => {
+    const app = createApp();
+    const agent = request.agent(app);
+    await agent.post('/api/theme').send({ theme: { bg: '#ffffff', surface: '#ffffff' }, mode: 'light' });
+    const selected = await agent.post('/api/themes/select').send({ slug: 'classic', mode: 'dark' });
+
+    expect(selected.status).toBe(200);
+    expect(selected.body.theme.tokens.bg).toBe('#1b1f24');
+    expect(selected.body.theme.tokens.surface).toBe('#262b32');
+
+    const loaded = await agent.get('/api/theme');
+    expect(loaded.status).toBe(200);
+    expect(loaded.body.theme.bg).toBe('#1b1f24');
+    expect(loaded.body.theme.surface).toBe('#262b32');
+  });
+
+  it('persists custom theme mode in the browser session', async () => {
+    const app = createApp();
+    const agent = request.agent(app);
+    const saved = await agent.post('/api/theme').send({ theme: { bg: '#f6f8fa', surface: '#ffffff' }, mode: 'light' });
+
+    expect(saved.status).toBe(200);
+    const session = await agent.get('/api/session');
+    expect(session.body.session).toMatchObject({ selectedThemeSlug: 'custom', themeMode: 'light' });
   });
 
   it('rejects unknown global presets', async () => {
