@@ -330,6 +330,12 @@
             },
             {
               "type": "file",
+              "name": "THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
+              "path": "docs/phase2-3/THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
+              "sha": "287dad592c9c3ad8766ff5d660578dd596a774c6388f301275a0fb7e778ede2a"
+            },
+            {
+              "type": "file",
               "name": "UPGRADE-ROADMAP-2026-08-26.md",
               "path": "docs/phase2-3/UPGRADE-ROADMAP-2026-08-26.md",
               "sha": "a9acdc59a77b6bad73fea2f9cd5e78634aab1a85c8f4036af7fdbc03dea6b3e0"
