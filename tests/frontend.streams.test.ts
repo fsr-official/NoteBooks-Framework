@@ -147,6 +147,8 @@ describe('frontend stream shell', () => {
     expect(mobileJs.status).toBe(200);
     expect(mobileJs.text).toContain('Edit existing Markdown file');
     expect(mobileJs.text).toContain("selected.repo || ''");
+    expect(mobileJs.text).not.toContain('restoreModernSession();');
+    expect(mobileJs.text).toContain('updatePendingBadge();');
 
     const streamShell = await request(app).get('/public/html/streams.html');
     expect(streamShell.status).toBe(200);
