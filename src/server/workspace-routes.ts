@@ -71,7 +71,7 @@ export function registerWorkspaceRoutes(app: express.Application, projectDir: st
   app.get('/api/files.json', async (_req, res) => await sendManifestResponse(res));
   app.get('/api/manifest', async (_req, res) => await sendManifestResponse(res));
   app.get('/api/manifest.js', async (_req, res) => await sendManifestResponse(res));
-  app.get('/files/{*filePath}', (req, res) => {
+  const sendPublishedFile = (req: express.Request, res: express.Response) => {
     const params = req.params as { filePath?: string | string[] };
     const rawFilePath = Array.isArray(params.filePath) ? params.filePath.join('/') : params.filePath;
     const filePath = String(rawFilePath || '').replace(/^\/+/, '');
@@ -82,7 +82,11 @@ export function registerWorkspaceRoutes(app: express.Application, projectDir: st
     if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) return res.status(404).json({ error: 'File not found' });
     res.set('Cache-Control', 'no-cache');
     return res.sendFile(absolutePath);
-  });
+  };
+  app.get('/files/{*filePath}', sendPublishedFile);
+  // Vercel rewrites /files/* into the API function because the platform does not
+  // invoke the Express catch-all for a dynamic static path automatically.
+  app.get('/api/workspace-file/{*filePath}', sendPublishedFile);
   app.get('/api/workspace', (_req, res) => {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(getWorkspaceMetadata(projectDir));

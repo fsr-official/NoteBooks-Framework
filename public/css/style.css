@@ -4109,3 +4109,43 @@ th { background: var(--surface-strong); color: var(--fg); }
   .tree-rail { padding-inline: 10px; }
   .sidebar-tree-row { min-height: 36px; padding-inline: 6px; }
 }
+
+
+/* Tree readability refinement: use the available viewport height and make the active
+   location unmistakable in both the generic and stream-specific shells. */
+.tree-rail {
+  height: calc(100vh - 86px);
+  min-height: 680px;
+  max-height: none;
+}
+.tree-rail .sidebar-browse-section {
+  min-height: 0;
+}
+.tree-rail .sidebar-tree {
+  min-height: 0;
+  height: 100%;
+}
+.tree-current-location--marker,
+.stream-workspace-main .tree-rail .tree-current-location--marker {
+  max-width: min(36vw, 420px);
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 2px solid var(--accent);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
+  font: 800 12px/1.35 var(--font-mono);
+  letter-spacing: .01em;
+  text-shadow: none;
+}
+@media (max-width: 980px) {
+  .tree-rail,
+  .stream-workspace-main .tree-rail {
+    height: auto;
+    min-height: min(58vh, 560px);
+  }
+  .tree-rail .sidebar-tree { height: auto; min-height: 280px; }
+  .tree-current-location--marker,
+  .stream-workspace-main .tree-rail .tree-current-location--marker { max-width: 100%; }
+}

@@ -10,6 +10,7 @@
     { "source": "/dashboard/", "destination": "/settings#personal-space", "permanent": false }
   ],
   "rewrites": [
+    { "source": "/files/:path*", "destination": "/api/workspace-file/:path*" },
     { "source": "/api/registry", "destination": "/public/json/repo-registry.json" },
     { "source": "/api/system/:stream", "destination": "/public/json/:stream-tree.json" },
     { "source": "/settings", "destination": "/public/html/settings" },
