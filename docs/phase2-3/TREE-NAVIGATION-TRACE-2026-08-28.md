@@ -46,3 +46,9 @@ The current local validation passed after the redesign:
 | Diff whitespace check | Passed |
 
 No lazy tree loading was introduced. Science, Commerce, and Humanities retain their eager tree/artifact architecture.
+
+## Follow-up: direct files and vertical tree space
+
+A live request to `/files/README.md` returned the root HTML shell with HTTP 200 instead of Markdown. The local Express route was correct, but `vercel.json` had no dynamic `/files/:path*` rewrite, so Vercel fell through to the root shell. The fix adds a rewrite to `/api/workspace-file/:path*` and exposes that alias through the same validated `sendFile` handler. The local route and API alias now return `text/markdown` and never return the HTML shell.
+
+The tree rail previously stopped at `calc(100vh - 86px)` and the active marker used an 11px muted style. The follow-up makes the tree use the available viewport height, gives narrow screens a larger bounded tree area, and uses a 12px bold marker with a two-pixel accent border, accent background, contrasting foreground, and visible shadow. The marker remains a single runtime-owned element in the tree header.

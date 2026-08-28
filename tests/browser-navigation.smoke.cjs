@@ -84,6 +84,17 @@ async function main() {
     assert.ok(workspaceLayout.treeLeft < workspaceLayout.workspaceLeft, 'tree rail is not the left workspace pane');
     assert.equal(workspaceLayout.markerInsideHeader, true);
     assert.ok(workspaceLayout.treeWidth >= 320, `tree rail is too narrow: ${workspaceLayout.treeWidth}`);
+    const markerStyle = await page.locator('#treeCurrentLocation').evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { fontSize: style.fontSize, fontWeight: style.fontWeight, borderWidth: style.borderTopWidth, background: style.backgroundColor, color: style.color };
+    });
+    assert.ok(Number.parseFloat(markerStyle.fontSize) >= 12, `current marker is too small: ${markerStyle.fontSize}`);
+    assert.ok(Number.parseInt(markerStyle.fontWeight, 10) >= 700, `current marker is not prominent: ${markerStyle.fontWeight}`);
+    assert.ok(Number.parseFloat(markerStyle.borderWidth) >= 2, `current marker border is too subtle: ${markerStyle.borderWidth}`);
+    const fileResponse = await page.request.get(`${baseURL}/files/README.md?browser-check=1`);
+    assert.equal(fileResponse.status(), 200);
+    assert.match(fileResponse.headers()['content-type'] || '', /text\/(markdown|plain)/);
+    assert.ok(!(await fileResponse.text()).includes('<!DOCTYPE html>'), 'direct README route returned an HTML shell');
     assert.equal(await page.locator('script[src*="/public/js/app.js"]').count(), 1);
     assert.equal(await page.locator('script[src*="stream-runtime.js"]').count(), 1);
     const streamScripts = await page.locator('script[src]').evaluateAll((elements) => elements.map((element) => element.src));
