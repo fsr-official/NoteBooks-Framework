@@ -26,13 +26,6 @@
       <main class="window workspace-window" id="workspaceWindow" aria-label="File workspace">
         <div class="toolbar">
           <h1 id="workspaceHeader">NoteBooks</h1>
-          <div class="workspace-location-marker" id="workspaceLocationMarker" role="status" aria-live="polite">Inside: workspace root</div>
-          <button class="mob-toolbar-overflow" onclick="refreshFiles()" title="Refresh">↻</button>
-          <button class="mob-toolbar-overflow" onclick="goUp()" title="Go up">↑</button>
-          <button class="mob-toolbar-overflow" onclick="showUploadScreen()" title="Upload">⬆</button>
-          <button class="editor-launch-button" onclick="openNewMarkdownEditor()" title="New Markdown note">✎ New note</button>
-          <button class="mob-toolbar-overflow" onclick="openCommunity()" title="Community">•••</button>
-          <button id="loginBtnToolbar" onclick="showLoginScreen()" title="Login / Account">Account</button>
         </div>
         <div class="path-nav" id="pathNav" aria-label="Current location"><span class="path-segment" onclick="goToRoot()">☁️</span></div>
         <div class="list-view" id="listView" aria-live="polite"></div>
@@ -40,13 +33,12 @@
 
       <aside class="tree-rail" id="treeRail" aria-label="Repository navigator">
         <div class="tree-rail-header">
-          <div><div class="tree-rail-kicker">NAVIGATOR</div><div class="tree-rail-title">Repository tree</div></div>
+          <div><div class="tree-rail-kicker">NAVIGATOR</div><div class="tree-rail-title">Repository tree</div><div class="tree-current-location tree-current-location--marker" id="treeCurrentLocation" role="status" aria-live="polite" title="Current location">Current: workspace root</div></div>
           <button class="sidebar-collapse-control" id="sidebarCollapseBtn" type="button" aria-label="Collapse navigator" aria-expanded="true">›</button>
         </div>
         <div class="sidebar-section sidebar-browse-section">
           <label class="sidebar-section-title" for="sidebarSearch">Search files and folders</label>
           <input class="sidebar-search-input" id="sidebarSearch" type="search" placeholder="Filter tree" autocomplete="off" aria-label="Search repository files and folders" />
-          <div class="tree-current-location" id="treeCurrentLocation" role="status" aria-live="polite">Current location: workspace root</div>
           <div class="sidebar-tree" id="sidebarTree" role="tree" aria-label="Repository files and folders"><div class="sidebar-tree-empty">Loading file tree…</div></div>
           <div class="tree-hover-details" id="treeHoverDetails" role="tooltip" aria-live="polite" hidden></div>
         </div>

@@ -67,8 +67,23 @@ async function main() {
     const settingsScripts = await page.locator('script[src]').evaluateAll((elements) => elements.map((element) => element.src));
     assert.equal(new Set(settingsScripts).size, settingsScripts.length, 'Settings contains duplicate script URLs');
 
+    await page.setViewportSize({ width: 1440, height: 900 });
     await open('/science');
     assert.equal(await page.locator('.global-nav').count(), 1);
+    assert.equal(await page.locator('.toolbar > button').count(), 0, 'workspace toolbar still contains action buttons');
+    const workspaceLayout = await page.evaluate(() => ({
+      treeArea: getComputedStyle(document.querySelector('.tree-rail')).gridArea,
+      workspaceArea: getComputedStyle(document.querySelector('.workspace-window')).gridArea,
+      treeLeft: document.querySelector('.tree-rail')?.getBoundingClientRect().left || 0,
+      workspaceLeft: document.querySelector('.workspace-window')?.getBoundingClientRect().left || 0,
+      markerInsideHeader: Boolean(document.querySelector('#treeCurrentLocation')?.closest('.tree-rail-header')),
+      treeWidth: document.querySelector('.tree-rail')?.getBoundingClientRect().width || 0
+    }));
+    assert.equal(workspaceLayout.treeArea, 'tree');
+    assert.equal(workspaceLayout.workspaceArea, 'workspace');
+    assert.ok(workspaceLayout.treeLeft < workspaceLayout.workspaceLeft, 'tree rail is not the left workspace pane');
+    assert.equal(workspaceLayout.markerInsideHeader, true);
+    assert.ok(workspaceLayout.treeWidth >= 320, `tree rail is too narrow: ${workspaceLayout.treeWidth}`);
     assert.equal(await page.locator('script[src*="/public/js/app.js"]').count(), 1);
     assert.equal(await page.locator('script[src*="stream-runtime.js"]').count(), 1);
     const streamScripts = await page.locator('script[src]').evaluateAll((elements) => elements.map((element) => element.src));

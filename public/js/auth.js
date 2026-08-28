@@ -246,17 +246,17 @@ function updateShellSidebar() {
 }
 function updateModernAuthUI() {
     const loginBtn = document.getElementById('loginBtnToolbar');
-    if (!loginBtn)
-        return;
-    if (window.ModernAuthInstance.isLoggedIn()) {
-        loginBtn.textContent = '👤 ' + window.ModernAuthInstance.getEmail();
-        loginBtn.style.background = 'var(--selected)';
-        loginBtn.style.color = 'var(--accent)';
-    }
-    else {
-        loginBtn.textContent = '🔐 Login';
-        loginBtn.style.background = '';
-        loginBtn.style.color = '';
+    if (loginBtn) {
+        if (window.ModernAuthInstance.isLoggedIn()) {
+            loginBtn.textContent = '👤 ' + window.ModernAuthInstance.getEmail();
+            loginBtn.style.background = 'var(--selected)';
+            loginBtn.style.color = 'var(--accent)';
+        }
+        else {
+            loginBtn.textContent = '🔐 Login';
+            loginBtn.style.background = '';
+            loginBtn.style.color = '';
+        }
     }
     updateShellSidebar();
 }

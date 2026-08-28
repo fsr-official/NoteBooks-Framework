@@ -485,7 +485,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     </div>
   </div>
 
-<!-- workspace utility bar removed — toolbar inside the app shell provides Refresh/Upload/Account -->
+<!-- The workspace toolbar is intentionally title-only; navigation and file actions live in the tree and context surfaces. -->
 <div class="app-shell">
   <aside class="app-sidebar legacy-sidebar" id="appSidebar" aria-hidden="true" hidden>
       <div class="sidebar-brand">
@@ -522,32 +522,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <main class="window workspace-window" id="workspaceWindow" aria-label="File workspace">
       <div class="toolbar">
         <h1 id="workspaceHeader">NoteBooks</h1>
-        <div class="workspace-location-marker" id="workspaceLocationMarker" role="status" aria-live="polite" title="Current location">Inside: workspace root</div>
-        <button class="mob-toolbar-overflow" onclick="refreshFiles()" title="Refresh">↻</button>
-        <button class="mob-toolbar-overflow" onclick="goUp()" title="Go up">↑</button>
-        <button class="mob-toolbar-overflow" id="uploadBtnToolbar" onclick="showUploadScreen()" title="Upload file">⬆</button>
-        <button class="mob-toolbar-overflow" id="adminPanelBtn" onclick="showAdminPanel()" title="Admin panel" style="display:none">⚙️</button>
-        <button class="mob-toolbar-overflow" id="communityBtnToolbar" onclick="openCommunity()" title="Community">💬</button>
-        <button id="loginBtnToolbar" onclick="showLoginScreen()" title="Login / Account">🔐 Account</button>
-        <button id="mobOverflowBtn" onclick="toggleMobOverflow()" title="More options">⋯</button>
-      </div>
-      <div id="mobOverflowMenu">
-        <button class="mob-overflow-item" onclick="refreshFiles();closeMobOverflow()">
-          <span class="moi-icon">↻</span> Refresh
-        </button>
-        <button class="mob-overflow-item" onclick="goUp();closeMobOverflow()">
-          <span class="moi-icon">↑</span> Go Up
-        </button>
-        <button class="mob-overflow-item" onclick="showUploadScreen();closeMobOverflow()">
-          <span class="moi-icon">⬆</span> Upload File
-        </button>
-        <div class="mob-overflow-sep"></div>
-        <button class="mob-overflow-item" onclick="openCommunity();closeMobOverflow()">
-          <span class="moi-icon">💬</span> Community
-        </button>
-        <button class="mob-overflow-item" id="mobOverflowAdminBtn" style="display:none" onclick="showAdminPanel();closeMobOverflow()">
-          <span class="moi-icon">⚙️</span> Admin Panel
-        </button>
       </div>
       <div class="path-nav" id="pathNav">
         <span class="path-segment" onclick="goToRoot()">☁️</span>
@@ -560,6 +534,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
         <div>
           <div class="tree-rail-kicker">Navigator</div>
           <div class="tree-rail-title">Repository tree</div>
+          <div class="tree-current-location tree-current-location--marker" id="treeCurrentLocation" role="status" aria-live="polite" title="Current location">Current: workspace root</div>
         </div>
         <button class="sidebar-collapse-control" id="sidebarCollapseBtn" type="button"
           aria-label="Collapse repository navigator" aria-expanded="true"
@@ -568,7 +543,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <div class="sidebar-section sidebar-browse-section">
         <label class="sidebar-section-title" for="sidebarSearch">Search files and folders</label>
         <input id="sidebarSearch" class="sidebar-search-input" type="search" placeholder="Filter tree" autocomplete="off" aria-label="Search repository files and folders" />
-        <div class="tree-current-location" id="treeCurrentLocation" role="status" aria-live="polite">Current location: workspace root</div>
         <div class="sidebar-tree" id="sidebarTree" role="tree" aria-label="Repository files and folders">
           <div class="sidebar-tree-empty">Loading file tree…</div>
         </div>

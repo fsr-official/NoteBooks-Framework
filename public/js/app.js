@@ -36,7 +36,6 @@ let sidebarTree = null;
 let searchDebounceTimer = null;
 let treeHoverDetails = null;
 let treeCurrentLocation = null;
-let workspaceLocationMarker = null;
 let activeTreePath = '';
 let treeInteractionStarted = false;
 let pendingTreeFocusPath = null;
@@ -359,7 +358,7 @@ const FILE_ICONS = {
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v35", { updateViaCache: "none" }).then(() => {
+    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v36", { updateViaCache: "none" }).then(() => {
         console.log("Service Worker registered");
     }).catch(err => {
         console.error("SW registration failed:", err);
@@ -833,14 +832,10 @@ function setActiveTreePath(path) {
         const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
         const label = activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root');
         const locationPath = activeTreePath || 'workspace root';
-        treeCurrentLocation.textContent = `Current location: ${locationPath}`;
+        treeCurrentLocation.textContent = `Current: ${label}`;
         treeCurrentLocation.title = locationPath;
         treeCurrentLocation.setAttribute('aria-label', `Current location: ${locationPath}`);
         treeCurrentLocation.dataset.path = locationPath;
-        if (workspaceLocationMarker) {
-            workspaceLocationMarker.textContent = `Inside: ${label}`;
-            workspaceLocationMarker.title = activeTreePath || 'workspace root';
-        }
     }
     if (sidebarTree && treeRoot)
         renderSidebarTree(treeRoot, searchQuery);
@@ -2157,7 +2152,6 @@ async function bootNoteBooks() {
     sidebarTree = document.getElementById("sidebarTree");
     treeHoverDetails = document.getElementById("treeHoverDetails");
     treeCurrentLocation = document.getElementById("treeCurrentLocation");
-    workspaceLocationMarker = document.getElementById("workspaceLocationMarker");
     document.getElementById('sidebarCollapseBtn')?.addEventListener('click', toggleSidebar);
     if (sidebarSearchInput) {
         sidebarSearchInput.addEventListener('input', (event) => {
