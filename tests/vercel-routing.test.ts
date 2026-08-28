@@ -6,11 +6,14 @@ const projectDir = path.resolve(process.cwd());
 const vercelConfig = JSON.parse(fs.readFileSync(path.join(projectDir, 'vercel.json'), 'utf8')) as {
   cleanUrls?: boolean;
   rewrites?: Array<{ source: string; destination: string }>;
+  functions?: Record<string, { includeFiles?: string }>;
 };
 
 describe('Vercel clean URL routing', () => {
   it('uses extensionless destinations for clean URL HTML rewrites', () => {
     expect(vercelConfig.cleanUrls).toBe(true);
+    expect(vercelConfig.functions?.['api/[...all].ts']?.includeFiles).toContain('README.md');
+    expect(vercelConfig.functions?.['api/[...all].ts']?.includeFiles).toContain('LICENSE');
 
     const routes = new Map((vercelConfig.rewrites ?? []).map((route) => [route.source, route.destination]));
     expect(routes.get('/files/:path*')).toBe('/api/workspace-file?path=:path*');
