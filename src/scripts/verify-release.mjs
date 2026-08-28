@@ -100,7 +100,7 @@ try {
     check(session.status === 200, `/api/session smoke request returned ${session.status}`);
 
     const worker = await request(app).get('/service-worker.js');
-    check(worker.status === 200 && worker.text.includes('webman-v42'), 'service worker smoke request is missing the deployed cache version');
+    check(worker.status === 200 && worker.text.includes('webman-v43'), 'service worker smoke request is missing the deployed cache version');
   }
 } catch (error) {
   failures.push(`built serverless import failed: ${error instanceof Error ? error.stack || error.message : String(error)}`);
