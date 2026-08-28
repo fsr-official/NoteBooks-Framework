@@ -222,6 +222,19 @@ describe('frontend stream shell', () => {
     expect(portal.text).toContain('data-nav="volunteers"');
     expect(portal.text).toContain('data-nav="about"');
 
+    const about = await request(app).get('/about');
+    expect(about.status).toBe(200);
+    expect(about.text).toContain('data-nav="about"');
+    expect(about.text).toContain('/public/js/portal.js');
+    const aboutRuntime = await request(app).get('/public/js/portal.js');
+    expect(aboutRuntime.status).toBe(200);
+    expect(aboutRuntime.text).toContain('about-idea-title');
+    expect(aboutRuntime.text).toContain('about-inspirations-title');
+    expect(aboutRuntime.text).toContain('about-contributors-title');
+    expect(aboutRuntime.text).toContain('about-page');
+    expect(aboutRuntime.text).toContain("if (slug === 'about')");
+    expect(aboutRuntime.text).toContain('return;');
+
     const adminShell = await request(app).get('/admin');
     expect(adminShell.status).toBe(200);
     expect(adminShell.text).not.toContain('data-nav="dashboard"');
