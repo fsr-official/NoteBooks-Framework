@@ -29,6 +29,7 @@ describe('frontend stream shell', () => {
     expect(shell.text).not.toContain('class="mob-toolbar-overflow"');
     expect(shell.text).toContain('tree-current-location--marker');
     expect(shell.text).toContain('/public/js/markdown-editor.js');
+    expect(shell.text).toContain('/public/js/markdown-vendors.js');
     expect(shell.text).toContain('id="previewContainer"');
     expect(shell.text).toContain('id="mobilePreview"');
     expect(shell.text).toContain('/public/css/tree.css');
@@ -48,7 +49,9 @@ describe('frontend stream shell', () => {
     expect(settings.text).toContain('href="#personal-space"');
     expect(settings.text).toContain('href="#appearance"');
     expect(settings.text).toContain('href="#reading-controls"');
-    expect(settings.text).toContain('href="#account-settings"');
+    expect(settings.text).not.toContain('href="#account-settings"');
+    expect(settings.text).not.toContain('Sign in later');
+    expect(settings.text).not.toContain('Sign in / create account');
     expect(settings.text).not.toContain('data-nav="dashboard"');
     expect(settings.text).toContain('id="personal-space"');
     expect(settings.text).toContain('id="themePreset"');
@@ -115,10 +118,10 @@ describe('frontend stream shell', () => {
     expect(readingJs.text).toContain('--reader-content-width');
     const swRegisterJs = await request(app).get('/public/js/sw-register.js');
     expect(swRegisterJs.status).toBe(200);
-    expect(swRegisterJs.text).toContain('20260828-sw-v39');
+    expect(swRegisterJs.text).toContain('20260828-sw-v41');
     const appJs = await request(app).get('/public/js/app.js');
     expect(appJs.status).toBe(200);
-    expect(appJs.text).toContain('20260828-sw-v39');
+    expect(appJs.text).toContain('20260828-sw-v41');
     expect(appJs.text).toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
     expect(appJs.text).toContain('window.NoteBooksRawDelivery');
@@ -183,7 +186,7 @@ describe('frontend stream shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v43'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v45'");
     expect(serviceWorker.text).toContain('public/client/observability.js');
     expect(serviceWorker.text).toContain('function cacheStaticResponse');
     expect(serviceWorker.text).toContain('Cache failures must never reject the page');

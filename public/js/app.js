@@ -358,7 +358,7 @@ const FILE_ICONS = {
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v39", { updateViaCache: "none" }).then(() => {
+    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v41", { updateViaCache: "none" }).then(() => {
         console.log("Service Worker registered");
     }).catch(err => {
         console.error("SW registration failed:", err);

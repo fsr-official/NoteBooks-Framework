@@ -4241,3 +4241,22 @@ th { background: var(--surface-strong); color: var(--fg); }
   .about-section-index { font-size: 11px; }
   .about-contributors { grid-template-columns: 1fr; }
 }
+
+/* Accounts owns identity and authentication; Settings owns preferences only. */
+.accounts-page { width: min(100%, 1180px); margin: 0 auto; display: grid; gap: 28px; }
+.accounts-hero { min-height: clamp(300px, 46vh, 520px); display: flex; flex-direction: column; justify-content: center; padding: clamp(32px, 7vw, 84px); border: 1px solid var(--border); border-radius: 26px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--panel)), var(--panel)); box-shadow: var(--shadow); }
+.accounts-hero h1 { max-width: 880px; margin: 12px 0 20px; font-size: clamp(36px, 6vw, 76px); line-height: .98; letter-spacing: -.055em; color: var(--fg); }
+.accounts-hero p { max-width: 720px; color: var(--text-muted); font-size: clamp(16px, 1.7vw, 21px); line-height: 1.65; }
+.accounts-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 26px; }
+.accounts-panel { padding: clamp(24px, 4vw, 48px); border: 1px solid var(--border); border-radius: 22px; background: var(--surface); }
+.accounts-access-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 22px; }
+.accounts-access-grid article { min-height: 190px; padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); }
+.accounts-access-grid h2 { margin: 0 0 10px; color: var(--fg); }
+.accounts-access-grid p { color: var(--text-muted); line-height: 1.65; }
+.accounts-access-grid .landing-primary, .accounts-access-grid .portal-doc-link { display: inline-flex; margin-top: 12px; }
+#loginOverlay .overlay-card { width: min(100%, 520px); }
+#loginOverlay label { display: grid; gap: 6px; margin: 14px 0; color: var(--text-muted); font-size: 13px; }
+#loginOverlay .text-input { width: 100%; box-sizing: border-box; }
+#loginOverlay .overlay-btn-primary, #loginOverlay .overlay-btn-ghost { margin: 8px 6px 0 0; }
+@media (max-width: 700px) { .accounts-access-grid { grid-template-columns: 1fr; } .accounts-hero { min-height: 360px; } }
+@media (prefers-reduced-motion: reduce) { .accounts-hero { transition: none; } }

@@ -23,7 +23,7 @@
     const counts = data.metrics || {};
     status.innerHTML = viewer.signedIn
       ? `<strong>${escapeHtml(viewer.email || 'Signed in')}</strong>Personal activity is connected to this view.`
-      : '<strong>Guest view</strong>Sign in later to connect activity and votes.';
+      : '<strong>Guest view</strong>Activity will appear here as you participate.';
 
     overview.textContent = data.capabilities?.database
       ? 'Your project view is connected to persisted activity and the current NoteBooks data layer.'
@@ -42,7 +42,7 @@
     const items = Array.isArray(data.activity) ? data.activity : [];
     activity.innerHTML = items.length
       ? items.map((item) => `<div class="dashboard-activity-item"><div><strong>${escapeHtml(item.action || 'Project activity')}</strong><small>${escapeHtml([item.area, item.stream, item.repository, item.file_path].filter(Boolean).join(' · '))}</small></div><small>${escapeHtml(formatDate(item.created_at))}</small></div>`).join('')
-      : `<div class="dashboard-empty">${viewer.signedIn ? 'No linked activity has been recorded yet.' : 'Sign in to connect your activity to this Dashboard.'}</div>`;
+      : `<div class="dashboard-empty">${viewer.signedIn ? 'No linked activity has been recorded yet.' : 'Your activity will appear here as you participate.'}</div>`;
   };
 
   const request = typeof window.noteBooksRequestJson === 'function'
