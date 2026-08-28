@@ -95,7 +95,7 @@ describe('markdown runtime bootstrap', () => {
     expect(styleSource).not.toContain('letter-spacing: 0.5px;\n  font-size: 0.9em;');
     expect(mdInitSource).toContain('renderDiagramFence');
     expect(mdInitSource).toContain("securityLevel: 'strict'");
-    expect(serviceWorkerSource).toContain("CACHE_VERSION = 'webman-v42'");
+    expect(serviceWorkerSource).toContain("CACHE_VERSION = 'webman-v43'");
     expect(serviceWorkerSource).toContain('public/client/observability.js');
   });
 });

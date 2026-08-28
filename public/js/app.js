@@ -358,7 +358,7 @@ const FILE_ICONS = {
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v38", { updateViaCache: "none" }).then(() => {
+    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v39", { updateViaCache: "none" }).then(() => {
         console.log("Service Worker registered");
     }).catch(err => {
         console.error("SW registration failed:", err);
@@ -883,7 +883,7 @@ function createSidebarTreeItem(node, query) {
     const isActive = activeTreePath && nodePath === activeTreePath;
     const isAncestor = activeTreePath && findAncestors(treeRoot, activeTreePath)?.some((ancestor) => getNodePath(ancestor) === nodePath);
     const shouldExpandForSearch = Boolean(query && childItems.length);
-    const isExpanded = hasChildren && (shouldExpandForSearch || (treeInteractionStarted && expandedTreePaths.has(nodePath)));
+    const isExpanded = hasChildren && (shouldExpandForSearch || expandedTreePaths.has(nodePath));
     if (isActive)
         li.classList.add('current');
     if (isAncestor)
@@ -1117,6 +1117,13 @@ function toggleSidebar() {
         // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
+        // Show the repository roots by default. This keeps the tree useful on first
+        // paint while leaving deeper folders explicitly expandable by the reader.
+        if (!treeInteractionStarted && !searchQuery && Array.isArray(treeRoot.children)) {
+            treeRoot.children
+                .filter((child) => child?.type === 'folder' && Array.isArray(child.children) && child.children.length > 0)
+                .forEach((child) => expandedTreePaths.add(getNodePath(child)));
+        }
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
         // Preserve independently collapsed folders across refreshes; remove paths no longer present.

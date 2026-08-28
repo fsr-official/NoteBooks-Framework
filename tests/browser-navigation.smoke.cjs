@@ -84,6 +84,8 @@ async function main() {
     assert.ok(workspaceLayout.treeLeft < workspaceLayout.workspaceLeft, 'tree rail is not the left workspace pane');
     assert.equal(workspaceLayout.markerInsideHeader, true);
     assert.ok(workspaceLayout.treeWidth >= 320, `tree rail is too narrow: ${workspaceLayout.treeWidth}`);
+    assert.equal(await page.locator('.sidebar-tree-root > .sidebar-tree-item.folder > .sidebar-tree-row').first().getAttribute('aria-expanded'), 'true', 'repository root is collapsed on first load');
+    assert.ok(await page.locator('.sidebar-tree-root > .sidebar-tree-item.folder .sidebar-tree-row').count() > 1, 'expanded repository root does not show child rows');
     const markerStyle = await page.locator('#treeCurrentLocation').evaluate((element) => {
       const style = getComputedStyle(element);
       return { fontSize: style.fontSize, fontWeight: style.fontWeight, borderWidth: style.borderTopWidth, background: style.backgroundColor, color: style.color };
