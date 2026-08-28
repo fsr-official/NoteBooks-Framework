@@ -97,24 +97,27 @@ export async function setTheme(req: Request, res: Response): Promise<void> {
     return;
   }
   res.cookie(THEME_COOKIE, serialized, { httpOnly: false, sameSite: 'lax', path: '/', maxAge: 365 * 24 * 60 * 60 * 1000 });
-  await updateBrowserSession(req, res, { selectedThemeSlug: 'custom', customTheme: theme });
+  const mode: ThemeMode = req.body?.mode === 'light' ? 'light' : req.body?.mode === 'dark' ? 'dark' : ((getBrowserSession(req)?.themeMode || 'dark') as ThemeMode);
+  await updateBrowserSession(req, res, { selectedThemeSlug: 'custom', customTheme: theme, themeMode: mode });
   await persistTheme(req, res, theme);
   res.status(200).json({ ok: true, persisted: isDbConfigured() });
 }
 
 export function getTheme(req: Request, res: Response): void {
   let theme: Record<string, string> | null = null;
-  try {
-    theme = sanitizeTheme(req.cookies?.[THEME_COOKIE] ? JSON.parse(req.cookies[THEME_COOKIE]) : null);
-  } catch {
-    theme = null;
-  }
   const session = getBrowserSession(req);
-  if (!theme && session?.selectedThemeSlug && session.selectedThemeSlug !== 'custom') {
+  if (session?.selectedThemeSlug && session.selectedThemeSlug !== 'custom') {
     const preset = themePresetBySlug(session.selectedThemeSlug);
     if (preset) theme = themeTokensForMode(preset, session.themeMode || 'dark');
   }
   if (!theme && session?.customTheme && Object.keys(session.customTheme).length > 0) theme = session.customTheme;
+  if (!theme) {
+    try {
+      theme = sanitizeTheme(req.cookies?.[THEME_COOKIE] ? JSON.parse(req.cookies[THEME_COOKIE]) : null);
+    } catch {
+      theme = null;
+    }
+  }
   if (!theme) {
     res.status(204).end();
     return;

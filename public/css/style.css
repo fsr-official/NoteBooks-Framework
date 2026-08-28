@@ -1569,9 +1569,9 @@ body { background:var(--bg); color:var(--fg); font-size:calc(16px * var(--densit
 .toolbar, .path-nav, .list-view, .preview-window, .theme-panel, .tree-rail { border-color:var(--border); }
 .toolbar h1, .tree-rail-title, .markdown-content h1, .markdown-content h2, .markdown-content h3 { font-family:var(--font-heading, var(--font-sans)); }
 .tree-rail, .workspace-window, button, input, select, textarea { border-radius:var(--radius); }
-[data-theme="grid"] body { background-image:linear-gradient(rgba(52,211,153,.055) 1px, transparent 1px),linear-gradient(90deg, rgba(52,211,153,.055) 1px, transparent 1px); background-size:28px 28px; }
-[data-theme="scanlines"] body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:20; opacity:.08; background:repeating-linear-gradient(0deg, transparent 0 3px, var(--accent) 4px); }
-[data-theme="scanlines"] .tree-rail, [data-theme="scanlines"] .workspace-window { box-shadow:0 0 34px color-mix(in srgb, var(--accent) 26%, transparent); }
+[data-theme-texture="grid"] body { background-image:linear-gradient(rgba(52,211,153,.055) 1px, transparent 1px),linear-gradient(90deg, rgba(52,211,153,.055) 1px, transparent 1px); background-size:28px 28px; }
+[data-theme-texture="scanlines"] body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:20; opacity:.08; background:repeating-linear-gradient(0deg, transparent 0 3px, var(--accent) 4px); }
+[data-theme-texture="scanlines"] .tree-rail, [data-theme-texture="scanlines"] .workspace-window { box-shadow:0 0 34px color-mix(in srgb, var(--accent) 26%, transparent); }
 @media (max-width:980px) { .app-shell { display:flex; flex-direction:column; height:auto; min-height:0; }.workspace-window,.tree-rail { width:100%; height:auto; min-height:0; }.tree-rail { order:2; }.workspace-window { order:1; } }
 
 
@@ -3889,6 +3889,18 @@ body,
 .tree-rail, .sidebar-tree { background: var(--surface-strong); }
 .toolbar, .path-nav { background: var(--panel); border-color: var(--border); }
 .global-nav { background: color-mix(in srgb, var(--panel) 94%, var(--bg)); border-color: var(--border); }
+.stream-shell-page { background-color: var(--bg); background-image: none; }
+html[data-theme-texture="grid"] .stream-shell-page {
+  background-image: linear-gradient(color-mix(in srgb, var(--accent) 10%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--accent) 10%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+html[data-theme-texture="scanlines"] .stream-shell-page {
+  background-image: linear-gradient(color-mix(in srgb, var(--accent) 8%, transparent) 1px, transparent 1px);
+  background-size: 100% 4px;
+}
+.stream-shell-page .global-nav { background: color-mix(in srgb, var(--panel) 94%, var(--bg)); border-color: var(--border); }
+.stream-shell-page .global-nav-brand { color: var(--fg); }
+.stream-shell-page .global-nav-links a { color: var(--text-muted); }
 .global-nav-links a { color: var(--text-muted); }
 .global-nav-links a:hover,
 .global-nav-links a:focus-visible,
