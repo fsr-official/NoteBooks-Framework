@@ -125,6 +125,17 @@ async function main() {
     assert.equal(homeThemeState.mode, 'dark');
     assert.equal(homeThemeState.background, '#1b1f24');
 
+    await open('/about');
+    assert.equal(await page.locator('.about-page').count(), 1);
+    assert.equal(await page.locator('.about-section').count(), 3);
+    assert.equal(await page.locator('#about-idea-title').count(), 1);
+    assert.equal(await page.locator('#about-inspirations-title').count(), 1);
+    assert.equal(await page.locator('#about-contributors-title').count(), 1);
+    assert.equal(await page.locator('.portal-feed').count(), 0);
+    assert.equal(await page.locator('.feed-switcher').count(), 0);
+    const aboutHero = await page.locator('.about-hero h1').boundingBox();
+    assert.ok(aboutHero && aboutHero.width >= 500, `About hero is too small: ${aboutHero?.width || 0}px`);
+
     const navProblems = await page.locator('.global-nav a').evaluateAll((elements) => elements
       .filter((element) => !(element.textContent || element.getAttribute('aria-label') || '').trim())
       .map((element) => element.outerHTML));
