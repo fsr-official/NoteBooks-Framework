@@ -210,6 +210,12 @@ describe('frontend stream shell', () => {
     expect(styleCss.text).toContain('grid-template-areas: "tree workspace"');
     expect(styleCss.text).toContain('.tree-current-location--marker');
     expect(styleCss.text).toContain('.toolbar > button');
+    const treeCss = await request(app).get('/public/css/tree.css');
+    expect(treeCss.status).toBe(200);
+    expect(treeCss.text).toContain('flex-direction: column');
+    expect(treeCss.text).toContain('border: 0 !important');
+    expect(treeCss.text).toContain('sidebar-tree-row::before');
+    expect(treeCss.text).toContain('display: none !important');
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);
