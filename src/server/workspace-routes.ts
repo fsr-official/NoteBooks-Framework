@@ -74,7 +74,8 @@ export function registerWorkspaceRoutes(app: express.Application, projectDir: st
   const sendPublishedFile = (req: express.Request, res: express.Response) => {
     const params = req.params as { filePath?: string | string[] };
     const rawFilePath = Array.isArray(params.filePath) ? params.filePath.join('/') : params.filePath;
-    const filePath = String(rawFilePath || '').replace(/^\/+/, '');
+    const queryFilePath = typeof req.query.path === 'string' ? req.query.path : '';
+    const filePath = String(rawFilePath || queryFilePath || '').replace(/^\/+/, '');
     if (!filePath) return res.status(400).json({ error: 'Missing file path' });
     if (!isSafePublishedFilePath(filePath)) return res.status(403).json({ error: 'Access denied' });
     const absolutePath = path.resolve(projectDir, filePath);
@@ -86,6 +87,7 @@ export function registerWorkspaceRoutes(app: express.Application, projectDir: st
   app.get('/files/{*filePath}', sendPublishedFile);
   // Vercel rewrites /files/* into the API function because the platform does not
   // invoke the Express catch-all for a dynamic static path automatically.
+  app.get('/api/workspace-file', sendPublishedFile);
   app.get('/api/workspace-file/{*filePath}', sendPublishedFile);
   app.get('/api/workspace', (_req, res) => {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');

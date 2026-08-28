@@ -13,7 +13,7 @@ describe('Vercel clean URL routing', () => {
     expect(vercelConfig.cleanUrls).toBe(true);
 
     const routes = new Map((vercelConfig.rewrites ?? []).map((route) => [route.source, route.destination]));
-    expect(routes.get('/files/:path*')).toBe('/api/raw?path=:path*');
+    expect(routes.get('/files/:path*')).toBe('/api/workspace-file?path=:path*');
     expect(routes.get('/settings')).toBe('/public/html/settings');
     expect(routes.get('/settings/')).toBe('/public/html/settings');
     expect(routes.get('/science')).toBe('/public/html/streams');
