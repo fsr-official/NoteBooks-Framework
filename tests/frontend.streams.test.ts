@@ -12,6 +12,10 @@ describe('frontend stream shell', () => {
     expect(home.text).toContain('<script src="/public/js/markdown-vendors.js" defer></script>');
     expect(home.text).toContain('<script src="/public/js/shell-nav.js" defer></script>');
     expect(home.text).not.toContain('data-nav="dashboard"');
+    expect(home.text).not.toContain('id="loginBtnToolbar"');
+    expect(home.text).not.toContain('id="mobOverflowBtn"');
+    expect(home.text).toContain('id="treeCurrentLocation"');
+    expect(home.text).toContain('tree-current-location--marker');
     for (const nav of ['home', 'science', 'commerce', 'humanities', 'community', 'issues', 'volunteers', 'accounts', 'settings', 'about']) expect(home.text).toContain(`data-nav="${nav}"`);
     expect(home.text).not.toContain('mathjax@3/es5/tex-svg.js');
     expect(home.text).not.toContain('mermaid@11/dist/mermaid.min.js');
@@ -20,7 +24,10 @@ describe('frontend stream shell', () => {
     expect(shell.status).toBe(200);
     expect(shell.text).toContain('class="stream-shell-page"');
     expect(shell.text).toContain('/public/js/app.js');
-    expect(shell.text).toContain('openNewMarkdownEditor()');
+    expect(shell.text).not.toContain('openNewMarkdownEditor()');
+    expect(shell.text).not.toContain('id="loginBtnToolbar"');
+    expect(shell.text).not.toContain('class="mob-toolbar-overflow"');
+    expect(shell.text).toContain('tree-current-location--marker');
     expect(shell.text).toContain('/public/js/markdown-editor.js');
     expect(shell.text).toContain('id="previewContainer"');
     expect(shell.text).toContain('id="mobilePreview"');
@@ -108,10 +115,10 @@ describe('frontend stream shell', () => {
     expect(readingJs.text).toContain('--reader-content-width');
     const swRegisterJs = await request(app).get('/public/js/sw-register.js');
     expect(swRegisterJs.status).toBe(200);
-    expect(swRegisterJs.text).toContain('20260828-sw-v35');
+    expect(swRegisterJs.text).toContain('20260828-sw-v36');
     const appJs = await request(app).get('/public/js/app.js');
     expect(appJs.status).toBe(200);
-    expect(appJs.text).toContain('20260828-sw-v35');
+    expect(appJs.text).toContain('20260828-sw-v36');
     expect(appJs.text).toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
     expect(appJs.text).toContain('window.NoteBooksRawDelivery');
@@ -147,6 +154,10 @@ describe('frontend stream shell', () => {
     expect(rawDelivery.status).toBe(200);
     expect(rawDelivery.text).toContain('window.NoteBooksRawDelivery');
 
+    const authJs = await request(app).get('/public/js/auth.js');
+    expect(authJs.status).toBe(200);
+    expect(authJs.text).toContain('updateShellSidebar();');
+    expect(authJs.text).not.toContain('if (!loginBtn)\n        return;');
     const mobileJs = await request(app).get('/public/js/mobile.js');
     expect(mobileJs.status).toBe(200);
     expect(mobileJs.text).toContain('Edit existing Markdown file');
@@ -172,7 +183,7 @@ describe('frontend stream shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v39'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v40'");
     expect(serviceWorker.text).toContain('public/client/observability.js');
     expect(serviceWorker.text).toContain('function cacheStaticResponse');
     expect(serviceWorker.text).toContain('Cache failures must never reject the page');
@@ -193,6 +204,9 @@ describe('frontend stream shell', () => {
     expect(styleCss.text).toContain('--surface-strong');
     expect(styleCss.text).toContain('html[data-theme-texture="grid"] .stream-shell-page');
     expect(styleCss.text).toContain('.stream-shell-page .global-nav { background: color-mix');
+    expect(styleCss.text).toContain('grid-template-areas: "tree workspace"');
+    expect(styleCss.text).toContain('.tree-current-location--marker');
+    expect(styleCss.text).toContain('.toolbar > button');
 
     const page = await request(app).get('/science');
     expect(page.status).toBe(200);
