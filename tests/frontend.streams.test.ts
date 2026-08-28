@@ -115,10 +115,10 @@ describe('frontend stream shell', () => {
     expect(readingJs.text).toContain('--reader-content-width');
     const swRegisterJs = await request(app).get('/public/js/sw-register.js');
     expect(swRegisterJs.status).toBe(200);
-    expect(swRegisterJs.text).toContain('20260828-sw-v37');
+    expect(swRegisterJs.text).toContain('20260828-sw-v38');
     const appJs = await request(app).get('/public/js/app.js');
     expect(appJs.status).toBe(200);
-    expect(appJs.text).toContain('20260828-sw-v37');
+    expect(appJs.text).toContain('20260828-sw-v38');
     expect(appJs.text).toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
     expect(appJs.text).toContain('window.NoteBooksRawDelivery');
@@ -183,7 +183,7 @@ describe('frontend stream shell', () => {
 
     const serviceWorker = await request(app).get('/service-worker.js');
     expect(serviceWorker.status).toBe(200);
-    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v41'");
+    expect(serviceWorker.text).toContain("const CACHE_VERSION = 'webman-v42'");
     expect(serviceWorker.text).toContain('public/client/observability.js');
     expect(serviceWorker.text).toContain('function cacheStaticResponse');
     expect(serviceWorker.text).toContain('Cache failures must never reject the page');
