@@ -22,7 +22,7 @@
     const viewer = data.viewer || {};
     const counts = data.metrics || {};
     status.innerHTML = viewer.signedIn
-      ? `<strong>${escapeHtml(viewer.email || 'Signed in')}</strong>Personal activity is connected to this view.`
+      ? '<strong>Personal space</strong>Your activity is connected to this view.'
       : '<strong>Guest view</strong>Activity will appear here as you participate.';
 
     overview.textContent = data.capabilities?.database
