@@ -30,6 +30,17 @@
   <main class="portal-main" id="portalRoot" aria-live="polite">
     <div class="portal-loading">Loading this NoteBooks space…</div>
   </main>
+  <div id="loginOverlay" class="full-overlay" style="display:none">
+    <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="portalAuthTitle">
+      <button class="overlay-close" type="button" aria-label="Close sign-in" onclick="hideLoginScreen()">×</button>
+      <div class="overlay-heading" id="portalAuthTitle">NoteBooks account</div>
+      <div id="authTabs" class="guide-tabs" role="tablist"><button class="guide-tab active" type="button" onclick="switchAuthTab('login')">Sign in</button><button class="guide-tab" type="button" onclick="switchAuthTab('register')">Create account</button></div>
+      <div id="loginView"><p class="overlay-subtext">Sign in to contribute, save your presence, and access volunteer work.</p><label>Email<input id="loginEmail" class="text-input" type="email" autocomplete="email"></label><label>Password<input id="loginPassword" class="text-input" type="password" autocomplete="current-password"></label><div id="loginMsg" class="login-msg" role="status"></div><button class="overlay-btn-primary" type="button" onclick="attemptModernLogin()">Sign in</button><button class="overlay-btn-ghost" type="button" onclick="switchAuthTab('forgot')">Forgot password?</button></div>
+      <div id="registerView" style="display:none"><p class="overlay-subtext">Create a NoteBooks account.</p><label>Email<input id="registerEmail" class="text-input" type="email" autocomplete="email"></label><label>Password<input id="registerPassword" class="text-input" type="password" autocomplete="new-password"></label><label>Confirm password<input id="registerConfirmPassword" class="text-input" type="password" autocomplete="new-password"></label><div id="registerMsg" class="login-msg" role="status"></div><button class="overlay-btn-primary" type="button" onclick="attemptModernRegister()">Create account</button></div>
+      <div id="forgotView" style="display:none"><p class="overlay-subtext">Enter your email to receive a reset link.</p><label>Email<input id="forgotEmail" class="text-input" type="email" autocomplete="email"></label><div id="forgotMsg" class="login-msg" role="status"></div><button class="overlay-btn-primary" type="button" onclick="attemptModernForgotPassword()">Send reset link</button><button class="overlay-btn-ghost" type="button" onclick="switchAuthTab('login')">Back to sign in</button></div>
+      <div id="loggedInView" style="display:none"><p class="overlay-subtext">Signed in as <strong id="loggedInEmail"></strong>.</p><button class="overlay-btn-ghost" type="button" onclick="attemptModernLogout()">Sign out</button></div>
+    </div>
+  </div>
   <script src="/public/js/session-state.js" defer></script>
   <script src="/public/js/theme.js" defer></script>
   <script src="/public/js/modern-auth.js" defer></script>

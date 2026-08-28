@@ -32,7 +32,6 @@
           <a href="#personal-space" aria-current="page"><span>01</span><strong>Personal space</strong><small>Your dashboard and activity</small></a>
           <a href="#appearance"><span>02</span><strong>Appearance</strong><small>Themes and color mode</small></a>
           <a href="#reading-controls"><span>03</span><strong>Reading controls</strong><small>Text and motion preferences</small></a>
-          <a href="#account-settings"><span>04</span><strong>Account</strong><small>Sign-in and profile access</small></a>
         </nav>
         <a class="settings-sidebar-exit" href="/">← Return home</a>
       </aside>
@@ -41,7 +40,7 @@
         <header class="settings-hero">
           <span class="landing-kicker">Workspace preferences</span>
           <h1>Settings</h1>
-          <p>Keep your personal space, appearance, reading preferences, and account controls in one predictable place.</p>
+          <p>Keep your personal space, appearance, and reading preferences in one predictable place.</p>
         </header>
 
         <section class="settings-grid" aria-label="Settings sections">
@@ -54,21 +53,15 @@
             <div class="dashboard-metrics" id="dashboardMetrics"></div>
             <div class="settings-personal-grid">
               <div><div class="settings-card-kicker">Explore</div><div class="dashboard-links" id="dashboardStreams"></div></div>
-              <div><div class="settings-card-kicker">Recent activity</div><div class="dashboard-activity" id="dashboardActivity"><div class="dashboard-empty">Sign in to connect activity to your personal space.</div></div></div>
+              <div><div class="settings-card-kicker">Recent activity</div><div class="dashboard-activity" id="dashboardActivity"><div class="dashboard-empty">Your recent activity will appear here as you participate.</div></div></div>
             </div>
           </section>
 
-          <article class="settings-card settings-card--account" id="account-settings">
-            <div class="settings-card-kicker">Account</div>
-            <h2>Sign in later</h2>
-            <p>Account access is intentionally deferred. This placeholder preserves the future integration boundary without changing the current public browsing experience.</p>
-            <button type="button" class="settings-disabled-button" disabled>Sign in / create account — coming later</button>
-          </article>
 
           <article class="settings-card settings-card--theme" id="appearance" aria-labelledby="appearanceTitle">
             <div class="settings-card-kicker">Appearance</div>
             <h2 id="appearanceTitle">Reading room theme</h2>
-            <p>Themes are stored for this browser session and can be carried into your account after sign-in. Global presets are selectable; custom tokens remain yours.</p>
+            <p>Themes are stored for this browser session. Global presets are selectable; custom tokens remain yours.</p>
             <p id="themePersistenceStatus" class="settings-inline-status" role="status" aria-live="polite">Preparing your browser session…</p>
             <div class="settings-theme-mode-row">
               <div><strong>Color mode</strong><span>Every theme family includes a coordinated light and dark variant.</span></div>

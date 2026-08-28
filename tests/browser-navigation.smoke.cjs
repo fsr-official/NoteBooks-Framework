@@ -29,11 +29,13 @@ async function main() {
     await open('/settings#personal-space');
     assert.equal(await page.locator('.global-nav').count(), 1);
     assert.equal(await page.locator('.settings-section-nav').count(), 1);
-    assert.equal(await page.locator('.settings-section-nav a').count(), 4);
+    assert.equal(await page.locator('.settings-section-nav a').count(), 3);
     assert.equal(await page.locator('a[data-nav="dashboard"]').count(), 0);
     assert.equal(await page.locator('a[data-nav="my-space"]').count(), 0);
     assert.equal(await page.locator('script[src*="/public/js/app.js"]').count(), 0);
     assert.equal(await page.locator('script[src*="stream-runtime.js"]').count(), 0);
+    assert.equal(await page.locator('#account-settings').count(), 0);
+    assert.equal(await page.locator('text=Sign in later').count(), 0);
     assert.equal(await page.locator('.global-nav-toggle').getAttribute('aria-expanded'), 'false');
     const settingsThemeState = await page.evaluate(() => ({
       mode: document.documentElement.dataset.theme,
@@ -109,6 +111,19 @@ async function main() {
     assert.equal(scienceThemeState.background, '#1b1f24');
     assert.equal(scienceThemeState.shell, 'none');
     assert.notEqual(scienceThemeState.nav, 'rgba(2, 5, 4, 0.88)');
+    const mathState = await page.evaluate(async () => {
+      const host = document.createElement('div');
+      host.innerHTML = `<div class="markdown-content">${window.markdownToHTML('$$\\\\boxed{q = ne}$$', 'math-regression.md')}</div>`;
+      document.body.appendChild(host);
+      await window.initMarkdownFeatures(host);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      const result = { mathjax: typeof window.MathJax !== 'undefined', rendered: Boolean(host.querySelector('mjx-container')), literal: host.textContent.includes('\\\\boxed') };
+      host.remove();
+      return result;
+    });
+    assert.equal(mathState.mathjax, true, 'MathJax was not loaded for a math block');
+    assert.equal(mathState.rendered, true, 'math block did not produce a MathJax container');
+    assert.equal(mathState.literal, false, 'LaTeX source remained visible after MathJax initialization');
 
     await page.goBack({ waitUntil: 'domcontentloaded' });
     assert.equal(new URL(page.url()).pathname, '/settings');
@@ -127,6 +142,13 @@ async function main() {
     assert.equal(homeThemeState.mode, 'dark');
     assert.equal(homeThemeState.background, '#1b1f24');
 
+    await open('/accounts');
+    assert.equal(await page.locator('.accounts-page').count(), 1);
+    assert.equal(await page.locator('#accountsSignIn').count(), 1);
+    assert.equal(await page.locator('#loginOverlay').count(), 1);
+    await page.locator('#accountsSignIn').click();
+    assert.notEqual(await page.locator('#loginOverlay').evaluate((element) => getComputedStyle(element).display), 'none');
+    await page.locator('#loginOverlay .overlay-close').click();
     await open('/about');
     assert.equal(await page.locator('.about-page').count(), 1);
     assert.equal(await page.locator('.about-section').count(), 3);
