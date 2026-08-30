@@ -83,6 +83,12 @@
           "sha": "fd55a92c2963854198ab65510c10f8e61ca32aad428bebaf254b911b7f5bdbc9"
         },
         {
+          "type": "file",
+          "name": "community-issues-ui-findings-2026-08-30.md",
+          "path": "docs/community-issues-ui-findings-2026-08-30.md",
+          "sha": "1821fb41fdfb5ecdba1fcc6f8723a997ec4400f23c9702a0b0e01f68ec2bd547"
+        },
+        {
           "type": "folder",
           "name": "phase1",
           "path": "docs/phase1",
