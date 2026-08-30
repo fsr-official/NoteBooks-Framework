@@ -171,6 +171,7 @@ describe('frontend stream shell', () => {
     const streamShell = await request(app).get('/public/html/streams.html');
     expect(streamShell.status).toBe(200);
     expect(streamShell.text).toContain('/public/js/session-state.js');
+    expect(streamShell.text).toContain('/public/css/tree.css?v=20260830-tree-v2');
     expect(streamShell.text.indexOf('/public/js/session-state.js')).toBeLessThan(streamShell.text.indexOf('/public/js/theme.js'));
     const portalShell = await request(app).get('/public/html/portal.html');
     expect(portalShell.status).toBe(200);
