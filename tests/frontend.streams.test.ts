@@ -105,6 +105,11 @@ describe('frontend stream shell', () => {
     expect(themes.status).toBe(200);
     expect(themes.body.themes.length).toBeGreaterThanOrEqual(5);
 
+    const requestJs = await request(app).get('/public/js/request.js');
+    expect(requestJs.status).toBe(200);
+    expect(requestJs.text).toContain("fetch('/api/session'");
+    expect(requestJs.text).toContain('x-csrf-token');
+    expect(requestJs.text).toContain('response.status === 403');
     const sessionStateJs = await request(app).get('/public/js/session-state.js');
     expect(sessionStateJs.status).toBe(200);
     expect(sessionStateJs.text).toContain('noteBooksSession');
