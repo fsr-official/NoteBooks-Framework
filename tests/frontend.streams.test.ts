@@ -182,6 +182,13 @@ describe('frontend stream shell', () => {
     expect(portalShell.status).toBe(200);
     expect(portalShell.text).toContain('/public/js/session-state.js');
     expect(portalShell.text).not.toContain('/public/js/config.js');
+    const portalJs = await request(app).get('/public/js/portal.js');
+    expect(portalJs.status).toBe(200);
+    expect(portalJs.text).toContain('community-channel-workspace');
+    expect(portalJs.text).toContain('issueProposalForm');
+    expect(portalJs.text).toContain('/api/issues/proposals');
+    expect(portalJs.text).toContain('data-vote-issue');
+    expect(portalJs.text).toContain('Sign in from <a href="/accounts">Accounts</a>');
 
     const streamsJs = await request(app).get('/public/client/streams.js');
     expect(streamsJs.status).toBe(200);
@@ -212,6 +219,9 @@ describe('frontend stream shell', () => {
     expect(styleCss.text).toContain('.markdown-renderer pre');
     expect(styleCss.text).toContain('--surface-strong');
     expect(styleCss.text).toContain('html[data-theme-texture="grid"] .stream-shell-page');
+    expect(styleCss.text).toContain('.portal-grid--space');
+    expect(styleCss.text).toContain('.issue-proposal-form');
+    expect(styleCss.text).toContain('.space-guide-list');
     expect(styleCss.text).toContain('.stream-shell-page .global-nav { background: color-mix');
     expect(styleCss.text).toContain('grid-template-areas: "tree workspace"');
     expect(styleCss.text).toContain('.tree-current-location--marker');
