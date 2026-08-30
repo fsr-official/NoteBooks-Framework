@@ -53,7 +53,7 @@
     return;
   }
 
-  root.innerHTML = `<div class="portal-page"><div class="landing-hero"><div class="landing-kicker">${escapeHtml(page.kicker)}</div><h1>${escapeHtml(page.title)}</h1><p>${escapeHtml(page.copy)}</p><div class="landing-actions"><a class="landing-secondary" href="/">Back to home</a></div></div><div class="portal-grid"><section class="portal-panel portal-panel--wide"><div class="portal-panel-header"><span>NoteBooks</span><strong>Explore this space</strong></div><div class="portal-doc-links">${page.links.map((link) => `<a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`).join('')}</div>${page.feed ? `<div class="feed-switcher" role="group" aria-label="Activity sorting"><button type="button" class="feed-switch is-active" data-portal-sort="latest">Latest</button><button type="button" class="feed-switch" data-portal-sort="trending">Trending</button></div><div class="portal-feed" id="portalFeed" role="status" aria-live="polite">Loading live activity…</div>${page.feed === 'community' ? `<section class="community-profile-tools" aria-labelledby="community-profiles-title"><div class="portal-panel-header"><span>Member profiles</span><strong id="community-profiles-title">Presence and roles</strong></div><div id="ownProfileEditor" class="own-profile-editor"></div><div id="communityProfiles" class="community-profiles" role="list" aria-live="polite">Loading public profiles…</div></section>` : ''}` : ''}</section><section class="portal-panel"><div class="portal-panel-header"><span>Next step</span><strong>Keep moving</strong></div><p class="mission-copy">Choose one small action. Read a page, ask a question, or make a contribution that another learner can build on.</p></section></div></div>`;
+  root.innerHTML = `<div class="portal-page portal-space ${page.feed === 'community' ? 'community-space' : 'issues-space'}"><div class="landing-hero space-hero"><div class="landing-kicker">${escapeHtml(page.kicker)}</div><h1>${escapeHtml(page.title)}</h1><p>${escapeHtml(page.copy)}</p><div class="landing-actions"><a class="landing-secondary" href="/">Back to home</a>${page.feed === 'issues' ? '<a class="landing-primary" href="#issue-proposal">Suggest a change <span aria-hidden="true">→</span></a>' : '<a class="landing-primary" href="#community-channels">Open channels <span aria-hidden="true">→</span></a>'}</div></div><div class="portal-grid portal-grid--space"><section class="portal-panel portal-panel--wide"><div class="portal-panel-header"><span>${page.feed === 'community' ? 'Community room' : 'Issue desk'}</span><strong>${page.feed === 'community' ? 'Find your conversation' : 'Turn friction into progress'}</strong></div>${page.feed === 'community' ? '<div class="space-intro-grid"><div><span class="space-label">Open to everyone</span><h2>Conversations with a clear home.</h2><p>Choose a channel, see who is around, and keep questions close to the stream they belong to.</p></div><div class="space-stat-list"><span><strong>03</strong> stream libraries</span><span><strong>∞</strong> room for careful questions</span></div></div>' : '<div class="space-intro-grid"><div><span class="space-label">Reader-powered maintenance</span><h2>Make one useful improvement.</h2><p>Describe the problem, connect it to a source file, and let the community help move it toward review.</p></div><div class="space-stat-list"><span><strong>01</strong> clear source path</span><span><strong>02</strong> review stages</span></div></div>'}${page.feed === 'issues' ? '<section class="issue-submit-panel" id="issue-proposal" aria-labelledby="issue-proposal-title"><div class="portal-panel-header"><span>New proposal</span><strong id="issue-proposal-title">Suggest a source improvement</strong></div><p class="panel-help">Sign in to submit a proposal. Every request must point to a registered repository and source path.</p><form class="issue-proposal-form" id="issueProposalForm"><label>Title<input name="title" maxlength="200" required placeholder="What should be improved?" /></label><label>Stream<select name="stream"><option value="science">Science</option><option value="commerce">Commerce</option><option value="humanities">Humanities</option></select></label><label class="form-wide">Why should it change?<textarea name="body" maxlength="20000" rows="4" required placeholder="Explain the correction or missing piece…"></textarea></label><label>Source repository<input name="sourceRepository" required placeholder="fsr-official/NoteBooks-Science" /></label><label>Branch<input name="sourceBranch" value="main" maxlength="200" /></label><label class="form-wide">Source path<input name="sourcePath" required placeholder="notes/physics/kinematics.md" /></label><details class="form-wide"><summary>Optional line evidence</summary><div class="issue-evidence-grid"><label>Start line<input name="sourceStartLine" type="number" min="1" /></label><label>End line<input name="sourceEndLine" type="number" min="1" /></label><label class="form-wide">Selected text<textarea name="sourceText" rows="3" placeholder="Paste the exact selected lines if this proposal came from the reader."></textarea></label></div></details><div class="issue-form-actions form-wide"><button class="landing-primary" type="submit">Submit proposal <span aria-hidden="true">→</span></button><span id="issueProposalStatus" class="form-status" role="status"></span></div></form></section>' : ''}<div class="feed-toolbar"><div class="portal-panel-header"><span>${page.feed === 'community' ? 'Public activity' : 'Priorities from readers'}</span><strong>${page.feed === 'community' ? 'Latest conversations' : 'Open issue queue'}</strong></div><div class="feed-switcher" role="group" aria-label="Activity sorting"><button type="button" class="feed-switch is-active" data-portal-sort="latest">Latest</button><button type="button" class="feed-switch" data-portal-sort="trending">Trending</button></div></div><div class="portal-feed" id="portalFeed" role="status" aria-live="polite">Loading live activity…</div>${page.feed === 'community' ? '<section class="community-profile-tools" aria-labelledby="community-profiles-title"><div class="portal-panel-header"><span>Member directory</span><strong id="community-profiles-title">Presence and roles</strong></div><div id="ownProfileEditor" class="own-profile-editor"></div><div id="communityProfiles" class="community-profiles" role="list" aria-live="polite">Loading public profiles…</div></section>' : ''}</section><aside class="portal-panel space-aside"><div class="space-aside-kicker">${page.feed === 'community' ? 'Room guide' : 'Proposal guide'}</div><h2>${page.feed === 'community' ? 'A calmer community starts with context.' : 'Strong issues are easy to review.'}</h2><div class="space-guide-list">${page.feed === 'community' ? '<div><span>01</span><p><strong>Pick a channel.</strong> Keep stream questions, issue triage, and general conversation easy to find.</p></div><div><span>02</span><p><strong>Be specific.</strong> Link your message to a note, concept, or source file when useful.</p></div><div><span>03</span><p><strong>Respect presence.</strong> Online and DND states help people choose the right moment to engage.</p></div>' : '<div><span>01</span><p><strong>Name the gap.</strong> A concise title makes the queue legible.</p></div><div><span>02</span><p><strong>Show the source.</strong> Repository and path let reviewers reproduce the concern.</p></div><div><span>03</span><p><strong>Invite review.</strong> Submitted proposals move through triage before a PR is opened.</p></div>'}</div><a class="portal-doc-link" href="${page.feed === 'community' ? '/about' : '/volunteers'}">${page.feed === 'community' ? 'Read the NoteBooks mission' : 'Learn about contributing'} <span aria-hidden="true">↗</span></a></aside></div></div>`;
 
   const feed = document.getElementById('portalFeed');
   const profileList = document.getElementById('communityProfiles');
@@ -181,6 +181,33 @@
 
   renderChannelWorkspace();
   bindChannelComposer();
+
+  function bindIssueProposalForm() {
+    const form = document.getElementById('issueProposalForm');
+    if (!form || page.feed !== 'issues') return;
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const status = document.getElementById('issueProposalStatus');
+      const token = authToken();
+      if (!token) { if (status) status.textContent = 'Sign in from Accounts before submitting a proposal.'; window.showLoginScreen?.(); return; }
+      const data = Object.fromEntries(new FormData(form).entries());
+      const payload = { ...data, sourceStartLine: data.sourceStartLine ? Number(data.sourceStartLine) : undefined, sourceEndLine: data.sourceEndLine ? Number(data.sourceEndLine) : undefined };
+      const button = form.querySelector('button[type="submit"]');
+      if (button) button.disabled = true;
+      if (status) status.textContent = 'Submitting proposal…';
+      try {
+        const response = await fetch('/api/issues/proposals', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` }, credentials: 'same-origin', body: JSON.stringify(payload) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Could not submit proposal');
+        form.reset();
+        if (status) status.textContent = 'Proposal submitted for review.';
+        await loadFeed('latest');
+      } catch (error) { if (status) status.textContent = error.message || 'Could not submit proposal'; }
+      finally { if (button) button.disabled = false; }
+    });
+  }
+
+  bindIssueProposalForm();
   if (page.feed === 'community') { loadChannels(); loadModerationQueue(); }
 
   async function loadCommunityProfiles() {
@@ -197,7 +224,7 @@
   async function loadOwnProfile() {
     if (!ownProfileEditor) return;
     const token = authToken();
-    if (!token) { ownProfileEditor.innerHTML = '<p class="profile-signin">Sign in from <a href="/settings#account">Settings</a> to set your profile and presence.</p>'; return; }
+    if (!token) { ownProfileEditor.innerHTML = '<p class="profile-signin">Sign in from <a href="/accounts">Accounts</a> to set your profile and presence.</p>'; return; }
     try {
       const response = await fetch('/api/community/profile', { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, credentials: 'same-origin' });
       if (!response.ok) throw new Error('Profile unavailable');
@@ -216,7 +243,7 @@
           loadCommunityProfiles();
         } catch (error) { if (status) status.textContent = error.message || 'Could not save profile'; }
       });
-    } catch { ownProfileEditor.innerHTML = '<p class="profile-signin">Your profile could not be loaded. Please sign in again from Settings.</p>'; }
+    } catch { ownProfileEditor.innerHTML = '<p class="profile-signin">Your profile could not be loaded. Please sign in again from Accounts.</p>'; }
   }
 
   if (page.feed === 'community') { loadCommunityProfiles(); loadOwnProfile(); }
@@ -233,10 +260,21 @@
       feed.innerHTML = items.slice(0, 8).map((item) => {
         if (page.feed === 'issues') {
           const votes = item.votes || {};
-          return `<article class="feed-item issue-feed-item"><a href="${escapeHtml(item.url || '#')}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title || 'Untitled issue')}</strong><span>Issues${item.state ? ` · ${escapeHtml(item.state)}` : ''} · ${formatDate(item.updatedAt || item.updated_at)}</span><small>${escapeHtml(item.body || item.excerpt || '')}</small></a><div class="issue-vote-controls" aria-label="Issue voting"><button type="button" disabled title="Sign in to vote">▲ <span>${escapeHtml(votes.upvotes || 0)}</span></button><strong>${escapeHtml(votes.score || 0)}</strong><button type="button" disabled title="Sign in to vote">▼ <span>${escapeHtml(votes.downvotes || 0)}</span></button></div></article>`;
+          return `<article class="feed-item issue-feed-item"><a href="${escapeHtml(item.url || '#')}" target="_blank" rel="noreferrer"><span class="issue-card-kicker">Issue #${escapeHtml(item.githubIssueNumber || item.id || '')} · ${escapeHtml(item.state || 'open')}</span><strong>${escapeHtml(item.title || 'Untitled issue')}</strong><span>${formatDate(item.updatedAt || item.updated_at)}</span><small>${escapeHtml(item.body || item.excerpt || '')}</small></a><div class="issue-vote-controls" aria-label="Issue voting"><button type="button" data-vote-issue="${escapeHtml(item.id)}" data-vote-value="1" title="Upvote issue">▲ <span>${escapeHtml(votes.upvotes || 0)}</span></button><strong>${escapeHtml(votes.score || 0)}</strong><button type="button" data-vote-issue="${escapeHtml(item.id)}" data-vote-value="-1" title="Downvote issue">▼ <span>${escapeHtml(votes.downvotes || 0)}</span></button></div></article>`;
         }
         return `<a class="feed-item" href="${escapeHtml(item.url || '#')}" target="_blank" rel="noreferrer"><strong>${escapeHtml(item.title || 'Untitled activity')}</strong><span>${escapeHtml(item.source || page.feed)} · ${formatDate(item.updated_at || item.created_at)}</span><small>${escapeHtml(item.excerpt || '')}</small></a>`;
       }).join('');
+      feed.querySelectorAll('[data-vote-issue]').forEach((button) => button.addEventListener('click', async () => {
+        const token = authToken();
+        if (!token) { window.showLoginScreen?.(); return; }
+        button.disabled = true;
+        try {
+          const response = await fetch(`/api/issues/${encodeURIComponent(button.dataset.voteIssue)}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` }, credentials: 'same-origin', body: JSON.stringify({ value: Number(button.dataset.voteValue) }) });
+          if (!response.ok) throw new Error('Vote could not be recorded');
+          await loadFeed(sort);
+        } catch (error) { button.title = error.message || 'Vote could not be recorded'; }
+        finally { button.disabled = false; }
+      }));
     } catch { feed.innerHTML = '<p class="feed-empty">Live activity is unavailable right now. You can still browse the stream libraries.</p>'; }
   }
 
