@@ -1,3 +1,5 @@
+> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
+>
 # File Responsibility Manifest
 
 This manifest is generated from `docs/phase1/FILE-INVENTORY.tsv`. It assigns every inventoried file a deterministic purpose class, owner, runtime status, responsibility, and revamp action. Generated artifacts and vendored assets are classified by ownership rules rather than treated as application source.

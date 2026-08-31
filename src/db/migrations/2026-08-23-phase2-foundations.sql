@@ -121,6 +121,8 @@ DECLARE
 BEGIN
   FOREACH table_name IN ARRAY ARRAY['dashboard_activity', 'theme_presets', 'theme_preferences', 'issue_proposals', 'issue_votes', 'pr_lifecycle', 'audit_events'] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
-    EXECUTE format('REVOKE ALL ON TABLE %I FROM anon, authenticated', table_name);
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+      EXECUTE format('REVOKE ALL ON TABLE %I FROM anon, authenticated', table_name);
+    END IF;
   END LOOP;
 END $$;

@@ -58,7 +58,7 @@ describe('workspace env routing', () => {
     expect(response.body).toEqual(expect.objectContaining({
       viewer: expect.objectContaining({ signedIn: false }),
       metrics: expect.objectContaining({ streams: 3 }),
-      capabilities: expect.objectContaining({ database: false }),
+      capabilities: expect.objectContaining({ database: Boolean(process.env.DATABASE_URL) }),
     }));
   });
 
@@ -70,6 +70,21 @@ describe('workspace env routing', () => {
       expect(res.status).toBe(200);
       expect(res.text).toContain('NoteBooks');
     }
+  });
+
+  it('serves published project documents through /files without falling back to the shell', async () => {
+    const app = createApp();
+    const res = await request(app).get('/files/README.md');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/markdown|text\/plain/);
+    expect(res.text).toContain('NoteBooks');
+    expect(res.text).not.toContain('<!DOCTYPE html>');
+
+    const apiAlias = await request(app).get('/api/workspace-file/README.md');
+    expect(apiAlias.status).toBe(200);
+    expect(apiAlias.headers['content-type']).toMatch(/text\/markdown|text\/plain/);
+    expect(apiAlias.text).not.toContain('<!DOCTYPE html>');
   });
 
   it('serves the public project docs from the root of the app', async () => {

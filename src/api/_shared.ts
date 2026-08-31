@@ -1,4 +1,4 @@
-import { Octokit } from '@octokit/rest';
+import { createOctokit, loadCreateAppAuth } from '../lib/octokit-loader.js';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { parseRepoRegistryMarkdown } from '../lib/github-repositories.js';
@@ -45,6 +45,24 @@ async function readRepoRegistryEntries(): Promise<RepoRegistryEntryLike[]> {
   }
 }
 
+function normalizeStreamKey(value: unknown): string {
+  const stream = String(value || '').trim().toLowerCase();
+  if (stream === 'humanity' || stream === 'arts') return 'humanities';
+  return stream;
+}
+
+export async function getStreamRepo(stream: string): Promise<{ owner: string; repo: string; branch?: string; root?: string } | null> {
+  const targetStream = normalizeStreamKey(stream);
+  const entries = (await readRepoRegistryEntries())
+    .filter((entry) => entry.enabled !== false && normalizeStreamKey(entry.stream) === targetStream && entry.repo)
+    .sort((a, b) => Number(a.priority ?? Number.MAX_SAFE_INTEGER) - Number(b.priority ?? Number.MAX_SAFE_INTEGER));
+  const entry = entries[0];
+  if (!entry?.repo) return null;
+  const [owner, repo] = String(entry.repo).split('/').filter(Boolean);
+  if (!owner || !repo) return null;
+  return { owner, repo, branch: entry.branch || process.env.GITHUB_BRANCH || 'main', root: entry.root || '' };
+}
+
 // Looks up a specific "owner/repo" against the configured registry (plus the
 // single-repo GITHUB_REPO env fallback). Used to validate repo/branch query
 // overrides on endpoints like /api/raw so they can serve any known subject
@@ -73,7 +91,7 @@ export async function findRegisteredRepo(owner: string, repoName: string): Promi
 export async function getOctokit(options: { allowUnauthenticated?: boolean } = {}) {
   const token = (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
   if (token) {
-    return new Octokit({ auth: token });
+    return await createOctokit({ auth: token });
   }
 
   const appId = process.env.GITHUB_APP_ID?.trim();
@@ -81,7 +99,7 @@ export async function getOctokit(options: { allowUnauthenticated?: boolean } = {
   const installationId = process.env.GITHUB_APP_INSTALLATION_ID?.trim();
 
   if (appId && privateKey && installationId) {
-    const { createAppAuth } = await import('@octokit/auth-app');
+    const createAppAuth = await loadCreateAppAuth();
     const appAuth = createAppAuth({
       appId: Number(appId),
       privateKey,
@@ -89,11 +107,11 @@ export async function getOctokit(options: { allowUnauthenticated?: boolean } = {
     });
 
     const auth = await appAuth({ type: 'installation' });
-    return new Octokit({ auth: auth.token });
+    return await createOctokit({ auth: auth.token });
   }
 
   if (options.allowUnauthenticated !== false) {
-    return new Octokit();
+    return await createOctokit();
   }
 
   throw new Error('GitHub auth is not configured. Set GITHUB_TOKEN, GITHUB_PAT, or GitHub App credentials.');

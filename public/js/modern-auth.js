@@ -99,7 +99,8 @@ class ModernAuth {
     }
     // ─── HTTP Helper ──────────────────────────────────────────────────────────
     async _post(action, body) {
-        const response = await fetch(`${this.apiUrl}?action=${action}`, {
+        const send = window.noteBooksRequest || fetch;
+        const response = await send(`${this.apiUrl}?action=${action}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),

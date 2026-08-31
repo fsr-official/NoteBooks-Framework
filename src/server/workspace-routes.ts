@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildLocalFilesManifest } from '../api/files-manifest.js';
+import { isSafePublishedFilePath } from '../lib/safe-file-path.js';
 
 export function getWorkspaceEnv(): string {
   return process.env.WORKSPACE?.trim() || '';
@@ -70,16 +71,24 @@ export function registerWorkspaceRoutes(app: express.Application, projectDir: st
   app.get('/api/files.json', async (_req, res) => await sendManifestResponse(res));
   app.get('/api/manifest', async (_req, res) => await sendManifestResponse(res));
   app.get('/api/manifest.js', async (_req, res) => await sendManifestResponse(res));
-  app.get('/files/:filePath(*)', (req, res) => {
-    const params = req.params as { filePath?: string };
-    const filePath = String(params.filePath || '').replace(/^\/+/, '');
+  const sendPublishedFile = (req: express.Request, res: express.Response) => {
+    const params = req.params as { filePath?: string | string[] };
+    const rawFilePath = Array.isArray(params.filePath) ? params.filePath.join('/') : params.filePath;
+    const queryFilePath = typeof req.query.path === 'string' ? req.query.path : '';
+    const filePath = String(rawFilePath || queryFilePath || '').replace(/^\/+/, '');
     if (!filePath) return res.status(400).json({ error: 'Missing file path' });
+    if (!isSafePublishedFilePath(filePath)) return res.status(403).json({ error: 'Access denied' });
     const absolutePath = path.resolve(projectDir, filePath);
     if (!absolutePath.startsWith(projectDir + path.sep) && absolutePath !== projectDir) return res.status(403).json({ error: 'Access denied' });
     if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) return res.status(404).json({ error: 'File not found' });
     res.set('Cache-Control', 'no-cache');
     return res.sendFile(absolutePath);
-  });
+  };
+  app.get('/files/{*filePath}', sendPublishedFile);
+  // Vercel rewrites /files/* into the API function because the platform does not
+  // invoke the Express catch-all for a dynamic static path automatically.
+  app.get('/api/workspace-file', sendPublishedFile);
+  app.get('/api/workspace-file/{*filePath}', sendPublishedFile);
   app.get('/api/workspace', (_req, res) => {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json(getWorkspaceMetadata(projectDir));

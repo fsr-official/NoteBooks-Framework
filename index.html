@@ -1,6 +1,33 @@
+<!--
+============= COPYLEFT NOTICE (FRONTEND) ===============
+This file is based on Ada (https://github.com/Pratyush-Chanda/Ada)
+Copyright (C) 2025  Pratyush Chanda [Ada]
+
+Modifications and integration into NoteBooks-Framework:
+Copyright (C) 2024-2026  Federation of Socialist Republics,
+United Boys Socialist Republic
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+SPDX-License-Identifier: GPL-3.0-or-later
+===========================================================
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script type="module" src="/public/client/observability.js"></script>
+  <script src="/public/js/request.js"></script>
   <meta charset="UTF-8" />
   <title>NoteBooks — Learn, contribute, and grow together</title>
   <meta name="description" content="NoteBooks is a collaborative learning workspace for clear subject notes, thoughtful discussion, and trusted contributions." />
@@ -53,7 +80,7 @@
   <nav class="global-nav" aria-label="Primary navigation">
     <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
     <div class="global-nav-links">
-      <a href="/" data-nav="home">Home</a><a href="/settings#personal-space" data-nav="dashboard">My space</a><a href="/science" data-nav="science">Science</a><a href="/commerce" data-nav="commerce">Commerce</a><a href="/humanities" data-nav="humanities">Humanities</a><a href="/community" data-nav="community">Community</a><a href="/issues" data-nav="issues">Issues</a><a href="/volunteers" data-nav="volunteers">Volunteers</a><a href="/accounts" data-nav="accounts">Account</a><a href="/settings" data-nav="settings">Settings</a><a href="/about" data-nav="about">About</a>
+      <a href="/" data-nav="home">Home</a><a href="/science" data-nav="science">Science</a><a href="/commerce" data-nav="commerce">Commerce</a><a href="/humanities" data-nav="humanities">Humanities</a><a href="/community" data-nav="community">Community</a><a href="/issues" data-nav="issues">Issues</a><a href="/volunteers" data-nav="volunteers">Volunteers</a><a href="/accounts" data-nav="accounts">Account</a><a href="/settings" data-nav="settings">Settings</a><a href="/about" data-nav="about">About</a>
     </div>
     <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
   </nav>
@@ -335,6 +362,16 @@
           <input type="text" id="us2destPath" class="text-input" placeholder="e.g. books/sci-fi (leave blank for root)">
           <div style="font-size:11px;opacity:.5;margin-top:3px">Where in the repository should these files be placed? New folders/subfolders will be created if needed.</div>
         </div>
+        <!-- Optional transparent SVG normalization for diagram images -->
+        <div id="us2diagramSection" style="margin-top:12px">
+          <label for="us2diagramDomain" style="display:block;font-size:13px;font-weight:500;margin-bottom:5px">🧬 Diagram image handling</label>
+          <select id="us2diagramDomain" class="text-input">
+            <option value="">Keep original image format</option>
+            <option value="biology">Biology — convert image to transparent SVG</option>
+            <option value="chemistry">Chemistry — convert image to transparent SVG</option>
+          </select>
+          <div style="font-size:11px;opacity:.5;margin-top:3px">For raster diagrams, near-white background pixels become transparent and the result is stored as an accessible SVG. Existing SVGs are validated and preserved as vectors.</div>
+        </div>
         <!-- Admin: optional re-upload of modified version (single file only) -->
         <div id="us2reuploadSection" style="display:none;margin-top:10px">
           <div style="font-size:13px;font-weight:500;margin-bottom:6px">Replace with modified version (optional)</div>
@@ -448,7 +485,7 @@
     </div>
   </div>
 
-<!-- workspace utility bar removed — toolbar inside the app shell provides Refresh/Upload/Account -->
+<!-- The workspace toolbar is intentionally title-only; navigation and file actions live in the tree and context surfaces. -->
 <div class="app-shell">
   <aside class="app-sidebar legacy-sidebar" id="appSidebar" aria-hidden="true" hidden>
       <div class="sidebar-brand">
@@ -485,32 +522,6 @@
     <main class="window workspace-window" id="workspaceWindow" aria-label="File workspace">
       <div class="toolbar">
         <h1 id="workspaceHeader">NoteBooks</h1>
-        <div class="workspace-location-marker" id="workspaceLocationMarker" role="status" aria-live="polite" title="Current location">Inside: workspace root</div>
-        <button class="mob-toolbar-overflow" onclick="refreshFiles()" title="Refresh">↻</button>
-        <button class="mob-toolbar-overflow" onclick="goUp()" title="Go up">↑</button>
-        <button class="mob-toolbar-overflow" id="uploadBtnToolbar" onclick="showUploadScreen()" title="Upload file">⬆</button>
-        <button class="mob-toolbar-overflow" id="adminPanelBtn" onclick="showAdminPanel()" title="Admin panel" style="display:none">⚙️</button>
-        <button class="mob-toolbar-overflow" id="communityBtnToolbar" onclick="openCommunity()" title="Community">💬</button>
-        <button id="loginBtnToolbar" onclick="showLoginScreen()" title="Login / Account">🔐 Account</button>
-        <button id="mobOverflowBtn" onclick="toggleMobOverflow()" title="More options">⋯</button>
-      </div>
-      <div id="mobOverflowMenu">
-        <button class="mob-overflow-item" onclick="refreshFiles();closeMobOverflow()">
-          <span class="moi-icon">↻</span> Refresh
-        </button>
-        <button class="mob-overflow-item" onclick="goUp();closeMobOverflow()">
-          <span class="moi-icon">↑</span> Go Up
-        </button>
-        <button class="mob-overflow-item" onclick="showUploadScreen();closeMobOverflow()">
-          <span class="moi-icon">⬆</span> Upload File
-        </button>
-        <div class="mob-overflow-sep"></div>
-        <button class="mob-overflow-item" onclick="openCommunity();closeMobOverflow()">
-          <span class="moi-icon">💬</span> Community
-        </button>
-        <button class="mob-overflow-item" id="mobOverflowAdminBtn" style="display:none" onclick="showAdminPanel();closeMobOverflow()">
-          <span class="moi-icon">⚙️</span> Admin Panel
-        </button>
       </div>
       <div class="path-nav" id="pathNav">
         <span class="path-segment" onclick="goToRoot()">☁️</span>
@@ -523,6 +534,7 @@
         <div>
           <div class="tree-rail-kicker">Navigator</div>
           <div class="tree-rail-title">Repository tree</div>
+          <div class="tree-current-location tree-current-location--marker" id="treeCurrentLocation" role="status" aria-live="polite" title="Current location">Current: workspace root</div>
         </div>
         <button class="sidebar-collapse-control" id="sidebarCollapseBtn" type="button"
           aria-label="Collapse repository navigator" aria-expanded="true"
@@ -531,7 +543,6 @@
       <div class="sidebar-section sidebar-browse-section">
         <label class="sidebar-section-title" for="sidebarSearch">Search files and folders</label>
         <input id="sidebarSearch" class="sidebar-search-input" type="search" placeholder="Filter tree" autocomplete="off" aria-label="Search repository files and folders" />
-        <div class="tree-current-location" id="treeCurrentLocation" role="status" aria-live="polite">Current location: workspace root</div>
         <div class="sidebar-tree" id="sidebarTree" role="tree" aria-label="Repository files and folders">
           <div class="sidebar-tree-empty">Loading file tree…</div>
         </div>
@@ -590,14 +601,14 @@
   </div>
 
 <!-- gh-proxy.js archived → archive/removed-public-js/gh-proxy.js (DEPRECATED) -->
-<script src="/public/js/markdown-vendors.js"></script>
-<script src="/public/js/markdown.js"></script>
-<script src="/public/js/config.js"></script>
-<script src="/public/js/theme.js"></script>
-<script src="/public/js/landing-docs.js"></script>
-<script src="/public/js/stream-runtime.js"></script>
-<script src="/public/js/raw-delivery.js"></script>
-<script src="/public/js/app.js?v=20260808-pathfix"></script>
+<script src="/public/js/markdown-vendors.js" defer></script>
+<script src="/public/js/markdown.js" defer></script>
+<script src="/public/js/config.js" defer></script>
+<script src="/public/js/theme.js" defer></script>
+<script src="/public/js/landing-docs.js" defer></script>
+<script src="/public/js/stream-runtime.js" defer></script>
+<script src="/public/js/raw-delivery.js" defer></script>
+<script src="/public/js/app.js?v=20260808-pathfix" defer></script>
 
 <div id="updateNotice" style="display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--item); color: var(--fg); padding: 12px 20px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2); z-index: 9999; align-items: center; gap: 12px;">
   <span>Update detected. Refresh now to apply changes.</span>
@@ -606,9 +617,8 @@
 	</div>
 <div id="taskbarContextMenu" class="context-menu" style="display: none;"></div>
 <!-- admin-terminal.js archived → archive/removed-public-js/admin-terminal.js (admin tool) -->
-<script src="/public/js/auth.js"></script>
-<script src="/public/js/upload.js"></script>
-  <script src="/public/js/mobile.js"></script>
-  <script src="/public/client/streams.js" defer></script>
-  <script src="/public/client/main.js" defer></script>
+<script src="/public/js/auth.js" defer></script>
+<script src="/public/js/upload.js" defer></script>
+  <script src="/public/js/mobile.js" defer></script>
+  <script src="/public/js/shell-nav.js" defer></script>
 </body>

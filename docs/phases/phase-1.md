@@ -1,3 +1,5 @@
+> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
+>
 # Phase 1 — File Service stabilization
 
 Skeleton and checklist for Phase 1 work items.

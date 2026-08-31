@@ -64,11 +64,11 @@ export function registerPublicRoutes(app: express.Application, projectDir: strin
 
   STREAM_ROUTES.forEach((stream) => {
     app.get(`/${stream}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
-    app.get(`/${stream}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
+    app.get(`/${stream}/{*splat}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'streams.html')));
   });
   PORTAL_ROUTES.forEach((route) => {
     app.get(`/${route}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'portal.html')));
-    app.get(`/${route}/*`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'portal.html')));
+    app.get(`/${route}/{*splat}`, (_req, res) => res.sendFile(path.join(projectDir, 'public', 'html', 'portal.html')));
   });
 
   app.get('/manifest.json', (_req, res) => {

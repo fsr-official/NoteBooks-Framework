@@ -50,5 +50,10 @@ ON CONFLICT (user_id, role_key) DO NOTHING;
 
 ALTER TABLE app_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE app_roles FROM anon, authenticated;
-REVOKE ALL ON TABLE user_roles FROM anon, authenticated;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    REVOKE ALL ON TABLE app_roles FROM anon, authenticated;
+    REVOKE ALL ON TABLE user_roles FROM anon, authenticated;
+  END IF;
+END $$;

@@ -8,17 +8,25 @@
   <link rel="stylesheet" href="/public/css/theme.css" />
   <link rel="stylesheet" href="/public/css/style.css" />
   <link rel="stylesheet" href="/public/css/dashboard.css" />
+  <script type="module" src="/public/client/observability.js"></script>
+  <script src="/public/js/request.js"></script>
 </head>
 <body class="dashboard-page admin-dashboard-page">
   <nav class="global-nav" aria-label="Primary navigation">
     <a class="global-nav-brand" href="/" aria-label="NoteBooks home"><span class="global-nav-mark">N</span><span class="global-nav-word">NoteBooks</span></a>
     <div class="global-nav-links">
-      <a href="/settings#personal-space" data-nav="dashboard">My space</a>
-      <a href="/admin" data-nav="admin" aria-current="page">Admin desk</a>
-      <a href="/admin-prs" data-nav="admin-prs">PR review</a>
+      <a href="/" data-nav="home">Home</a>
+      <a href="/science" data-nav="science">Science</a>
+      <a href="/commerce" data-nav="commerce">Commerce</a>
+      <a href="/humanities" data-nav="humanities">Humanities</a>
       <a href="/community" data-nav="community">Community</a>
       <a href="/issues" data-nav="issues">Issues</a>
+      <a href="/volunteers" data-nav="volunteers">Volunteers</a>
+      <a href="/accounts" data-nav="accounts">Account</a>
       <a href="/settings" data-nav="settings">Settings</a>
+      <a href="/about" data-nav="about">About</a>
+      <a href="/admin" data-nav="admin" aria-current="page">Admin desk</a>
+      <a href="/admin-prs" data-nav="admin-prs">PR review</a>
     </div>
     <button class="global-nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
   </nav>
@@ -57,6 +65,7 @@
   </main>
 
   <script src="/public/js/theme.js"></script>
+  <script src="/public/js/shell-nav.js" defer></script>
   <script src="/public/js/admin-dashboard.js" defer></script>
 </body>
 </html>

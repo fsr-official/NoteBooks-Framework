@@ -1,115 +1,97 @@
+# NoteBooks Markdown Renderer
 
-# Markdown Renderer — Feature List
+**Status:** active renderer contract for the current static browser client. The renderer lives primarily in `public/js/`; it is not a server-side Markdown-to-HTML service. The server delivers source bytes and metadata, while the browser performs the final reading presentation.
 
-Scope: `public/obsidian-markdown-it.js` (core plugin, ~2,100 lines), `public/markdown.js` (entry point), `public/markdown-editor.js` (editor-side helpers). Built on `markdown-it`, extended with a custom Obsidian-flavor syntax layer plus several diagram/graphing/math renderers.
+## Architecture and lifecycle
 
----
+The reader uses a two-phase pipeline. `public/js/markdown.js` calls `markdownToHTML()` to produce safe application markup synchronously, inserts that markup into the preview container, and then calls `initMarkdownFeatures(container)` to activate optional runtimes. `public/js/md-init.js` constructs the Markdown-it instance and registers renderer extensions. `public/js/obsidian-markdown-it.js` supplies Obsidian-flavored parsing and post-render helpers. `public/js/markdown-vendors.js` loads MathJax, Mermaid, TikZJax, Desmos, and Highlight.js only when a rendered document requires them.
 
-## 1. Current Features
+This design keeps the first reader paint deterministic and makes vendor failure visible. It also preserves the application’s eager content model: tree artifacts are loaded eagerly, and the renderer does not add lazy subtree or document loading.
 
-### 1.1 Core syntax extensions (Obsidian-flavored Markdown)
+| File | Responsibility |
+| --- | --- |
+| `public/js/markdown.js` | Public rendering entry point, fallback markup, feature initialization, and preview lifecycle. |
+| `public/js/md-init.js` | Markdown-it configuration, frontmatter extraction, figure fences, specialized fence registration, and Mermaid setup. |
+| `public/js/obsidian-markdown-it.js` | Wikilinks, embeds, callouts, tasks, tags, highlights, heading anchors, math, diagram placeholders, and compatibility behavior. |
+| `public/js/markdown-vendors.js` | On-demand CDN vendor loading and selected theme/security configuration. |
+| `public/js/app.js` | Fetches the selected Markdown source, sets `window._currentNotePath`, owns preview/raw/source actions, and starts the renderer. |
+| `public/css/style.css` | Reader width, heading scale, code, callouts, figures, captions, and theme tokens. |
+| `src/api/raw.ts` | Canonical source-byte delivery and path/repository validation. |
+| `src/api/system.ts` | Eager stream tree discovery and repository metadata used to locate notes. |
 
+## Supported syntax
 
-| Feature         | Syntax                                           | Notes                                                  |
-| ----------------- | -------------------------------------------------- | -------------------------------------------------------- |
-| Comments        | `%% hidden text %%`                              | Stripped from output entirely, not just hidden via CSS |
-| Highlight       | `==highlighted text==`                           | Renders as`<mark>`                                     |
-| Strikethrough   | `~~text~~`                                       |                                                        |
-| Tags            | `#tag`, `#nested/tag`                            | Rendered as clickable tag chips                        |
-| Block IDs       | paragraph ending in`^blockid`                    | Enables precise wikilink anchors to a specific block   |
-| Wikilinks       | `[[Page]]`, `[[Page|Alias]]`, `[[Page#Heading]]` | Resolved against the content manifest                  |
-| Embeds          | `![[file]]`, `![[img|300]]`, `![[img|300x200]]`  | Supports width/height sizing syntax                    |
-| Task lists      | `- [ ]`, `- [x]`, `- [/]`, `- [-]`               | Extended states beyond plain done/not-done             |
-| Heading anchors | auto-stamped`id="..."` on `h1`–`h6`             | Required for wikilink`#Heading` targets to resolve     |
-| Front-matter    | YAML block at top of file                        | Parsed and stripped before rendering                   |
+| Feature | Author syntax | Render behavior |
+| --- | --- | --- |
+| Markdown core | Headings, lists, tables, links, blockquotes, code | Markdown-it output with application styling. |
+| Frontmatter | YAML-like block at the beginning of a note | Extracted as metadata and removed from the visible body. |
+| Wikilinks | `[[Page]]`, `[[Page|Alias]]`, `[[Page#Heading]]` | Resolved through the current repository/tree context. |
+| Embeds | `![[file.svg]]`, `![[image.svg|300]]`, `![[image.svg|300x200]]` | Responsive media with optional dimensions. |
+| Callouts | `> [!NOTE]`, `> [!TIP]+`, `> [!WARNING]-` | Semantic, optionally foldable note blocks. |
+| Highlights/tags | `==important==`, `#biology`, `#chemistry/setup` | `<mark>` emphasis and navigable tag styling. |
+| Tasks | `- [ ]`, `- [x]`, `- [/]`, `- [-]` | Extended task states with accessible state labels. |
+| Block IDs/headings | `^block-id`, automatic heading IDs | Stable links for internal references. |
+| Inline/display math | `$x^2$`, `$$E=mc^2$$`, `\(...\)`, `\[...\]` | MathJax enhancement with source fallback. |
+| Mermaid | ` ```mermaid` | Client-side diagram rendering; strict security and selected light/dark theme. |
+| TikZ | ` ```tikz` | TikZJax/WASM rendering; processed before MathJax to preserve TikZ source. |
+| Desmos | ` ```desmos`, ` ```desmos3d` | Interactive 2D/3D graphing with supported options. |
+| Code | ` ```typescript`, ` ```python`, and other language fences | Highlight.js enhancement and reader-controlled wrapping. |
+| Biology figures | ` ```bio`, ` ```biology` | Accessible static figure with caption/source support. |
+| Chemistry figures | ` ```chem-setup`, ` ```chemistry` | Accessible experimental-setup figure with the same contract. |
 
-### 1.2 Callouts
+The recognized Obsidian callout aliases include note, abstract/summary/tldr, info, todo, tip/hint/important, success/check/done, question/help/faq, warning/caution/attention, failure/fail/missing, danger/error, bug, example, and quote/cite. Aliases map to a smaller set of visual styles so the reader remains consistent.
 
-Obsidian-style `> [!TYPE]` callouts, foldable with `+` (open) / `-` (closed) modifiers and custom titles.
+## Biology and chemistry figure fences
 
-**24 recognized types** (aliased into 15 visual styles with icons):
-`note` · `abstract`/`summary`/`tldr` · `info` · `todo` · `tip`/`hint`/`important` · `success`/`check`/`done` · `question`/`help`/`faq` · `warning`/`caution`/`attention` · `failure`/`fail`/`missing` · `danger`/`error` · `bug` · `example` · `quote`/`cite`
+Static educational diagrams use a small key-value convention rather than arbitrary inline HTML:
 
-Each renders with its own icon, color, and an optional collapsible chevron.
+````markdown
+```bio
+src: /assets/diagrams/starter/biological-cell.svg
+alt: Labeled cross-section of a biological cell
+caption: Major cell structures and their relative locations.
+source: /assets/diagrams/starter/ATTRIBUTIONS.md
+```
 
-### 1.3 Math rendering (MathJax)
+```chem-setup
+src: /assets/diagrams/starter/simple-distillation-apparatus.svg
+alt: Simple distillation apparatus
+caption: Flask, condenser, receiver, and heat source.
+```
+````
 
-- Inline math: `$...$`
-- Display math: `$$...$$` (both as its own block and inline-within-paragraph)
-- Raw LaTeX delimiters: `\(...\)` and `\[...\]`
-- Custom block-promotion rule so `$$` blocks are recognized even when adjacent to other block content (e.g., interrupting a paragraph, sitting inside a callout)
+The accepted keys are `src` or `image`, `alt`, `caption`, and `source`. The renderer emits a semantic `<figure>` and responsive image with an optional `<figcaption>`. URLs are limited to safe same-origin or HTTPS paths; unsafe `javascript:`, `data:`, `blob:`, `file:`, and protocol-relative values are rejected. A missing source produces a clear explanatory fallback rather than a broken image. The aliases `biology` and `chemistry` are accepted for author convenience.
 
-### 1.4 Diagrams — Mermaid
+Uploaded diagrams use the same visual contract. The protected upload path can sanitize a native SVG (`mode: vector`) or package a raster image as an SVG containing a transparent-background PNG (`mode: embedded-raster`). The latter is an SVG container, not true vector tracing. The original name and derivative metadata remain attached to the review record.
 
-- ` ```mermaid` fenced blocks
-- Custom **pan/zoom viewer** wrapped around rendered diagrams (drag to pan, scroll/pinch to zoom) — not just static SVG output
+## Security model
 
-### 1.5 Diagrams — TikZ (via TikZJax)
+Markdown from repository content and user-submitted Markdown must not be treated as equivalent trust domains. The renderer constrains figure URLs and does not inject arbitrary HTML for figure fences. Mermaid is configured with `securityLevel: 'strict'`; the selected NoteBooks theme mode is used instead of relying only on the operating-system preference. The existing general Markdown-it HTML behavior remains a compatibility boundary and should be narrowed or source-scoped in a future hardening pass rather than silently changed in a way that breaks trusted notes.
 
-- ` ```tikz` fenced blocks, compiled client-side via TikZJax (WASM)
-- Requires cross-origin isolation (COOP/COEP headers, set at the Express app level) for `SharedArrayBuffer` support
-- Careful init ordering: TikZ is processed **before** MathJax specifically because MathJax would otherwise corrupt raw `\begin{tikzpicture}` source sitting in hidden divs before TikZJax can consume it
+TikZJax requires the server’s cross-origin isolation headers for `SharedArrayBuffer` support. This is a deployment requirement, not a reason to expose new cross-origin write behavior. Vendor runtimes are loaded from their configured CDN sources, and missing or blocked vendors must leave the source-visible fallback.
 
-### 1.6 Graphing — Desmos
+## Backend handoff
 
-- ` ```desmos` — 2D graphing calculator embed (`Desmos.GraphingCalculator`)
-- ` ```desmos3d` — 3D graphing calculator embed, separate fence language and separate post-render init path
-- Both support key=value option parsing in the fence info string (e.g. bounds, expressions)
+The renderer does not discover repositories or invent raw URLs. The browser first receives a selected file from an eager stream tree. `app.js` carries the repository-relative path into the preview context. Source text is fetched through the canonical raw delivery flow, rendered locally, and kept associated with the repository, branch, path, and commit/snapshot metadata. When the reader’s selection-to-suggest action is used, the same metadata plus exact line range and source text is sent to the Issues proposal endpoint.
 
-### 1.7 Code blocks
+This separation means that Markdown presentation can evolve without changing publication authority. GitHub remains the content source, generated trees remain discovery artifacts, `raw.ts` remains byte delivery, and GitHub PR review remains the protected publication path.
 
-- Syntax highlighting via Highlight.js
-- Language-aware fencing (info string drives the highlighted language)
+## Extension pattern
 
-### 1.8 Embeds & media
+New fenced features should follow the established pattern:
 
-- Smart SVG sizer (auto-fits embedded SVGs to their container rather than rendering at native/unbounded size)
-- Image embeds via wikilink embed syntax with optional explicit sizing
+1. Detect a narrowly named fence in the Markdown-it fence rule and fall through unchanged for all other languages.
+2. Validate and normalize input before emitting a placeholder or figure.
+3. Add a focused post-render initializer only when a runtime library is genuinely required.
+4. Load external vendors through `markdown-vendors.js`, preserving graceful fallbacks.
+5. Add browser-static and regression tests, update this contract, and verify both light and dark theme modes.
 
-### 1.9 AI-assisted Markdown intake
+SMILES molecular rendering remains a future capability. It should be added only after a maintained, appropriately licensed library is selected and input validation/fallback behavior are tested. It must not be conflated with the current chemistry experimental-setup figure fence.
 
-- `src/lib/ai-markdown.ts` — a separate structured-content pipeline (schemas for quizzes/flashcards) that sits alongside, but is distinct from, the client-side rendering plugin above. Used for ingesting/normalizing AI-assisted content submissions before they hit the renderer.
+## Acceptance checks
 
-### 1.10 Rendering pipeline / lifecycle
+A renderer change is complete when ordinary Markdown remains readable, H1/H2/H3/H4 hierarchy is visually coherent, figures remain responsive in both theme modes, captions and source links are accessible, unsafe figure URLs are rejected, Mermaid remains strict, optional vendor failure is visible, source evidence still contains correct line metadata, and the full test/build pipeline passes. The current client cache contract is `webman-v31`; changes to renderer scripts or CSS require a service-worker version update and frontend regression assertion.
 
-- Two-phase render: `markdownToHTML()` (string → HTML, synchronous) then `initMarkdownFeatures(container)` (async, activates all post-render features — TikZ → MathJax → Mermaid → Desmos → Desmos3D → Highlight.js, in that specific dependency order)
-- Frontmatter stripped prior to render, exposed separately to callers
-- Graceful degradation: explicit fallback markup (`.markdown-preview-fallback`) if the renderer or frontmatter parser fails to initialize, rather than a hard crash
-- Per-file path context (`window._currentNotePath`) threaded through so relative embed/wikilink URLs resolve correctly regardless of which file is being viewed
+## References
 
----
-
-## 2. Planned / To-Be-Added Features
-
-### 2.1 SMILES chemical structure rendering (SmilesDrawer) — *engineering, in progress*
-
-Add a ` ```smiles` fenced-block handler, implemented as a direct structural parallel to the existing Mermaid fence handler (same `md.renderer.rules.fence` override pattern, same post-render init hook shape as `obsidianInitMermaid`).
-
-- **Library**: SmilesDrawer, loaded alongside the existing MathJax / Mermaid / Desmos / TikZJax script set
-- **Input**: a SMILES string inside the fence, e.g.:
-  ````
-  ```smiles
-  C(C1C(C(C(C(O1)O)O)O)O)O
-  ```
-  ````
-- **Validation targets**: glucose, ATP, and a representative amino acid, to confirm correct rendering before wider rollout
-- **Why it's needed**: chemistry notes currently have no structured way to render molecular structures — this closes that gap using the same "fenced block → client-side renderer" pattern already proven for Mermaid/TikZ/Desmos, so it fits the existing architecture rather than introducing a new one
-
-### 2.2 Pre-drawn biology/anatomy SVG library — *sourcing, not engineering*
-
-For recurring biological structures (cells, organelles, organ systems, the nephron, the neuron, etc.), the plan is explicitly **not** to hand-draw these or build new renderer functionality:
-
-- **Source**: openly licensed, textbook-quality diagrams — **OpenStax Biology** is the leading candidate, since it's freely licensed and covers exactly the recurring structures needed
-- **Integration path**: once sourced into an asset folder, these are just standard image embeds (`![[diagram.svg]]` / `![[diagram.svg|400]]`) — the existing embed + smart SVG sizer functionality (§1.8) already handles this with **no new renderer code required**
-- **Distinction from §2.1**: SMILES is a data-driven renderer (text in, structure out, code required); this is a static-asset problem (image in, no code required) — deliberately kept separate so the sourcing work doesn't get blocked on or conflated with the engineering work
-
----
-
-## 3. Architectural Notes for Future Additions
-
-The fence-handler pattern used by Mermaid, TikZ, Desmos, and Desmos3D (and now planned for SMILES) is consistent enough to treat as the template for any future embedded-language block:
-
-1. Wrap `md.renderer.rules.fence`, check `token.info` for the target language tag, fall through to `orig(...)` for anything else
-2. Emit a placeholder container (e.g. a `<div>` with the raw source stashed in a data attribute or hidden child) rather than rendering the final output synchronously
-3. Add a corresponding `obsidianInit<Feature>(container)` function, called from `initMarkdownFeatures()` in `public/markdown.js`, in the correct dependency order relative to existing features (TikZ-before-MathJax is the cautionary example already encoded here)
-4. If the feature needs external assets (WASM, worker scripts, heavy JS libraries), load them alongside the existing MathJax/Mermaid/Desmos/TikZJax set rather than introducing a separate loading mechanism
+The current architecture and backend boundaries are documented in [`docs/phase1/REAL-ARCHITECTURE.md`](phase1/REAL-ARCHITECTURE.md). The upload conversion and licensing plan is in [`docs/phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md`](phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md). Starter image licenses are in [`public/assets/diagrams/starter/ATTRIBUTIONS.md`](../public/assets/diagrams/starter/ATTRIBUTIONS.md).

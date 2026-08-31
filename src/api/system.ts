@@ -157,16 +157,21 @@ async function buildStreamTree(stream: string): Promise<CacheEntry> {
     const pagesBase = resolvePagesBaseUrl(entry);
     try {
       let tree;
-      try {
-        const children = await fetchRepoManifest(repo, repoName, branch, pagesBase);
-        tree = {
-          type: 'folder',
-          name: repoName,
-          children: children.map((child: any) => annotateNode(child, repo, branch)).filter(Boolean)
-        };
-      } catch (manifestError) {
-        console.warn(`[system] files.json unavailable for ${repo}; trying GitHub tree:`, manifestError instanceof Error ? manifestError.message : manifestError);
-        tree = await fetchGithubTree(repo, branch);
+      const explicitlyEmpty = entry.empty === true || String(entry.empty || '').toLowerCase() === 'true';
+      if (explicitlyEmpty) {
+        tree = { type: 'folder', name: repoName, children: [] };
+      } else {
+        try {
+          const children = await fetchRepoManifest(repo, repoName, branch, pagesBase);
+          tree = {
+            type: 'folder',
+            name: repoName,
+            children: children.map((child: any) => annotateNode(child, repo, branch)).filter(Boolean)
+          };
+        } catch (manifestError) {
+          console.warn(`[system] files.json unavailable for ${repo}; trying GitHub tree:`, manifestError instanceof Error ? manifestError.message : manifestError);
+          tree = await fetchGithubTree(repo, branch);
+        }
       }
       return { repo, branch, pagesBase, tree };
     } catch (error) {

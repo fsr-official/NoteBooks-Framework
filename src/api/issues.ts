@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import { createHash } from 'node:crypto';
 import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
-import { findRegisteredRepo, getOctokit } from './_shared.js';
+import { findRegisteredRepo, getOctokit, getStreamRepo } from './_shared.js';
 
-const ISSUES_REPO = () => String(process.env.GITHUB_ISSUES_REPO || 'fsr-official/NoteBooks-Issues').trim();
+const ISSUES_REPO = () => String(process.env.GITHUB_ISSUES_REPO || '').trim();
 
 function splitRepo(value: string): { owner: string; repo: string } | null {
   const [owner, repo] = value.split('/').map((part) => part.trim()).filter(Boolean);
@@ -24,7 +24,9 @@ function authEmail(req: Request): string | null {
   return email ? String(email).trim().toLowerCase() : null;
 }
 
-function issueRepository(): { owner: string; repo: string } | null {
+async function issueRepository(): Promise<{ owner: string; repo: string } | null> {
+  const registered = await getStreamRepo('issues');
+  if (registered) return { owner: registered.owner, repo: registered.repo };
   return splitRepo(ISSUES_REPO());
 }
 
@@ -82,7 +84,7 @@ async function voteSummary(issueId: number, userId?: number | null) {
 }
 
 export async function listIssues(req: Request, res: Response): Promise<void> {
-  const configuredRepo = issueRepository();
+  const configuredRepo = await issueRepository();
   if (!configuredRepo) {
     res.status(500).json({ error: 'Issues repo is not configured' });
     return;
@@ -149,7 +151,7 @@ export async function createProposal(req: Request, res: Response): Promise<void>
     return;
   }
   const userId = await getUserId(email);
-  const targetIssuesRepo = issueRepository();
+  const targetIssuesRepo = await issueRepository();
   if (!targetIssuesRepo || !userId) {
     res.status(503).json({ error: 'Issue identity or repository configuration is unavailable' });
     return;
@@ -287,7 +289,7 @@ export async function createPullRequest(req: Request, res: Response): Promise<vo
        RETURNING id, pr_number, pr_url, state`,
       [issueId, proposal.source_repository, proposal.source_branch, branch, pr.data.number, pr.data.html_url, (req as any).auth?.userId || null],
     );
-    const issuesRepo = issueRepository();
+    const issuesRepo = await issueRepository();
     if (issuesRepo && proposal.note_books_issue_number) {
       await octokit.issues.createComment({ owner: issuesRepo.owner, repo: issuesRepo.repo, issue_number: proposal.note_books_issue_number, body: `PR opened in ${proposal.source_repository}: ${pr.data.html_url}` }).catch(() => undefined);
     }

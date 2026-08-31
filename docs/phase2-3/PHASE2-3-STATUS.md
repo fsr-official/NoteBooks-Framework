@@ -1,3 +1,5 @@
+> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
+>
 # NoteBooks Phase-2 / Phase-3 Status Report
 
 **Status:** Foundation implementation complete; the NoteBooks-Project Supabase schema is applied, while application deployment still requires its server-side connection and identity credentials.
@@ -31,15 +33,15 @@ The migration enables RLS and revokes `anon` and `authenticated` table grants fo
 
 ## Verification evidence
 
-The final local build and regression suite passed with **28 test files and 76 tests** after adding the role/profile regression coverage. The Settings personal-space browser check confirmed the responsive embedded Dashboard, four metric cells, three stream links, anonymous Guest view, and zero visible loading/error state. The admin browser check confirmed the separate control-center shell, clear guarded-state messaging, no exposed privileged metrics, and the sign-in continuation path. The live server returned `200` for `/dashboard`, `/issues`, `/community`, `/api/dashboard`, and `/api/issues/feed`; unauthenticated issue writes and PR creation remain protected.
+The final local build and regression suite passed with **32 test files and 93 tests**. The Commerce-empty regressions confirm both an HTTP-200 empty `files.json` and the canonical `empty=true` registry path produce valid empty repository trees. The Settings personal-space browser check confirmed the responsive embedded Dashboard, four metric cells, three stream links, anonymous Guest view, and zero visible loading/error state. A local CDP navigation check also confirmed Home → `/science` → Home restores the landing markup and visibility without a refresh or console exception. The admin browser check confirmed the separate control-center shell, clear guarded-state messaging, no exposed privileged metrics, and the sign-in continuation path. The live server returned `200` for `/dashboard`, `/issues`, `/community`, `/api/dashboard`, and `/api/issues/feed`; unauthenticated issue writes and PR creation remain protected.
 
-The local health endpoint may report `degraded` because `DATABASE_URL` and GitHub authentication are intentionally absent in the sandbox. The Commerce artifact continues to use the documented stale fallback because `fsr-commerce/NCERT-Commerce` currently returns `404` for its root `files.json`.
+The local health endpoint may report `degraded` because `DATABASE_URL` and GitHub authentication are intentionally absent in the sandbox. The Commerce repository intentionally returns `404` for its root `files.json`; its canonical registry entry is now `empty=true`, so build-time and runtime artifacts correctly expose an empty Commerce tree without a stale fallback.
 
 ## Required production activation steps
 
 Configure the server-side `DATABASE_URL` in the Vercel deployment for the already-created NoteBooks-Project Supabase database, then run the application-level smoke tests against it. For Vercel/serverless traffic, use the appropriate Supabase transaction-pooler connection string and keep SSL enabled.[1] Configure the existing JWT/OAuth/TOTP/GitHub App credentials, verify the administrator account has the required GitHub link and TOTP enrollment, and run the migration smoke tests against a non-production Supabase project first.
 
-After persistence is live, the next implementation slice should seed administrator-managed theme presets, add Dashboard activity writes at controlled user actions, replace the legacy subject issue-create route with the canonical proposal service, and add audit records around every moderation, vote, issue, and PR transition. A later slice can add Supabase RLS policy tests with the provider’s database test tooling.[2]
+After persistence is live, the next implementation slice should seed administrator-managed theme presets, add Dashboard activity writes at controlled user actions, review or retire legacy subject-named compatibility routes, and add audit records around every moderation, vote, issue, and PR transition. Community and Issues repository names should continue to resolve from the generated `GITHUB-REPOSITORIES.md` artifact, with environment variables retained only as compatibility fallbacks. A later slice can add Supabase RLS policy tests with the provider’s database test tooling.[2]
 
 ## References
 

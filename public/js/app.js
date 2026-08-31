@@ -36,9 +36,9 @@ let sidebarTree = null;
 let searchDebounceTimer = null;
 let treeHoverDetails = null;
 let treeCurrentLocation = null;
-let workspaceLocationMarker = null;
 let activeTreePath = '';
 let treeInteractionStarted = false;
+let pendingTreeFocusPath = null;
 const expandedTreePaths = new Set();
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
@@ -176,71 +176,14 @@ const SUBJECT_PAGES = {
 about: { icon: '◌', title: 'About NoteBooks', description: 'A shared shelf for clearer, kinder learning.' }
 };
 
-const SHARED_SHELL_ROUTES = new Set(['science', 'commerce', 'humanities', 'community', 'issues', 'volunteers', 'accounts', 'about']);
-function isSharedShellRoute(pathname) {
-    const slug = pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean)[0]?.toLowerCase() || '';
-    return pathname === '/' || SHARED_SHELL_ROUTES.has(slug);
-}
 function getCurrentStreamRoute() {
-    // Prefer the explicit stream set by the shell
-    if (window.CURRENT_STREAM) return window.CURRENT_STREAM;
-    const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0] || '';
-    return slug || '';
+    const slug = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0]?.toLowerCase() || '';
+    // The URL is authoritative. In particular, `/` must clear any stream value
+    // left by a previous page instance instead of reopening that workspace.
+    if (!slug) return '';
+    return window.CURRENT_STREAM || slug;
 }
-function updateNavigationState() {
-    const current = getCurrentStreamRoute() || (window.location.pathname === '/' ? 'home' : '');
-    document.querySelectorAll('.global-nav-links a').forEach((link) => {
-        const active = link.dataset.nav === current;
-        link.classList.toggle('is-current', active);
-        if (active) link.setAttribute('aria-current', 'page');
-        else link.removeAttribute('aria-current');
-    });
-}
-let routeTransitionSerial = 0;
-async function navigateToRoute(href, { replace = false } = {}) {
-    const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin || !url.pathname.startsWith('/')) return;
-    const transitionId = ++routeTransitionSerial;
-    if (replace) window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
-    else window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
-
-    const slug = url.pathname.replace(/^\/+|\/+$/g, '').split('/')[0]?.toLowerCase() || '';
-    window.CURRENT_STREAM = slug;
-    document.body.dataset.stream = slug;
-    NoteBooksStreamRuntime.reset();
-    appConfig.REPOS = [];
-    updateNavigationState();
-    syncStreamLandingState();
-
-    const shouldLoadWorkspace = NoteBooksStreamRuntime.streams.has(slug);
-    if (shouldLoadWorkspace) {
-        await fetchTree(transitionId);
-    }
-}
-function initGlobalNav() {
-    updateNavigationState();
-    const toggle = document.querySelector('.global-nav-toggle');
-    const links = document.querySelector('.global-nav-links');
-    toggle?.addEventListener('click', () => { const open = links.classList.toggle('is-open'); toggle.setAttribute('aria-expanded', String(open)); });
-    document.querySelector('[data-nav="accounts"]')?.addEventListener('click', () => { setTimeout(() => { if (window.location.hash === '#settings') document.getElementById('accountSettings')?.removeAttribute('hidden'); }, 0); });
-    document.querySelector('[data-close-settings]')?.addEventListener('click', () => document.getElementById('accountSettings')?.setAttribute('hidden', ''));
-    document.addEventListener('click', (event) => {
-        const target = event.target instanceof Element ? event.target : null;
-        const link = target?.closest('a[data-nav], a.stream-card, a.landing-primary, a.landing-secondary, a.portal-inline-link, .portal-doc-links a');
-        if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        const href = link.getAttribute('href');
-        if (!href || href.startsWith('#')) return;
-        const targetUrl = new URL(href, window.location.href);
-        // Dashboard, Settings, and admin routes have standalone HTML shells. Let the
-        // browser perform a real navigation so their DOM and ownership boundaries load.
-        if (!isSharedShellRoute(targetUrl.pathname) || !isSharedShellRoute(window.location.pathname)) return;
-        event.preventDefault();
-        navigateToRoute(href).catch((error) => console.warn('[navigation] route transition failed', error));
-    });
-    window.addEventListener('popstate', () => {
-        if (isSharedShellRoute(window.location.pathname)) navigateToRoute(window.location.href, { replace: true }).catch((error) => console.warn('[navigation] history transition failed', error));
-    });
-}
+let defaultLandingMarkup = null;
 
 function renderPublicPortal(subject) {
     const landing = document.getElementById('streamLanding');
@@ -296,7 +239,8 @@ function attachIssueVoteHandlers(feed) {
         if (!issueId) return;
         button.disabled = true;
         try {
-            const response = await fetch(`/api/issues/${encodeURIComponent(issueId)}/vote`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ value: Number(button.dataset.issueVote) }) });
+            const send = window.noteBooksRequest || fetch;
+            const response = await send(`/api/issues/${encodeURIComponent(issueId)}/vote`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ value: Number(button.dataset.issueVote) }) });
             const data = await response.json().catch(() => ({}));
             if (response.status === 401) throw new Error('Sign in to vote on issues.');
             if (!response.ok) throw new Error(data.error || 'Vote could not be recorded.');
@@ -317,10 +261,14 @@ function formatFeedDate(value) { const date = value ? new Date(value) : null; re
 function initHomeFeed() {
     const feed = document.getElementById('homeFeed');
     if (!feed) return;
-    document.querySelectorAll('[data-feed-sort]').forEach((button) => button.addEventListener('click', () => {
-        document.querySelectorAll('[data-feed-sort]').forEach((item) => item.classList.toggle('is-active', item === button));
-        loadPortalFeed('community', 'homeFeed', button.dataset.feedSort || 'latest');
-    }));
+    document.querySelectorAll('[data-feed-sort]').forEach((button) => {
+        if (button.dataset.homeFeedBound === 'true') return;
+        button.dataset.homeFeedBound = 'true';
+        button.addEventListener('click', () => {
+            document.querySelectorAll('[data-feed-sort]').forEach((item) => item.classList.toggle('is-active', item === button));
+            loadPortalFeed('community', 'homeFeed', button.dataset.feedSort || 'latest');
+        });
+    });
 }
 function initPortalMotion() { const targets = document.querySelectorAll('[data-reveal], .stream-card'); if (!('IntersectionObserver' in window)) { targets.forEach((target) => target.classList.add('is-visible')); return; } const observer = new IntersectionObserver((entries, instance) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('is-visible'); instance.unobserve(entry.target); } }), { threshold: 0.12 }); targets.forEach((target) => observer.observe(target)); }
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
@@ -328,16 +276,26 @@ function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => 
 function syncStreamLandingState() {
     const landing = document.getElementById('streamLanding');
     const shell = document.querySelector('.app-shell');
+    const streamContentRoot = document.getElementById('streamContentRoot');
     const routeKey = getCurrentStreamRoute();
-    const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(routeKey) || window.location.pathname === '/';
+    const isHomeRoute = window.location.pathname === '/' || window.location.pathname === '/index.html';
+    const isPortalRoute = ['accounts', 'volunteers', 'community', 'issues', 'about'].includes(routeKey) || isHomeRoute;
+    if (landing && defaultLandingMarkup === null) defaultLandingMarkup = landing.innerHTML;
+    if (isHomeRoute && landing && defaultLandingMarkup !== null && landing.innerHTML !== defaultLandingMarkup) {
+        landing.innerHTML = defaultLandingMarkup;
+        initHomeFeed();
+        initPortalMotion();
+    }
     renderPublicPortal(routeKey);
 
     if (!landing || !shell) {
         return;
     }
 
+    landing.hidden = !isPortalRoute;
     landing.style.display = isPortalRoute ? 'block' : 'none';
     shell.style.display = isPortalRoute ? 'none' : 'flex';
+    if (streamContentRoot) streamContentRoot.hidden = isPortalRoute;
 
     document.querySelectorAll('#streamGrid a, .portal-doc-links a').forEach((link) => {
         const href = link.getAttribute('href') || '';
@@ -347,7 +305,9 @@ function syncStreamLandingState() {
         else link.removeAttribute('aria-current');
     });
 
-    if (routeKey && SUBJECT_PAGES[routeKey]) {
+    if (isHomeRoute) {
+        document.title = 'NoteBooks';
+    } else if (routeKey && SUBJECT_PAGES[routeKey]) {
         const meta = SUBJECT_PAGES[routeKey];
         document.title = `${meta.title} · NoteBooks`;
         if (window.location.pathname === `/${routeKey}`) {
@@ -398,7 +358,7 @@ const FILE_ICONS = {
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js?v=20260808-pathfix").then(() => {
+    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v43", { updateViaCache: "none" }).then(() => {
         console.log("Service Worker registered");
     }).catch(err => {
         console.error("SW registration failed:", err);
@@ -702,7 +662,7 @@ async function appendConfiguredRepositoryTrees(localTree) {
     if (!registryUrl || !localTree || !Array.isArray(localTree.children))
         return localTree;
     try {
-        const registryResponse = await fetch(`${registryUrl}?v=${Date.now()}`, { cache: 'no-store' });
+        const registryResponse = await fetch(registryUrl, { cache: 'no-cache' });
         if (!registryResponse.ok)
             return localTree;
         const entries = await registryResponse.json();
@@ -713,7 +673,7 @@ async function appendConfiguredRepositoryTrees(localTree) {
             if (!baseUrl)
                 continue;
             try {
-                const response = await fetch(`${baseUrl.replace(/\/$/, '')}/files.json`, { cache: 'no-store' });
+                const response = await fetch(`${baseUrl.replace(/\/$/, '')}/files.json`, { cache: 'no-cache' });
                 if (!response.ok)
                     continue;
                 const remoteTree = await response.json();
@@ -871,12 +831,11 @@ function setActiveTreePath(path) {
     if (treeCurrentLocation) {
         const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
         const label = activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root');
-        treeCurrentLocation.textContent = `Current location: ${label}`;
-        treeCurrentLocation.title = activeTreePath || 'workspace root';
-        if (workspaceLocationMarker) {
-            workspaceLocationMarker.textContent = `Inside: ${label}`;
-            workspaceLocationMarker.title = activeTreePath || 'workspace root';
-        }
+        const locationPath = activeTreePath || 'workspace root';
+        treeCurrentLocation.textContent = `Current: ${label}`;
+        treeCurrentLocation.title = locationPath;
+        treeCurrentLocation.setAttribute('aria-label', `Current location: ${locationPath}`);
+        treeCurrentLocation.dataset.path = locationPath;
     }
     if (sidebarTree && treeRoot)
         renderSidebarTree(treeRoot, searchQuery);
@@ -924,7 +883,7 @@ function createSidebarTreeItem(node, query) {
     const isActive = activeTreePath && nodePath === activeTreePath;
     const isAncestor = activeTreePath && findAncestors(treeRoot, activeTreePath)?.some((ancestor) => getNodePath(ancestor) === nodePath);
     const shouldExpandForSearch = Boolean(query && childItems.length);
-    const isExpanded = hasChildren && (shouldExpandForSearch || (treeInteractionStarted && expandedTreePaths.has(nodePath)));
+    const isExpanded = hasChildren && (shouldExpandForSearch || expandedTreePaths.has(nodePath));
     if (isActive)
         li.classList.add('current');
     if (isAncestor)
@@ -933,6 +892,8 @@ function createSidebarTreeItem(node, query) {
         li.classList.add('collapsed');
     const row = document.createElement('div');
     row.className = 'sidebar-tree-row';
+    row.id = `tree-row-${nodePath.replace(/[^a-zA-Z0-9_-]/g, '-') || 'root'}`;
+    row.dataset.treePath = nodePath;
     if (matchesSelf)
         row.classList.add('match');
     row.setAttribute('role', 'treeitem');
@@ -950,9 +911,47 @@ function createSidebarTreeItem(node, query) {
     };
     row.onclick = activateNode;
     row.onkeydown = (event) => {
+        const rows = getVisibleTreeRows();
+        const index = rows.indexOf(row);
+        const level = Number(row.getAttribute('aria-level') || 1);
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             activateNode();
+            return;
+        }
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const target = rows[index + (event.key === 'ArrowDown' ? 1 : -1)];
+            if (target) target.focus();
+            return;
+        }
+        if (event.key === 'Home' || event.key === 'End') {
+            event.preventDefault();
+            const target = event.key === 'Home' ? rows[0] : rows[rows.length - 1];
+            if (target) target.focus();
+            return;
+        }
+        if (event.key === 'ArrowRight' && hasChildren) {
+            event.preventDefault();
+            if (row.getAttribute('aria-expanded') === 'false') {
+                pendingTreeFocusPath = nodePath;
+                toggle.click();
+            } else {
+                const target = rows.slice(index + 1).find((candidate) => Number(candidate.getAttribute('aria-level') || 1) > level);
+                if (target) target.focus();
+            }
+            return;
+        }
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            if (hasChildren && row.getAttribute('aria-expanded') === 'true') {
+                pendingTreeFocusPath = nodePath;
+                toggle.click();
+                return;
+            }
+            const parentLi = row.closest('li')?.parentElement?.closest('li');
+            const parentRow = parentLi?.querySelector(':scope > .sidebar-tree-row');
+            if (parentRow) parentRow.focus();
         }
     };
     const toggle = document.createElement('button');
@@ -966,6 +965,7 @@ function createSidebarTreeItem(node, query) {
         if (!hasChildren)
             return;
         treeInteractionStarted = true;
+        pendingTreeFocusPath = nodePath;
         if (expandedTreePaths.has(nodePath))
             expandedTreePaths.delete(nodePath);
         else
@@ -991,6 +991,19 @@ function createSidebarTreeItem(node, query) {
     row.addEventListener('focusout', hideTreeHoverDetails);
     return li;
 }
+function getVisibleTreeRows() {
+    if (!sidebarTree)
+        return [];
+    return [...sidebarTree.querySelectorAll('.sidebar-tree-row')].filter((row) => {
+        let ancestor = row.parentElement?.closest('.sidebar-tree-item');
+        while (ancestor) {
+            if (ancestor.classList.contains('collapsed'))
+                return false;
+            ancestor = ancestor.parentElement?.closest('.sidebar-tree-item');
+        }
+        return true;
+    });
+}
 function renderSidebarTree(root, query = '') {
     if (!sidebarTree)
         return;
@@ -1015,6 +1028,13 @@ function renderSidebarTree(root, query = '') {
         return;
     }
     sidebarTree.appendChild(ul);
+    const activeRow = activeTreePath ? sidebarTree.querySelector(`[data-tree-path="${CSS.escape(activeTreePath)}"]`) : null;
+    if (activeRow) sidebarTree.setAttribute('aria-activedescendant', activeRow.id);
+    if (pendingTreeFocusPath) {
+        const focusRow = sidebarTree.querySelector(`[data-tree-path="${CSS.escape(pendingTreeFocusPath)}"]`);
+        pendingTreeFocusPath = null;
+        if (focusRow) focusRow.focus({ preventScroll: true });
+    }
 }
 function toggleSidebar() {
     const sidebar = document.getElementById('treeRail');
@@ -1053,7 +1073,7 @@ function toggleSidebar() {
   const isGitHubPagesHost = window.location.hostname.endsWith('github.io');
         if (!tree && !isGitHubPagesHost) {
             try {
-                const registryRes = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
+                const registryRes = await fetch('/api/registry', { cache: 'no-store' });
                 if (registryRes.ok) {
                     tree = await registryRes.json();
                     console.info('[tree] Loaded local files plus configured repository registry');
@@ -1078,7 +1098,7 @@ function toggleSidebar() {
         }
         if (!tree) {
             try {
-                const fallbackRes = await fetch(`/files.json?${Date.now()}`, { cache: 'no-store' });
+                const fallbackRes = await fetch('/files.json', { cache: 'no-cache' });
                 if (!fallbackRes.ok)
                     throw new Error(`Failed to fetch: ${fallbackRes.status}`);
                 tree = await fallbackRes.json();
@@ -1088,14 +1108,22 @@ function toggleSidebar() {
             }
         }
         if (!tree) {
-            const res = await fetch(`/api/registry?${Date.now()}`, { cache: 'no-store' });
+            const res = await fetch('/api/registry', { cache: 'no-store' });
             if (!res.ok)
                 throw new Error(`Failed to fetch registry: ${res.status}`);
             tree = await res.json();
         }
-        if (routeToken && routeToken !== routeTransitionSerial) return;
+        // A full-document navigation owns route changes; ignore any result if the
+        // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
+        // Show the repository roots by default. This keeps the tree useful on first
+        // paint while leaving deeper folders explicitly expandable by the reader.
+        if (!treeInteractionStarted && !searchQuery && Array.isArray(treeRoot.children)) {
+            treeRoot.children
+                .filter((child) => child?.type === 'folder' && Array.isArray(child.children) && child.children.length > 0)
+                .forEach((child) => expandedTreePaths.add(getNodePath(child)));
+        }
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
         // Preserve independently collapsed folders across refreshes; remove paths no longer present.
@@ -2131,7 +2159,6 @@ async function bootNoteBooks() {
     sidebarTree = document.getElementById("sidebarTree");
     treeHoverDetails = document.getElementById("treeHoverDetails");
     treeCurrentLocation = document.getElementById("treeCurrentLocation");
-    workspaceLocationMarker = document.getElementById("workspaceLocationMarker");
     document.getElementById('sidebarCollapseBtn')?.addEventListener('click', toggleSidebar);
     if (sidebarSearchInput) {
         sidebarSearchInput.addEventListener('input', (event) => {
@@ -2144,7 +2171,6 @@ async function bootNoteBooks() {
     }
   restoreTheme();
   initialGuideState();
-  initGlobalNav();
   initHomeFeed();
   if (typeof initLocalLandingDocs === 'function') initLocalLandingDocs();
   initPortalMotion();

@@ -16,7 +16,6 @@ describe('TOTP enroll/verify flow', () => {
     expect(otpauth).toContain(secret);
 
     // Generate a valid token using the same secret
-    const { authenticator } = await import('otplib');
     const token = authenticator.generate(secret);
 
     // Create a user first (in-memory) so enable can persist
@@ -61,7 +60,7 @@ describe('TOTP enroll/verify flow', () => {
 
   it('requires and accepts the current TOTP token when disabling enrollment', async () => {
     const email = 'totp-disable@example.com';
-    const secret = 'JBSWY3DPEHPK3PXP';
+    const secret = authenticator.generateSecret();
     await setUser(email, {
       email,
       password: 'x',
@@ -71,9 +70,10 @@ describe('TOTP enroll/verify flow', () => {
       createdAt: new Date().toISOString()
     } as any);
     const authToken = jwt.sign({ email, role: 'user' }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+    const token = authenticator.generate(secret);
     const req: any = {
       method: 'POST',
-      body: { email, token: authenticator.generate(secret) },
+      body: { email, token },
       query: {},
       headers: { authorization: `Bearer ${authToken}` }
     };

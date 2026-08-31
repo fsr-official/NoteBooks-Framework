@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { resolve, normalize } from 'path';
 import { getRepoConfig, findRegisteredRepo } from './_shared.js';
+import { isSafePublishedFilePath } from '../lib/safe-file-path.js';
 
 const MIME_TYPES: Record<string, string> = {
   doc: 'application/msword',
@@ -110,6 +111,9 @@ export default async function handler(req: Request, res: Response) {
   const filePath = normalizeRequestedPath(String(req.query.path || ''));
   if (!filePath) {
     return res.status(400).json({ error: 'Missing path query parameter' });
+  }
+  if (!isSafePublishedFilePath(filePath)) {
+    return res.status(403).json({ error: 'Access denied' });
   }
 
   // Optional explicit repo override (owner/repoName), used when the caller

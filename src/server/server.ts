@@ -9,6 +9,7 @@ import { registerPublicRoutes } from './public-routes.js';
 import { registerObservability } from './observability.js';
 import { registerApiRoutes } from './api-routes.js';
 import { applyDevelopmentDefaults, prepareGeneratedArtifacts } from './startup.js';
+import { browserSessionMiddleware } from '../lib/browser-session.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
@@ -28,25 +29,32 @@ export function createApp() {
   app.use((_req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
     next();
   });
 
   // Parse cookies so `req.cookies` is available for CSRF, theme endpoints, etc.
   app.use(cookieParser());
+  // Every browser receives an opaque state cookie. It is not an authentication credential.
+  app.use(browserSessionMiddleware);
 
-  // CSRF enforcement (double-submit) for state-changing API routes when enabled
-  const enforceCsrf = process.env.ENFORCE_CSRF === 'true';
+  // Protect browser-cookie API mutations by default in production. Set
+  // ENFORCE_CSRF=false only for a deliberately isolated compatibility environment.
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  const enforceCsrf = process.env.ENFORCE_CSRF === 'true' || (isProduction && process.env.ENFORCE_CSRF !== 'false');
   if (enforceCsrf) {
     app.use((req, res, next) => {
       const method = req.method.toUpperCase();
-      if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return next();
-      // Exempt server-to-server refresh routes and Bearer-authenticated admin API calls.
-      // Admin mutations authenticate with an Authorization token, not a session cookie,
-      // so a cross-site form cannot reproduce the request without the token.
-      const bearerAdmin = req.path === '/api/admin' && /^Bearer\s+/i.test(String(req.headers.authorization || ''));
-      if (req.path === '/api/refresh-signal' || req.path.startsWith('/api/system/') || bearerAdmin) return next();
-      const cookieToken = req.cookies?.csrf || req.headers['x-csrf-cookie'];
-      const header = req.headers['x-csrf-token'];
+      if (['GET', 'HEAD', 'OPTIONS'].includes(method) || !req.path.startsWith('/api/')) return next();
+      // Bearer tokens are not automatically attached by cross-site forms. Signed
+      // webhooks and server-to-server refresh routes have their own verification.
+      const hasBearer = /^Bearer\s+/i.test(String(req.headers.authorization || ''));
+      const serverToServer = req.path === '/api/refresh-signal'
+        || req.path.startsWith('/api/system/')
+        || req.path.startsWith('/api/webhooks/');
+      if (hasBearer || serverToServer) return next();
+      const cookieToken = String(req.cookies?.csrf || req.headers['x-csrf-cookie'] || '');
+      const header = String(req.headers['x-csrf-token'] || '');
       if (!cookieToken || !header || header !== cookieToken) {
         return res.status(403).json({ error: 'CSRF token missing or invalid' });
       }
@@ -77,7 +85,8 @@ export function createApp() {
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://www.google.com',
-          'https://www.gstatic.com'
+          'https://www.gstatic.com',
+          'https://va.vercel-scripts.com'
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         scriptSrcElem: [
@@ -87,7 +96,8 @@ export function createApp() {
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://www.google.com',
-          'https://www.gstatic.com'
+          'https://www.gstatic.com',
+          'https://va.vercel-scripts.com'
         ],
         workerSrc: ["'self'", 'blob:'],
         connectSrc: [
@@ -97,7 +107,8 @@ export function createApp() {
           'https://raw.githubusercontent.com',
           'https://www.google.com',
           'https://www.gstatic.com',
-          'https://cdnjs.cloudflare.com'
+          'https://cdnjs.cloudflare.com',
+          'https://va.vercel-scripts.com'
         ],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
         mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],

@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { loadRepoRegistry } from '../src/api/repo-registry.ts';
+import { getStreamRepo } from '../src/api/_shared.ts';
 import {
   buildGithubRepositoriesArtifact,
   hashGithubRepositoriesSource,
@@ -17,6 +18,12 @@ const MARKDOWN = [
   '| --- | --- | --- | --- | --- | --- | --- | --- |',
   '| Science | SCIENCE | owner/science | main | docs | true | 1 | true |',
   '| Disabled | COMMERCE | owner/disabled | dev |  | false | 9 | false |'
+].join('\n');
+
+const ROUTING_MARKDOWN = [
+  MARKDOWN,
+  '| NoteBooks-Community | COMMUNITY | fsr-official/NoteBooks-Community | main |  | true | 4 | false |',
+  '| NoteBooks-Issues | ISSUES | fsr-official/NoteBooks-Issues | main |  | true | 5 | false |'
 ].join('\n');
 
 const originalCwd = process.cwd();
@@ -60,6 +67,18 @@ describe('github-repos build artifact', () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'notebooks-github-repos-'));
     await fs.writeFile(path.join(cwd, 'GITHUB-REPOSITORIES.md'), '# no table\n', 'utf8');
     await expect(generateGithubRepositories({ cwd })).rejects.toThrow('No repository entries found');
+  });
+
+  it('resolves Community and Issues repositories from stream entries without env configuration', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'notebooks-github-routing-'));
+    await fs.mkdir(path.join(cwd, 'public', 'json'), { recursive: true });
+    await fs.writeFile(path.join(cwd, 'GITHUB-REPOSITORIES.md'), ROUTING_MARKDOWN, 'utf8');
+    await generateGithubRepositories({ cwd });
+    process.chdir(cwd);
+    delete process.env.GITHUB_COMMUNITY_REPO;
+    delete process.env.GITHUB_ISSUES_REPO;
+    await expect(getStreamRepo('community')).resolves.toMatchObject({ owner: 'fsr-official', repo: 'NoteBooks-Community', branch: 'main' });
+    await expect(getStreamRepo('issues')).resolves.toMatchObject({ owner: 'fsr-official', repo: 'NoteBooks-Issues', branch: 'main' });
   });
 
   it('writes github-repos.json and the loader prefers it over Markdown', async () => {
