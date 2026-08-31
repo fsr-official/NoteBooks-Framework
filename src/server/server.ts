@@ -51,6 +51,7 @@ export function createApp() {
       const hasBearer = /^Bearer\s+/i.test(String(req.headers.authorization || ''));
       const serverToServer = req.path === '/api/refresh-signal'
         || req.path.startsWith('/api/system/')
+        || req.path === '/api/workspace/tree/rebuild'
         || req.path.startsWith('/api/webhooks/');
       if (hasBearer || serverToServer) return next();
       const cookieToken = String(req.cookies?.csrf || req.headers['x-csrf-cookie'] || '');

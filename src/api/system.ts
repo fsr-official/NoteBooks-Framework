@@ -29,6 +29,7 @@ type CacheEntry = {
 
 const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<CacheEntry>>();
+const runtimePreferred = new Set<string>();
 
 function streamCacheKey(stream: string): string {
   return `${SHARED_CACHE_KEY_PREFIX}:${stream}`;
@@ -192,7 +193,7 @@ async function buildStreamTree(stream: string): Promise<CacheEntry> {
   };
 }
 
-async function getStreamTree(stream: string, forceRefresh = false): Promise<CacheEntry> {
+export async function getStreamTree(stream: string, forceRefresh = false): Promise<CacheEntry> {
   const localCached = cache.get(stream);
   if (!forceRefresh && localCached && Date.now() - localCached.cachedAt < CACHE_TTL_MS) return localCached;
 
@@ -228,9 +229,13 @@ async function getStreamTree(stream: string, forceRefresh = false): Promise<Cach
   }
 }
 
-export async function invalidateStreamTree(stream?: string): Promise<void> {
+export async function invalidateStreamTree(stream?: string, preferRuntime = false): Promise<void> {
   const streams = stream ? [stream] : Array.from(STREAMS);
-  for (const value of streams) cache.delete(value);
+  for (const value of streams) {
+    cache.delete(value);
+    if (preferRuntime) runtimePreferred.add(value);
+    else runtimePreferred.delete(value);
+  }
   await Promise.all(streams.map((value) => sharedDelete(streamCacheKey(value))));
 }
 
@@ -266,6 +271,12 @@ export default async function handler(req: Request, res: Response) {
 
   if (req.method === 'GET' || req.method === 'HEAD') {
     try {
+      if (runtimePreferred.has(stream)) {
+        const refreshed = await getStreamTree(stream);
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('X-Stream-Tree-Source', 'runtime-rebuilt');
+        return res.status(200).json(refreshed.payload);
+      }
       const fs = await import('fs/promises');
       const path = await import('path');
       const canonicalPath = path.resolve(process.cwd(), 'public', 'json', `${stream}-tree.json`);

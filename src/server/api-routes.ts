@@ -10,6 +10,7 @@ import * as prReview from '../api/pr-review.js';
 import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal.js';
 import desmosHandler from '../api/desmos.js';
 import systemHandler from '../api/system.js';
+import rebuildTreeHandler from '../api/rebuild-tree.js';
 import authHandler from '../api/auth.js';
 import oauthHandler from '../api/oauth.js';
 import totpHandler from '../api/totp.js';
@@ -64,6 +65,7 @@ export function registerApiRoutes(app: express.Application): void {
   app.get('/api/system/:stream', systemHandler);
   app.head('/api/system/:stream', systemHandler);
   app.post('/api/system/:stream/refresh', systemHandler);
+  app.post('/api/workspace/tree/rebuild', rebuildTreeHandler);
   app.get('/api/files', repoRegistryHandler);
   app.get('/api/files.js', repoRegistryHandler);
   app.get('/api/pr-review', prReview.listHandler);
