@@ -1,433 +1,755 @@
 {
   "type": "folder",
   "name": "NoteBooks-Framework",
-  "path": "",
   "children": [
     {
-      "type": "file",
-      "name": "COPYLEFT-NOTICES.md",
-      "path": "COPYLEFT-NOTICES.md",
-      "sha": "f06117c3acd4f9cdc019c95e61843b7024a887cc7014871d757bc898c5a6f6e4"
-    },
-    {
-      "type": "file",
-      "name": "GITHUB-REPOSITORIES.md",
-      "path": "GITHUB-REPOSITORIES.md",
-      "sha": "0db0e6f159e8e31396a4a28ff1efb38765b5d21602b09c65dd16ef332c0eea62"
-    },
-    {
-      "type": "file",
-      "name": "README.md",
-      "path": "README.md",
-      "sha": "65d9678e6a6c2ab483539d3db8379ad420d7bd1fc336e444ba30803e07ae30c5"
-    },
-    {
       "type": "folder",
-      "name": "api",
-      "path": "api",
+      "name": ".github",
       "children": [
         {
           "type": "folder",
-          "name": "community",
-          "path": "api/community",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "system",
-          "path": "api/system",
+          "name": "workflows",
           "children": [
             {
-              "type": "folder",
-              "name": "[stream]",
-              "path": "api/system/[stream]",
-              "children": []
+              "type": "file",
+              "name": "ci.yml",
+              "path": ".github/workflows/ci.yml",
+              "sha": "4f3cdc386f171e03fed14cbfa40a401188f0ef37",
+              "mime": "application/yaml"
+            },
+            {
+              "type": "file",
+              "name": "deploy-staging.yml",
+              "path": ".github/workflows/deploy-staging.yml",
+              "sha": "95d74be79a21abc5cef9101e4807a38cba4e21f4",
+              "mime": "application/yaml"
+            },
+            {
+              "type": "file",
+              "name": "fmmupdate.yaml",
+              "path": ".github/workflows/fmmupdate.yaml",
+              "sha": "8751da9e0b42da2bf25712c69ec65030da46af69",
+              "mime": "application/yaml"
+            },
+            {
+              "type": "file",
+              "name": "integration.yml",
+              "path": ".github/workflows/integration.yml",
+              "sha": "9426df455347388a471610c5c8fa30022adfe62e",
+              "mime": "application/yaml"
+            },
+            {
+              "type": "file",
+              "name": "notify-app-example.yml",
+              "path": ".github/workflows/notify-app-example.yml",
+              "sha": "c76a633e5bad5cca6d831f60349f13750e932dcc",
+              "mime": "application/yaml"
+            },
+            {
+              "type": "file",
+              "name": "rebuild-tree.yml",
+              "path": ".github/workflows/rebuild-tree.yml",
+              "sha": "9e2655172d10efd7480bfde6e283fa641cb0c9ad",
+              "mime": "application/yaml"
             }
           ]
         }
       ]
     },
     {
+      "type": "file",
+      "name": ".gitignore",
+      "path": ".gitignore",
+      "sha": "9f4cbe3fa831b112e9938abdb5c2b0ced1774f2b",
+      "mime": "application/octet-stream"
+    },
+    {
+      "type": "folder",
+      "name": ".vercel",
+      "children": [
+        {
+          "type": "folder",
+          "name": "node",
+          "children": [
+            {
+              "type": "file",
+              "name": "package-manifest.json",
+              "path": ".vercel/node/package-manifest.json",
+              "sha": "36361cd7cbd184706617ad1cbfafae70eaf5c145",
+              "mime": "application/json"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "project.json",
+          "path": ".vercel/project.json",
+          "sha": "ade73d9823033db50f01326a348fc3761cb96a83",
+          "mime": "application/json"
+        },
+        {
+          "type": "file",
+          "name": "README.txt",
+          "path": ".vercel/README.txt",
+          "sha": "525d8ce8ef25a14dd73ee1f4d65047de05ccfdfa",
+          "mime": "text/plain"
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "api",
+      "children": [
+        {
+          "type": "file",
+          "name": "[...all].ts",
+          "path": "api/[...all].ts",
+          "sha": "99cabb1e126db1a5460af030a0271695a34a4e7e",
+          "mime": "text/vnd.trolltech.linguist"
+        },
+        {
+          "type": "folder",
+          "name": "community",
+          "children": [
+            {
+              "type": "file",
+              "name": "feed.ts",
+              "path": "api/community/feed.ts",
+              "sha": "1ca15e9b2308c858c67d7345abea787ca059b525",
+              "mime": "text/vnd.trolltech.linguist"
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "system",
+          "children": [
+            {
+              "type": "folder",
+              "name": "[stream]",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "refresh.ts",
+                  "path": "api/system/[stream]/refresh.ts",
+                  "sha": "49d9b873f17f2522bed976e03477bee1796a757a",
+                  "mime": "text/vnd.trolltech.linguist"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "[stream].ts",
+              "path": "api/system/[stream].ts",
+              "sha": "f4ead377339495b2efc5c4eed619144df6dad8bd",
+              "mime": "text/vnd.trolltech.linguist"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "COPYLEFT-NOTICES.md",
+      "path": "COPYLEFT-NOTICES.md",
+      "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
+      "mime": "text/markdown"
+    },
+    {
+      "type": "file",
+      "name": "docker-compose.yml",
+      "path": "docker-compose.yml",
+      "sha": "7048fa90636bdf46380463a3e5a8eb10ab89f686",
+      "mime": "application/yaml"
+    },
+    {
+      "type": "file",
+      "name": "Dockerfile",
+      "path": "Dockerfile",
+      "sha": "3a63777df61fd07a5c62b7fd2e3ef6abab8e7fe1",
+      "mime": "application/octet-stream"
+    },
+    {
       "type": "folder",
       "name": "docs",
-      "path": "docs",
       "children": [
+        {
+          "type": "file",
+          "name": "community-issues-ui-findings-2026-08-30.md",
+          "path": "docs/community-issues-ui-findings-2026-08-30.md",
+          "sha": "9b3033429fdf3682d9a2da927e1dc1fdfe2d44f0",
+          "mime": "text/markdown"
+        },
         {
           "type": "file",
           "name": "DEVELOPER-ONBOARDING.md",
           "path": "docs/DEVELOPER-ONBOARDING.md",
-          "sha": "b1cf74b5127dc45bbf9e7abf6f39dbe631e7f3ad46337f9744577ce0c95fb05b"
+          "sha": "530de492fcd03cad43eb8476c4d963612180c364",
+          "mime": "text/markdown"
         },
         {
           "type": "file",
           "name": "MARKDOWN-RENDERER.md",
           "path": "docs/MARKDOWN-RENDERER.md",
-          "sha": "62881cd54f2d4432cf4c1c1b7ac1bcf7aa1c35eaeaf7cc48486a4cd619e8a340"
+          "sha": "a45095cf65b37c4f5cad7754487aac993cfe49a4",
+          "mime": "text/markdown"
         },
         {
           "type": "file",
           "name": "PHASE-PLANS.md",
           "path": "docs/PHASE-PLANS.md",
-          "sha": "c474c2b1dcc06f689e875f4acae848c6b8233894c02f0c6a0d189943f7d25b1b"
-        },
-        {
-          "type": "file",
-          "name": "README.md",
-          "path": "docs/README.md",
-          "sha": "f601d04ce423dc3f2bec5928035e0547aa978cc6357ea8969f26231b59c99248"
-        },
-        {
-          "type": "file",
-          "name": "REMAINING.md",
-          "path": "docs/REMAINING.md",
-          "sha": "fd55a92c2963854198ab65510c10f8e61ca32aad428bebaf254b911b7f5bdbc9"
-        },
-        {
-          "type": "file",
-          "name": "community-issues-ui-findings-2026-08-30.md",
-          "path": "docs/community-issues-ui-findings-2026-08-30.md",
-          "sha": "1821fb41fdfb5ecdba1fcc6f8723a997ec4400f23c9702a0b0e01f68ec2bd547"
+          "sha": "c384149b94fb62c3c598fb359e5e26843aab090f",
+          "mime": "text/markdown"
         },
         {
           "type": "folder",
           "name": "phase1",
-          "path": "docs/phase1",
           "children": [
+            {
+              "type": "file",
+              "name": "architecture-real.mmd",
+              "path": "docs/phase1/architecture-real.mmd",
+              "sha": "c8d21c0ecbddb4cdfb4f3e181e50ef8973b01f1a",
+              "mime": "application/vnd.chipnuts.karaoke-mmd"
+            },
+            {
+              "type": "file",
+              "name": "architecture-real.png",
+              "path": "docs/phase1/architecture-real.png",
+              "sha": "0a767e74b6e4519a33905cea2ee3023ed19783db",
+              "mime": "image/png"
+            },
             {
               "type": "file",
               "name": "CANDIDATE-CLASSIFICATION.txt",
               "path": "docs/phase1/CANDIDATE-CLASSIFICATION.txt",
-              "sha": "0ff12248a6f44c118505d8b1965776c12c6ef11f60dd238119f4f2001a6ce9ea"
+              "sha": "c3e2174d9a2c97b6c863c9db6d1e3123749384ea",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "FILE-AREA-INVENTORY.txt",
               "path": "docs/phase1/FILE-AREA-INVENTORY.txt",
-              "sha": "cc5a0bc1d17ba8c7bd5bf57e34f7362b1ad2df6c071c1f2e5cf8e9c32b4bd822"
+              "sha": "210d66fe50b73dee624bf43af0b978dd59f542e0",
+              "mime": "text/plain"
+            },
+            {
+              "type": "file",
+              "name": "FILE-INVENTORY.tsv",
+              "path": "docs/phase1/FILE-INVENTORY.tsv",
+              "sha": "9e8c749f53f25547f60af11da04e66cbcfb7b88a",
+              "mime": "text/tab-separated-values"
+            },
+            {
+              "type": "file",
+              "name": "FILE-RESPONSIBILITY-MANIFEST.json",
+              "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.json",
+              "sha": "2e8a6058e98b4ef50df386c24719f38ad1456acc",
+              "mime": "application/json"
             },
             {
               "type": "file",
               "name": "FILE-RESPONSIBILITY-MANIFEST.md",
               "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md",
-              "sha": "4a57eb94f99ba88e65257e72d52d90054ca228db161a47b2ff247ad57cd8f689"
+              "sha": "5d02c5fc2bc39b3d3e52950958129aaf19b0e195",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "FILE-REVAMP-DESIGN.md",
               "path": "docs/phase1/FILE-REVAMP-DESIGN.md",
-              "sha": "1ed089d0c00106c56c861a81ae1e4996580866593a1acd6c08be105cf96bf442"
+              "sha": "8e951886501938c90bb07134cc7ed13c7dd31922",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "FINAL-REFACTOR-REPORT.md",
               "path": "docs/phase1/FINAL-REFACTOR-REPORT.md",
-              "sha": "e07d55a64c9cb73abf7007bb4eff50a14e50b5fe29a5dc6721d5ce0bf9254794"
+              "sha": "53e167482c6c3678067e94550216030fbec39672",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "FUNCTIONAL-OWNERSHIP-INDEX.txt",
               "path": "docs/phase1/FUNCTIONAL-OWNERSHIP-INDEX.txt",
-              "sha": "b1225093cfaeccb5f518b26613d1196a99403a16bff1f66752d29d88b1649e51"
+              "sha": "3795840589717b49913e81e12d3ac6a0deac9f12",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "LOCAL-MANIFEST-OWNERSHIP.md",
               "path": "docs/phase1/LOCAL-MANIFEST-OWNERSHIP.md",
-              "sha": "325edc3ca23dfa9698fe782fc03c23001343bb50bcc65ab4350b27dd6c41b547"
+              "sha": "585c55cdaf02255e69e6495c2658f25973c1ce72",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "LOOSE-END-DETAILS.txt",
               "path": "docs/phase1/LOOSE-END-DETAILS.txt",
-              "sha": "7886c5dc232f66d9ed1c60f421880923781bd6ce60a01cd3a3c29f9b824abc40"
+              "sha": "957c00198abbac473cc2aaa35106c65942017fba",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "LOOSE-END-DIAGNOSIS.md",
               "path": "docs/phase1/LOOSE-END-DIAGNOSIS.md",
-              "sha": "25e85130d2267849a4e3a9dc80bc915911f79b55dfcef8c45d590e39e4053f32"
+              "sha": "c579ba3ed8139880c8decd560b2f5b17abb2d92b",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "LOOSE-END-EVIDENCE.txt",
               "path": "docs/phase1/LOOSE-END-EVIDENCE.txt",
-              "sha": "69ad3fbce0678555885c3b55b1840e7d608fd8ad6a1d24c8fbf8dc8bc0aa527f"
+              "sha": "39d14df202e7029708b6e9bf39bb3c4cc1dba742",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "LOOSE-END-FOCUSED.txt",
               "path": "docs/phase1/LOOSE-END-FOCUSED.txt",
-              "sha": "705beb4dd25db4eb3b34193aaa4606dc4e05bc2c08c0fe17e017841320c8c357"
+              "sha": "9e16740fb8596ed179299a97ee9d23cbf1abce01",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "NEXT-CLEANUP-ROADMAP.md",
               "path": "docs/phase1/NEXT-CLEANUP-ROADMAP.md",
-              "sha": "0ef973a68922c0cfb86d2ba9193f64949fdb5a412ffa56fd1ee49c3838b5600e"
+              "sha": "543f60fd39212e7425d345e9f53f8fdca7ec7370",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "PHASE-I-PLAN.md",
               "path": "docs/phase1/PHASE-I-PLAN.md",
-              "sha": "e303e351fabaf366327c48d0a557097e05ed58b01defa07993105bbf07ee7b71"
+              "sha": "d305d7a18e24f32413222784b9b4319541ef6130",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "PHASE-I-VERIFICATION.md",
               "path": "docs/phase1/PHASE-I-VERIFICATION.md",
-              "sha": "68cb2a63c05bf43d3696d9e76741b3fcc21c2828fa656e260dfb804ba0b8a578"
+              "sha": "27a90332869ad35db4c3d14e407f35b48673e28d",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "PRODUCTION-RELIABILITY-FIX.md",
               "path": "docs/phase1/PRODUCTION-RELIABILITY-FIX.md",
-              "sha": "500520a6425dbbce7e0aede854f449e49cd2766bbc9cc6fe738d33a623bf8b5b"
+              "sha": "6696a81a85a6b254ac67890837621d5907507a55",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "PUBLIC-ASSET-INVENTORY.txt",
               "path": "docs/phase1/PUBLIC-ASSET-INVENTORY.txt",
-              "sha": "cb69c2496262a90783e203d08e1a0c752ec5986fe7a5c7abc3e423c46e9917e8"
+              "sha": "35ff3b75bb0ebeb1e847026a937f31fe1ba6af93",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "REACHABILITY-INDEX.txt",
               "path": "docs/phase1/REACHABILITY-INDEX.txt",
-              "sha": "685fa456d4198ee537e10157c7c0b20455cfb6a37c5202195878c185832eb14f"
+              "sha": "cd5e26808d05893be73b3a594dee4f1b88ae31a2",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "REAL-ARCHITECTURE.md",
               "path": "docs/phase1/REAL-ARCHITECTURE.md",
-              "sha": "543f2c819f81f0322cb56ed6efe2275efeae702a2c1feca983a12350745ac3c6"
+              "sha": "29f5554f58b137a98da28adcd7254faac126b8b6",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "REFACTOR-BASELINE.md",
               "path": "docs/phase1/REFACTOR-BASELINE.md",
-              "sha": "cb7735f24b4a42159640c731226362c772f0baf88e0c0644a056d1a0800cdf17"
+              "sha": "0d62bad9da19a922fbab2fcc37acb5a80197e577",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "REMOVAL-CANDIDATE-REFERENCES.txt",
               "path": "docs/phase1/REMOVAL-CANDIDATE-REFERENCES.txt",
-              "sha": "a9a8685d83bb0a41b4ef0e9da82a8e1acbb3c9d47120aed121e4c7c5f0a26d04"
+              "sha": "027900d619ece07ca5d5666a4c86c6bb47ffb9c4",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "SERVICE-WORKER-OWNERSHIP.md",
               "path": "docs/phase1/SERVICE-WORKER-OWNERSHIP.md",
-              "sha": "e5b1a2010d4335dcdfb2ad388b30dd3894b3a5baa00345872cf6ddcf460d3340"
+              "sha": "bd3c435d6187d80aef6927979f5b379f458369cc",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "STREAM-CLEANUP-VERIFICATION.md",
               "path": "docs/phase1/STREAM-CLEANUP-VERIFICATION.md",
-              "sha": "e689274533a305e6736056bb39848a69db007d88fbed367c04651cff3f177e44"
+              "sha": "e4948a6543c9ae4a3ffedca538101e537b291b6c",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "STREAM-TERMINOLOGY-AUDIT.md",
               "path": "docs/phase1/STREAM-TERMINOLOGY-AUDIT.md",
-              "sha": "f9b9abc749a0e2ccfb8914b9e4a8f3890ab7e3a687197eafe078eb6b3f36bd51"
+              "sha": "2da93bf26c40032f80eb911536859328a3112734",
+              "mime": "text/markdown"
             }
           ]
         },
         {
           "type": "folder",
           "name": "phase2-3",
-          "path": "docs/phase2-3",
           "children": [
             {
               "type": "file",
               "name": "AUDIT-AND-DECISIONS.md",
               "path": "docs/phase2-3/AUDIT-AND-DECISIONS.md",
-              "sha": "cdc4dacaf5dadb05e5e267e417cd7d2a77ad63e593fc95e1fd8db2e705843020"
+              "sha": "dc1725388ec59d6cd439a3ef5c6ee6cda97e2cf1",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "COMMUNITY-CHANNELS.md",
               "path": "docs/phase2-3/COMMUNITY-CHANNELS.md",
-              "sha": "d7fc34d03c716e60475093dc72f4a3ebd332ce841deedd95418070f25d5d3496"
+              "sha": "bd400310cdc68f7bcec2a82330b00290ca7a1591",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "DATA-MODEL.md",
               "path": "docs/phase2-3/DATA-MODEL.md",
-              "sha": "1c0dfcb6834bc7395742723af88d3a989d2e8c5a02954f608fbb3bf398d1545b"
+              "sha": "8470661fb3f53b3b6f75185aee1d6017d7bb9fc7",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "DEPLOYMENT-RECOVERY-RUNBOOK.md",
               "path": "docs/phase2-3/DEPLOYMENT-RECOVERY-RUNBOOK.md",
-              "sha": "935734f8f6c99c61bebc6a04817d7c720db40bda758c80fc4a353bb1e1fcbc7e"
+              "sha": "517b5403aa17922b1f2c55d42d80c809dac66fd5",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
               "path": "docs/phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
-              "sha": "b06efd1109bdb29cbab7d7936c45f1c9f69680e22f0aafa8fbab868f78a9c322"
+              "sha": "426ece06a26c4ced5aac13703a9c1336aeb10576",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "ENVIRONMENT-AND-REMAINING-GAPS.md",
               "path": "docs/phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md",
-              "sha": "54a019631f348828398c7998648a240ac4c5dc730c75f7c3fd98b176a1d975cc"
+              "sha": "f4813adb00cd7ab6459011bd8ca0a7d9cb4c6f73",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "FINAL-AUDIT-AND-VERIFICATION.md",
               "path": "docs/phase2-3/FINAL-AUDIT-AND-VERIFICATION.md",
-              "sha": "05829e1fc7392a6f949f32b91ac8327ca0bf706c9f8c78c18c6b1c9bad6bed5a"
+              "sha": "f70c51380803a406d941fa0c2aacf61a4ddf2a97",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "FINAL-RELEASE-AUDIT-2026-08-25.md",
               "path": "docs/phase2-3/FINAL-RELEASE-AUDIT-2026-08-25.md",
-              "sha": "9fa4bb79f8ec9be701158b547d8130d021d53821c6994702af7ce978757bc504"
+              "sha": "e18c14be6e80d7530b8f2d3998e5665bab51c619",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "GITHUB-REPOS-MANIFEST.md",
               "path": "docs/phase2-3/GITHUB-REPOS-MANIFEST.md",
-              "sha": "6fef6a2e4a7bc51827932bebbb8a0d9c768bdabe9147f465127c7975651268a6"
+              "sha": "70e89c0d6e62f3b0b5355fc0dae9d0d76694156c",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
               "path": "docs/phase2-3/HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
-              "sha": "4168ca479711ad593693fe405000c505430c9ad08675fc1eade99c9cb57c9f2c"
+              "sha": "613759bc54be3dad3cb37793fa694157867c1135",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "ISSUES-ADMIN-REVIEW.md",
               "path": "docs/phase2-3/ISSUES-ADMIN-REVIEW.md",
-              "sha": "00c544a2d6f2e18017c0c53d6edd400efd4e5e5f86ddd1a5fcaca46e5b4b5f08"
+              "sha": "3527936de783ff4a14f0984e57597750bc037406",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "PHASE2-3-STATUS.md",
               "path": "docs/phase2-3/PHASE2-3-STATUS.md",
-              "sha": "bdd10015536c72e6b62344449b3b64d2294263e6dee7bd3bedfb929d9b4648e3"
+              "sha": "38420f4d81d1e6f62918c2f14171569b982c0b66",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
               "path": "docs/phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
-              "sha": "c7a44fe169da27213133c61c4b38038ea6b95d851ffba35f12e78ec9916cca2a"
+              "sha": "7d1cefb8dda1926bb04f30df7163f42cb4c08bee",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
               "path": "docs/phase2-3/SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
-              "sha": "4a9fc3e42ce9405afaa849839045add0f57ff9b64fe6701b6198cc87e70e6890"
+              "sha": "664c71e85f14955e79d4cd80fa3108000f1fdc0a",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "SUPABASE-RLS-AUDIT-2026-08-26.md",
               "path": "docs/phase2-3/SUPABASE-RLS-AUDIT-2026-08-26.md",
-              "sha": "03e42d2032b9102e9cd9175f9fab0755b0996f2613241a6bccb687390a809524"
+              "sha": "58da0d5cbf5a748e48e8e5d9dae67f6818c66696",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
               "path": "docs/phase2-3/THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
-              "sha": "dd88158f174e359f95879e3249ca1a668b6f38f3ea61deb3e4bbdd4048441c0b"
+              "sha": "270ae5aff5c1df704076452f9650d048c11f9934",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "THEME-ROUTE-MAP-2026-08-26.txt",
               "path": "docs/phase2-3/THEME-ROUTE-MAP-2026-08-26.txt",
-              "sha": "9122e72899680347431af0ab09e0958c2619324fcad38f03622df0c26fd1386d"
+              "sha": "48085d11ad63695fc82bf17d98b55c4dc9a25004",
+              "mime": "text/plain"
             },
             {
               "type": "file",
               "name": "THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
               "path": "docs/phase2-3/THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
-              "sha": "287dad592c9c3ad8766ff5d660578dd596a774c6388f301275a0fb7e778ede2a"
+              "sha": "6edaa8abc423d4b801a63cc035f1381f815699ac",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "TREE-NAVIGATION-TRACE-2026-08-28.md",
               "path": "docs/phase2-3/TREE-NAVIGATION-TRACE-2026-08-28.md",
-              "sha": "b8637d76e09ffc5bc0a081b37611b3e5eea6e81e88dce222c1b83609441d985f"
+              "sha": "c09776c031ddf6f3e41a60d2dbfc854cbcbb5e28",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "UPGRADE-ROADMAP-2026-08-26.md",
               "path": "docs/phase2-3/UPGRADE-ROADMAP-2026-08-26.md",
-              "sha": "a9acdc59a77b6bad73fea2f9cd5e78634aab1a85c8f4036af7fdbc03dea6b3e0"
+              "sha": "2cf8da958be6c32159d20afb82b43ea4f7d79eb8",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
               "path": "docs/phase2-3/VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
-              "sha": "ba0a6886ac5fbf3fc0850287bb094ef15feb4341b7c329a99f02ad6d9b50b48c"
+              "sha": "1c2baed2eb8b9c326f9e54be78023abb560bd0a7",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "WEBSITE-WIDE-AUDIT-2026-08-26.md",
               "path": "docs/phase2-3/WEBSITE-WIDE-AUDIT-2026-08-26.md",
-              "sha": "afaa5083027948e2bcba9c39088c57fb0f74524f4a921ab496cec867bbd0b3d0"
+              "sha": "65ac9bcaa5484d14c6373d4e0726902736e2e4da",
+              "mime": "text/markdown"
             }
           ]
         },
         {
           "type": "folder",
           "name": "phases",
-          "path": "docs/phases",
           "children": [
             {
               "type": "file",
               "name": "phase-1.md",
               "path": "docs/phases/phase-1.md",
-              "sha": "f6357ad845058ccc75ddc01cff37e00af5ab429fd205eb48c6076901f13849fd"
+              "sha": "15694ddeaf8a6e9ba00ca05948ed3fda8f5658c2",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "phase-2.md",
               "path": "docs/phases/phase-2.md",
-              "sha": "e12bd4908d7941717c9adbc718c13f9ba72643f84592eab966b704cc3b6eac08"
+              "sha": "cc444e0432fc5b67e2c1bf0d74a41fbca4c95bb1",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "phase-3.md",
               "path": "docs/phases/phase-3.md",
-              "sha": "71045325abb6b101f9802306f2a8d99562993c25bf320aa09d39b7e14b509f50"
+              "sha": "961ce3831605ce411f3b080de3d15af7f3564488",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "phase-4.md",
               "path": "docs/phases/phase-4.md",
-              "sha": "b8b23bece68328e07fac8c01435674cdbbd9ca47d6609a8824b3f14211ff20a7"
+              "sha": "b50963d982f0261199d68197e0c52d2be32de80b",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "phase-5.md",
               "path": "docs/phases/phase-5.md",
-              "sha": "c4aa7a08ab5dbe8c632a3a928824459dba89fe2ad61c84f6fe31b4aadedc1f10"
+              "sha": "0d5eae07182958e347d4922b80dc55af1962ce36",
+              "mime": "text/markdown"
             },
             {
               "type": "file",
               "name": "phase-6.md",
               "path": "docs/phases/phase-6.md",
-              "sha": "23049dba0465b5a681c88debc3cf149ac90c2ebbecb89bb93574f3e03e4f43a6"
+              "sha": "0a617d75f4839c1d131bd9b7a65fa9e4d45c7076",
+              "mime": "text/markdown"
             }
           ]
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "docs/README.md",
+          "sha": "f35a8b13fd86bd11eb41a8f90b4bf591c3e1916e",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "REMAINING.md",
+          "path": "docs/REMAINING.md",
+          "sha": "5dc0646308fa41a9429d4ba2a6df2e8d01587545",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "WORKFLOW_TREE_REBUILD.md",
+          "path": "docs/WORKFLOW_TREE_REBUILD.md",
+          "sha": "e3738d72f6ea43685edeb09cc2b560246992e8fe",
+          "mime": "text/markdown"
         }
       ]
     },
     {
+      "type": "file",
+      "name": "fmtree.py",
+      "path": "fmtree.py",
+      "sha": "4d9c5269d78d298ba59997f5b39467ee3819d438",
+      "mime": "text/x-python"
+    },
+    {
+      "type": "file",
+      "name": "GITHUB-REPOSITORIES.md",
+      "path": "GITHUB-REPOSITORIES.md",
+      "sha": "c9cf7b5e8f294ff95be5c8d15a79d9cd56f7b230",
+      "mime": "text/markdown"
+    },
+    {
+      "type": "file",
+      "name": "LICENSE",
+      "path": "LICENSE",
+      "sha": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+      "mime": "application/octet-stream"
+    },
+    {
       "type": "folder",
       "name": "logs",
-      "path": "logs",
-      "children": []
+      "children": [
+        {
+          "type": "file",
+          "name": "admin-actions.log",
+          "path": "logs/admin-actions.log",
+          "sha": "35f75e1352e74b0606199ee28848a993a87c74f4",
+          "mime": "application/octet-stream"
+        },
+        {
+          "type": "file",
+          "name": "localhost.har",
+          "path": "logs/localhost.har",
+          "sha": "fe80235782d842a84ef636b8f6863d85b1c2934c",
+          "mime": "application/octet-stream"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "package-lock.json",
+      "path": "package-lock.json",
+      "sha": "216491c778b7a44690046a4943bf069dd2accfcf",
+      "mime": "application/json"
+    },
+    {
+      "type": "file",
+      "name": "package.json",
+      "path": "package.json",
+      "sha": "948055a746a0d7b4b37e8f49059e21469a7a6886",
+      "mime": "application/json"
+    },
+    {
+      "type": "file",
+      "name": "README.md",
+      "path": "README.md",
+      "sha": "264e7562efbfa3510afccdb5c8bf5bfbd5e1a549",
+      "mime": "text/markdown"
     },
     {
       "type": "folder",
       "name": "scripts",
-      "path": "scripts",
-      "children": []
+      "children": [
+        {
+          "type": "file",
+          "name": "build-file-responsibility-manifest.mjs",
+          "path": "scripts/build-file-responsibility-manifest.mjs",
+          "sha": "f1ee790a56209ca64fd0c4527e3b579731ba7572",
+          "mime": "text/javascript"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.client.compat.json",
+      "path": "tsconfig.client.compat.json",
+      "sha": "82ebb09f20080c239e8f83c2becccc5cea3f1b41",
+      "mime": "application/json"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.client.json",
+      "path": "tsconfig.client.json",
+      "sha": "d3deaf5434483ddab2d2cfdd2e21388757510ae9",
+      "mime": "application/json"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.json",
+      "path": "tsconfig.json",
+      "sha": "4e3b4670565f61fbf72ec1fb592b0a16211a19aa",
+      "mime": "application/json"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.server.json",
+      "path": "tsconfig.server.json",
+      "sha": "5d9ab9c64d6c61bc1795944037329228900bb333",
+      "mime": "application/json"
+    },
+    {
+      "type": "file",
+      "name": "vercel.json",
+      "path": "vercel.json",
+      "sha": "f5375130bdecc527c28c7330d15b8d6db90db289",
+      "mime": "application/json"
+    },
+    {
+      "type": "file",
+      "name": "version.json",
+      "path": "version.json",
+      "sha": "98c88312d77f020d03b687f459cf7ae5f13cb05f",
+      "mime": "application/json"
+    },
+    {
+      "type": "file",
+      "name": "zipCreate.sh",
+      "path": "zipCreate.sh",
+      "sha": "96e7234cc3244bcd85f2ebae7a890d11de5f700e",
+      "mime": "text/x-sh"
     }
   ]
 }
