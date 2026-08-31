@@ -113,10 +113,14 @@ def iter_children(path: Path, output_path: Path) -> Iterable[Path]:
 def build_tree(path: Path, output_path: Path, is_root: bool = False) -> list[dict]:
     children: list[dict] = []
     for child in iter_children(path, output_path):
-        # Preserve the existing subject-repository policy: root-level website
-        # implementation files are not content entries; README.md is retained.
-        if is_root and child.is_file() and child.name.casefold() != "readme.md":
+        # Preserve the landing-manifest policy: root-level website
+        # implementation files are not content entries, while text notes and
+        # documentation remain discoverable alongside README.md.
+        if is_root and child.is_dir() and child.name.casefold() in {"src", "public", "tests"}:
             continue
+        if is_root and child.is_file() and child.name.casefold() != "readme.md":
+            if child.suffix.casefold() in {".html", ".css", ".js", ".ts", ".tsx", ".jsx", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico"}:
+                continue
 
         if child.is_dir():
             children.append(
@@ -155,17 +159,26 @@ def write_manifest(output_path: Path, payload: dict) -> None:
 
 
 def main() -> int:
+    global ROOT
     parser = argparse.ArgumentParser(
         description="Generate a repository-local files.json manifest"
     )
     parser.add_argument(
+        "--root",
+        default=str(ROOT),
+        help="Repository root to scan (default: directory containing fmtree.py)",
+    )
+    parser.add_argument(
         "--out",
-        default=str(ROOT / "files.json"),
-        help="Output path for files.json (default: repository root/files.json)",
+        "--output",
+        dest="out",
+        default=None,
+        help="Output path for files.json (default: selected root/files.json)",
     )
     args = parser.parse_args()
 
-    output_path = Path(args.out).expanduser().resolve()
+    ROOT = Path(args.root).expanduser().resolve()
+    output_path = Path(args.out or (ROOT / "files.json")).expanduser().resolve()
     if output_path == ROOT:
         raise SystemExit("--out must identify a file, not the repository directory")
 
