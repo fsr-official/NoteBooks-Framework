@@ -1,5 +1,4 @@
 tmp/**/*
-.vercel/**/*
 .venv/**/*
 node_modules/**/*
 src/*.js
@@ -8,5 +7,4 @@ dist/**/*
 .env*
 community.zip
 dist/**/*
-.vercel
 archive/**/*

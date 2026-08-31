@@ -1,160 +1,187 @@
+#!/usr/bin/env python3
+"""Generate a repository-local files.json manifest.
+
+The manifest format intentionally remains compatible with the existing
+NoteBooks subject-tree consumer: folders contain ``type``, ``name``, and
+``children``; files additionally contain ``path``, ``sha``, and ``mime``.
+"""
+
+from __future__ import annotations
+
 import argparse
-import concurrent.futures
-import fnmatch
-import hashlib
 import json
+import mimetypes
 import os
+import re
+import subprocess
+import tempfile
 from pathlib import Path
+from typing import Iterable
 
-EXCLUDED_ROOT_FILES = {
-    "*.json",
-    "dist",
-    "api",
-    "fmtree.py",
-    "index.html",
-    "favicon.png",
-    "manifest.json",
-    "service-worker.js",
-    "offline.html",
-    "offline.png",
-    "admins.json",
-    "obsidian-md.js",
-    "obsidian-markdown-it.js",
-    "fallback.html",
-    "autopush.sh",
-    "installer.html",
-    "package.json",
-    "package-lock.json",
-    "tree.txt",
-    "zip.sh",
-    "repo-registry.json",
-}
-
-EXCLUDED_ROOT_DIRS = {
-    "src",
-    "community",
-    "waiting-list",
+ROOT = Path(__file__).resolve().parent
+SKIP_DIRECTORIES = {
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
     "node_modules",
-    "GH Fix",
-    "public",
-    "tests",
 }
+SKIP_FILES = {".DS_Store", "files.json"}
 
-ALLOWED_EXTENSIONS = {'.md', '.txt', '.pdf'}
 
-def parse_registry(markdown_path):
-    """Convert the repository table in GITHUB-REPOSITORIES.md to JSON."""
-    if not markdown_path.exists():
-        return []
+def run_git(*arguments: str) -> str:
+    """Run a Git command in the repository and return trimmed stdout."""
+    result = subprocess.run(
+        ["git", *arguments],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
 
-    rows = [line.strip() for line in markdown_path.read_text(encoding="utf-8").splitlines()
-            if line.strip().startswith("|")]
-    if len(rows) < 2:
-        return []
 
-    entries = []
-    for row in rows[2:]:
-        cells = [cell.strip() for cell in row.strip("|").split("|")]
-        if len(cells) < 2 or not cells[0] or not cells[1]:
+def repository_name() -> str:
+    """Return the repository name from origin, falling back to the directory."""
+    try:
+        remote = run_git("config", "--get", "remote.origin.url")
+    except (OSError, subprocess.CalledProcessError):
+        return ROOT.name
+
+    remote = remote.rstrip("/")
+    remote_name = re.search(r"/([^/]+?)(?:\.git)?$", remote)
+    if remote_name:
+        return remote_name.group(1)
+
+    # SSH remotes use the form git@github.com:owner/repository.git.
+    ssh_name = re.search(r":([^/:]+?)(?:\.git)?$", remote)
+    return ssh_name.group(1) if ssh_name else ROOT.name
+
+
+def blob_sha(path: Path) -> str:
+    """Return Git's blob SHA, matching the SHA exposed by GitHub."""
+    return run_git("hash-object", "--", str(path))
+
+
+def relative_path(path: Path) -> str:
+    return path.relative_to(ROOT).as_posix()
+
+
+def file_entry(path: Path) -> dict[str, str]:
+    mime, _ = mimetypes.guess_type(path.name)
+    return {
+        "type": "file",
+        "name": path.name,
+        "path": relative_path(path),
+        "sha": blob_sha(path),
+        "mime": mime or "application/octet-stream",
+    }
+
+
+def should_skip(path: Path, output_path: Path) -> bool:
+    if path.name in SKIP_DIRECTORIES or path.name in SKIP_FILES:
+        return True
+    try:
+        return path.resolve() == output_path
+    except OSError:
+        return False
+
+
+def iter_children(path: Path, output_path: Path) -> Iterable[Path]:
+    try:
+        children = sorted(path.iterdir(), key=lambda item: item.name.casefold())
+    except OSError as exc:
+        raise RuntimeError(f"Unable to read directory: {path}") from exc
+
+    for child in children:
+        if should_skip(child, output_path):
             continue
-        name, repo = cells[:2]
-        branch = cells[2] if len(cells) > 2 and cells[2] else "main"
-        root = cells[3] if len(cells) > 3 else ""
-        enabled = cells[4].lower() != "false" if len(cells) > 4 and cells[4] else True
         try:
-            priority = int(cells[5]) if len(cells) > 5 and cells[5] else 999999
-        except ValueError:
-            priority = 999999
-        pages = cells[6].lower() == "true" if len(cells) > 6 else False
-        entries.append({"name": name, "repo": repo, "branch": branch, "root": root,
-                        "enabled": enabled, "priority": priority, "pages": pages})
-    return entries
+            if child.is_symlink():
+                # Symlinks can escape the repository or introduce cycles.
+                continue
+            if child.is_dir():
+                yield child
+            elif child.is_file():
+                yield child
+        except OSError as exc:
+            raise RuntimeError(f"Unable to inspect path: {child}") from exc
 
 
-def file_sha256(path):
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(4 * 1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def build_tree(path: Path, output_path: Path, is_root: bool = False) -> list[dict]:
+    children: list[dict] = []
+    for child in iter_children(path, output_path):
+        # Preserve the existing subject-repository policy: root-level website
+        # implementation files are not content entries; README.md is retained.
+        if is_root and child.is_file() and child.name.casefold() != "readme.md":
+            continue
+
+        if child.is_dir():
+            children.append(
+                {
+                    "type": "folder",
+                    "name": child.name,
+                    "children": build_tree(child, output_path),
+                }
+            )
+        else:
+            children.append(file_entry(child))
+    return children
 
 
-def is_excluded_root_file(name):
-    return any(fnmatch.fnmatch(name, pattern) for pattern in EXCLUDED_ROOT_FILES)
+def write_manifest(output_path: Path, payload: dict) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(
+        prefix=f".{output_path.name}.",
+        suffix=".tmp",
+        dir=output_path.parent,
+        text=True,
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_name, output_path)
+    except Exception:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
 
 
-def is_allowed_file(name):
-    return Path(name).suffix.lower() in ALLOWED_EXTENSIONS
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Generate a repository-local files.json manifest"
+    )
+    parser.add_argument(
+        "--out",
+        default=str(ROOT / "files.json"),
+        help="Output path for files.json (default: repository root/files.json)",
+    )
+    args = parser.parse_args()
 
+    output_path = Path(args.out).expanduser().resolve()
+    if output_path == ROOT:
+        raise SystemExit("--out must identify a file, not the repository directory")
 
-def build_tree(path, rel_path="", executor=None):
-    tree = []
-    with os.scandir(path) as it:
-        entries = [entry for entry in it if not entry.name.startswith('.')]
+    name = repository_name()
+    if not name:
+        raise SystemExit("Could not determine a repository name")
 
-    for entry in sorted(entries, key=lambda e: e.name):
-        full_path = entry.path
-        rel_file_path = os.path.join(rel_path, entry.name).replace("\\", "/")
-
-        if entry.is_dir(follow_symlinks=False):
-            if rel_path == "" and entry.name in EXCLUDED_ROOT_DIRS:
-                continue  # skip root-level directory exclusions
-            tree.append({
-                "type": "folder",
-                "name": entry.name,
-                "path": rel_file_path,
-                "children": build_tree(full_path, rel_file_path, executor)
-            })
-        elif entry.is_file(follow_symlinks=False):
-            if not is_allowed_file(entry.name):
-                continue  # only include allowed file types
-            node = {
-                "type": "file",
-                "name": entry.name,
-                "path": rel_file_path,
-                "sha": None,
-            }
-            if executor is not None:
-                node["_sha_future"] = executor.submit(file_sha256, Path(full_path))
-            else:
-                node["sha"] = file_sha256(Path(full_path))
-            tree.append(node)
-    return tree
-
-
-def resolve_file_hashes(tree):
-    for node in tree:
-        if node["type"] == "folder":
-            resolve_file_hashes(node["children"])
-        elif node["type"] == "file":
-            future = node.pop("_sha_future", None)
-            if future is not None:
-                node["sha"] = future.result()
+    payload = {
+        "type": "folder",
+        "name": name,
+        "children": build_tree(ROOT, output_path, is_root=True),
+    }
+    write_manifest(output_path, payload)
+    print(f"files.json generated for {name} at {output_path}")
+    return 0
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate the local files manifest; an optional local registry can be requested explicitly.")
-    parser.add_argument("--root", default=".", help="Directory to scan (default: current directory)")
-    parser.add_argument("--output", default="files.json", help="Manifest output path")
-    parser.add_argument("--registry", default="", help="Optional local registry output path; omit to preserve the canonical remote registry")
-    args = parser.parse_args()
-
-    root_dir = Path(args.root).resolve()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
-        tree = {
-            "type": "folder",
-            "name": root_dir.name,
-            "path": "",
-            "children": build_tree(root_dir, executor=executor)
-        }
-        resolve_file_hashes(tree["children"])
-
-    Path(args.output).write_text(json.dumps(tree, indent=2) + "\n", encoding="utf-8")
-
-    print(f"✓ {args.output} generated ({len(tree['children'])} root entries).")
-    if args.registry:
-        registry = parse_registry(root_dir / "GITHUB-REPOSITORIES.md")
-        registry_path = Path(args.registry)
-        registry_path.parent.mkdir(parents=True, exist_ok=True)
-        registry_path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
-        print(f"✓ {args.registry} synchronized from GITHUB-REPOSITORIES.md ({len(registry)} repositories).")
+    raise SystemExit(main())
