@@ -7,10 +7,6 @@ on:
         description: 'NoteBooks stream to rebuild'
         required: true
         type: string
-      origin:
-        description: 'Exact repository origin registered in TREE_REBUILD_ALLOWED_ORIGINS'
-        required: true
-        type: string
     secrets:
       TREE_REBUILD_URL:
         required: true
@@ -26,10 +22,6 @@ on:
           - science
           - commerce
           - humanities
-      origin:
-        description: 'Exact workflow origin'
-        required: true
-        type: string
 
 jobs:
   rebuild-tree:
@@ -38,7 +30,7 @@ jobs:
       REBUILD_URL: ${{ secrets.TREE_REBUILD_URL }}
       REBUILD_SECRET: ${{ secrets.TREE_REBUILD_SECRET }}
       REBUILD_STREAM: ${{ inputs.stream || github.event.inputs.stream }}
-      REBUILD_ORIGIN: ${{ inputs.origin || github.event.inputs.origin }}
+      REBUILD_ORIGIN: ${{ github.repository }}
     steps:
       - name: Build signed rebuild payload
         run: |

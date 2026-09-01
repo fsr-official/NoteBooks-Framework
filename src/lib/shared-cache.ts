@@ -1,6 +1,6 @@
 export type SharedCacheClient = {
   get: (key: string) => Promise<unknown>;
-  set: (key: string, value: string, options?: { ex?: number }) => Promise<unknown>;
+  set: (key: string, value: string, options?: { ex?: number; nx?: boolean }) => Promise<unknown>;
   del: (key: string) => Promise<unknown>;
 };
 
@@ -49,6 +49,29 @@ export async function sharedSetJson(key: string, value: unknown, ttlSeconds: num
     await client.set(key, JSON.stringify(value), { ex: ttlSeconds });
   } catch (error) {
     console.warn('[shared-cache] Redis SET failed:', error instanceof Error ? error.message : error);
+  }
+}
+
+export async function sharedTryAcquire(key: string, owner: string, ttlSeconds: number): Promise<boolean> {
+  const client = await getSharedCacheClient();
+  if (!client) return true;
+  try {
+    const result = await client.set(key, owner, { ex: ttlSeconds, nx: true });
+    return result === 'OK' || result === true;
+  } catch (error) {
+    console.warn('[shared-cache] Redis lock acquire failed:', error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
+export async function sharedRelease(key: string, owner: string): Promise<void> {
+  const client = await getSharedCacheClient();
+  if (!client) return;
+  try {
+    const current = await client.get(key);
+    if (current === owner) await client.del(key);
+  } catch (error) {
+    console.warn('[shared-cache] Redis lock release failed:', error instanceof Error ? error.message : error);
   }
 }
 

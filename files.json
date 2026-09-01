@@ -49,7 +49,7 @@
               "type": "file",
               "name": "rebuild-tree.yml",
               "path": ".github/workflows/rebuild-tree.yml",
-              "sha": "9e2655172d10efd7480bfde6e283fa641cb0c9ad",
+              "sha": "c48be0a437db7c0d75beb1a5fa00506a4d623c24",
               "mime": "application/yaml"
             }
           ]
@@ -622,7 +622,7 @@
           "type": "file",
           "name": "WORKFLOW_TREE_REBUILD.md",
           "path": "docs/WORKFLOW_TREE_REBUILD.md",
-          "sha": "e3738d72f6ea43685edeb09cc2b560246992e8fe",
+          "sha": "769181247f670cd666b30cff80e65ae38567545c",
           "mime": "text/markdown"
         }
       ]
