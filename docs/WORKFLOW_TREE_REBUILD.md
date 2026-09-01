@@ -42,13 +42,13 @@ The same `TREE_REBUILD_SECRET` must be stored in GitHub Actions secrets for each
 
 ## Reusable workflow
 
-The reusable workflow is available at `.github/workflows/rebuild-tree.yml`. A source repository can call it after its content update job:
+The canonical reusable workflow is available at `.github/workflows/tree-sync.yml`. The former `fmmupdate.yaml`, `rebuild-tree.yml`, and `notify-app-example.yml` files have been removed from this repository. A source repository can call it after its content update job:
 
 ```yaml
 jobs:
   rebuild-notebooks-tree:
     needs: build-content
-    uses: fsr-official/NoteBooks-Framework/.github/workflows/rebuild-tree.yml@main
+    uses: fsr-official/NoteBooks-Framework/.github/workflows/tree-sync.yml@whoami
     with:
       stream: science
     secrets:
@@ -56,7 +56,32 @@ jobs:
       TREE_REBUILD_SECRET: ${{ secrets.TREE_REBUILD_SECRET }}
 ```
 
-The workflow derives the origin from `${GITHUB_REPOSITORY}`. It does not accept a caller-supplied origin, so a workflow cannot claim to be another registered repository.
+The workflow derives the origin from `${GITHUB_REPOSITORY}`. It does not accept a caller-supplied origin, so a workflow cannot claim to be another registered repository. The source caller should use the same shape as the installed Science and Humanities workflows:
+
+```yaml
+on:
+  push:
+    branches: ['main']
+    paths-ignore:
+      - 'files.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  tree-sync:
+    uses: fsr-official/NoteBooks-Framework/.github/workflows/tree-sync.yml@whoami
+    with:
+      stream: science # humanities in NCERT-Humanities
+    secrets:
+      TREE_REBUILD_URL: ${{ secrets.TREE_REBUILD_URL }}
+      TREE_REBUILD_SECRET: ${{ secrets.TREE_REBUILD_SECRET }}
+```
+
+The source repository must define both `TREE_REBUILD_URL` and `TREE_REBUILD_SECRET` as Actions secrets before enabling the workflow. The URL should be `https://notebooks-framework.vercel.app/api/workspace/tree/rebuild`; the HMAC secret must exactly match the Framework Vercel environment variable `TREE_REBUILD_SECRET`.
 
 ## Concurrency and dropped requests
 
@@ -74,7 +99,7 @@ The lock uses the existing Upstash shared cache when configured, allowing separa
 
 ## Repository edits and recursion
 
-The API does not edit any GitHub repository. It only calls the Vercel Deploy Hook. The build reads the current `GITHUB-REPOSITORIES.md` and source manifests, generates the static artifacts, and deploys them.
+The API does not edit any GitHub repository. It only calls the Vercel Deploy Hook. The source workflow commits the generated `files.json` back to its own source repository, while the Framework build reads the current `GITHUB-REPOSITORIES.md` and source manifests, generates the static artifacts, and deploys them.
 
 Therefore, a normal content edit follows one direction:
 
@@ -87,7 +112,7 @@ NCERT repository change
   → production serves the new bundled tree
 ```
 
-The rebuild cannot recursively call itself because the Framework build does not POST to the endpoint and the endpoint does not commit files. A loop can only be introduced by a source workflow that commits generated artifacts back into a repository watched by its own `on.push` trigger. Avoid that by excluding generated artifacts from the workflow path filter or adding a bot-commit guard.
+The rebuild cannot recursively call itself because the Framework build does not POST to the endpoint. The source workflow’s `on.push.paths-ignore: ['files.json']` rule excludes its own generated-artifact commit from starting another run; ordinary content edits still trigger the workflow once.
 
 ## Request contract
 
