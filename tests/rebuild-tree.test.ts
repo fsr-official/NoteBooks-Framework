@@ -2,19 +2,25 @@ import crypto from 'node:crypto';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/server/server.ts';
+import { resetRebuildLockForTests } from '../src/api/rebuild-tree.ts';
 import { invalidateStreamTree } from '../src/api/system.ts';
 
-describe('workflow tree rebuild API', () => {
+describe('workflow static tree rebuild API', () => {
   beforeEach(async () => {
     process.env.WEBHOOK_SECRET = 'test-rebuild-secret';
-    delete process.env.TREE_REBUILD_ALLOWED_ORIGINS;
+    process.env.TREE_REBUILD_DEPLOY_HOOK_URL = 'https://api.vercel.com/v1/integrations/deploy/test-hook';
     delete process.env.TREE_REBUILD_SECRET;
     delete process.env.ENFORCE_CSRF;
+    resetRebuildLockForTests();
     await invalidateStreamTree();
   });
 
   afterEach(() => {
     delete process.env.WEBHOOK_SECRET;
+    delete process.env.TREE_REBUILD_SECRET;
+    delete process.env.TREE_REBUILD_DEPLOY_HOOK_URL;
+    delete process.env.TREE_REBUILD_LOCK_TTL_SECONDS;
+    resetRebuildLockForTests();
     vi.unstubAllGlobals();
   });
 
@@ -32,10 +38,6 @@ describe('workflow tree rebuild API', () => {
       .send(payload);
   }
 
-  function stubManifestFetch() {
-    vi.stubGlobal('fetch', async () => new Response(JSON.stringify([{ path: 'notes/README.md', name: 'README.md', size: 12 }]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
-  }
-
   it('rejects unsigned, unknown-origin, and out-of-scope rebuild requests', async () => {
     const payload = { streams: ['science'], repository: 'fsr-science/NCERT-Science' };
     const unsigned = await request(createApp()).post('/api/workspace/tree/rebuild').send(payload);
@@ -49,39 +51,27 @@ describe('workflow tree rebuild API', () => {
     expect(wrongScope.status).toBe(403);
   });
 
-  it('rebuilds and runtime-preferences the registry-matched stream', async () => {
-    stubManifestFetch();
+  it('triggers one static deployment for a registry-matched source repository', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ job: { id: 'job-123', state: 'PENDING' } }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
     const payload = { streams: ['science'], repository: 'fsr-science/NCERT-Science', commit: 'abc123' };
     const response = await signed(payload);
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(expect.objectContaining({ success: true, repository: 'fsr-science/ncert-science' }));
-    expect(response.body.rebuilt[0]).toEqual(expect.objectContaining({ stream: 'science', repoCount: 1 }));
-
-    const tree = await request(createApp()).get('/api/system/science');
-    expect(tree.status).toBe(200);
-    expect(tree.headers['x-stream-tree-source']).toBe('runtime-rebuilt');
-    expect(tree.body.repos[0].repo).toBe('fsr-science/NCERT-Science');
+    expect(response.status).toBe(202);
+    expect(response.body).toEqual(expect.objectContaining({ success: true, deploymentTriggered: true, repository: 'fsr-science/ncert-science', streams: ['science'] }));
+    expect(response.body.job).toEqual({ jobId: 'job-123', state: 'PENDING' });
+    expect(vi.mocked(fetch)).toHaveBeenCalledOnce();
   });
 
-  it('drops a second overlapping rebuild request instead of starting another build', async () => {
-    let releaseFetch!: () => void;
-    const gate = new Promise<void>((resolve) => { releaseFetch = resolve; });
-    let firstFetch = true;
-    vi.stubGlobal('fetch', async () => {
-      if (firstFetch) {
-        firstFetch = false;
-        await gate;
-      }
-      return new Response(JSON.stringify([{ path: 'notes/README.md', name: 'README.md' }]), { status: 200 });
-    });
+  it('drops a second request while the first deployment is inside the dedupe window', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ job: { id: 'job-123', state: 'PENDING' } }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
     const payload = { streams: ['science'], repository: 'fsr-science/NCERT-Science' };
-    const first = signed(payload).then((response) => response);
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    const first = await signed(payload);
     const second = await signed(payload);
+
+    expect(first.status).toBe(202);
     expect(second.status).toBe(409);
     expect(second.body.dropped).toBe(true);
-    releaseFetch();
-    expect((await first).status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
