@@ -56,7 +56,32 @@ jobs:
       TREE_REBUILD_SECRET: ${{ secrets.TREE_REBUILD_SECRET }}
 ```
 
-The workflow derives the origin from `${GITHUB_REPOSITORY}`. It does not accept a caller-supplied origin, so a workflow cannot claim to be another registered repository.
+The workflow derives the origin from `${GITHUB_REPOSITORY}`. It does not accept a caller-supplied origin, so a workflow cannot claim to be another registered repository. The source caller should use the same shape as the installed Science and Humanities workflows:
+
+```yaml
+on:
+  push:
+    branches: ['main']
+    paths-ignore:
+      - 'files.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  tree-sync:
+    uses: fsr-official/NoteBooks-Framework/.github/workflows/tree-sync.yml@whoami
+    with:
+      stream: science # humanities in NCERT-Humanities
+    secrets:
+      TREE_REBUILD_URL: ${{ secrets.TREE_REBUILD_URL }}
+      TREE_REBUILD_SECRET: ${{ secrets.TREE_REBUILD_SECRET }}
+```
+
+The source repository must define both `TREE_REBUILD_URL` and `TREE_REBUILD_SECRET` as Actions secrets before enabling the workflow. The URL should be `https://notebooks-framework.vercel.app/api/workspace/tree/rebuild`; the HMAC secret must exactly match the Framework Vercel environment variable `TREE_REBUILD_SECRET`.
 
 ## Concurrency and dropped requests
 

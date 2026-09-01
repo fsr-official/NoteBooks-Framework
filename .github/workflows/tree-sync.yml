@@ -23,6 +23,9 @@ concurrency:
 
 jobs:
   tree-sync:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     env:
       REBUILD_URL: ${{ secrets.TREE_REBUILD_URL }}
