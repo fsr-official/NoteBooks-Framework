@@ -1,16 +1,16 @@
-# GitHub workflow tree rebuild
+# GitHub workflow static tree rebuild
 
-The NoteBooks Framework exposes a server-to-server endpoint for refreshing a stream tree after a registered source repository workflow completes:
+The NoteBooks Framework exposes a server-to-server endpoint that triggers a new Vercel deployment after a registered source repository workflow completes:
 
 ```text
 POST https://notebooks-framework.vercel.app/api/workspace/tree/rebuild
 ```
 
+The endpoint calls a Vercel Deploy Hook. Vercel then reruns the project Build Step, including `generate:github-repos` and `generate:json-files`, and publishes the regenerated `public/json/*-tree.json` artifacts. This keeps normal tree reads static and fast; they continue to fetch bundled JSON rather than rebuilding or refreshing runtime caches.
+
 ## Authoritative origin and stream mapping
 
-The API derives authorization from the repository entries in `GITHUB-REPOSITORIES.md` through the generated `public/json/github-repos.json` artifact. A request must provide the source repository in both the `repository` JSON field and the `X-Notebooks-Workflow-Origin` header. The values are normalized and checked against the registered `repo` field, and the requested stream must match that registry entry.
-
-For example, the current registry maps:
+The API validates the source repository against the generated registry, whose source is `GITHUB-REPOSITORIES.md`. A request must provide the repository in both the `repository` JSON field and the `X-Notebooks-Workflow-Origin` header. Both values must match after normalization, and the registered repository must be enabled for the requested stream.
 
 | Workflow repository | Registry stream | Allowed rebuild |
 |---|---|---|
@@ -18,24 +18,27 @@ For example, the current registry maps:
 | `fsr-commerce/NCERT-Commerce` | `COMMERCE` | `commerce` |
 | `fsr-humanities/NCERT-Humanities` | `HUMANITIES` | `humanities` |
 
-Community and Issues entries remain in the registry, but they are not academic stream-tree targets and therefore cannot call this endpoint with `community` or `issues`.
+Community and Issues remain in the repository registry, but they are not academic stream-tree targets and cannot call this endpoint with `community` or `issues`.
 
-## Security configuration
+## Vercel configuration
 
-Set only the signing secret in Vercel:
+Create a Deploy Hook for the connected NoteBooks Framework Vercel project, targeting the production branch. Vercel documents Deploy Hooks as POST URLs that trigger a deployment and rerun the Build Step: [Creating and Triggering Deploy Hooks](https://vercel.com/docs/deploy-hooks).
 
-```text
-TREE_REBUILD_SECRET=<long random secret>
-```
-
-The endpoint also accepts the existing `WEBHOOK_SECRET` or `GITHUB_WEBHOOK_SECRET` as a compatibility fallback, but an isolated `TREE_REBUILD_SECRET` is preferred. The same secret must be stored as `TREE_REBUILD_SECRET` in each source repository’s GitHub Actions secrets.
-
-Each request must include an HMAC-SHA256 signature over the exact request body:
+Set the resulting URL as:
 
 ```text
-X-Notebooks-Workflow-Origin: fsr-science/NCERT-Science
-X-Notebooks-Signature: sha256=<HMAC-SHA256>
+TREE_REBUILD_DEPLOY_HOOK_URL=https://api.vercel.com/v1/integrations/deploy/<project>/<hook-token>
 ```
+
+Treat this URL as a credential. Do not commit it to the repository or print it in workflow logs.
+
+Also set:
+
+```text
+TREE_REBUILD_SECRET=<long random HMAC secret>
+```
+
+The same `TREE_REBUILD_SECRET` must be stored in GitHub Actions secrets for each source repository.
 
 ## Reusable workflow
 
@@ -53,48 +56,51 @@ jobs:
       TREE_REBUILD_SECRET: ${{ secrets.TREE_REBUILD_SECRET }}
 ```
 
-The workflow derives its origin from `${GITHUB_REPOSITORY}`. It does not accept a caller-supplied origin input, preventing a workflow from claiming to be another registered repository.
+The workflow derives the origin from `${GITHUB_REPOSITORY}`. It does not accept a caller-supplied origin, so a workflow cannot claim to be another registered repository.
 
 ## Concurrency and dropped requests
 
-Only one rebuild may run at a time. A second request received while a rebuild is active is deliberately dropped with HTTP `409` and this response shape:
+Only one deployment trigger is allowed within the deduplication lease. A second request received while a deployment is pending returns HTTP `409` with:
 
 ```json
 {
   "success": false,
   "dropped": true,
-  "error": "A tree rebuild is already in progress"
+  "error": "A static tree deployment is already pending"
 }
 ```
 
-The lock is single-flight within the running process and uses the existing Upstash shared cache when configured, so concurrent Vercel instances also coordinate when shared Redis credentials are available. The lock expires automatically after 90 seconds as a safety valve.
+The lock uses the existing Upstash shared cache when configured, allowing separate Vercel instances to coordinate. A local fallback protects a single running instance. The default lease is ten minutes, which covers the expected build/deployment interval and prevents a burst of source-workflow events from starting repeated builds. The lease expires automatically as a safety valve.
 
-## Refresh behavior and recursion prevention
+## Repository edits and recursion
 
-An authorized rebuild invalidates the local and shared stream-tree caches, fetches the current source manifest, rebuilds the runtime tree, and marks that stream as runtime-preferred for subsequent requests. It does not commit or edit the source repository, does not write generated artifacts back to GitHub, and does not dispatch another workflow. Therefore, the rebuild callback itself cannot cause a recursive rebuild loop.
+The API does not edit any GitHub repository. It only calls the Vercel Deploy Hook. The build reads the current `GITHUB-REPOSITORIES.md` and source manifests, generates the static artifacts, and deploys them.
 
-The normal direction is intentionally one-way:
+Therefore, a normal content edit follows one direction:
 
 ```text
-source repository content change
-  → source workflow
-  → signed rebuild request
-  → runtime/shared tree refresh
+NCERT repository change
+  → NCERT workflow
+  → signed Framework rebuild request
+  → Vercel Deploy Hook
+  → Framework build regenerates static tree JSON
+  → production serves the new bundled tree
 ```
 
-Canonical `public/json/*-tree.json` artifacts are still regenerated during the Framework build. If the source repository workflow also commits an updated manifest or tree file, that commit may trigger the source workflow again depending on its own `on.push.paths` configuration. To avoid a loop, source workflows should exclude generated artifacts from their rebuild trigger, use a bot-commit guard, or keep artifact generation in the Framework build only.
+The rebuild cannot recursively call itself because the Framework build does not POST to the endpoint and the endpoint does not commit files. A loop can only be introduced by a source workflow that commits generated artifacts back into a repository watched by its own `on.push` trigger. Avoid that by excluding generated artifacts from the workflow path filter or adding a bot-commit guard.
 
-## Manual signed request
+## Request contract
 
-Construct and sign the exact body before sending it:
+The signed JSON body should contain one stream and the actual calling repository:
 
-```bash
-payload='{"streams":["science"],"origin":"fsr-science/NCERT-Science","repository":"fsr-science/NCERT-Science","commit":"abc123","reason":"manual rebuild"}'
-signature="sha256=$(printf '%s' "$payload" | openssl dgst -sha256 -hmac "$TREE_REBUILD_SECRET" -hex | sed 's/^.* //')"
-curl --fail-with-body -X POST \
-  -H 'Content-Type: application/json' \
-  -H 'X-Notebooks-Workflow-Origin: fsr-science/NCERT-Science' \
-  -H "X-Notebooks-Signature: $signature" \
-  --data-binary "$payload" \
-  'https://notebooks-framework.vercel.app/api/workspace/tree/rebuild'
+```json
+{
+  "streams": ["science"],
+  "origin": "fsr-science/NCERT-Science",
+  "repository": "fsr-science/NCERT-Science",
+  "commit": "abc123",
+  "reason": "content workflow completed"
+}
 ```
+
+The `origin` body field is informational; authorization uses the `repository` body field and the matching `X-Notebooks-Workflow-Origin` header.

@@ -1,14 +1,14 @@
 import crypto from 'node:crypto';
 import type { Request, Response } from 'express';
-import { getStreamTree, invalidateStreamTree } from './system.js';
 import { loadRepoRegistry, type RepoRegistryEntry } from './repo-registry.js';
 import { sharedRelease, sharedTryAcquire } from '../lib/shared-cache.js';
 
 const STREAMS = new Set(['science', 'commerce', 'humanities']);
-const REBUILD_LOCK_KEY = 'notebooks:stream-tree:rebuild-lock:v1';
-const REBUILD_LOCK_TTL_SECONDS = 90;
+const REBUILD_LOCK_KEY = 'notebooks:static-tree:deploy-lock:v1';
+const DEFAULT_LOCK_TTL_SECONDS = 10 * 60;
 type Stream = 'science' | 'commerce' | 'humanities';
-let localRebuildInFlight: Promise<unknown> | null = null;
+let localRebuildLockUntil = 0;
+let localRebuildInFlight = false;
 
 function timingSafeEqual(leftValue: string, rightValue: string): boolean {
   const left = Buffer.from(leftValue, 'utf8');
@@ -37,12 +37,37 @@ function normalizeRepo(value: unknown): string {
 }
 
 function findRegistryEntry(entries: RepoRegistryEntry[], repository: string, stream: Stream): RepoRegistryEntry | null {
-  const normalizedRepository = normalizeRepo(repository);
-  return entries.find((entry) => normalizeRepo(entry.repo) === normalizedRepository && String(entry.stream || '').trim().toLowerCase() === stream) || null;
+  return entries.find((entry) => normalizeRepo(entry.repo) === repository && String(entry.stream || '').trim().toLowerCase() === stream) || null;
 }
 
-function safeRequestOwner(req: Request): string {
-  return `${process.pid}:${Date.now()}:${crypto.randomBytes(8).toString('hex')}`;
+function lockTtlSeconds(): number {
+  const configured = Number(process.env.TREE_REBUILD_LOCK_TTL_SECONDS || DEFAULT_LOCK_TTL_SECONDS);
+  return Number.isFinite(configured) && configured >= 30 && configured <= 3600 ? Math.floor(configured) : DEFAULT_LOCK_TTL_SECONDS;
+}
+
+async function triggerStaticBuild(): Promise<{ jobId: string | null; state: string | null }> {
+  const hookUrl = String(process.env.TREE_REBUILD_DEPLOY_HOOK_URL || '').trim();
+  if (!hookUrl) throw new Error('TREE_REBUILD_DEPLOY_HOOK_URL is not configured');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(hookUrl, {
+      method: 'POST',
+      headers: { 'User-Agent': 'NoteBooks-Tree-Rebuild-API' },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`Vercel Deploy Hook returned ${response.status}`);
+    let body: any = null;
+    try { body = await response.json(); } catch { /* Some hooks return an empty response. */ }
+    return { jobId: body?.job?.id ? String(body.job.id) : null, state: body?.job?.state ? String(body.job.state) : null };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export function resetRebuildLockForTests(): void {
+  localRebuildLockUntil = 0;
+  localRebuildInFlight = false;
 }
 
 export default async function rebuildTree(req: Request, res: Response): Promise<void> {
@@ -64,7 +89,7 @@ export default async function rebuildTree(req: Request, res: Response): Promise<
   }
   const repository = bodyRepository;
   const streams = normalizeStreams(req.body);
-  if (!repository || !streams) {
+  if (!streams) {
     res.status(400).json({ error: 'repository and a non-empty supported streams list are required' });
     return;
   }
@@ -85,40 +110,35 @@ export default async function rebuildTree(req: Request, res: Response): Promise<
     }
   }
 
-  if (localRebuildInFlight) {
-    res.status(409).json({ success: false, dropped: true, error: 'A tree rebuild is already in progress' });
+  const ttlSeconds = lockTtlSeconds();
+  if (localRebuildInFlight || Date.now() < localRebuildLockUntil) {
+    res.status(409).json({ success: false, dropped: true, error: 'A static tree deployment is already pending' });
+    return;
+  }
+  const owner = `${process.pid}:${Date.now()}:${crypto.randomBytes(8).toString('hex')}`;
+  const acquired = await sharedTryAcquire(REBUILD_LOCK_KEY, owner, ttlSeconds);
+  if (!acquired) {
+    res.status(409).json({ success: false, dropped: true, error: 'A static tree deployment is already pending' });
     return;
   }
 
-  const owner = safeRequestOwner(req);
-  const rebuild = (async () => {
-    const acquired = await sharedTryAcquire(REBUILD_LOCK_KEY, owner, REBUILD_LOCK_TTL_SECONDS);
-    if (!acquired) return null;
-    try {
-      const rebuilt: Array<{ stream: string; repoCount: number; refreshedAt: string }> = [];
-      for (const stream of streams) {
-        await invalidateStreamTree(stream, true);
-        const result = await getStreamTree(stream, true);
-        rebuilt.push({ stream, repoCount: result.payload.repos.length, refreshedAt: new Date(result.cachedAt).toISOString() });
-      }
-      return rebuilt;
-    } finally {
-      await sharedRelease(REBUILD_LOCK_KEY, owner);
-    }
-  })();
-  localRebuildInFlight = rebuild;
+  localRebuildInFlight = true;
   try {
-    const rebuilt = await rebuild;
-    if (!rebuilt) {
-      res.status(409).json({ success: false, dropped: true, error: 'A tree rebuild is already in progress' });
-      return;
-    }
+    const job = await triggerStaticBuild();
+    localRebuildLockUntil = Date.now() + ttlSeconds * 1000;
     res.setHeader('Cache-Control', 'no-store');
-    res.status(200).json({ success: true, repository, rebuilt, rebuiltAt: new Date().toISOString() });
+    res.status(202).json({
+      success: true,
+      deploymentTriggered: true,
+      repository,
+      streams,
+      job,
+      dedupeUntil: new Date(localRebuildLockUntil).toISOString()
+    });
   } catch (error) {
-    console.error('[rebuild-tree] refresh failed', error instanceof Error ? error.message : error);
-    res.status(503).json({ error: 'Stream tree rebuild failed' });
-  } finally {
-    if (localRebuildInFlight === rebuild) localRebuildInFlight = null;
+    localRebuildInFlight = false;
+    await sharedRelease(REBUILD_LOCK_KEY, owner);
+    console.error('[rebuild-tree] deploy hook failed', error instanceof Error ? error.message : error);
+    res.status(503).json({ error: 'Static tree deployment could not be triggered' });
   }
 }
