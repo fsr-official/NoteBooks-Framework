@@ -3,7 +3,7 @@ const READING_DEFAULTS = { readerFontScale: 'normal', readerWidth: 'comfortable'
 const READING_STORAGE_KEY = 'notebooks-reading-preferences';
 let readingPreferences = { ...READING_DEFAULTS };
 const SIZE_VALUES = { compact: '0.92', normal: '1', large: '1.1' };
-const WIDTH_VALUES = { narrow: '68ch', comfortable: '78ch', wide: '92ch' };
+const WIDTH_VALUES = { narrow: '72ch', comfortable: '88ch', wide: '104ch' };
 const LEADING_VALUES = { compact: '1.62', comfortable: '1.88', airy: '2.08' };
 function readingStatus(message) { const status = document.getElementById('readingPreferencesStatus'); if (status) status.textContent = message; }
 function safeReadingPreferences(input) {
