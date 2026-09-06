@@ -55,6 +55,9 @@
     if (!src) return Promise.reject(new Error(`Unknown Markdown vendor: ${name}`));
     if (name === 'mathjax' && !global.MathJax) {
       global.MathJax = {
+        loader: {
+          load: ['[tex]/boldsymbol']
+        },
         tex: {
           inlineMath: [['\\(', '\\)']],
           displayMath: [['\\[', '\\]']],

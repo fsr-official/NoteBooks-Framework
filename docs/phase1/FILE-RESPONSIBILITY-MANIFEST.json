@@ -12,7 +12,7 @@
   },
   {
     "file": "./.github/workflows/ci.yml",
-    "bytes": 498,
+    "bytes": 1003,
     "extension": "yml",
     "area": "root",
     "purposeClass": "CI workflow",
@@ -23,7 +23,7 @@
   },
   {
     "file": "./.github/workflows/deploy-staging.yml",
-    "bytes": 807,
+    "bytes": 1734,
     "extension": "yml",
     "area": "root",
     "purposeClass": "Deployment workflow",
@@ -33,19 +33,8 @@
     "action": "Keep; verify deployment entrypoint."
   },
   {
-    "file": "./.github/workflows/fmmupdate.yaml",
-    "bytes": 619,
-    "extension": "yaml",
-    "area": "root",
-    "purposeClass": "Automation workflow",
-    "owner": "CI/CD",
-    "status": "optional",
-    "responsibility": "Manifest/content update automation",
-    "action": "Keep only if still invoked; verify before removal."
-  },
-  {
     "file": "./.github/workflows/integration.yml",
-    "bytes": 1134,
+    "bytes": 1150,
     "extension": "yml",
     "area": "root",
     "purposeClass": "Integration workflow",
@@ -55,15 +44,15 @@
     "action": "Keep; update paths after revamp."
   },
   {
-    "file": "./.github/workflows/notify-app-example.yml",
-    "bytes": 4938,
+    "file": "./.github/workflows/tree-sync.yml",
+    "bytes": 4305,
     "extension": "yml",
     "area": "root",
-    "purposeClass": "Notification workflow",
+    "purposeClass": "Automation workflow",
     "owner": "CI/CD",
-    "status": "optional",
-    "responsibility": "External/example notification automation",
-    "action": "Review secrets and invocation before retaining."
+    "status": "active",
+    "responsibility": "Generates and commits files.json for the current source repository, deploys its static site, and requests one signed Framework tree rebuild",
+    "action": "Keep as the sole manifest-and-rebuild workflow; source callers must ignore files.json-only pushes."
   },
   {
     "file": "./.gitignore",

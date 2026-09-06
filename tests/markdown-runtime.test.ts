@@ -81,6 +81,7 @@ describe('markdown runtime bootstrap', () => {
     const appSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/app.js'), 'utf8');
     const styleSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/css/style.css'), 'utf8');
     const mdInitSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/md-init.js'), 'utf8');
+    const markdownVendorsSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/markdown-vendors.js'), 'utf8');
     const serviceWorkerSource = fs.readFileSync(path.resolve(__dirname, '..', 'service-worker.js'), 'utf8');
 
     expect(appSource).toContain('data-mode="raw">Raw view');
@@ -95,6 +96,8 @@ describe('markdown runtime bootstrap', () => {
     expect(styleSource).not.toContain('letter-spacing: 0.5px;\n  font-size: 0.9em;');
     expect(mdInitSource).toContain('renderDiagramFence');
     expect(mdInitSource).toContain("securityLevel: 'strict'");
+    expect(markdownVendorsSource).toContain("load: ['[tex]/boldsymbol']");
+    expect(markdownVendorsSource).toContain("packages: { '[+]': ['ams', 'boldsymbol'] }");
     expect(serviceWorkerSource).toContain("CACHE_VERSION = 'webman-v47'");
     expect(serviceWorkerSource).toContain('public/client/observability.js');
   });
