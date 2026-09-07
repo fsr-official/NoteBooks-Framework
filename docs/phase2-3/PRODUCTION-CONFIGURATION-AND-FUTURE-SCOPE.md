@@ -84,9 +84,9 @@ The deployment workflow now uses Vercel’s explicit CLI sequence rather than re
 
 ```text
 npm run build
-npx vercel pull --yes --environment=production --project="$VERCEL_PROJECT_ID"
-npx vercel build --prod --project="$VERCEL_PROJECT_ID"
-npx vercel deploy --prebuilt --prod --project="$VERCEL_PROJECT_ID"
+npx vercel pull --yes --token="$VERCEL_TOKEN" --environment=production --project="$VERCEL_PROJECT_ID"
+npx vercel build --prod --token="$VERCEL_TOKEN" --project="$VERCEL_PROJECT_ID"
+npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" --project="$VERCEL_PROJECT_ID"
 ```
 
 Configure these as GitHub Actions repository secrets, not as Vercel runtime variables:

@@ -82,6 +82,7 @@ describe('markdown runtime bootstrap', () => {
     const styleSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/css/style.css'), 'utf8');
     const mdInitSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/md-init.js'), 'utf8');
     const markdownVendorsSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/markdown-vendors.js'), 'utf8');
+    const readingPreferencesSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/reading-preferences.js'), 'utf8');
     const serviceWorkerSource = fs.readFileSync(path.resolve(__dirname, '..', 'service-worker.js'), 'utf8');
 
     expect(appSource).toContain('data-mode="raw">Raw view');
@@ -98,6 +99,10 @@ describe('markdown runtime bootstrap', () => {
     expect(mdInitSource).toContain("securityLevel: 'strict'");
     expect(markdownVendorsSource).toContain("load: ['[tex]/boldsymbol']");
     expect(markdownVendorsSource).toContain("packages: { '[+]': ['ams', 'boldsymbol'] }");
+    expect(readingPreferencesSource).toContain("narrow: '72ch'");
+    expect(readingPreferencesSource).toContain("comfortable: '88ch'");
+    expect(readingPreferencesSource).toContain("wide: '104ch'");
+    expect(styleSource).toContain('var(--reader-content-width, 88ch)');
     expect(serviceWorkerSource).toContain("CACHE_VERSION = 'webman-v47'");
     expect(serviceWorkerSource).toContain('public/client/observability.js');
   });
