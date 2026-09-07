@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: Production – notebooks-framework
     permissions:
       contents: read
     steps:

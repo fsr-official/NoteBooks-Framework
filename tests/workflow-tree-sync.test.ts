@@ -25,6 +25,10 @@ describe('canonical tree-sync workflow', () => {
     expect(treeSync).not.toContain('APP_WEBHOOK_URL');
   });
 
+  it('uses the Framework production environment for Vercel credentials', () => {
+    expect(deployStaging).toContain('environment: Production – notebooks-framework');
+  });
+
   it('passes the Vercel token explicitly to every CLI deployment operation', () => {
     expect(deployStaging).toContain('pull --yes');
     expect(deployStaging).toContain('pull --yes\n          --token="$VERCEL_TOKEN"');
