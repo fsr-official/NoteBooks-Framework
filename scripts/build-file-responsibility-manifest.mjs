@@ -35,7 +35,7 @@ const exact = new Map([
   ['./.gitignore', ['Repository hygiene', 'Project governance', 'active', 'Excludes secrets, dependencies, build outputs, and local artifacts', 'Keep; update when revamp changes generated paths.']],
   ['./.github/workflows/ci.yml', ['CI workflow', 'CI/CD', 'active', 'Continuous integration checks', 'Keep; update paths after revamp.']],
   ['./.github/workflows/deploy-staging.yml', ['Deployment workflow', 'CI/CD', 'active', 'Staging deployment automation', 'Keep; verify deployment entrypoint.']],
-  ['./.github/workflows/tree-sync.yml', ['Automation workflow', 'CI/CD', 'active', 'Generates files.json for the current source repository and requests one signed static tree rebuild deployment', 'Keep as the sole manifest-and-rebuild workflow; do not commit generated files from this job.']],
+  ['./.github/workflows/tree-sync.yml', ['Automation workflow', 'CI/CD', 'active', 'Generates and commits files.json for the current source repository, deploys its static site, and requests one signed Framework tree rebuild', 'Keep as the sole manifest-and-rebuild workflow; source callers must ignore files.json-only pushes.']],
   ['./.github/workflows/integration.yml', ['Integration workflow', 'CI/CD', 'active', 'Integration test automation', 'Keep; update paths after revamp.']],
   ['./api/[...all].ts', ['Vercel API adapter', 'Deployment', 'active/compatibility', 'Serverless catch-all adapter into the Node API composition', 'Keep; reconcile with src/server/server.ts.']],
   ['./api/community/feed.ts', ['Vercel API adapter', 'Deployment', 'dormant/guarded', 'Serverless community feed adapter', 'Retain with community feature; do not merge into stream tree API.']],

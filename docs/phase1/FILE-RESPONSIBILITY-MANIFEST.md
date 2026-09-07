@@ -1,19 +1,16 @@
-> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
->
 # File Responsibility Manifest
 
 This manifest is generated from `docs/phase1/FILE-INVENTORY.tsv`. It assigns every inventoried file a deterministic purpose class, owner, runtime status, responsibility, and revamp action. Generated artifacts and vendored assets are classified by ownership rules rather than treated as application source.
 
-**Inventory size:** 398 files. **Files needing review before structural changes:** 0.
+**Inventory size:** 397 files. **Files needing review before structural changes:** 0.
 
 | File | Bytes | Purpose class | Owner | Status | Responsibility | Revamp action |
 |---|---:|---|---|---|---|---|
 | `./.env` | 0 | Environment configuration | Deployment/configuration | secret/local | Local environment variables and secrets; never committed or packaged | Exclude from handoff and source control. |
-| `./.github/workflows/ci.yml` | 498 | CI workflow | CI/CD | active | Continuous integration checks | Keep; update paths after revamp. |
-| `./.github/workflows/deploy-staging.yml` | 807 | Deployment workflow | CI/CD | active | Staging deployment automation | Keep; verify deployment entrypoint. |
-| `./.github/workflows/fmmupdate.yaml` | 619 | Automation workflow | CI/CD | optional | Manifest/content update automation | Keep only if still invoked; verify before removal. |
-| `./.github/workflows/integration.yml` | 1134 | Integration workflow | CI/CD | active | Integration test automation | Keep; update paths after revamp. |
-| `./.github/workflows/notify-app-example.yml` | 4938 | Notification workflow | CI/CD | optional | External/example notification automation | Review secrets and invocation before retaining. |
+| `./.github/workflows/ci.yml` | 1003 | CI workflow | CI/CD | active | Continuous integration checks | Keep; update paths after revamp. |
+| `./.github/workflows/deploy-staging.yml` | 1734 | Deployment workflow | CI/CD | active | Staging deployment automation | Keep; verify deployment entrypoint. |
+| `./.github/workflows/integration.yml` | 1150 | Integration workflow | CI/CD | active | Integration test automation | Keep; update paths after revamp. |
+| `./.github/workflows/tree-sync.yml` | 4305 | Automation workflow | CI/CD | active | Generates and commits files.json for the current source repository, deploys its static site, and requests one signed Framework tree rebuild | Keep as the sole manifest-and-rebuild workflow; source callers must ignore files.json-only pushes. |
 | `./.gitignore` | 132 | Repository hygiene | Project governance | active | Excludes secrets, dependencies, build outputs, and local artifacts | Keep; update when revamp changes generated paths. |
 | `./Dockerfile` | 223 | Deployment configuration | Deployment | active | Container build/runtime configuration | Keep if container deployment remains supported. |
 | `./GITHUB-REPOSITORIES.md` | 839 | Content configuration | Content pipeline | active | Configured stream repositories and branches | Keep; canonical generator input. |
