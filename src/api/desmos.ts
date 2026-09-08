@@ -16,7 +16,7 @@ export default async function handler(req: Request, res: Response) {
     return res.status(200).send(NO_KEY_FALLBACK);
   }
 
-  const upstream = `https://www.desmos.com/api/v1.9/calculator.js?apiKey=${apiKey}`;
+  const upstream = `https://www.desmos.com/api/v1.12/calculator3d.js?apiKey=${apiKey}`;
 
   try {
     const r = await fetch(upstream);
