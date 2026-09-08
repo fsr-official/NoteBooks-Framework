@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const root = process.cwd();
 const workflowDir = path.join(root, '.github', 'workflows');
 const treeSync = fs.readFileSync(path.join(workflowDir, 'tree-sync.yml'), 'utf8');
+const deployStaging = fs.readFileSync(path.join(workflowDir, 'deploy-staging.yml'), 'utf8');
 
 describe('canonical tree-sync workflow', () => {
   it('keeps only CI, deployment, integration, and the canonical tree-sync workflows', () => {
@@ -22,6 +23,17 @@ describe('canonical tree-sync workflow', () => {
     expect(treeSync).toContain("git commit -m 'chore: refresh files.json [skip ci]'");
     expect(treeSync).toContain('git push origin "HEAD:${GITHUB_REF_NAME}"');
     expect(treeSync).not.toContain('APP_WEBHOOK_URL');
+  });
+
+  it('uses the Framework production environment for Vercel credentials', () => {
+    expect(deployStaging).toContain('environment: Production – notebooks-framework');
+  });
+
+  it('passes the Vercel token explicitly to every CLI deployment operation', () => {
+    expect(deployStaging).toContain('pull --yes');
+    expect(deployStaging).toContain('pull --yes\n          --token="$VERCEL_TOKEN"');
+    expect(deployStaging).toContain('build --prod\n          --token="$VERCEL_TOKEN"');
+    expect(deployStaging).toContain('deploy --prebuilt --prod\n          --token="$VERCEL_TOKEN"');
   });
 
   it('derives the origin from the calling repository and prevents stale queued runs', () => {

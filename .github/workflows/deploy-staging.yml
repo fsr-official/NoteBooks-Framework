@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: Production – notebooks-framework
     permissions:
       contents: read
     steps:
@@ -41,6 +42,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: >-
           npx --yes vercel@59.5.0 pull --yes
+          --token="$VERCEL_TOKEN"
           --environment=production
           --project="$VERCEL_PROJECT_ID"
 
@@ -50,6 +52,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: >-
           npx --yes vercel@59.5.0 build --prod
+          --token="$VERCEL_TOKEN"
           --project="$VERCEL_PROJECT_ID"
 
       - name: Deploy prebuilt output
@@ -58,4 +61,5 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: >-
           npx --yes vercel@59.5.0 deploy --prebuilt --prod
+          --token="$VERCEL_TOKEN"
           --project="$VERCEL_PROJECT_ID"

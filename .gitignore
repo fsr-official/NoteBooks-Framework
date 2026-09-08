@@ -8,3 +8,5 @@ dist/**/*
 community.zip
 dist/**/*
 archive/**/*
+# Local Vercel project state
+.vercel/
