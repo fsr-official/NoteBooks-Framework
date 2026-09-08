@@ -7,8 +7,12 @@ if (typeof window !== 'undefined') {
 }
 `;
 
-export default async function handler(req: Request, res: Response) {
+export default function handler(req: Request, res: Response) {
   const apiKey = process.env.DESMOS_API_KEY?.trim();
+
+  // Diagnostic: log whether the key was loaded (don't print the key itself)
+  console.log('[api/desmos] Loaded Key:', apiKey ? 'EXISTS' : 'MISSING');
+
   if (!apiKey) {
     res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
@@ -16,19 +20,8 @@ export default async function handler(req: Request, res: Response) {
     return res.status(200).send(NO_KEY_FALLBACK);
   }
 
-  const upstream = `https://www.desmos.com/api/v1.12/calculator3d.js?apiKey=${apiKey}`;
-
-  try {
-    const r = await fetch(upstream);
-    if (!r.ok) { return res.status(r.status).end(); }
-    const body = await r.text();
-
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.status(200).send(body);
-  } catch (e) {
-    console.error('[api/desmos]', e);
-    res.status(502).end();
-  }
+  // Redirect directly to the 3D bundle so relative imports load from desmos.com
+  // Use the supported 3D channel (v1.10) rather than v1.12 which breaks 3D.
+  const upstream = `https://www.desmos.com/api/v1.10/calculator3d.js?apiKey=${apiKey}`;
+  return res.redirect(307, upstream);
 }
