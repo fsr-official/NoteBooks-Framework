@@ -106,4 +106,47 @@ describe('markdown runtime bootstrap', () => {
     expect(serviceWorkerSource).toContain("CACHE_VERSION = 'webman-v47'");
     expect(serviceWorkerSource).toContain('public/client/observability.js');
   });
+
+  it('renders svg fences as inline SVG and strips unsafe SVG content', () => {
+    const context = createContext();
+    const fakeMarkdownIt = function () {
+      const md = {
+        renderer: {
+          rules: {
+            fence: function () {
+              return '<pre>fallback code block</pre>';
+            }
+          }
+        },
+        use() {
+          return md;
+        }
+      };
+      return md;
+    };
+
+    context.window.markdownit = fakeMarkdownIt;
+    context.window.obsidianPlugin = function () {};
+    context.window.obsidianGetCSS = function () { return ''; };
+    context.window.obsidianParseFrontmatter = (raw: string) => ({ content: raw });
+    context.markdownit = fakeMarkdownIt;
+    context.obsidianPlugin = context.window.obsidianPlugin;
+    context.obsidianGetCSS = context.window.obsidianGetCSS;
+    context.obsidianParseFrontmatter = context.window.obsidianParseFrontmatter;
+
+    loadScript('public/js/md-init.js', context);
+    loadScript('public/js/markdown.js', context);
+
+    const renderer = context.window.initializeMarkdownRenderer();
+    const safeSvg = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#34d399" /></svg>';
+    const unsafeSvg = '<svg><script>alert(1)</script><circle cx="5" cy="5" r="4" fill="#34d399" /></svg>';
+
+    const safeHtml = renderer.renderer.rules.fence([{ info: 'svg', content: safeSvg }], 0, {}, {}, { renderToken: () => 'token' });
+    const unsafeHtml = renderer.renderer.rules.fence([{ info: 'svg', content: unsafeSvg }], 0, {}, {}, { renderToken: () => 'token' });
+
+    expect(safeHtml).toContain('<svg');
+    expect(safeHtml).toContain('viewBox="0 0 10 10"');
+    expect(unsafeHtml).not.toContain('<script');
+    expect(unsafeHtml).toContain('<circle');
+  });
 });

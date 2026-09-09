@@ -67,6 +67,30 @@ function renderDiagramFence(token, language) {
         '<img src="' + escapeMarkdownHtml(src) + '" alt="' + escapeMarkdownHtml(label) + '" decoding="async">' + caption + '</figure>\n';
 }
 
+function sanitizeSvgMarkup(rawSvg) {
+    var value = String(rawSvg || '').trim();
+    if (!value)
+        return '';
+    if (!/^<svg\b/i.test(value))
+        return '';
+    var sanitized = value
+        .replace(/<\s*script\b[\s\S]*?<\/\s*script\s*>/gi, '')
+        .replace(/<\s*(?:foreignObject|iframe|object|embed)\b[\s\S]*?<\/\s*(?:foreignObject|iframe|object|embed)\s*>/gi, '')
+        .replace(/\s+on[a-zA-Z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/\s(?:href|xlink:href|src)\s*=\s*(?:"\s*(?:javascript:|data:text\/html|data:image\/svg\+xml|file:|blob:|vbscript:)[^"]*"|'\s*(?:javascript:|data:text\/html|data:image\/svg\+xml|file:|blob:|vbscript:)[^']*'|\s*(?:javascript:|data:text\/html|data:image\/svg\+xml|file:|blob:|vbscript:)[^\s>]+)/gi, '');
+    if (!/^<svg\b/i.test(sanitized))
+        return '';
+    return sanitized;
+}
+
+function renderSvgFence(token) {
+    var svg = sanitizeSvgMarkup(token.content);
+    if (!svg) {
+        return '<div class="diagram-figure diagram-figure-missing" role="note"><strong>SVG content invalid.</strong><span>Safe SVG fences must contain an <code>&lt;svg&gt;</code> element without scripts, foreignObject, or unsafe links.</span></div>\n';
+    }
+    return '<div class="note-figure diagram-figure diagram-svg" data-diagram-domain="svg">' + svg + '</div>\n';
+}
+
 window.initializeMarkdownRenderer = function () {
     if (window.__markdownRuntimeState.renderer && typeof window.__markdownRuntimeState.renderer.render === 'function') {
         return window.__markdownRuntimeState.renderer;
@@ -130,8 +154,10 @@ window.initializeMarkdownRenderer = function () {
         var language = (info.split(/\s+/)[0] || '').toLowerCase();
         if (language === 'bio' || language === 'biology' || language === 'chem-setup' || language === 'chemistry')
             return renderDiagramFence(token, language);
+        if (language === 'svg')
+            return renderSvgFence(token);
         /* Preserve specialized Obsidian fence renderers (Mermaid, TikZ, Desmos). */
-        if ((language === 'mermaid' || language === 'tikz' || language === 'desmos' || language === 'desmos3d') && pluginFence)
+        if ((language === 'mermaid' || language === 'tikz' || language === 'desmos' || language === 'desmos3d' || language === 'svg') && pluginFence)
             return pluginFence(tokens, idx, options, env, self);
         var safeLanguage = language.replace(/[^a-zA-Z0-9_-]/g, '');
         var className = safeLanguage ? ' class="language-' + safeLanguage + '"' : '';
