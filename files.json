@@ -504,7 +504,7 @@
                   "type": "file",
                   "name": "server.js",
                   "path": "dist/server/server/server.js",
-                  "sha": "6bd6c6609ffaae5f0e021d79c4ba255d29121909",
+                  "sha": "4834ee63c109445a46bee284fc46bc48eb419577",
                   "mime": "text/javascript"
                 },
                 {
@@ -1048,7 +1048,7 @@
           "type": "file",
           "name": "admin-actions.log",
           "path": "logs/admin-actions.log",
-          "sha": "1d440d13aafdf65f32acb3dbb97e2d7b22de910e",
+          "sha": "2150a8dd22f71993061013522e6a112e9f554128",
           "mime": "application/octet-stream"
         },
         {
@@ -1188,7 +1188,7 @@
       "type": "file",
       "name": "version.json",
       "path": "version.json",
-      "sha": "fd2ea138d0cbe4c071edeb1a7b9a8b574f7dd8e8",
+      "sha": "4a10b34b07693f86d1f47a3b7cf5c1b47b44cc9e",
       "mime": "application/json"
     },
     {
