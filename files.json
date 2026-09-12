@@ -165,7 +165,7 @@
                   "type": "file",
                   "name": "auth.js",
                   "path": "dist/server/api/auth.js",
-                  "sha": "e18bb68fe9270c608399524f6da59171856b72c1",
+                  "sha": "c12acd60d96fb6e5998c05c394765fb747daf974",
                   "mime": "text/javascript"
                 },
                 {
@@ -1048,7 +1048,7 @@
           "type": "file",
           "name": "admin-actions.log",
           "path": "logs/admin-actions.log",
-          "sha": "25aefffa97ae952a60d306e65f841016d6ec8616",
+          "sha": "1d440d13aafdf65f32acb3dbb97e2d7b22de910e",
           "mime": "application/octet-stream"
         },
         {
@@ -1188,7 +1188,7 @@
       "type": "file",
       "name": "version.json",
       "path": "version.json",
-      "sha": "0ea5c73bbe98bf3d484fe1c7e84b8399ae0596b9",
+      "sha": "fd2ea138d0cbe4c071edeb1a7b9a8b574f7dd8e8",
       "mime": "application/json"
     },
     {

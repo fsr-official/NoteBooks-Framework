@@ -10,6 +10,7 @@ import { registerObservability } from './observability.js';
 import { registerApiRoutes } from './api-routes.js';
 import { applyDevelopmentDefaults, prepareGeneratedArtifacts } from './startup.js';
 import { browserSessionMiddleware } from '../lib/browser-session.js';
+import { isConfigured as isDbConfigured, migrate as migrateDatabase } from '../lib/db.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
@@ -146,6 +147,10 @@ export function createApp() {
 
 export async function startServer(port: number = PORT) {
   applyDevelopmentDefaults();
+  if (isDbConfigured()) {
+    console.log('[startup] applying database migrations');
+    await migrateDatabase();
+  }
   const projectDir = path.resolve(process.cwd());
   await prepareGeneratedArtifacts(projectDir);
 
