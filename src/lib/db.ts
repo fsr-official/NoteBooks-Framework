@@ -56,8 +56,42 @@ async function ensurePool(): Promise<PgPool> {
   const pg = await import('pg');
   const Pool = (pg as any).Pool;
   if (!Pool) throw new Error('PostgreSQL Pool constructor is unavailable');
-  pool = new Pool(poolOptions(connectionString)) as PgPool;
-  return pool;
+
+  // Build options and attempt to create a pool. If the initial TLS
+  // connection fails due to a self-signed certificate in the chain,
+  // retry with `rejectUnauthorized: false` to allow hosted providers
+  // that expose an intermediate/self-signed cert. This keeps TLS
+  // enabled while avoiding a hard failure for deployments that cannot
+  // validate the CA chain.
+  const options = poolOptions(connectionString);
+  try {
+    console.log('[db] creating pool with ssl:', Boolean((options as any).ssl));
+    pool = new Pool(options) as PgPool;
+    // Probe the pool with a lightweight query to surface TLS errors
+    // now instead of at the first application query.
+    await (pool as any).query('SELECT 1');
+    return pool;
+  } catch (err: any) {
+    console.error('[db] initial pool creation/query failed:', err?.message || err);
+    // If the error looks like a self-signed cert chain problem, retry
+    // with relaxed certificate validation. Only do this when the
+    // previous options explicitly enabled SSL.
+    const sslConfigured = Boolean((options as any).ssl);
+    const isSelfSigned = err && typeof err.message === 'string' && err.message.includes('self-signed certificate');
+    if (sslConfigured && isSelfSigned) {
+      console.warn('[db] Retrying pool creation with rejectUnauthorized=false due to self-signed certificate');
+      const relaxed = { ...options, ssl: { rejectUnauthorized: false } } as Record<string, unknown>;
+      try {
+        pool = new Pool(relaxed) as PgPool;
+        await (pool as any).query('SELECT 1');
+        return pool;
+      } catch (err2: any) {
+        console.error('[db] retry with relaxed SSL failed:', err2?.message || err2);
+        throw err2;
+      }
+    }
+    throw err;
+  }
 }
 
 export async function query(text: string, params?: unknown[]) {
