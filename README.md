@@ -259,6 +259,29 @@ Notes:
 - This helper is provided for convenience. The assistant will not run it without your
         explicit instruction.
 
+Automated local merge helper
+----------------------------
+
+If you prefer a simple local merge flow (commit on `whoami`, merge into `main`, push),
+use the included script:
+
+```bash
+./scripts/commit_and_merge.sh "Release v1.5.0"
+```
+
+This script will:
+- Checkout `whoami` (if not current)
+- Stage and commit changes with the provided message
+- Push `whoami` to `origin`
+- Checkout `main` and attempt a fast-forward merge from `whoami`
+- If fast-forward is not possible, perform a non-fast merge; aborts on conflicts
+- Push `main` to `origin` and return to `whoami`
+
+Notes:
+- If your repository enforces protected-branch rules (required reviews, status checks), pushing
+        directly to `main` may be rejected — use the PR-based flow instead (`scripts/assistant_release.sh`).
+- The script is intended for maintainers with push permissions to `main`.
+
 
 A release candidate is not production-ready merely because TypeScript and unit tests pass. Before tagging or switching production traffic, complete the following checks:
 
