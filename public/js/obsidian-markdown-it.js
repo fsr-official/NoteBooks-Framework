@@ -799,12 +799,122 @@
                 if (kv.length === 2)
                     opts[kv[0]] = kv[1];
             });
+
+            /* Helper: parse a single line into a Desmos expression object.
+               Supported formats:
+                 1) JSON object literal (starts with '{') -> parsed as expression
+                 2) LaTeX string with optional trailing metadata in braces:
+                      y = x^2 { color=#c74440 linewidth=3 hidden=true }
+               Recognized metadata keys: id, type, color, lineStyle, lineWidth,
+               hidden, secret, readonly, sliderBounds (JSON array), parametricDomain (JSON or key=val pairs)
+            */
+            function parseLine(line, idx) {
+                var txt = line.trim();
+                if (!txt) return null;
+                // JSON object line
+                if (txt.charAt(0) === '{') {
+                    try {
+                        var obj = JSON.parse(txt);
+                        if (!obj.id) obj.id = 'expr-' + idx;
+                        return obj;
+                    }
+                    catch (e) {
+                        // Try a forgiving repair: escape backslashes (useful for LaTeX in JSON strings)
+                        try {
+                            var repaired = txt.replace(/\\(?!\\)/g, '\\\\');
+                            var obj2 = JSON.parse(repaired);
+                            if (!obj2.id) obj2.id = 'expr-' + idx;
+                            return obj2;
+                        }
+                        catch (e2) {
+                            // As a last-resort, try to extract common fields via tolerant regex
+                            try {
+                                var mLatex = txt.match(/"latex"\s*:\s*"((?:\\.|[^"\\])*)"/);
+                                var mColor = txt.match(/"color"\s*:\s*"([^"\\]*)"/);
+                                var obj3 = {};
+                                if (mLatex) obj3.latex = mLatex[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                                if (mColor) obj3.color = mColor[1];
+                                if (Object.keys(obj3).length) { obj3.id = 'expr-' + idx; return obj3; }
+                            } catch (e3) { /* ignore */ }
+                            console.warn('[obsidian-markdown-it] desmos: JSON parse failed for line', txt, e);
+                        }
+                    }
+                }
+
+                // Trailing metadata in braces
+                var metaMatch = txt.match(/\s*\{([\s\S]*)\}\s*$/);
+                var meta = {};
+                if (metaMatch) {
+                    var metaRaw = metaMatch[1].trim();
+                    // remove the trailing {...} from txt to get the latex
+                    txt = txt.slice(0, metaMatch.index).trim();
+                    // split by whitespace or commas, support key=value pairs
+                    // Tokenize metaRaw while respecting {...} and [...] JSON-like values
+                    var i = 0;
+                    while (i < metaRaw.length) {
+                        // skip whitespace and commas
+                        while (i < metaRaw.length && /[\s,]/.test(metaRaw.charAt(i))) i++;
+                        if (i >= metaRaw.length) break;
+                        // read key or flag up to '=' or whitespace
+                        var start = i;
+                        while (i < metaRaw.length && !/[=\s]/.test(metaRaw.charAt(i))) i++;
+                        var key = metaRaw.slice(start, i).trim();
+                        // skip spaces
+                        while (i < metaRaw.length && /\s/.test(metaRaw.charAt(i))) i++;
+                        if (i < metaRaw.length && metaRaw.charAt(i) === '=') {
+                            i++; // skip '='
+                            while (i < metaRaw.length && /\s/.test(metaRaw.charAt(i))) i++;
+                            if (i >= metaRaw.length) { meta[key] = ''; break; }
+                            var ch = metaRaw.charAt(i);
+                            if (ch === '{' || ch === '[') {
+                                // read until matching brace
+                                var open = ch, close = (ch === '{') ? '}' : ']';
+                                var depth = 0, j = i;
+                                while (j < metaRaw.length) {
+                                    if (metaRaw.charAt(j) === open) depth++;
+                                    else if (metaRaw.charAt(j) === close) {
+                                        depth--;
+                                        if (depth === 0) { j++; break; }
+                                    }
+                                    j++;
+                                }
+                                var v = metaRaw.slice(i, j).trim();
+                                try { meta[key] = JSON.parse(v); } catch (e) { meta[key] = v; }
+                                i = j;
+                            } else {
+                                // read until whitespace or comma
+                                var j = i;
+                                while (j < metaRaw.length && !/[,\s]/.test(metaRaw.charAt(j))) j++;
+                                var v = metaRaw.slice(i, j).trim();
+                                if (v === 'true' || v === 'false') meta[key] = v === 'true';
+                                else if (!isNaN(Number(v))) meta[key] = Number(v);
+                                else meta[key] = v;
+                                i = j;
+                            }
+                        } else {
+                            // flag-style token
+                            if (key) meta[key] = true;
+                        }
+                    }
+                }
+
+                var expr = { id: meta.id || ('expr-' + idx), latex: txt };
+                // copy recognized meta into expr
+                ['type', 'color', 'lineStyle', 'lineWidth', 'hidden', 'secret', 'readonly', 'label'].forEach(function (k) {
+                    if (meta[k] !== undefined) expr[k] = meta[k];
+                });
+                if (meta.sliderBounds) expr.sliderBounds = meta.sliderBounds;
+                if (meta.parametricDomain) expr.parametricDomain = meta.parametricDomain;
+                return expr;
+            }
+
             /* Render desmos blocks as a div; obsidianInitDesmos() will process them */
             var expressions = token.content
                 .trim()
                 .split('\n')
-                .filter(function (line) { return line.trim() !== ''; })
-                .map(function (latex, i) { return { id: 'expr-' + i, latex: latex.trim() }; });
+                .map(function (l) { return l.replace(/\r$/, ''); })
+                .map(function (line, i) { return parseLine(line, i); })
+                .filter(function (e) { return e !== null; });
             var stateJson = JSON.stringify({ expressions: { list: expressions } });
             var uid = 'desmos-' + Math.random().toString(36).slice(2, 9);
             return '<div class="desmos-block" id="' + uid + '"'
@@ -838,11 +948,60 @@
                 if (kv.length === 2)
                     opts[kv[0]] = kv[1];
             });
+            function parseLine3d(line, idx) {
+                // reuse 2D parser logic but use expr3d- ids by default
+                var txt = line.trim();
+                if (!txt) return null;
+                if (txt.charAt(0) === '{') {
+                    try { var obj = JSON.parse(txt); if (!obj.id) obj.id = 'expr3d-' + idx; return obj; }
+                        catch (e) {
+                            try {
+                                var repaired = txt.replace(/\\(?!\\)/g, '\\\\');
+                                var obj2 = JSON.parse(repaired);
+                                if (!obj2.id) obj2.id = 'expr3d-' + idx;
+                                return obj2;
+                            } catch (e2) {
+                                try {
+                                    var mLatex = txt.match(/"latex"\s*:\s*"((?:\\.|[^"\\])*)"/);
+                                    var mColor = txt.match(/"color"\s*:\s*"([^"\\]*)"/);
+                                    var obj3 = {};
+                                    if (mLatex) obj3.latex = mLatex[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                                    if (mColor) obj3.color = mColor[1];
+                                    if (Object.keys(obj3).length) { obj3.id = 'expr3d-' + idx; return obj3; }
+                                } catch (e3) { /* ignore */ }
+                                console.warn('[obsidian-markdown-it] desmos3d: JSON parse failed', e);
+                            }
+                        }
+                }
+                var metaMatch = txt.match(/\s*\{([\s\S]*)\}\s*$/);
+                var meta = {};
+                if (metaMatch) {
+                    var metaRaw = metaMatch[1].trim();
+                    txt = txt.slice(0, metaMatch.index).trim();
+                    metaRaw.split(/[,\n]+/).forEach(function (chunk) {
+                        var pair = String(chunk).trim(); if (!pair) return; var kv = pair.split(/\s+/).join(' ').split('=');
+                        if (kv.length === 2) {
+                            var k = kv[0].trim(); var v = kv[1].trim();
+                            if ((v.charAt(0) === '[' && v.charAt(v.length - 1) === ']') || (v.charAt(0) === '{' && v.charAt(v.length - 1) === '}')) {
+                                try { meta[k] = JSON.parse(v); } catch (e) { meta[k] = v; }
+                            } else if (v === 'true' || v === 'false') { meta[k] = v === 'true'; }
+                            else if (!isNaN(Number(v))) { meta[k] = Number(v); } else { meta[k] = v; }
+                        } else { var f = pair.trim(); if (f) meta[f] = true; }
+                    });
+                }
+                var expr = { id: meta.id || ('expr3d-' + idx), latex: txt };
+                ['type', 'color', 'lineStyle', 'lineWidth', 'hidden', 'secret', 'readonly', 'label'].forEach(function (k) { if (meta[k] !== undefined) expr[k] = meta[k]; });
+                if (meta.sliderBounds) expr.sliderBounds = meta.sliderBounds;
+                if (meta.parametricDomain) expr.parametricDomain = meta.parametricDomain;
+                return expr;
+            }
+
             var expressions = token.content
                 .trim()
                 .split('\n')
-                .filter(function (line) { return line.trim() !== ''; })
-                .map(function (latex, i) { return { id: 'expr3d-' + i, latex: latex.trim() }; });
+                .map(function (l) { return l.replace(/\r$/, ''); })
+                .map(function (line, i) { return parseLine3d(line, i); })
+                .filter(function (e) { return e !== null; });
             var stateJson = JSON.stringify({ expressions: { list: expressions } });
             var uid = 'desmos3d-' + Math.random().toString(36).slice(2, 9);
             return '<div class="desmos3d-block" id="' + uid + '"'

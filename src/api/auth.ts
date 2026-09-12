@@ -441,11 +441,24 @@ export async function handleForgotPassword(req: Request, res: Response) {
 
     try {
       if (!resend) {
+        console.warn('[v0] Resend client not configured; skipping email send');
         return res.status(200).json({ success: true, message: 'If email exists, a reset link will be sent' });
       }
 
-      await resend.emails.send({
-        from: 'noreply@resend.dev',
+      // Allow overriding the from address via RESEND_FROM, otherwise derive from APP_URL
+      let fromAddress = process.env.RESEND_FROM?.trim();
+      if (!fromAddress) {
+        try {
+          const url = new URL(APP_URL);
+          const hostname = url.hostname.replace(/^www\./, '');
+          fromAddress = `noreply@${hostname}`;
+        } catch (e) {
+          fromAddress = 'noreply@resend.dev';
+        }
+      }
+
+      const sendPayload = {
+        from: fromAddress,
         to: email,
         subject: 'Reset your NoteBooks password',
         html: `
@@ -459,8 +472,13 @@ export async function handleForgotPassword(req: Request, res: Response) {
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
             <p style="color: #6b7280; font-size: 12px;">This link expires in 15 minutes.</p>
           </div>
-        `
-      });
+        `,
+        // Add a plain-text fallback for deliverability
+        text: `Password reset link: ${resetLink} (expires in 15 minutes)`
+      } as any;
+
+      const result = await resend.emails.send(sendPayload);
+      console.log('[v0] Resend send result:', result && (result as any).id ? 'sent' : 'no-id');
     } catch (emailError) {
       console.error('[v0] Email send error:', emailError);
       return res.status(500).json({ error: 'Failed to send reset email' });
