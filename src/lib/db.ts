@@ -38,7 +38,10 @@ function poolOptions(connectionString: string): Record<string, unknown> {
   // SSL is opt-in unless the connection string itself requests it.
   const sslMode = String(process.env.DB_SSL || '').toLowerCase();
   if (isProduction() || sslMode === 'require' || connectionString.includes('sslmode=require')) {
-    options.ssl = { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' };
+    // Some hosted PostgreSQL providers expose a self-signed/intermediate chain
+    // through their pooled endpoint. Keep TLS encryption enabled while allowing
+    // deployments to opt into strict CA validation explicitly.
+    options.ssl = { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true' };
   }
   return options;
 }
