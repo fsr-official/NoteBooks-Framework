@@ -238,6 +238,28 @@ The build generates `version.json`, `public/json/github-repos.json`, `public/jso
 
 ## v1.0.0 production release gates
 
+Assistant release helper
+------------------------
+
+A helper script is included to assist the repository maintainer (or an authorized assistant)
+to stage, commit, push, create a PR to `main`, and attempt to merge it. This script is
+intentionally manual and will not run automatically when editing files.
+
+Run it from the repository root:
+
+```bash
+./scripts/assistant_release.sh "Release v1.5.0"
+```
+
+Notes:
+- The script requires the GitHub CLI (`gh`) to create and merge pull requests. Authenticate
+        `gh` with `gh auth login` before running.
+- The script will attempt to merge the PR automatically; if it lacks permissions or the
+        repository requires reviews, the merge step will fail and you should merge manually.
+- This helper is provided for convenience. The assistant will not run it without your
+        explicit instruction.
+
+
 A release candidate is not production-ready merely because TypeScript and unit tests pass. Before tagging or switching production traffic, complete the following checks:
 
 1. Confirm that the Vercel project is linked to `fsr-official/NoteBooks-Framework`, uses the intended Node/Express build configuration, and deploys the `whoami` preview successfully before promoting the chosen commit.

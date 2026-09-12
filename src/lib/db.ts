@@ -122,24 +122,33 @@ export async function migrate() {
       await migrationClient.query('BEGIN');
       try {
         await migrationClient.query(sql);
+        // Record the migration id. Use ON CONFLICT DO NOTHING to avoid race
+        // conditions where multiple processes insert the same id concurrently.
+        await migrationClient.query('INSERT INTO schema_migrations(id) VALUES($1) ON CONFLICT (id) DO NOTHING', [id]);
+        await migrationClient.query('COMMIT');
       } catch (err: any) {
-        // If the SQL fails because a constraint or object already exists, log
-        // and continue — this makes migrations idempotent when concurrent
-        // deployments attempt to apply the same change. Only swallow errors
-        // that are known-safe (Postgres error code 42710: duplicate object).
         const msg = err && (err.message || String(err));
         const isAlreadyExists = (err && err.code === '42710') || (typeof msg === 'string' && /already exists/i.test(msg));
         if (isAlreadyExists) {
           console.warn('[db] migration SQL partially already exists or constraint present:', msg);
-        } else {
-          throw err;
+          // The current transaction is now aborted. Roll it back, then mark
+          // this migration as applied to avoid other deployments retrying it.
+          try {
+            await migrationClient.query('ROLLBACK');
+          } catch (rbErr) {
+            console.error('[db] rollback after partially-applied migration failed:', rbErr);
+          }
+          try {
+            await migrationClient.query('INSERT INTO schema_migrations(id) VALUES($1) ON CONFLICT (id) DO NOTHING', [id]);
+          } catch (recErr) {
+            console.error('[db] recording migration id after partial failure failed:', recErr);
+          }
+          return;
         }
+        // Unknown error: rollback and rethrow so the caller can handle it.
+        try { await migrationClient.query('ROLLBACK'); } catch {}
+        throw err;
       }
-
-      // Record the migration id. Use ON CONFLICT DO NOTHING to avoid race
-      // conditions where multiple processes insert the same id concurrently.
-      await migrationClient.query('INSERT INTO schema_migrations(id) VALUES($1) ON CONFLICT (id) DO NOTHING', [id]);
-      await migrationClient.query('COMMIT');
     } catch (error) {
       try { await migrationClient.query('ROLLBACK'); } catch {}
       throw error;
