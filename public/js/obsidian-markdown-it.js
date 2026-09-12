@@ -314,7 +314,7 @@
             }
         });
     }
-    /* ── Rule: raw LaTeX delimiters \(...\) and \[...\] ─────���────────────────── */
+    /* ── Rule: raw LaTeX delimiters \(...\) and \[...\] ─────�������────────────────── */
     /* Handles math pasted from other editors / AI outputs that use backslash      */
     /* delimiter style rather than dollar-sign style.                               */
     /*                                                                              */
@@ -874,7 +874,7 @@
             return self.renderToken(tokens, idx, options);
         };
     }
-    /* ── Front-matter parser ────────────────────────────────────────────────── */
+    /* ── Front-matter parser ────────────────────────────��───────────────────── */
     function parseFrontmatter(raw) {
         var m = raw.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/);
         if (!m)
@@ -1207,16 +1207,15 @@
                 var lock = elt.getAttribute('data-lock') || 'none';
                 var allowZoom = elt.getAttribute('data-zoom') !== 'false';
                 try {
-                var calc = window.Desmos.GraphingCalculator(elt, {
-                    invertedColors: true,
-                    settingsMenu: false,
-                    zoomButtons: allowZoom,
-                    lockViewport: lock === 'all',
-                    expressions: true,
-                    keypad: lock === 'none',
-                    expressionsCollapsed: false,
-                });
-                try {
+                    var calc = window.Desmos.GraphingCalculator(elt, {
+                        invertedColors: true,
+                        settingsMenu: false,
+                        zoomButtons: allowZoom,
+                        lockViewport: lock === 'all',
+                        expressions: true,
+                        keypad: lock === 'none',
+                        expressionsCollapsed: false,
+                    });
                     var state = JSON.parse(elt.getAttribute('data-state'));
                     state.expressions.list.forEach(function (expr) {
                         var isSlider = expr.latex && /^[a-zA-Z](\s*)=(\s*)[0-9]/.test(expr.latex);
@@ -1238,8 +1237,7 @@
                         }
                         calc.setExpression(expr);
                     });
-                }
-                elt.setAttribute('data-desmos-ready', 'true');
+                    elt.setAttribute('data-desmos-ready', 'true');
                 }
                 catch (e) {
                     console.warn('[obsidian-markdown-it] Desmos initialization error:', e);
@@ -1484,7 +1482,7 @@
             _wrapCodeBlock(pre);
         });
     }
-    /* ── Default CSS ────────────────────────────────────────────────────────── */
+    /* ── Default CSS ───────────────────────────────────────────────────────��── */
     var DEFAULT_CSS = [
         /* ── Callouts ─────────────────────────────────────────────────────────── */
         '.callout{border-left:4px solid var(--callout-color,#448aff);border-radius:6px;margin:1.2em 0;overflow:hidden;background:var(--callout-bg,rgba(68,138,255,.08))}',
@@ -1673,7 +1671,7 @@
         ruleDesmos3D(md);
         ruleHeadingIds(md);
     }
-    /* ── Expose globals ─────────────────────────────────────────────────────── */
+    /* ── Expose globals ─────────────────────────────────────��───────────────── */
     global.obsidianPlugin = obsidianPlugin;
     global.obsidianParseFrontmatter = parseFrontmatter;
     global.obsidianGetCSS = function () { return DEFAULT_CSS; };
