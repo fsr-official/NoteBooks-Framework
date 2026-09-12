@@ -8,7 +8,7 @@ import rawHandler from '../api/raw.js';
 import submitPrHandler from '../api/submit-pr.js';
 import * as prReview from '../api/pr-review.js';
 import refreshSignalHandler, { getLatestSignal } from '../api/refresh-signal.js';
-import desmosHandler from '../api/desmos.js';
+import desmosHandler, { calculator3dHandler } from '../api/desmos.js';
 import systemHandler from '../api/system.js';
 import rebuildTreeHandler from '../api/rebuild-tree.js';
 import authHandler from '../api/auth.js';
@@ -179,6 +179,8 @@ export function registerApiRoutes(app: express.Application): void {
   app.post('/api/pr-review/reject', permissions.requireAdminSecurity, prReview.rejectHandler);
   app.get('/api/desmos', desmosHandler);
   app.get('/api/desmos.js', desmosHandler);
+  app.get('/api/desmos3d', calculator3dHandler);
+  app.get('/api/desmos3d.js', calculator3dHandler);
 
   app.get('/api/themes', themeHandler.getThemeCatalog);
   app.post('/api/themes/select', express.json(), themeHandler.selectTheme);

@@ -3,6 +3,13 @@
   "name": "NoteBooks-Framework",
   "children": [
     {
+      "type": "file",
+      "name": ".env.development.local",
+      "path": ".env.development.local",
+      "sha": "80c5776f66066b627258340947e7126789bd88e8",
+      "mime": "application/octet-stream"
+    },
+    {
       "type": "folder",
       "name": ".github",
       "children": [
@@ -15,42 +22,28 @@
               "name": "ci.yml",
               "path": ".github/workflows/ci.yml",
               "sha": "4f3cdc386f171e03fed14cbfa40a401188f0ef37",
-              "mime": "application/yaml"
+              "mime": "application/octet-stream"
             },
             {
               "type": "file",
               "name": "deploy-staging.yml",
               "path": ".github/workflows/deploy-staging.yml",
-              "sha": "95d74be79a21abc5cef9101e4807a38cba4e21f4",
-              "mime": "application/yaml"
-            },
-            {
-              "type": "file",
-              "name": "fmmupdate.yaml",
-              "path": ".github/workflows/fmmupdate.yaml",
-              "sha": "8751da9e0b42da2bf25712c69ec65030da46af69",
-              "mime": "application/yaml"
+              "sha": "c8a7bf62e32a6461000fd8eff22f256cb98d538d",
+              "mime": "application/octet-stream"
             },
             {
               "type": "file",
               "name": "integration.yml",
               "path": ".github/workflows/integration.yml",
               "sha": "9426df455347388a471610c5c8fa30022adfe62e",
-              "mime": "application/yaml"
+              "mime": "application/octet-stream"
             },
             {
               "type": "file",
-              "name": "notify-app-example.yml",
-              "path": ".github/workflows/notify-app-example.yml",
-              "sha": "c76a633e5bad5cca6d831f60349f13750e932dcc",
-              "mime": "application/yaml"
-            },
-            {
-              "type": "file",
-              "name": "rebuild-tree.yml",
-              "path": ".github/workflows/rebuild-tree.yml",
-              "sha": "c48be0a437db7c0d75beb1a5fa00506a4d623c24",
-              "mime": "application/yaml"
+              "name": "tree-sync.yml",
+              "path": ".github/workflows/tree-sync.yml",
+              "sha": "9dda66ce396932212f8a69eda64bffe7ce2dfecc",
+              "mime": "application/octet-stream"
             }
           ]
         }
@@ -60,7 +53,7 @@
       "type": "file",
       "name": ".gitignore",
       "path": ".gitignore",
-      "sha": "9f4cbe3fa831b112e9938abdb5c2b0ced1774f2b",
+      "sha": "0d5d5ca5681a3dbe4b46e6b5bd685a26dd27ad0d",
       "mime": "application/octet-stream"
     },
     {
@@ -68,31 +61,11 @@
       "name": ".vercel",
       "children": [
         {
-          "type": "folder",
-          "name": "node",
-          "children": [
-            {
-              "type": "file",
-              "name": "package-manifest.json",
-              "path": ".vercel/node/package-manifest.json",
-              "sha": "36361cd7cbd184706617ad1cbfafae70eaf5c145",
-              "mime": "application/json"
-            }
-          ]
-        },
-        {
           "type": "file",
           "name": "project.json",
           "path": ".vercel/project.json",
-          "sha": "ade73d9823033db50f01326a348fc3761cb96a83",
+          "sha": "6c2dc6875701559d918d865227de38f7414d835f",
           "mime": "application/json"
-        },
-        {
-          "type": "file",
-          "name": "README.txt",
-          "path": ".vercel/README.txt",
-          "sha": "525d8ce8ef25a14dd73ee1f4d65047de05ccfdfa",
-          "mime": "text/plain"
         }
       ]
     },
@@ -105,7 +78,7 @@
           "name": "[...all].ts",
           "path": "api/[...all].ts",
           "sha": "99cabb1e126db1a5460af030a0271695a34a4e7e",
-          "mime": "text/vnd.trolltech.linguist"
+          "mime": "application/octet-stream"
         },
         {
           "type": "folder",
@@ -116,7 +89,7 @@
               "name": "feed.ts",
               "path": "api/community/feed.ts",
               "sha": "1ca15e9b2308c858c67d7345abea787ca059b525",
-              "mime": "text/vnd.trolltech.linguist"
+              "mime": "application/octet-stream"
             }
           ]
         },
@@ -133,7 +106,7 @@
                   "name": "refresh.ts",
                   "path": "api/system/[stream]/refresh.ts",
                   "sha": "49d9b873f17f2522bed976e03477bee1796a757a",
-                  "mime": "text/vnd.trolltech.linguist"
+                  "mime": "application/octet-stream"
                 }
               ]
             },
@@ -142,7 +115,7 @@
               "name": "[stream].ts",
               "path": "api/system/[stream].ts",
               "sha": "f4ead377339495b2efc5c4eed619144df6dad8bd",
-              "mime": "text/vnd.trolltech.linguist"
+              "mime": "application/octet-stream"
             }
           ]
         }
@@ -156,11 +129,423 @@
       "mime": "text/markdown"
     },
     {
+      "type": "folder",
+      "name": "dist",
+      "children": [
+        {
+          "type": "folder",
+          "name": "server",
+          "children": [
+            {
+              "type": "folder",
+              "name": "api",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "_shared.js",
+                  "path": "dist/server/api/_shared.js",
+                  "sha": "04a68dce8255356d00ebff8699e2b7bf6caf75f7",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "admin-dashboard.js",
+                  "path": "dist/server/api/admin-dashboard.js",
+                  "sha": "d8ce4905f7a43dfead54f8d1b05303c2f995c227",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "admin.js",
+                  "path": "dist/server/api/admin.js",
+                  "sha": "b500a58551935ce597cc9861a94f870542bee03e",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "auth.js",
+                  "path": "dist/server/api/auth.js",
+                  "sha": "e18bb68fe9270c608399524f6da59171856b72c1",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "blob.js",
+                  "path": "dist/server/api/blob.js",
+                  "sha": "21ffa0d87e9195c0df1c5f9b3b597c1f7df5a0c9",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "community-channels.js",
+                  "path": "dist/server/api/community-channels.js",
+                  "sha": "f01d24bf94dd68c8a562c54e23ceaba26f70d193",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "community-profile.js",
+                  "path": "dist/server/api/community-profile.js",
+                  "sha": "2139b38a645f2f8185f498ede3e05b4f696495b9",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "community.js",
+                  "path": "dist/server/api/community.js",
+                  "sha": "1d314fb6150f270249d2905291e3e1de18efd239",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "config.js",
+                  "path": "dist/server/api/config.js",
+                  "sha": "3f04e5ce87ba678e1b6b433b68a59fa0bbdc259d",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "dashboard.js",
+                  "path": "dist/server/api/dashboard.js",
+                  "sha": "298a4028fa743f383ca634adb7e29902ba91e57f",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "desmos.js",
+                  "path": "dist/server/api/desmos.js",
+                  "sha": "450e95b20a24ec16ed6fd0bb0b06e8cbc5e158a8",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "files-manifest.js",
+                  "path": "dist/server/api/files-manifest.js",
+                  "sha": "a054319330500676b68ec82e3cbc1a852db38958",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "gh.js",
+                  "path": "dist/server/api/gh.js",
+                  "sha": "d323676ac5d8537815e8489f22ceecafb7053f5a",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "github-app.js",
+                  "path": "dist/server/api/github-app.js",
+                  "sha": "a6a57ac7b37320a80dd528756aa07e19b8292db9",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "issue-review.js",
+                  "path": "dist/server/api/issue-review.js",
+                  "sha": "46145d262afd290a01b284bb16d130a1b4ea34e2",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "issues.js",
+                  "path": "dist/server/api/issues.js",
+                  "sha": "57269bf97918655d546a4fe55c4f0d3220025d17",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "oauth.js",
+                  "path": "dist/server/api/oauth.js",
+                  "sha": "badaecccc3188d89674248b307e2bf7e1b092e42",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "pages-fetch.js",
+                  "path": "dist/server/api/pages-fetch.js",
+                  "sha": "9c0df09518583f7cb706952d419f75f4f33c2a71",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "pr-review.js",
+                  "path": "dist/server/api/pr-review.js",
+                  "sha": "e291a2ee688e8fe3a71fbd51a78ad0b14657fcac",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "raw.js",
+                  "path": "dist/server/api/raw.js",
+                  "sha": "2d893e9e92aace69d81181635a451860fe737422",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "rebuild-tree.js",
+                  "path": "dist/server/api/rebuild-tree.js",
+                  "sha": "e405de04b85a5ad3de021a9a5399a2a49000b6b0",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "refresh-signal.js",
+                  "path": "dist/server/api/refresh-signal.js",
+                  "sha": "2120ca3833b6f21a9cf95c4c5a7b1c6bcea7e100",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "repo-registry.js",
+                  "path": "dist/server/api/repo-registry.js",
+                  "sha": "99ac8dd432930371573cba6b9642984116f2c0e4",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "session.js",
+                  "path": "dist/server/api/session.js",
+                  "sha": "187e7399c1bd1ba0259b16fb57fbdeda6d47017d",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "submit-pr.js",
+                  "path": "dist/server/api/submit-pr.js",
+                  "sha": "47aff443b055773e80c6f28ad97cc908960a90ca",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "system.js",
+                  "path": "dist/server/api/system.js",
+                  "sha": "e74b8d908b953c36284e4cd06cb07ee8f123667a",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "theme.js",
+                  "path": "dist/server/api/theme.js",
+                  "sha": "ae1b51b93b8b79d6e6337d12035ac6bd4a6140fe",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "totp.js",
+                  "path": "dist/server/api/totp.js",
+                  "sha": "fdc2f3c6e06f8bf9bf916e8534f23270d0d5ffdc",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "folder",
+                  "name": "webhooks",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "github-app.js",
+                      "path": "dist/server/api/webhooks/github-app.js",
+                      "sha": "1bc7432e136d1fc15c2714a379dae80fe1df8932",
+                      "mime": "text/javascript"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "lib",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "ai-markdown.js",
+                  "path": "dist/server/lib/ai-markdown.js",
+                  "sha": "99956db0ad11528bff049cc6805969de15f62074",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "browser-session.js",
+                  "path": "dist/server/lib/browser-session.js",
+                  "sha": "40241656414cff313282a713876ba256f2acba7e",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "db.js",
+                  "path": "dist/server/lib/db.js",
+                  "sha": "1c66a5289b1225e355cb59172202328f8e238de5",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "github-app.js",
+                  "path": "dist/server/lib/github-app.js",
+                  "sha": "d7eb3757708a16832b367af024b3e713ee987cd1",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "github-repositories.js",
+                  "path": "dist/server/lib/github-repositories.js",
+                  "sha": "14dad3aff23472eae0ca9598c83049c7616a0df0",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "image-to-svg.js",
+                  "path": "dist/server/lib/image-to-svg.js",
+                  "sha": "04083b2e258b60557e5aace04d9d93f6eeecd82c",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "metrics.js",
+                  "path": "dist/server/lib/metrics.js",
+                  "sha": "25f9bc180d79ccb9db8092e42f7d6c90a1490a00",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "octokit-loader.js",
+                  "path": "dist/server/lib/octokit-loader.js",
+                  "sha": "ab09c8a1779141c43a5a8a1525ad0228ac98a4c8",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "permissions.js",
+                  "path": "dist/server/lib/permissions.js",
+                  "sha": "9ad14f67719efbbb15ebbda15aaa945248fe2aba",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "roles.js",
+                  "path": "dist/server/lib/roles.js",
+                  "sha": "2313a79e357cb161d305f44309cb4e46229709ca",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "safe-file-path.js",
+                  "path": "dist/server/lib/safe-file-path.js",
+                  "sha": "32329c9be471544165739ef85e9bb07d9c9e45db",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "shared-cache.js",
+                  "path": "dist/server/lib/shared-cache.js",
+                  "sha": "034250ccb4451e37e73bd0d45c3c4bbbf3a7c8b0",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "theme-catalog.js",
+                  "path": "dist/server/lib/theme-catalog.js",
+                  "sha": "004b501d834190ac1ca14dfe6c15f5c837a97877",
+                  "mime": "text/javascript"
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "scripts",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "generate-github-repos.js",
+                  "path": "dist/server/scripts/generate-github-repos.js",
+                  "sha": "3762cef6972e871b03e18d21ed6bcd511fb4c5fb",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "generate-json-files.js",
+                  "path": "dist/server/scripts/generate-json-files.js",
+                  "sha": "599fdc77dbf23f911c44193976069caf99e69ce9",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "json-fetch.js",
+                  "path": "dist/server/scripts/json-fetch.js",
+                  "sha": "9402f293b6b711443b7bd94bce2dcc9769a3fd5f",
+                  "mime": "text/javascript"
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "server",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "api-routes.js",
+                  "path": "dist/server/server/api-routes.js",
+                  "sha": "5efeac73e425e2d0f73844116885e140c01c1d94",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "observability.js",
+                  "path": "dist/server/server/observability.js",
+                  "sha": "7c3c46003eae8c4e39c520c5dd8c83e8353a9a0f",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "public-routes.js",
+                  "path": "dist/server/server/public-routes.js",
+                  "sha": "8f7e53765a66ba86b821797a50f80c44721ff1a0",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "server.js",
+                  "path": "dist/server/server/server.js",
+                  "sha": "6bd6c6609ffaae5f0e021d79c4ba255d29121909",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "startup.js",
+                  "path": "dist/server/server/startup.js",
+                  "sha": "4872a5eb418199b1a99efe43d2287c5b7171a6b4",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "workspace-routes.js",
+                  "path": "dist/server/server/workspace-routes.js",
+                  "sha": "e68f359700f8d67e6095465c642fb873afcf690a",
+                  "mime": "text/javascript"
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "shims",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "pages-fetch.js",
+                  "path": "dist/server/shims/pages-fetch.js",
+                  "sha": "20dab77dcc5089f9e697dc01f8083c944fa0fd2d",
+                  "mime": "text/javascript"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "type": "file",
       "name": "docker-compose.yml",
       "path": "docker-compose.yml",
       "sha": "7048fa90636bdf46380463a3e5a8eb10ab89f686",
-      "mime": "application/yaml"
+      "mime": "application/octet-stream"
     },
     {
       "type": "file",
@@ -210,7 +595,7 @@
               "name": "architecture-real.mmd",
               "path": "docs/phase1/architecture-real.mmd",
               "sha": "c8d21c0ecbddb4cdfb4f3e181e50ef8973b01f1a",
-              "mime": "application/vnd.chipnuts.karaoke-mmd"
+              "mime": "application/octet-stream"
             },
             {
               "type": "file",
@@ -237,21 +622,21 @@
               "type": "file",
               "name": "FILE-INVENTORY.tsv",
               "path": "docs/phase1/FILE-INVENTORY.tsv",
-              "sha": "9e8c749f53f25547f60af11da04e66cbcfb7b88a",
+              "sha": "5351dfaae25b68cba95d266edeb11357297135ec",
               "mime": "text/tab-separated-values"
             },
             {
               "type": "file",
               "name": "FILE-RESPONSIBILITY-MANIFEST.json",
               "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.json",
-              "sha": "2e8a6058e98b4ef50df386c24719f38ad1456acc",
+              "sha": "58cbfe8a3ef47216216c0f1862bfb72d52065381",
               "mime": "application/json"
             },
             {
               "type": "file",
               "name": "FILE-RESPONSIBILITY-MANIFEST.md",
               "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md",
-              "sha": "5d02c5fc2bc39b3d3e52950958129aaf19b0e195",
+              "sha": "9d4a973d914bf5edde8456dbf807fce67f7b4e6e",
               "mime": "text/markdown"
             },
             {
@@ -488,7 +873,7 @@
               "type": "file",
               "name": "PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
               "path": "docs/phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
-              "sha": "7d1cefb8dda1926bb04f30df7163f42cb4c08bee",
+              "sha": "891b0b3b6d2bde21f253035e3f8f3718aec08875",
               "mime": "text/markdown"
             },
             {
@@ -620,9 +1005,16 @@
         },
         {
           "type": "file",
+          "name": "WORKFLOW_CONSOLIDATION_HANDOFF.md",
+          "path": "docs/WORKFLOW_CONSOLIDATION_HANDOFF.md",
+          "sha": "0bf851ffd321261b9779c9ccb68248da388a6331",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
           "name": "WORKFLOW_TREE_REBUILD.md",
           "path": "docs/WORKFLOW_TREE_REBUILD.md",
-          "sha": "e5c4e0430861ffb6e422bbc50b6312f43c21050e",
+          "sha": "aa9a29a938016f95ba171451de69aebac2e2f19b",
           "mime": "text/markdown"
         }
       ]
@@ -656,7 +1048,7 @@
           "type": "file",
           "name": "admin-actions.log",
           "path": "logs/admin-actions.log",
-          "sha": "35f75e1352e74b0606199ee28848a993a87c74f4",
+          "sha": "a0a74cfd74de831189f5e7e82e59e5d4cdacca75",
           "mime": "application/octet-stream"
         },
         {
@@ -697,8 +1089,63 @@
           "type": "file",
           "name": "build-file-responsibility-manifest.mjs",
           "path": "scripts/build-file-responsibility-manifest.mjs",
-          "sha": "f1ee790a56209ca64fd0c4527e3b579731ba7572",
+          "sha": "2f7f091c8c9c9f4301989adcba5a1b1c8573d8bd",
           "mime": "text/javascript"
+        },
+        {
+          "type": "file",
+          "name": "validate-workflows.py",
+          "path": "scripts/validate-workflows.py",
+          "sha": "bb837583189f1d79bcca9a2b45b64630e6aa6c5b",
+          "mime": "text/x-python"
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "skill",
+      "children": [
+        {
+          "type": "file",
+          "name": "biology-generator.skill.md",
+          "path": "skill/biology-generator.skill.md",
+          "sha": "f15bdd783ec8ec42cd9fd8cfcb92492cb25d9ffc",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "chemistry-generator.skill.md",
+          "path": "skill/chemistry-generator.skill.md",
+          "sha": "eee702a2dfe6c4b9577737aa9da1265b9747732a",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "cs-generator.skill.md",
+          "path": "skill/cs-generator.skill.md",
+          "sha": "f602066945fca094287e5ac9b2e3f061a95ea57e",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "maths-generator.skill.md",
+          "path": "skill/maths-generator.skill.md",
+          "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "notes-generator.skill.md",
+          "path": "skill/notes-generator.skill.md",
+          "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "physics-generator.skill.md",
+          "path": "skill/physics-generator.skill.md",
+          "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
+          "mime": "text/markdown"
         }
       ]
     },
@@ -741,7 +1188,7 @@
       "type": "file",
       "name": "version.json",
       "path": "version.json",
-      "sha": "98c88312d77f020d03b687f459cf7ae5f13cb05f",
+      "sha": "b4c9c5939c75c94cafb73ac278f312271788fedc",
       "mime": "application/json"
     },
     {
@@ -749,7 +1196,7 @@
       "name": "zipCreate.sh",
       "path": "zipCreate.sh",
       "sha": "96e7234cc3244bcd85f2ebae7a890d11de5f700e",
-      "mime": "text/x-sh"
+      "mime": "application/x-sh"
     }
   ]
 }
