@@ -6,7 +6,7 @@
       "type": "file",
       "name": ".env.development.local",
       "path": ".env.development.local",
-      "sha": "0b68f3015625849402b1979bfe1d69dc741468f0",
+      "sha": "570e95435b4e92b98a1a7fb1a7ce6f8c0ff2b38b",
       "mime": "application/octet-stream"
     },
     {
@@ -1048,7 +1048,7 @@
           "type": "file",
           "name": "admin-actions.log",
           "path": "logs/admin-actions.log",
-          "sha": "140a42e54b41f21ca8fa0c21e498f041fd615248",
+          "sha": "25aefffa97ae952a60d306e65f841016d6ec8616",
           "mime": "application/octet-stream"
         },
         {
@@ -1188,7 +1188,7 @@
       "type": "file",
       "name": "version.json",
       "path": "version.json",
-      "sha": "5397cec50ed0914c69c9667ece70b639cedbac47",
+      "sha": "0ea5c73bbe98bf3d484fe1c7e84b8399ae0596b9",
       "mime": "application/json"
     },
     {
