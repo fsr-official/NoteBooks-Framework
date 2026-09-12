@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { getOctokit, getRepoConfig } from './_shared.js';
+import { hasRole } from '../lib/permissions.js';
 
 function getBearerToken(req: Request) {
   const authHeader = req.get('authorization') || '';
@@ -10,8 +11,8 @@ function getBearerToken(req: Request) {
 function verifyAdminToken(req: Request) {
   const token = getBearerToken(req);
   if (!token) throw new Error('Authorization required');
-  const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as { email?: string; role?: string };
-  if (!decoded || decoded.role !== 'admin') throw new Error('Admin role required');
+  const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as { email?: string; role?: string; roles?: string[]; role_keys?: string[] };
+  if (!decoded || (!hasRole(decoded, 'super_admin') && decoded.role !== 'admin')) throw new Error('Admin role required');
   return decoded;
 }
 

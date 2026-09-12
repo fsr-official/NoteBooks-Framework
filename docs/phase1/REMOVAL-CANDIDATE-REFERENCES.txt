@@ -1,0 +1,14 @@
+=== generate-stream-trees.js ===
+./docs/phase1/PHASE-I-VERIFICATION.md:37:| `scripts/generate-stream-trees.js` | Superseded by the canonical generator. |
+./docs/phase1/FILE-REVAMP-DESIGN.md:69:| `src/scripts/generate-stream-trees.js` | Candidate for removal; superseded by `generate-json-files.ts` | Confirm no CI/deployment/manual script references, then rebuild and regenerate artifacts. |
+./scripts/build-file-responsibility-manifest.mjs:82:  'generate-stream-trees.js': ['Legacy stream generator', 'Content pipeline', 'dormant/legacy', 'Older stream tree generation path', 'Candidate for removal after reference scan.'],
+=== adminX.html ===
+./docs/phase1/FILE-REVAMP-DESIGN.md:70:| `public/html/adminX.html` | Dormant legacy candidate | Confirm no route, static link, service-worker, or collaborator reference. |
+./scripts/build-file-responsibility-manifest.mjs:106:  'adminX.html': ['Legacy admin shell', 'Admin feature', 'dormant/legacy', 'Older admin variant', 'Candidate for removal after route/reference verification.'],
+=== communityX.html ===
+./docs/phase1/FILE-REVAMP-DESIGN.md:71:| `public/html/communityX.html` | Dormant legacy candidate | Confirm no route, static link, service-worker, or collaborator reference. |
+./scripts/build-file-responsibility-manifest.mjs:108:  'communityX.html': ['Legacy community shell', 'Community feature', 'dormant/legacy', 'Older community variant', 'Candidate for removal after route/reference verification.'],
+=== volunteersX.html ===
+./docs/phase1/FILE-REVAMP-DESIGN.md:72:| `public/html/volunteersX.html` | Dormant legacy candidate | Confirm no route, static link, service-worker, or collaborator reference. |
+./scripts/build-file-responsibility-manifest.mjs:112:  'volunteersX.html': ['Legacy volunteer shell', 'Volunteer feature', 'dormant/legacy', 'Older volunteer variant', 'Candidate for removal after route/reference verification.'],
+=== SCRIPT REFERENCES ===

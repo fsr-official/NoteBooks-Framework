@@ -1,0 +1,58 @@
+=== FMMUPDATE ===
+name: Update files.json
+
+on:
+  push:
+    branches: ["**"]
+
+jobs:
+  fmtree:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run fmtree.py
+        run: python fmtree.py
+
+      - name: Commit files.json if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add files.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: update files.json [skip ci]"
+          git push=== PAGES/FALLBACK REFERENCES ===
+src/api/pages-fetch.ts:28:export function buildPagesTreeFromManifest(repoName: string, manifest: PagesManifestEntry[]) {
+src/api/pages-fetch.ts:71:    return buildPagesTreeFromManifest(repoName, normalizedManifest as PagesManifestEntry[]);
+src/api/pages-fetch.ts:99:export async function fetchRepoManifest(repo: string, repoName: string, branch: string, pagesBase: string) {
+src/api/pages-fetch.ts:118:/** @deprecated use fetchRepoManifest, which tries raw.githubusercontent.com first */
+src/api/pages-fetch.ts:119:export async function fetchPagesManifest(pagesBase: string, repoName: string) {
+src/api/repo-registry.ts:2:import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js';
+src/api/repo-registry.ts:149:        const rawChildren = await fetchRepoManifest(entry.repo, repoName, entry.branch || 'main', pagesBaseUrl);
+src/api/system.ts:5:import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
+src/api/system.ts:161:        const children = await fetchRepoManifest(repo, repoName, branch, pagesBase);
+src/scripts/json-fetch.ts:1:import { resolvePagesBaseUrl } from '../api/pages-fetch.js';
+src/shims/pages-fetch.ts:46:export function buildPagesTreeFromManifest(repoName: string, manifest: ManifestEntry[] | undefined): TreeNode[] {
+src/shims/pages-fetch.ts:83:    return buildPagesTreeFromManifest(repoName, normalized);
+src/shims/pages-fetch.ts:93:export async function fetchRepoManifest(repo: string, repoName: string, branch?: string, pagesBase?: string): Promise<TreeNode[]> {
+src/shims/pages-fetch.ts:109:export async function fetchPagesManifest(pagesBase: string, repoName: string): Promise<TreeNode[]> {
+tests/pages-registry.test.ts:2:import { buildPagesTreeFromManifest, resolvePagesBaseUrl } from '../src/api/pages-fetch.ts';
+tests/pages-registry.test.ts:16:    const tree = buildPagesTreeFromManifest('Demo', manifest as any);
+=== SCHEMA REFERENCES ===
+=== APP/DOC MONOLITH SIZES ===
+  2264 public/js/app.js
+  3633 public/css/style.css
+   621 index.html
+   670 src/server/server.ts
+   303 src/api/system.ts
+   276 src/scripts/json-fetch.ts
+   219 src/scripts/generate-json-files.ts
+  7986 total
+=== LOG/ENV TRACKING ===
+4:node_modules/**/*
+7:dist/**/*
+8:.env*
+10:dist/**/*

@@ -314,7 +314,7 @@
             }
         });
     }
-    /* ── Rule: raw LaTeX delimiters \(...\) and \[...\] ──────────────────────── */
+    /* ── Rule: raw LaTeX delimiters \(...\) and \[...\] ─────�������────────────────── */
     /* Handles math pasted from other editors / AI outputs that use backslash      */
     /* delimiter style rather than dollar-sign style.                               */
     /*                                                                              */
@@ -874,7 +874,7 @@
             return self.renderToken(tokens, idx, options);
         };
     }
-    /* ── Front-matter parser ────────────────────────────────────────────────── */
+    /* ── Front-matter parser ────────────────────────────��───────────────────── */
     function parseFrontmatter(raw) {
         var m = raw.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/);
         if (!m)
@@ -1200,23 +1200,22 @@
         }
     }
     function initDesmos(root) {
-        if (typeof Desmos === 'undefined')
-            return;
+        if (!window.Desmos || typeof window.Desmos.GraphingCalculator !== 'function')
+            return false;
         requestAnimationFrame(function () {
             (root || document).querySelectorAll('.desmos-block:not([data-desmos-ready])').forEach(function (elt) {
-                elt.setAttribute('data-desmos-ready', 'true');
                 var lock = elt.getAttribute('data-lock') || 'none';
                 var allowZoom = elt.getAttribute('data-zoom') !== 'false';
-                var calc = Desmos.GraphingCalculator(elt, {
-                    invertedColors: true,
-                    settingsMenu: false,
-                    zoomButtons: allowZoom,
-                    lockViewport: lock === 'all',
-                    expressions: true,
-                    keypad: lock === 'none',
-                    expressionsCollapsed: false,
-                });
                 try {
+                    var calc = window.Desmos.GraphingCalculator(elt, {
+                        invertedColors: true,
+                        settingsMenu: false,
+                        zoomButtons: allowZoom,
+                        lockViewport: lock === 'all',
+                        expressions: true,
+                        keypad: lock === 'none',
+                        expressionsCollapsed: false,
+                    });
                     var state = JSON.parse(elt.getAttribute('data-state'));
                     state.expressions.list.forEach(function (expr) {
                         var isSlider = expr.latex && /^[a-zA-Z](\s*)=(\s*)[0-9]/.test(expr.latex);
@@ -1238,12 +1237,14 @@
                         }
                         calc.setExpression(expr);
                     });
+                    elt.setAttribute('data-desmos-ready', 'true');
                 }
                 catch (e) {
-                    console.warn('[obsidian-markdown-it] Desmos expr error:', e);
+                    console.warn('[obsidian-markdown-it] Desmos initialization error:', e);
                 }
             });
         });
+        return true;
     }
     /* ── Post-render init: Desmos 3D blocks ──────────────────────────────────── */
     /*                                                                           */
@@ -1285,70 +1286,47 @@
     /* instance, e.g. a_1, a_2...) the same way sliders are used elsewhere —     */
     /* Desmos 3D treats each as an independent, draggable parameter.             */
     function initDesmos3D(root) {
-        if (typeof Desmos === 'undefined')
-            return;
+        if (!window.Desmos || typeof window.Desmos.Calculator3D !== 'function')
+            return false;
         requestAnimationFrame(function () {
             (root || document).querySelectorAll('.desmos3d-block:not([data-desmos-ready])').forEach(function (elt) {
-                elt.setAttribute('data-desmos-ready', 'true');
-                if (!Desmos.Calculator3D || (Desmos.enabledFeatures && Desmos.enabledFeatures.Calculator3D === false)) {
-                    elt.style.display = 'flex';
-                    elt.style.alignItems = 'center';
-                    elt.style.justifyContent = 'center';
-                    elt.style.padding = '1em';
-                    elt.style.textAlign = 'center';
-                    elt.style.background = 'rgba(239,83,80,.08)';
-                    elt.style.color = '#ef5350';
-                    elt.style.fontSize = '.85em';
-                    elt.textContent = '3D Calculator isn\u2019t enabled for this Desmos API key (or the loaded API version predates it) \u2014 check desmos.com/my-api and the version pinned in api/desmos.js.';
-                    return;
-                }
-                var lock = elt.getAttribute('data-lock') || 'none';
-                var allowZoom = elt.getAttribute('data-zoom') !== 'false';
-                var prefersDark = typeof window !== 'undefined' && window.matchMedia
-                    ? window.matchMedia('(prefers-color-scheme: dark)').matches
-                    : false;
-                var calc = Desmos.Calculator3D(elt, {
-                    invertedColors: prefersDark,
-                    settingsMenu: false,
-                    zoomButtons: allowZoom,
-                    lockViewport: lock === 'all',
-                    expressions: true,
-                    keypad: lock === 'none',
-                    expressionsCollapsed: false,
-                });
-                requestAnimationFrame(function () {
-                    if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new Event('resize'));
-                    }
-                });
                 try {
-                    var state = JSON.parse(elt.getAttribute('data-state'));
+                    if (window.Desmos.enabledFeatures && window.Desmos.enabledFeatures.Calculator3D === false) {
+                        elt.textContent = '3D Calculator is not enabled for this Desmos API key. Check desmos.com/my-api.';
+                        elt.setAttribute('data-desmos-failed', 'true');
+                        return;
+                    }
+                    var lock = elt.getAttribute('data-lock') || 'none';
+                    var allowZoom = elt.getAttribute('data-zoom') !== 'false';
+                    var calc = window.Desmos.Calculator3D(elt, {
+                        invertedColors: true,
+                        settingsMenu: false,
+                        zoomButtons: allowZoom,
+                        lockViewport: lock === 'all',
+                        expressions: true,
+                        keypad: lock === 'none',
+                        expressionsCollapsed: false
+                    });
+                    var state = JSON.parse(elt.getAttribute('data-state') || '{"expressions":{"list":[]}}');
                     state.expressions.list.forEach(function (expr) {
                         var isSlider = expr.latex && /^[a-zA-Z_0-9]+(\s*)=(\s*)[0-9]/.test(expr.latex);
-                        if (lock === 'none') {
-                            // everything visible and editable — do nothing
-                        }
-                        else if (lock === 'expressions') {
-                            if (!isSlider)
-                                expr.secret = true;
-                        }
-                        else if (lock === 'sliders') {
-                            if (!isSlider)
-                                expr.secret = true;
-                            if (isSlider)
-                                expr.readonly = true;
-                        }
-                        else if (lock === 'all') {
+                        if (lock === 'expressions' && !isSlider)
                             expr.secret = true;
+                        if (lock === 'sliders') {
+                            if (!isSlider) expr.secret = true;
+                            if (isSlider) expr.readonly = true;
                         }
+                        if (lock === 'all') expr.secret = true;
                         calc.setExpression(expr);
                     });
+                    elt.setAttribute('data-desmos-ready', 'true');
                 }
                 catch (e) {
-                    console.warn('[obsidian-markdown-it] Desmos 3D expr error:', e);
+                    console.warn('[obsidian-markdown-it] Desmos 3D initialization error:', e);
                 }
             });
         });
+        return true;
     }
     /* ── Post-render init: highlight.js code blocks ─────────────────────────── */
     /*                                                                           */
@@ -1504,7 +1482,7 @@
             _wrapCodeBlock(pre);
         });
     }
-    /* ── Default CSS ────────────────────────────────────────────────────────── */
+    /* ── Default CSS ───────────────────────────────────────────────────────��── */
     var DEFAULT_CSS = [
         /* ── Callouts ─────────────────────────────────────────────────────────── */
         '.callout{border-left:4px solid var(--callout-color,#448aff);border-radius:6px;margin:1.2em 0;overflow:hidden;background:var(--callout-bg,rgba(68,138,255,.08))}',
@@ -1693,7 +1671,7 @@
         ruleDesmos3D(md);
         ruleHeadingIds(md);
     }
-    /* ── Expose globals ─────────────────────────────────────────────────────── */
+    /* ── Expose globals ─────────────────────────────────────��───────────────── */
     global.obsidianPlugin = obsidianPlugin;
     global.obsidianParseFrontmatter = parseFrontmatter;
     global.obsidianGetCSS = function () { return DEFAULT_CSS; };

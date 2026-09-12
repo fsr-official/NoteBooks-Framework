@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "sourceFile": "GITHUB-REPOSITORIES.md",
+  "sourceSha256": "0db0e6f159e8e31396a4a28ff1efb38765b5d21602b09c65dd16ef332c0eea62",
+  "entries": [
+    {
+      "name": "NCERT-SCIENCE",
+      "stream": "science",
+      "repo": "fsr-science/NCERT-Science",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 1,
+      "pages": true,
+      "empty": false
+    },
+    {
+      "name": "NCERT-COMMERCE",
+      "stream": "commerce",
+      "repo": "fsr-commerce/NCERT-Commerce",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 2,
+      "pages": true,
+      "empty": true
+    },
+    {
+      "name": "NCERT-HUMANITIES",
+      "stream": "humanities",
+      "repo": "fsr-humanities/NCERT-Humanities",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 3,
+      "pages": true,
+      "empty": false
+    },
+    {
+      "name": "NoteBooks-Community",
+      "stream": "community",
+      "repo": "fsr-official/NoteBooks-Community",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 4,
+      "pages": false,
+      "empty": false
+    },
+    {
+      "name": "NoteBooks-Issues",
+      "stream": "issues",
+      "repo": "fsr-official/NoteBooks-Issues",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 5,
+      "pages": false,
+      "empty": false
+    }
+  ]
+}

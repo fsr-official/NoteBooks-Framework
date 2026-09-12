@@ -94,7 +94,7 @@
 
 .forum-btn.primary {
   background: var(--accent);
-  color: white;
+  color: var(--bg);
   border-color: var(--accent);
 }
 
@@ -262,7 +262,7 @@
 
 .topic-badge.pinned {
   background: #f59e0b;
-  color: white;
+  color: #111827;
 }
 
 .topic-meta-tags {
@@ -350,7 +350,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--bg);
   font-weight: 700;
   font-size: 16px;
   margin-bottom: 8px;

@@ -1,6 +1,7 @@
-import { Octokit } from '@octokit/rest';
+import { createOctokit, loadCreateAppAuth } from '../lib/octokit-loader.js';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { parseRepoRegistryMarkdown } from '../lib/github-repositories.js';
 
 interface RepoRegistryEntryLike {
   name?: string;
@@ -12,52 +13,25 @@ interface RepoRegistryEntryLike {
   priority?: number;
 }
 
-function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntryLike[] {
-  const lines = String(markdown || '').split(/\r?\n/);
-  const tableLines = lines.filter((line) => line.trim().startsWith('|'));
-  if (tableLines.length < 2) {
-    return [];
-  }
-
-  const headers = tableLines[0]
-    .split('|')
-    .slice(1, -1)
-    .map((cell) => cell.trim().toLowerCase());
-  const indexOf = (name: string) => headers.indexOf(name);
-  const valueOf = (cells: string[], name: string) => {
-    const index = indexOf(name);
-    return index >= 0 ? cells[index] || '' : '';
-  };
-
-  return tableLines.slice(2)
-    .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
-    .filter((cells) => cells.length >= 2 && valueOf(cells, 'name') && valueOf(cells, 'repo'))
-    .map((cells) => {
-      const priority = valueOf(cells, 'priority');
-      return {
-        name: valueOf(cells, 'name'),
-        stream: valueOf(cells, 'stream').toLowerCase() || undefined,
-        repo: valueOf(cells, 'repo'),
-        branch: valueOf(cells, 'branch') || undefined,
-        root: valueOf(cells, 'root'),
-        enabled: valueOf(cells, 'enabled').toLowerCase() !== 'false',
-        priority: Number(priority)
-      };
-    })
-    .filter((entry) => !Number.isNaN(entry.priority));
-}
-
 async function readRepoRegistryEntries(): Promise<RepoRegistryEntryLike[]> {
   const projectDir = process.cwd();
+  const artifactPath = path.resolve(projectDir, 'public', 'json', 'github-repos.json');
   const registryPath = path.resolve(projectDir, 'GITHUB-REPOSITORIES.md');
   const fallbackPath = path.resolve(projectDir, 'repo-registry.json');
 
   try {
+    const artifact = JSON.parse(await readFile(artifactPath, 'utf8'));
+    if (artifact?.schemaVersion === 1 && artifact?.sourceFile === 'GITHUB-REPOSITORIES.md' && Array.isArray(artifact.entries)) {
+      return artifact.entries as RepoRegistryEntryLike[];
+    }
+  } catch {
+    // fall through to the compatibility source reader
+  }
+
+  try {
     const markdown = await readFile(registryPath, 'utf8');
     const entries = parseRepoRegistryMarkdown(markdown);
-    if (entries.length > 0) {
-      return entries;
-    }
+    if (entries.length > 0) return entries;
   } catch {
     // fall through to JSON fallback
   }
@@ -69,6 +43,24 @@ async function readRepoRegistryEntries(): Promise<RepoRegistryEntryLike[]> {
   } catch {
     return [];
   }
+}
+
+function normalizeStreamKey(value: unknown): string {
+  const stream = String(value || '').trim().toLowerCase();
+  if (stream === 'humanity' || stream === 'arts') return 'humanities';
+  return stream;
+}
+
+export async function getStreamRepo(stream: string): Promise<{ owner: string; repo: string; branch?: string; root?: string } | null> {
+  const targetStream = normalizeStreamKey(stream);
+  const entries = (await readRepoRegistryEntries())
+    .filter((entry) => entry.enabled !== false && normalizeStreamKey(entry.stream) === targetStream && entry.repo)
+    .sort((a, b) => Number(a.priority ?? Number.MAX_SAFE_INTEGER) - Number(b.priority ?? Number.MAX_SAFE_INTEGER));
+  const entry = entries[0];
+  if (!entry?.repo) return null;
+  const [owner, repo] = String(entry.repo).split('/').filter(Boolean);
+  if (!owner || !repo) return null;
+  return { owner, repo, branch: entry.branch || process.env.GITHUB_BRANCH || 'main', root: entry.root || '' };
 }
 
 // Looks up a specific "owner/repo" against the configured registry (plus the
@@ -99,7 +91,7 @@ export async function findRegisteredRepo(owner: string, repoName: string): Promi
 export async function getOctokit(options: { allowUnauthenticated?: boolean } = {}) {
   const token = (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
   if (token) {
-    return new Octokit({ auth: token });
+    return await createOctokit({ auth: token });
   }
 
   const appId = process.env.GITHUB_APP_ID?.trim();
@@ -107,7 +99,7 @@ export async function getOctokit(options: { allowUnauthenticated?: boolean } = {
   const installationId = process.env.GITHUB_APP_INSTALLATION_ID?.trim();
 
   if (appId && privateKey && installationId) {
-    const { createAppAuth } = await import('@octokit/auth-app');
+    const createAppAuth = await loadCreateAppAuth();
     const appAuth = createAppAuth({
       appId: Number(appId),
       privateKey,
@@ -115,11 +107,11 @@ export async function getOctokit(options: { allowUnauthenticated?: boolean } = {
     });
 
     const auth = await appAuth({ type: 'installation' });
-    return new Octokit({ auth: auth.token });
+    return await createOctokit({ auth: auth.token });
   }
 
   if (options.allowUnauthenticated !== false) {
-    return new Octokit();
+    return await createOctokit();
   }
 
   throw new Error('GitHub auth is not configured. Set GITHUB_TOKEN, GITHUB_PAT, or GitHub App credentials.');

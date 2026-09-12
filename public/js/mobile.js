@@ -225,6 +225,5 @@ function updateTaskbar() {
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', async () => {
-    restoreModernSession();
     await updatePendingBadge();
 });

@@ -1,85 +1,61 @@
 # Developer Onboarding — NoteBooks Framework
 
-Summary
-- Purpose: fast start guide for developers taking over this repo.
-- Snapshot date: 2026-08-15
+**Status:** active onboarding guide. Read this with [`README.md`](../README.md), [`docs/phase1/REAL-ARCHITECTURE.md`](phase1/REAL-ARCHITECTURE.md), and [`docs/MARKDOWN-RENDERER.md`](MARKDOWN-RENDERER.md).
 
-Architecture overview
-- Backend: TypeScript Node.js API located under `src/` with Express-style routing in `src/server/server.ts` and API modules in `src/api/`.
-- Lib helpers: `src/lib/` contains GitHub App helpers, DB helpers, and permission utilities.
-- Client/public: lightweight frontend assets in `public/` and `src/client`.
-- Tests: Vitest tests in `tests/` exercise API flows and GitHub app logic.
+## Before changing code
 
-What changed recently (today)
-- Added subject-aware mounting and three-way split for each subject (repo content, community, issues).
-- Added `getSubjectRepo()` helper to resolve `SUBJECT_REPOS` mapping.
-- Community posts now accept and persist a `subject` field and create subject-tagged GitHub Discussions/PRs.
-- Added subject-scoped API routes under `/api/subject/:subject/...`.
-- Added retry/backoff logic to GitHub App PR creation and merge flows.
-- Added audit logging of PR actions to `logs/admin-actions.log`.
+NoteBooks is a TypeScript Express server with a static vanilla-JavaScript client. Science, Commerce, and Humanities are streams. Community and Issues are separate workspaces. The repository registry is authoritative, content trees are eager, and `src/api/raw.ts` is the dominant file-byte delivery path. Do not introduce lazy subtree loading or bypass the registry with ad hoc repository inference unless a compatibility case is documented.
 
-Remaining backend work
-- Harden GitHub App auto-merge: retry on webhook delivery failures, add idempotency and better error telemetry.
-- Ensure DB migrations are applied in production and CI; a migration file `src/db/migrations/2026-08-15-add-community-subject.sql` was added.
-- Expand subject persistence across all workflows (extra APIs may still accept subject via body only).
+The project acknowledges [Pratyush-Chanda/Ada](https://github.com/Pratyush-Chanda/Ada) as a source project and Pratyush Chanda’s help within the NoteBooks Project. This current repository has its own implementation boundaries and should be changed according to the current code and route composition.
 
-Frontend work remaining
-- Expose subject mounts and navigation in the frontend UI.
-- Admin UI for role/ban actions and viewing `logs/admin-actions.log`.
-- Post approval flows: UI to preview and approve community posts, and to view PRs generated from posts.
+## Local workflow
 
-Environment variables (important)
-- `GITHUB_REPO` — primary owner/repo (owner/name)
-- `GITHUB_COMMUNITY_REPO` — repo for discussions (owner/name)
-- `GITHUB_ISSUES_REPO` — repo to open issues/PRs for content (owner/name)
-- `SUBJECT_REPOS` — comma-separated mapping of subject=owner/repo pairs (e.g. "science=org/NCERT-Science,math=org/NCERT-Math")
-- `GITHUB_TOKEN` / `GITHUB_PAT` — fallback tokens for octokit when app creds not available
-- `GITHUB_APP_AUTO_PR` — `true` to auto-create PRs for approved posts
-- `GITHUB_APP_AUTO_MERGE` — `true` to auto-merge created PRs
-- `GITHUB_APP_AUTO_MERGE_METHOD` — `merge|squash|rebase` (default `merge`)
-- `GITHUB_REPO_BASE` — default branch name (default `main`)
-- `COMMUNITY_CONTENT_PATH` — path in repo where generated posts are committed
-- `JWT_SECRET` — secret for auth tokens
-- Database connection envs — see your deployment/CI conventions (the project uses `src/lib/db` helpers)
+Install dependencies and run the normal checks:
 
-Key files and why they matter
-- `src/server/server.ts` — app entry; routes, static serving, subject-scoped endpoints.
-- `src/api/community.ts` — create/approve community posts; now subject-aware and triggers discussions/PRs.
-- `src/api/submit-pr.ts` — editor PR submission flow; now prefers subject-specific targets when `subject` provided.
-- `src/api/_shared.ts` — octokit factory and `getSubjectRepo(subject)` mapping resolver.
-- `src/lib/github-app.ts` — App-authenticated helpers for discussion/PR creation and merging (includes retry/backoff).
-- `src/db/migrations/*.sql` — DB migrations; ensure these run in production.
-- `tests/` — unit and integration tests; run `npm test` to validate local changes.
-- `docs/DEVELOPER-ONBOARDING.md` — this file (start here).
-
-How to run the project locally
-1. Install dependencies:
 ```bash
 npm ci
-```
-2. Start a local Postgres and export DB connection envs according to your setup.
-3. Run migrations (the repo provides `src/scripts/migrate-db.js`):
-```bash
-node src/scripts/migrate-db.js
-```
-4. Run tests:
-```bash
+npm run typecheck
 npm test
-```
-5. Start dev server:
-```bash
-npm run dev
+npm run build
+npm start
 ```
 
-Deployment (quick)
-- A Dockerfile and `docker-compose.yml` are provided in the repo root for an opinionated container-based deployment. See the files `Dockerfile` and `docker-compose.yml`.
+`npm run dev` performs the build and then starts the compiled server. The default local port is `4000`; set `PORT` when another port is needed. The build runs `fmtree.py`, generates `public/json/github-repos.json`, creates eager registry/stream trees, generates version metadata, and compiles client/server TypeScript.
 
-Notes for the next developer
-- Check `process.env.SUBJECT_REPOS` format before deploying; incorrect mapping causes subject lookups to return null.
-- Audit logs are appended to `logs/admin-actions.log`; ensure write permissions for the runtime.
-- Tests are fast; run the subset when working on a feature to keep feedback quick.
+Database integration tests are intentionally opt-in. Use a disposable PostgreSQL database and set both `DATABASE_URL` and `RUN_DB_INTEGRATION_TESTS=true`. Never point integration tests at a production database.
 
-Contact & context
-- If you need the original decision logs or the conversation trail for these changes, the project workspace contains the automated transcripts in the workspace storage used by the previous agent; search in the developer machine under the Code workspace storage if needed.
+## Where to work
 
--- End of onboarding
+| Task | Primary files |
+| --- | --- |
+| Add or change a route | `src/server/api-routes.ts`, then the relevant `src/api/*.ts` handler and protection middleware. |
+| Change stream discovery | `GITHUB-REPOSITORIES.md`, `src/scripts/generate-github-repos.ts`, `src/scripts/generate-json-files.ts`, and `src/api/system.ts`. |
+| Change file delivery | `src/api/raw.ts` and `public/js/raw-delivery.js`; preserve path validation and raw dominance. |
+| Change Markdown | `public/js/markdown.js`, `md-init.js`, `obsidian-markdown-it.js`, and `docs/MARKDOWN-RENDERER.md`. |
+| Change themes or reader settings | `public/js/theme.js`, `reading-preferences.js`, `src/api/theme.ts`, `src/api/session.ts`, and session persistence. |
+| Change Community or Issues | The relevant `src/api/community*.ts`, `src/api/issues.ts`, review handlers, migrations, and browser surface. |
+| Change uploads or diagrams | `public/js/upload.js`, `src/api/blob.ts`, `src/lib/image-to-svg.ts`, attribution manifests, and conversion tests. |
+| Change schema | Add an ordered SQL file in `src/db/migrations/`, test locally, and reconcile production migration history deliberately. |
+| Change caching/offline behavior | `service-worker.js`, cache-version tests, and browser route checks. |
+
+## Environment configuration
+
+The minimum real production configuration is documented in the README. The most important variables are `JWT_SECRET`, `DATABASE_URL`, a GitHub read/write credential appropriate to the configured repositories, `GITHUB_REPO` or registry entries, `GITHUB_BRANCH`, `BLOB_READ_WRITE_TOKEN`, and `APP_URL`. OAuth, GitHub App, Resend, reCAPTCHA, webhook, and KV variables are required only when the corresponding capability is enabled.
+
+Use `KV_REST_API_URL` and `KV_REST_API_TOKEN` for the current KV adapter. Do not copy the older `UPSTASH_REDIS_REST_*` names from historical documentation unless an explicit compatibility layer has been added. Never print secret values in logs, pull requests, test output, or support messages.
+
+## Security rules
+
+Public reads may be anonymous, but writes must pass the route’s intended authentication, role, CSRF, rate-limit, and TOTP boundaries. Native SVG uploads are sanitized. Raster conversion is explicitly reported as an embedded-raster SVG container, not a true vector trace. Preserve original and derivative metadata through review and approval.
+
+Do not enable Supabase RLS on production tables without writing and testing policies for the server access model. Conversely, do not treat a database with RLS disabled as production-safe; the release audit must resolve that boundary before launch.
+
+## Pull-request workflow
+
+Work on a feature branch or the requested staging branch. Before committing, run syntax checks for modified browser scripts, `npm run typecheck`, focused tests, the full `npm test`, `npm run build`, and a production dependency audit. Inspect generated files after a build and do not hand-edit generated JSON in place of the source registry.
+
+For GitHub changes, use the GitHub CLI and inspect the target branch before pushing. The current staging target is `whoami`; production promotion and tagging remain separate decisions. A successful local build is not evidence that Vercel is linked to the correct repository or that production environment variables exist.
+
+## Documentation maintenance
+
+When behavior changes, update the nearest active documentation in the same change. Historical phase reports may retain their original narrative, but they must be labeled as historical snapshots and must not contradict the active README, architecture map, environment matrix, or renderer contract. Do not include credentials, private URLs, raw session tokens, or references to hidden workspace transcripts in documentation.

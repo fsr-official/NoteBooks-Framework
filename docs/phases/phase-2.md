@@ -1,3 +1,5 @@
+> **Document status:** historical implementation record. For current behavior, use [`docs/README.md`](../../README.md), the root [`README.md`](../../../README.md), and the active architecture/release documents.
+>
 # Phase 2 — Shared identity and session foundation
 
 Skeleton and checklist for Phase 2 work items.

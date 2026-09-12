@@ -4,7 +4,7 @@ import path from 'path';
 import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
 import { getUser } from './auth.js';
 import { validateBlocks, sanitizeBlocks } from '../lib/ai-markdown.js';
-import { getOctokit, getRepoConfig, getSubjectRepo } from './_shared.js';
+import { getOctokit, getRepoConfig, getStreamRepo, getSubjectRepo } from './_shared.js';
 
 const inMemoryPosts: Array<any> = [];
 
@@ -68,7 +68,8 @@ export async function createPost(req: Request, res: Response) {
     // Optionally create a GitHub Discussion when repo & token configured
     let discussionId: string | null = null;
     try {
-      const communityRepo = process.env.GITHUB_COMMUNITY_REPO || process.env.GITHUB_REPO || '';
+      const communityTarget = await getStreamRepo('community');
+      const communityRepo = communityTarget ? `${communityTarget.owner}/${communityTarget.repo}` : '';
       if (communityRepo && (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT)) {
         const repoCfg = communityRepo.split('/');
         if (repoCfg.length === 2) {
@@ -120,7 +121,8 @@ export async function approvePost(req: Request, res: Response) {
     let prInfo: any = null;
     let merged = false;
       try {
-        const communityRepo = process.env.GITHUB_COMMUNITY_REPO || process.env.GITHUB_REPO || '';
+        const communityTarget = await getStreamRepo('community');
+        const communityRepo = communityTarget ? `${communityTarget.owner}/${communityTarget.repo}` : '';
         if (!discussionId && communityRepo) {
           const repoCfg = communityRepo.split('/');
           if (repoCfg.length === 2) {

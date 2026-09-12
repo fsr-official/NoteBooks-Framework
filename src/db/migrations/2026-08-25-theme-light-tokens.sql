@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS theme_presets
+  ADD COLUMN IF NOT EXISTS light_tokens JSONB NOT NULL DEFAULT '{}'::jsonb;

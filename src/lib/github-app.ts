@@ -1,5 +1,5 @@
-import { Octokit } from '@octokit/rest';
-import { createAppAuth } from '@octokit/auth-app';
+import type { Octokit } from '@octokit/rest';
+import { createOctokit, loadCreateAppAuth } from './octokit-loader.js';
 
 function getAppConfig() {
   const appId = process.env.GITHUB_APP_ID?.trim();
@@ -11,9 +11,10 @@ function getAppConfig() {
 export async function getAppOctokit(): Promise<Octokit> {
   const cfg = getAppConfig();
   if (!cfg) throw new Error('GitHub App not configured (GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY)');
+  const createAppAuth = await loadCreateAppAuth();
   const auth = createAppAuth({ appId: cfg.appId, privateKey: cfg.privateKey });
   const appAuth = await auth({ type: 'app' });
-  return new Octokit({ auth: appAuth.token });
+  return await createOctokit({ auth: appAuth.token });
 }
 
 export async function getInstallationIdForRepo(owner: string, repo: string): Promise<number> {
@@ -27,9 +28,10 @@ export async function getInstallationOctokitForRepo(owner: string, repo: string)
   const cfg = getAppConfig();
   if (!cfg) throw new Error('GitHub App not configured');
   const installationId = await getInstallationIdForRepo(owner, repo);
+  const createAppAuth = await loadCreateAppAuth();
   const auth = createAppAuth({ appId: cfg.appId, privateKey: cfg.privateKey, installationId });
   const installationAuth = await auth({ type: 'installation' });
-  return new Octokit({ auth: installationAuth.token });
+  return await createOctokit({ auth: installationAuth.token });
 }
 
 export async function createDiscussionForRepo(owner: string, repo: string, title: string, body: string, categoryName = 'Community') {

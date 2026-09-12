@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, whoami]
   pull_request:
-    branches: [main]
+    branches: [main, whoami]
 
 jobs:
   build-and-test:
@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -23,3 +23,15 @@ jobs:
         run: npm test
       - name: Run production build
         run: npm run build
+      - name: Run browser movement smoke test
+        run: |
+          PORT=4173 npm run start > /tmp/notebooks-browser-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..20}; do
+            curl --fail --silent http://127.0.0.1:4173/settings >/dev/null && break
+            sleep 1
+          done
+          npm run test:browser
+      - name: Verify release compatibility
+        run: npm run verify:release

@@ -1,0 +1,162 @@
+=== LARGE APPLICATION FILES ===
+3214421	public/json/repo-registry.json
+1127029	public/json/humanities-tree.json
+1106026	public/json/science-tree.json
+119565	public/js/obsidian-markdown-it.js
+103643	public/js/app.js
+86961	public/css/style.css
+31449	src/api/forum.ts
+30915	public/js/markdown-editor.js
+27549	src/server/server.ts
+24058	public/html/admin-prs.html
+23928	public/js/upload.js
+17252	public/fonts/TestTiemposText-MediumItalic.otf
+17092	public/fonts/TestTiemposText-BoldItalic.otf
+17084	public/fonts/TestTiemposText-SemiboldItalic.otf
+17078	src/api/auth.ts
+16660	public/fonts/TestTiemposText-Medium.otf
+16656	public/fonts/TestTiemposText-RegularItalic.otf
+16560	public/fonts/TestTiemposText-Bold.otf
+16500	public/fonts/TestTiemposText-Semibold.otf
+15660	public/fonts/TestTiemposText-Regular.otf
+=== DUPLICATE/COMPATIBILITY REFERENCES ===
+--- pages-fetch ---
+src/api/repo-registry.ts:2:import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js';
+src/api/system.ts:5:import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
+src/scripts/json-fetch.ts:1:import { resolvePagesBaseUrl } from '../api/pages-fetch.js';
+tests/pages-registry.test.ts:2:import { buildPagesTreeFromManifest, resolvePagesBaseUrl } from '../src/api/pages-fetch.ts';
+--- src/shims/pages-fetch ---
+--- src/lib/schemas ---
+--- installer.html ---
+--- fmtree.py ---
+public/json/repo-registry.json:6104:              "name": "fmtree.py",
+public/json/repo-registry.json:6105:              "path": "fmtree.py",
+public/json/repo-registry.json:6108:              "repoPath": "fmtree.py",
+public/json/repo-registry.json:6112:              "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/fmtree.py"
+public/json/repo-registry.json:12264:              "name": "fmtree.py",
+public/json/repo-registry.json:12265:              "path": "fmtree.py",
+public/json/repo-registry.json:12268:              "repoPath": "fmtree.py",
+public/json/repo-registry.json:12272:              "raw": "https://raw.githubusercontent.com/fsr-humanities/NCERT-Humanities/main/fmtree.py"
+public/json/repo-registry.json:18404:                "name": "fmtree.py",
+public/json/repo-registry.json:18405:                "path": "fmtree.py",
+public/json/repo-registry.json:18408:                "repoPath": "fmtree.py",
+public/json/repo-registry.json:18412:                "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/fmtree.py"
+public/json/repo-registry.json:23590:              "name": "fmtree.py",
+public/json/repo-registry.json:23591:              "path": "fmtree.py",
+public/json/repo-registry.json:23594:              "repoPath": "fmtree.py",
+public/json/repo-registry.json:23598:              "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/fmtree.py"
+public/json/repo-registry.json:29717:                "name": "fmtree.py",
+public/json/repo-registry.json:29718:                "path": "fmtree.py",
+public/json/repo-registry.json:29721:                "repoPath": "fmtree.py",
+public/json/repo-registry.json:29725:                "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/fmtree.py"
+public/json/repo-registry.json:35923:                "name": "fmtree.py",
+public/json/repo-registry.json:35924:                "path": "fmtree.py",
+public/json/repo-registry.json:35927:                "repoPath": "fmtree.py",
+public/json/repo-registry.json:35931:                "raw": "https://raw.githubusercontent.com/fsr-humanities/NCERT-Humanities/main/fmtree.py"
+public/json/repo-registry.json:41109:              "name": "fmtree.py",
+public/json/repo-registry.json:41110:              "path": "fmtree.py",
+public/json/repo-registry.json:41113:              "repoPath": "fmtree.py",
+public/json/repo-registry.json:41117:              "raw": "https://raw.githubusercontent.com/fsr-humanities/NCERT-Humanities/main/fmtree.py"
+public/json/repo-registry.json:47236:                "name": "fmtree.py",
+public/json/repo-registry.json:47237:                "path": "fmtree.py",
+public/json/repo-registry.json:47240:                "repoPath": "fmtree.py",
+public/json/repo-registry.json:47244:                "raw": "https://raw.githubusercontent.com/fsr-humanities/NCERT-Humanities/main/fmtree.py"
+public/json/humanities-tree.json:6101:            "name": "fmtree.py",
+public/json/humanities-tree.json:6102:            "path": "fmtree.py",
+public/json/humanities-tree.json:6105:            "repoPath": "fmtree.py",
+public/json/humanities-tree.json:6109:            "raw": "https://raw.githubusercontent.com/fsr-humanities/NCERT-Humanities/main/fmtree.py"
+public/json/humanities-tree.json:11287:          "name": "fmtree.py",
+public/json/humanities-tree.json:11288:          "path": "fmtree.py",
+public/json/humanities-tree.json:11291:          "repoPath": "fmtree.py",
+public/json/humanities-tree.json:11295:          "raw": "https://raw.githubusercontent.com/fsr-humanities/NCERT-Humanities/main/fmtree.py"
+public/json/humanities-tree.json:17414:            "name": "fmtree.py",
+public/json/humanities-tree.json:17415:            "path": "fmtree.py",
+public/json/humanities-tree.json:17418:            "repoPath": "fmtree.py",
+public/json/humanities-tree.json:17422:            "raw": "https://raw.githubusercontent.com/fsr-humanities/NCERT-Humanities/main/fmtree.py"
+public/json/science-tree.json:6101:            "name": "fmtree.py",
+public/json/science-tree.json:6102:            "path": "fmtree.py",
+public/json/science-tree.json:6105:            "repoPath": "fmtree.py",
+public/json/science-tree.json:6109:            "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/fmtree.py"
+public/json/science-tree.json:11287:          "name": "fmtree.py",
+public/json/science-tree.json:11288:          "path": "fmtree.py",
+public/json/science-tree.json:11291:          "repoPath": "fmtree.py",
+public/json/science-tree.json:11295:          "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/fmtree.py"
+public/json/science-tree.json:17414:            "name": "fmtree.py",
+public/json/science-tree.json:17415:            "path": "fmtree.py",
+public/json/science-tree.json:17418:            "repoPath": "fmtree.py",
+public/json/science-tree.json:17422:            "raw": "https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/fmtree.py"
+public/js/app.js:473:    "fmtree.py", "files.json", "index.html", "favicon.png", "tree.py", "autocommit.ps1"
+.github/workflows/fmmupdate.yaml:17:      - name: Run fmtree.py
+.github/workflows/fmmupdate.yaml:18:        run: python fmtree.py
+--- zipCreate.sh ---
+--- src/service-worker ---
+--- public/client/main.js ---
+--- public/client/streams.js ---
+src/service-worker.ts:19:  'public/client/streams.js',
+public/html/admin.html:12:  <script src="/public/client/streams.js" defer></script>
+public/html/community.html:12:  <script src="/public/client/streams.js" defer></script>
+public/html/volunteers.html:12:  <script src="/public/client/streams.js" defer></script>
+public/html/streams.html:64:  <script src="/public/client/streams.js" defer></script>
+tests/frontend.streams.test.ts:33:    const streamsJs = await request(app).get('/public/client/streams.js');
+=== SERVICE WORKER VERSIONS ===
+service-worker.js:8:const CACHE_VERSION = 'webman-v10';
+service-worker.js:63:      console.warn('[service-worker] could not load stream tree for', s, e?.message || e);
+service-worker.js:120:      const cache = await caches.open(CACHE_VERSION);
+service-worker.js:132:      Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k)))
+service-worker.js:156:            caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+service-worker.js:170:          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+service-worker.js:191:          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+service-worker.js:221:                caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+service-worker.js:232:    console.warn('[service-worker] subject routing error', e?.message || e);
+service-worker.js:240:          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+service-worker.js:258:          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+service-worker.js:269:    caches.delete(CACHE_VERSION).then(() => event.source?.postMessage({ type: 'CACHE_CLEARED' }));
+src/service-worker.ts:8:const CACHE_VERSION = 'webman-v9';
+src/service-worker.ts:64:    caches.open(CACHE_VERSION).then(cache =>
+src/service-worker.ts:74:      Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k)))
+src/service-worker.ts:100:            caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+src/service-worker.ts:115:          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+src/service-worker.ts:130:          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+src/service-worker.ts:150:          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+src/service-worker.ts:169:          caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+src/service-worker.ts:180:    caches.delete(CACHE_VERSION).then(() => event.source?.postMessage({ type: 'CACHE_CLEARED' }));
+=== STANDALONE TEST DISCOVERY ===
+admin.test.ts
+ai-markdown.test.ts
+check_stream_render.js
+community-moderation.test.ts
+community-subject.test.ts
+community.test.ts
+endpoints-protection.test.ts
+frontend.streams.test.ts
+github-app-mock.test.ts
+github-app.test.ts
+markdown-runtime.test.ts
+pages-registry.test.ts
+permissions.test.ts
+pr-submission.test.ts
+raw-paths.test.ts
+raw.js
+refresh-signal.test.ts
+repo-registry-paths.test.ts
+runtime-config.test.ts
+shared-cache.test.ts
+stream-routing.test.ts
+submit-pr.test.ts
+system.test.ts
+totp.test.ts
+workspace.test.ts
+vitest include/exclude from package:
+vitest run
+=== TIKZ HASH DUPLICATES ===
+84c1f8a76278cb53ad425acb8f51878eae36168d8b7541bf9e88e34f3d1c085e  public/bin/tikzjax/tex.wasm.gz
+84c1f8a76278cb53ad425acb8f51878eae36168d8b7541bf9e88e34f3d1c085e  public/bin/tikzjax/output/tex.wasm.gz
+f8f418655757a2a779137ce3d5014afeb5fda1b2f6c550895d2367133b61b184  public/bin/tikzjax/css/fonts.css
+7f49bf7858a36c4df8170f2033941a4a76934e7a596f740353e4608b78de0a56  public/bin/tikzjax/output/fonts.css
+=== JSON FRESHNESS ===
+2026-08-22 12:03:56.587002060 +0000 1758 public/json/commerce-tree.json
+2026-08-22 12:03:56.595002123 +0000 1127029 public/json/humanities-tree.json
+2026-08-22 12:03:56.587002060 +0000 1106026 public/json/science-tree.json
+=== UNTRACKED/LOCAL RUNTIME OUTPUT ===
+-rw-r--r-- 1 ubuntu ubuntu    0 Aug  8 15:31 .env
+drwxr-xr-x 2 ubuntu ubuntu 4096 Aug 22 09:54 logs

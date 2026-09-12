@@ -21,7 +21,8 @@ export async function generateTotpSecretForEmail(email: string) {
 export async function verifyTotpForEmail(email: string, token: string): Promise<boolean> {
   const user = await getUser(email);
   if (!user || !(user as any).totp_secret) return false;
-  return authenticator.check(token, (user as any).totp_secret);
+  const result = authenticator.verify({ token, secret: (user as any).totp_secret });
+  return Boolean(result);
 }
 
 function authenticatedAccount(req: Request, requestedEmail?: string) {
@@ -76,8 +77,8 @@ export async function verifyAndEnableTotp(req: Request, res: Response) {
     if (account.error) return res.status(account.error.status).json({ error: account.error.message });
     if (!(await ensureAdminCanManageTotp(account.email, account.auth, res))) return;
 
-    const valid = authenticator.check(token, secret);
-    if (!valid) return res.status(400).json({ error: 'Invalid token' });
+    const result = authenticator.verify({ token, secret });
+    if (!result) return res.status(400).json({ error: 'Invalid token' });
 
     const user = await getUser(account.email);
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -107,7 +108,8 @@ export async function disableTotp(req: Request, res: Response) {
     const user = await getUser(account.email);
     if (!user) return res.status(404).json({ error: 'User not found' });
     const currentSecret = String((user as any).totp_secret || '');
-    if (!currentSecret || !authenticator.check(token, currentSecret)) {
+    const result = currentSecret ? authenticator.verify({ token, secret: currentSecret }) : false;
+    if (!currentSecret || !result) {
       return res.status(403).json({ error: 'Invalid current TOTP token' });
     }
     (user as any).totp_secret = null;

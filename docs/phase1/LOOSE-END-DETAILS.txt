@@ -1,0 +1,530 @@
+=== FMMUPDATE ===
+name: Update files.json
+
+on:
+  push:
+    branches: ["**"]
+
+jobs:
+  fmtree:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run fmtree.py
+        run: python fmtree.py
+
+      - name: Commit files.json if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add files.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: update files.json [skip ci]"
+          git push=== SERVICE WORKER SOURCE DELTA ===
+--- src/service-worker.ts	2026-08-22 11:46:07.730666575 +0000
++++ service-worker.js	2026-08-22 11:37:57.426894246 +0000
+@@ -5,8 +5,8 @@
+ //   - GitHub API calls → Network-only (never cache)
+ //   - Everything else → Network-first, fall back to cache, fall back to offline page
+ 
+-const CACHE_VERSION = 'webman-v9';
+-const OFFLINE_PAGE  = 'offline.html';
++const CACHE_VERSION = 'webman-v10';
++const OFFLINE_PAGE = 'offline.html';
+ 
+ const APP_SHELL = [
+   './',
+@@ -26,7 +26,6 @@
+   'public/css/theme.css',
+   'public/bin/tikzjax/css/fonts.css',
+   'public/bin/tikzjax/output/tikzjax.js',
+-  'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap',
+   'https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js',
+   'https://cdn.jsdelivr.net/npm/markdown-it-sub@1/dist/markdown-it-sub.min.js',
+   'https://cdn.jsdelivr.net/npm/markdown-it-sup@1/dist/markdown-it-sup.min.js',
+@@ -40,20 +39,76 @@
+   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+ ];
+ 
+-// Headers required for SharedArrayBuffer (used by tikzjax's WASM TeX engine).
+-// Without COOP + COEP the browser withholds SharedArrayBuffer and the TeX
+-// worker fails silently, producing no DVI output ("Could not find file input.dvi").
+ const COOP_COEP_HEADERS = {
+   'Cross-Origin-Opener-Policy': 'same-origin',
+   'Cross-Origin-Embedder-Policy': 'credentialless',
+ };
+ 
+-/** Rebuild a Response with extra headers merged in. */
++// In-memory stream trees loaded at install time. Format: { subject: { repos: [...] } }
++const STREAM_TREES = {};
++
++async function loadStreamTrees() {
++  const streams = ['science', 'commerce', 'humanities'];
++  await Promise.all(streams.map(async (s) => {
++    try {
++      const runtimeUrl = `/api/system/${s}`;
++      const jsonUrl = `/public/json/${s}-tree.json`;
++      let res = await fetch(runtimeUrl, { cache: 'no-store' });
++      if (!res.ok) res = await fetch(jsonUrl, { cache: 'no-store' });
++      if (!res.ok) throw new Error(`no ${s}-tree`);
++      STREAM_TREES[s] = await res.json();
++    } catch (e) {
++      STREAM_TREES[s] = null;
++      // don't fail install on missing stream trees
++      console.warn('[service-worker] could not load stream tree for', s, e?.message || e);
++    }
++  }));
++}
++
++function normalizePath(p) {
++  return String(p || '').replace(/^\/+/, '').replace(/\\/g, '/');
++}
++
++function findFileInNode(node, targetPath) {
++  if (!node) return null;
++  if (node.type === 'file' && normalizePath(node.path) === normalizePath(targetPath)) return node;
++  if (!Array.isArray(node.children)) return null;
++  for (const c of node.children) {
++    const found = findFileInNode(c, targetPath);
++    if (found) return found;
++  }
++  return null;
++}
++
++function findFileForStream(stream, subpath) {
++  const idx = STREAM_TREES[stream];
++  if (!idx || !Array.isArray(idx.repos)) return null;
++  const normalized = normalizePath(subpath);
++  for (const repoEntry of idx.repos) {
++    const repoRootName = String(repoEntry.tree?.name || '').replace(/^\/+/, '');
++    // If subpath begins with repoRootName, strip it; else try matching directly
++    let candidatePath = normalized;
++    if (repoRootName && normalized.startsWith(repoRootName + '/')) {
++      candidatePath = normalized.slice(repoRootName.length + 1);
++    }
++    // Try direct match and repo-root-prefixed match
++    let file = findFileInNode(repoEntry.tree, candidatePath);
++    if (!file) file = findFileInNode(repoEntry.tree, normalized);
++    if (file) {
++      // Ensure raw URL present
++      if (file.raw) return { file, repoEntry };
++    }
++  }
++  return null;
++}
++
+ function withExtraHeaders(response, extra) {
+   const headers = new Headers(response.headers);
+-  for (const [k, v] of Object.entries(extra)) headers.set(k, v);
++  for (const [k, v] of Object.entries(extra)) {
++    headers.set(k, v);
++  }
+   return new Response(response.body, {
+-    status:     response.status,
++    status: response.status,
+     statusText: response.statusText,
+     headers,
+   });
+@@ -61,9 +116,12 @@
+ 
+ self.addEventListener('install', event => {
+   event.waitUntil(
+-    caches.open(CACHE_VERSION).then(cache =>
+-      Promise.allSettled(APP_SHELL.map(url => cache.add(url).catch(() => {})))
+-    )
++    (async () => {
++      const cache = await caches.open(CACHE_VERSION);
++      await Promise.allSettled(APP_SHELL.map(url => cache.add(url).catch(() => {})));
++      // Load stream trees into memory so fetch handler can resolve stream files
++      try { await loadStreamTrees(); } catch (e) { /* ignore */ }
++    })()
+   );
+   self.skipWaiting();
+ });
+@@ -80,13 +138,11 @@
+   const { request } = event;
+   const url = new URL(request.url);
+ 
+-  // 1. GitHub API → network only
+   if (url.hostname === 'api.github.com' || url.hostname.endsWith('.githubusercontent.com')) {
+     event.respondWith(fetch(request));
+     return;
+   }
+ 
+-  // 2. Runtime stream trees → network first with cached fallback. Refresh POSTs never cache.
+   if (url.pathname.startsWith('/api/system/')) {
+     if (request.method !== 'GET' && request.method !== 'HEAD') {
+       event.respondWith(fetch(request));
+@@ -106,12 +162,11 @@
+     return;
+   }
+ 
+-  // 3. files.json → network first (must always be fresh)
+   if (url.pathname.endsWith('files.json')) {
+     event.respondWith(
+       fetch(request)
+         .then(res => {
+-          const clone = res.clone(); // clone synchronously before body is consumed
++          const clone = res.clone();
+           caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+           return res;
+         })
+@@ -120,19 +175,24 @@
+     return;
+   }
+ 
+-  // 4. Top-level navigation → network first, inject COOP/COEP, fallback offline page
++  // Admin routes must always follow the server/Vercel route decision. Do not
++  // serve a cached legacy workspace shell for these security-sensitive pages.
++  if (/^\/(?:admin|admin-prs)(?:\/|$)/.test(url.pathname)) {
++    event.respondWith(fetch(request));
++    return;
++  }
++
+   if (request.mode === 'navigate') {
+     event.respondWith(
+       fetch(request)
+         .then(res => {
+           const patched = withExtraHeaders(res, COOP_COEP_HEADERS);
+-          const clone   = patched.clone(); // clone synchronously before body is consumed
++          const clone = patched.clone();
+           caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+           return patched;
+         })
+         .catch(() =>
+           caches.match(request).then(cached => {
+-            // Inject headers even from cache so tikzjax works offline.
+             if (cached) return withExtraHeaders(cached, COOP_COEP_HEADERS);
+             return caches.match(OFFLINE_PAGE);
+           })
+@@ -141,12 +201,42 @@
+     return;
+   }
+ 
+-  // 5. App shell assets → cache first + background update
++  // Stream-specific routing: map requests under /science/, /commerce/, /humanities/
++  try {
++    const pathname = url.pathname || '';
++    const streamMatch = pathname.match(/^\/(science|commerce|humanities)\/(.*)$/);
++    if (streamMatch && request.method === 'GET') {
++      const stream = streamMatch[1];
++      const subpath = streamMatch[2] || '';
++      const resolved = findFileForStream(stream, subpath);
++      if (resolved && resolved.file && resolved.file.raw) {
++        event.respondWith(
++          fetch(resolved.file.raw)
++            .then((r) => {
++              // Return response with COOP/COEP headers
++              const patched = withExtraHeaders(r, COOP_COEP_HEADERS);
++              // Cache the raw asset for offline fallback
++              if (r.ok) {
++                const clone = r.clone();
++                caches.open(CACHE_VERSION).then(c => c.put(request, clone));
++              }
++              return patched;
++            })
++            .catch(() => caches.match(request).then(cached => cached || caches.match(OFFLINE_PAGE)))
++        );
++        return;
++      }
++    }
++  } catch (e) {
++    // ignore lookup errors and fallthrough to normal handling
++    console.warn('[service-worker] subject routing error', e?.message || e);
++  }
++
+   if (APP_SHELL.includes(request.url) || APP_SHELL.includes(url.pathname.replace(/^\//, ''))) {
+     event.respondWith(
+       caches.match(request).then(cached => {
+         const networkFetch = fetch(request).then(res => {
+-          const clone = res.clone(); // clone synchronously before body is consumed
++          const clone = res.clone();
+           caches.open(CACHE_VERSION).then(c => c.put(request, clone));
+           return res;
+=== PAGES FETCH REFERENCES ===
+src/api/pages-fetch.ts:28:export function buildPagesTreeFromManifest(repoName: string, manifest: PagesManifestEntry[]) {
+src/api/pages-fetch.ts:71:    return buildPagesTreeFromManifest(repoName, normalizedManifest as PagesManifestEntry[]);
+src/api/pages-fetch.ts:99:export async function fetchRepoManifest(repo: string, repoName: string, branch: string, pagesBase: string) {
+src/api/pages-fetch.ts:118:/** @deprecated use fetchRepoManifest, which tries raw.githubusercontent.com first */
+src/api/pages-fetch.ts:119:export async function fetchPagesManifest(pagesBase: string, repoName: string) {
+src/api/repo-registry.ts:2:import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js';
+src/api/repo-registry.ts:149:        const rawChildren = await fetchRepoManifest(entry.repo, repoName, entry.branch || 'main', pagesBaseUrl);
+src/api/system.ts:5:import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
+src/api/system.ts:161:        const children = await fetchRepoManifest(repo, repoName, branch, pagesBase);
+src/scripts/json-fetch.ts:1:import { resolvePagesBaseUrl } from '../api/pages-fetch.js';
+src/shims/pages-fetch.ts:46:export function buildPagesTreeFromManifest(repoName: string, manifest: ManifestEntry[] | undefined): TreeNode[] {
+src/shims/pages-fetch.ts:83:    return buildPagesTreeFromManifest(repoName, normalized);
+src/shims/pages-fetch.ts:93:export async function fetchRepoManifest(repo: string, repoName: string, branch?: string, pagesBase?: string): Promise<TreeNode[]> {
+src/shims/pages-fetch.ts:109:export async function fetchPagesManifest(pagesBase: string, repoName: string): Promise<TreeNode[]> {
+tests/pages-registry.test.ts:2:import { buildPagesTreeFromManifest, resolvePagesBaseUrl } from '../src/api/pages-fetch.ts';
+tests/pages-registry.test.ts:16:    const tree = buildPagesTreeFromManifest('Demo', manifest as any);
+=== SCHEMA REFERENCES ===
+=== STANDALONE SCRIPT HEADERS ===
+--- tests/raw.js ---
+#!/usr/bin/env node
+/**
+ * Smoke test for /api/raw.
+ *
+ * Hits the endpoint with a handful of path shapes that exercise the
+ * repoPath-stripping / URL-extraction logic in raw.ts, and reports
+ * whether each one got the response it should have.
+ *
+ * Usage:
+ *   node test-raw.js
+ *   BASE_URL=https://your-deployed-app.vercel.app node test-raw.js
+ *
+ * Requires Node 18+ (uses global fetch). No dependencies.
+ */
+
+const BASE_URL = process.env.BASE_URL || "http://localhost:4000";
+
+// Edit these to match a file you know actually exists in the configured repo.
+const REAL_FILE =
+  "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md";
+const REPO_FOLDER_NAME = "NCERT-Science"; // must match repoCfg.repo's folder name
+
+const cases = [
+  {
+    name: "correct repoPath (no prefix)",
+    path: REAL_FILE,
+    method: "GET",
+    expect: { status: 200 },
+  },
+  {
+    name: "display path with repo-folder prefix (should be stripped)",
+    path: `${REPO_FOLDER_NAME}/${REAL_FILE}`,
+    method: "GET",
+    expect: { status: 200 },
+  },
+  {
+    name: "full raw.githubusercontent.com URL (should extract path)",
+    path: `https://raw.githubusercontent.com/fsr-science/NCERT-Science/main/${REAL_FILE}`,
+    method: "GET",
+    expect: { status: 200 },
+  },
+  {
+    name: "unsupported non-raw http URL",
+    path: "https://example.com/some/file.md",
+    method: "GET",
+    expect: { status: 400 },
+  },
+  {
+    name: "missing path param",
+    path: null,
+    method: "GET",
+    expect: { status: 400 },
+  },
+  {
+    name: "nonexistent file",
+    path: "AI-NOTES/DOES/NOT/EXIST.md",
+    method: "GET",
+    expect: { status: 404 },
+  },
+  {
+    name: "OPTIONS preflight",
+    path: REAL_FILE,
+    method: "OPTIONS",
+    expect: { status: 204 },
+  },
+];
+
+function buildUrl(path) {
+  const url = new URL("/api/raw", BASE_URL);
+  if (path !== null) url.searchParams.set("path", path);
+  return url.toString();
+}
+
+async function runCase(tc) {
+  const url = buildUrl(tc.path);
+  let res, bodyPreview = "";
+  try {
+    res = await fetch(url, { method: tc.method });
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("json")) {
+--- tests/check_stream_render.js ---
+const { chromium } = require('playwright-chromium');
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  try {
+    await page.goto('http://localhost:4000/science', { waitUntil: 'networkidle' });
+    // Wait briefly for client script to load and render the tree
+    await page.waitForTimeout(1000);
+    const shellPresent = !!(await page.$('#streamLanding'));
+    const fragmentPresent = !!(await page.$('#stream-tree'));
+    const listPresent = !!(await page.$('#stream-tree .stream-tree-list'));
+    const nodesCount = listPresent ? await page.$$eval('#stream-tree .stream-tree-node', els => els.length) : 0;
+    console.log(JSON.stringify({ shellPresent, fragmentPresent, listPresent, nodesCount }));
+  } catch (err) {
+    console.error('ERROR', err && err.message ? err.message : err);
+    process.exitCode = 2;
+  } finally {
+    await browser.close();
+  }
+})();
+--- fmtree.py ---
+import argparse
+import concurrent.futures
+import fnmatch
+import hashlib
+import json
+import os
+from pathlib import Path
+
+EXCLUDED_ROOT_FILES = {
+    "*.json",
+    "dist",
+    "api",
+    "fmtree.py",
+    "index.html",
+    "favicon.png",
+    "manifest.json",
+    "service-worker.js",
+    "offline.html",
+    "offline.png",
+    "admins.json",
+    "obsidian-md.js",
+    "obsidian-markdown-it.js",
+    "fallback.html",
+    "autopush.sh",
+    "installer.html",
+    "package.json",
+    "package-lock.json",
+    "tree.txt",
+    "zip.sh",
+    "repo-registry.json",
+}
+
+EXCLUDED_ROOT_DIRS = {
+    "src",
+    "community",
+    "waiting-list",
+    "node_modules",
+    "GH Fix",
+    "public",
+    "tests",
+}
+
+ALLOWED_EXTENSIONS = {'.md', '.txt', '.pdf'}
+
+def parse_registry(markdown_path):
+    """Convert the repository table in GITHUB-REPOSITORIES.md to JSON."""
+    if not markdown_path.exists():
+        return []
+
+    rows = [line.strip() for line in markdown_path.read_text(encoding="utf-8").splitlines()
+            if line.strip().startswith("|")]
+    if len(rows) < 2:
+        return []
+
+    entries = []
+    for row in rows[2:]:
+        cells = [cell.strip() for cell in row.strip("|").split("|")]
+        if len(cells) < 2 or not cells[0] or not cells[1]:
+            continue
+        name, repo = cells[:2]
+        branch = cells[2] if len(cells) > 2 and cells[2] else "main"
+        root = cells[3] if len(cells) > 3 else ""
+        enabled = cells[4].lower() != "false" if len(cells) > 4 and cells[4] else True
+        try:
+            priority = int(cells[5]) if len(cells) > 5 and cells[5] else 999999
+        except ValueError:
+            priority = 999999
+        pages = cells[6].lower() == "true" if len(cells) > 6 else False
+        entries.append({"name": name, "repo": repo, "branch": branch, "root": root,
+                        "enabled": enabled, "priority": priority, "pages": pages})
+    return entries
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(4 * 1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+--- installer.html ---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setup NoteBooks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+/* ── Light tokens ─────────────────────────────────────────────────── */
+:root {
+  --bg           : transparent;
+  --bg-card      : rgba(255,255,255,.72);
+  --bg-input     : rgba(255,255,255,.6);
+  --border       : rgba(99,102,241,.15);
+  --border-focus : #6366f1;
+  --clr-accent   : #6366f1;
+  --clr-accent-l : #eef2ff;
+  --clr-accent2  : #4f46e5;
+  --clr-text     : #111827;
+  --clr-sub      : #374151;
+  --clr-muted    : #6b7280;
+  --clr-dim      : #c4b5fd;
+  --clr-success  : #16a34a;
+  --clr-success-l: #f0fdf4;
+  --clr-success-b: #bbf7d0;
+  --clr-error    : #dc2626;
+  --clr-error-l  : #fef2f2;
+  --clr-error-b  : #fecaca;
+  --clr-warn     : #b45309;
+  --clr-warn-l   : #fffbeb;
+  --clr-warn-b   : #fde68a;
+  --clr-code     : #4338ca;
+  --clr-code-bg  : #eef2ff;
+  --shadow       : 0 2px 8px rgba(99,102,241,.08), 0 8px 32px rgba(99,102,241,.12);
+  --card-blur    : blur(16px) saturate(1.6);
+  --log-bg       : rgba(255,255,255,.5);
+  --step-bg      : rgba(255,255,255,.45);
+  --ff-ui        : 'Inter', sans-serif;
+  --ff-mono      : 'JetBrains Mono', monospace;
+  --radius       : 14px;
+  --radius-sm    : 8px;
+}
+/* ── Dark tokens ──────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg           : transparent;
+    --bg-card      : rgba(18,16,30,.75);
+    --bg-input     : rgba(255,255,255,.06);
+    --border       : rgba(255,255,255,.1);
+    --border-focus : #818cf8;
+    --clr-accent   : #818cf8;
+    --clr-accent-l : rgba(129,140,248,.12);
+    --clr-accent2  : #a5b4fc;
+    --clr-text     : #f1f5f9;
+    --clr-sub      : #cbd5e1;
+    --clr-muted    : #94a3b8;
+    --clr-dim      : rgba(255,255,255,.15);
+    --clr-success  : #4ade80;
+    --clr-success-l: rgba(74,222,128,.1);
+    --clr-success-b: rgba(74,222,128,.25);
+    --clr-error    : #f87171;
+    --clr-error-l  : rgba(248,113,113,.1);
+    --clr-error-b  : rgba(248,113,113,.25);
+    --clr-warn     : #fbbf24;
+    --clr-warn-l   : rgba(251,191,36,.1);
+    --clr-warn-b   : rgba(251,191,36,.25);
+    --clr-code     : #a5b4fc;
+    --clr-code-bg  : rgba(129,140,248,.12);
+    --shadow       : 0 4px 24px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.04) inset;
+    --card-blur    : blur(18px) saturate(1.4);
+    --log-bg       : rgba(0,0,0,.28);
+    --step-bg      : rgba(255,255,255,.04);
+  }
+}
+/* ── Reset ────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{

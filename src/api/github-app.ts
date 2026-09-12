@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import * as gha from '../lib/github-app.js';
-import { getRepoConfig } from './_shared.js';
+import { getRepoConfig, getStreamRepo } from './_shared.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -9,11 +9,12 @@ export async function mergePrHandler(req: Request, res: Response) {
   try {
     const { prNumber, mergeMethod } = req.body || {};
     if (!prNumber) return res.status(400).json({ error: 'Missing prNumber' });
-    const issuesTarget = process.env.GITHUB_ISSUES_REPO || process.env.GITHUB_REPO || '';
+    const registryTarget = await getStreamRepo('issues');
+    const issuesTarget = registryTarget ? `${registryTarget.owner}/${registryTarget.repo}` : (process.env.GITHUB_ISSUES_REPO || process.env.GITHUB_REPO || '');
     let owner: string | undefined;
     let repo: string | undefined;
     if (issuesTarget) {
-      const parts = (issuesTarget || '').split('/').filter(Boolean);
+      const parts = issuesTarget.split('/').filter(Boolean);
       if (parts.length === 2) {
         owner = parts[0];
         repo = parts[1];

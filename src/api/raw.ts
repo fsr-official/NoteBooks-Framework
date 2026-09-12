@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { resolve, normalize } from 'path';
 import { getRepoConfig, findRegisteredRepo } from './_shared.js';
+import { isSafePublishedFilePath } from '../lib/safe-file-path.js';
 
 const MIME_TYPES: Record<string, string> = {
   doc: 'application/msword',
@@ -111,6 +112,9 @@ export default async function handler(req: Request, res: Response) {
   if (!filePath) {
     return res.status(400).json({ error: 'Missing path query parameter' });
   }
+  if (!isSafePublishedFilePath(filePath)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
 
   // Optional explicit repo override (owner/repoName), used when the caller
   // knows the file belongs to a specific subject repo rather than whichever
@@ -119,6 +123,7 @@ export default async function handler(req: Request, res: Response) {
   // GitHub repos.
   const repoOverride = String(req.query.repo || '').trim();
   const branchOverride = String(req.query.branch || '').trim();
+  const suppliedRawUrl = String(req.query.raw || '').trim();
 
   try {
     let repoCfg = await getRepoConfig();
@@ -143,7 +148,10 @@ export default async function handler(req: Request, res: Response) {
       return res.status(400).json({ error: 'Unsupported URL format for path parameter' });
     }
 
-    const rawUrl = buildRawGithubUrl(filePath, repoCfg);
+    const expectedRawUrl = buildRawGithubUrl(filePath, repoCfg);
+    const rawUrl = suppliedRawUrl
+      ? (suppliedRawUrl === expectedRawUrl ? suppliedRawUrl : expectedRawUrl)
+      : expectedRawUrl;
     const repoPath = normalizeRequestedPath(filePath);
     const ext = repoPath.split('.').pop()?.toLowerCase() || '';
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
