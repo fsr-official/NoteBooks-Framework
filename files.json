@@ -6,7 +6,7 @@
       "type": "file",
       "name": ".env.development.local",
       "path": ".env.development.local",
-      "sha": "5d6c81195a215689946d98d62e314af72a1312fa",
+      "sha": "570e95435b4e92b98a1a7fb1a7ce6f8c0ff2b38b",
       "mime": "application/octet-stream"
     },
     {
@@ -165,7 +165,7 @@
                   "type": "file",
                   "name": "auth.js",
                   "path": "dist/server/api/auth.js",
-                  "sha": "e18bb68fe9270c608399524f6da59171856b72c1",
+                  "sha": "c12acd60d96fb6e5998c05c394765fb747daf974",
                   "mime": "text/javascript"
                 },
                 {
@@ -504,7 +504,7 @@
                   "type": "file",
                   "name": "server.js",
                   "path": "dist/server/server/server.js",
-                  "sha": "6bd6c6609ffaae5f0e021d79c4ba255d29121909",
+                  "sha": "4834ee63c109445a46bee284fc46bc48eb419577",
                   "mime": "text/javascript"
                 },
                 {
@@ -1048,7 +1048,7 @@
           "type": "file",
           "name": "admin-actions.log",
           "path": "logs/admin-actions.log",
-          "sha": "484d32c493a8b922ccf31324c8d0918614e7577b",
+          "sha": "2150a8dd22f71993061013522e6a112e9f554128",
           "mime": "application/octet-stream"
         },
         {
@@ -1188,7 +1188,7 @@
       "type": "file",
       "name": "version.json",
       "path": "version.json",
-      "sha": "0ad5746f09d475d78185f53ba7078b09cf17cb8a",
+      "sha": "4a10b34b07693f86d1f47a3b7cf5c1b47b44cc9e",
       "mime": "application/json"
     },
     {

@@ -83,11 +83,12 @@ function normalizeBackupCodes(value: unknown): string[] | null {
 
 // Helper to get user from Redis or memory
 async function getUser(email: string): Promise<UserRecord | undefined> {
+  const normalizedEmail = email.trim().toLowerCase();
   if (isDbConfigured()) {
     try {
       const res = await dbQuery(`SELECT email, password_hash as password, role, totp_secret, backup_codes, created_at, password_reset_at,
         github_id, google_id, banned_until, display_name, bio, avatar_color, presence_status, presence_updated_at, profile_public
-        FROM users WHERE email = $1`, [email]);
+        FROM users WHERE email = $1`, [normalizedEmail]);
       if (res.rows.length) {
         const user = { ...res.rows[0] } as any;
         if (user.banned_until == null) delete user.banned_until;
@@ -131,6 +132,7 @@ async function setUser(email: string, userData: UserRecord): Promise<void> {
       return;
     } catch (err) {
       console.error('[auth][db] setUser error', err);
+      throw new Error('Database unavailable while saving account');
     }
   }
 
@@ -273,7 +275,9 @@ export async function handleRegister(req: Request, res: Response) {
   }
 
   try {
-    const { email, password, confirmPassword, captchaToken } = getAuthBody(req);
+    const body = getAuthBody(req);
+    const email = body.email?.trim().toLowerCase();
+    const { password, confirmPassword, captchaToken } = body;
 
     // Validate inputs
     if (!email || !password || !confirmPassword) {
@@ -344,7 +348,9 @@ export async function handleLogin(req: Request, res: Response) {
   }
 
   try {
-    const { email, password, captchaToken } = getAuthBody(req);
+    const body = getAuthBody(req);
+    const email = body.email?.trim().toLowerCase();
+    const { password, captchaToken } = body;
 
     // Validate inputs
     if (!email || !password) {
