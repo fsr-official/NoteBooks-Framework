@@ -3,6 +3,13 @@
   "name": "NoteBooks-Framework",
   "children": [
     {
+      "type": "file",
+      "name": ".env.development.local",
+      "path": ".env.development.local",
+      "sha": "e56aea78837bbef416ac329343fba648169234e2",
+      "mime": "application/octet-stream"
+    },
+    {
       "type": "folder",
       "name": ".github",
       "children": [
@@ -15,42 +22,28 @@
               "name": "ci.yml",
               "path": ".github/workflows/ci.yml",
               "sha": "4f3cdc386f171e03fed14cbfa40a401188f0ef37",
-              "mime": "application/yaml"
+              "mime": "application/octet-stream"
             },
             {
               "type": "file",
               "name": "deploy-staging.yml",
               "path": ".github/workflows/deploy-staging.yml",
-              "sha": "95d74be79a21abc5cef9101e4807a38cba4e21f4",
-              "mime": "application/yaml"
-            },
-            {
-              "type": "file",
-              "name": "fmmupdate.yaml",
-              "path": ".github/workflows/fmmupdate.yaml",
-              "sha": "8751da9e0b42da2bf25712c69ec65030da46af69",
-              "mime": "application/yaml"
+              "sha": "c8a7bf62e32a6461000fd8eff22f256cb98d538d",
+              "mime": "application/octet-stream"
             },
             {
               "type": "file",
               "name": "integration.yml",
               "path": ".github/workflows/integration.yml",
               "sha": "9426df455347388a471610c5c8fa30022adfe62e",
-              "mime": "application/yaml"
+              "mime": "application/octet-stream"
             },
             {
               "type": "file",
-              "name": "notify-app-example.yml",
-              "path": ".github/workflows/notify-app-example.yml",
-              "sha": "c76a633e5bad5cca6d831f60349f13750e932dcc",
-              "mime": "application/yaml"
-            },
-            {
-              "type": "file",
-              "name": "rebuild-tree.yml",
-              "path": ".github/workflows/rebuild-tree.yml",
-              "sha": "c48be0a437db7c0d75beb1a5fa00506a4d623c24",
-              "mime": "application/yaml"
+              "name": "tree-sync.yml",
+              "path": ".github/workflows/tree-sync.yml",
+              "sha": "9dda66ce396932212f8a69eda64bffe7ce2dfecc",
+              "mime": "application/octet-stream"
             }
           ]
         }
@@ -60,7 +53,7 @@
       "type": "file",
       "name": ".gitignore",
       "path": ".gitignore",
-      "sha": "9f4cbe3fa831b112e9938abdb5c2b0ced1774f2b",
+      "sha": "0d5d5ca5681a3dbe4b46e6b5bd685a26dd27ad0d",
       "mime": "application/octet-stream"
     },
     {
@@ -68,31 +61,11 @@
       "name": ".vercel",
       "children": [
         {
-          "type": "folder",
-          "name": "node",
-          "children": [
-            {
-              "type": "file",
-              "name": "package-manifest.json",
-              "path": ".vercel/node/package-manifest.json",
-              "sha": "36361cd7cbd184706617ad1cbfafae70eaf5c145",
-              "mime": "application/json"
-            }
-          ]
-        },
-        {
           "type": "file",
           "name": "project.json",
           "path": ".vercel/project.json",
-          "sha": "ade73d9823033db50f01326a348fc3761cb96a83",
+          "sha": "6c2dc6875701559d918d865227de38f7414d835f",
           "mime": "application/json"
-        },
-        {
-          "type": "file",
-          "name": "README.txt",
-          "path": ".vercel/README.txt",
-          "sha": "525d8ce8ef25a14dd73ee1f4d65047de05ccfdfa",
-          "mime": "text/plain"
         }
       ]
     },
@@ -105,7 +78,7 @@
           "name": "[...all].ts",
           "path": "api/[...all].ts",
           "sha": "99cabb1e126db1a5460af030a0271695a34a4e7e",
-          "mime": "text/vnd.trolltech.linguist"
+          "mime": "application/octet-stream"
         },
         {
           "type": "folder",
@@ -116,7 +89,7 @@
               "name": "feed.ts",
               "path": "api/community/feed.ts",
               "sha": "1ca15e9b2308c858c67d7345abea787ca059b525",
-              "mime": "text/vnd.trolltech.linguist"
+              "mime": "application/octet-stream"
             }
           ]
         },
@@ -133,7 +106,7 @@
                   "name": "refresh.ts",
                   "path": "api/system/[stream]/refresh.ts",
                   "sha": "49d9b873f17f2522bed976e03477bee1796a757a",
-                  "mime": "text/vnd.trolltech.linguist"
+                  "mime": "application/octet-stream"
                 }
               ]
             },
@@ -142,7 +115,7 @@
               "name": "[stream].ts",
               "path": "api/system/[stream].ts",
               "sha": "f4ead377339495b2efc5c4eed619144df6dad8bd",
-              "mime": "text/vnd.trolltech.linguist"
+              "mime": "application/octet-stream"
             }
           ]
         }
@@ -160,7 +133,7 @@
       "name": "docker-compose.yml",
       "path": "docker-compose.yml",
       "sha": "7048fa90636bdf46380463a3e5a8eb10ab89f686",
-      "mime": "application/yaml"
+      "mime": "application/octet-stream"
     },
     {
       "type": "file",
@@ -210,7 +183,7 @@
               "name": "architecture-real.mmd",
               "path": "docs/phase1/architecture-real.mmd",
               "sha": "c8d21c0ecbddb4cdfb4f3e181e50ef8973b01f1a",
-              "mime": "application/vnd.chipnuts.karaoke-mmd"
+              "mime": "application/octet-stream"
             },
             {
               "type": "file",
@@ -237,21 +210,21 @@
               "type": "file",
               "name": "FILE-INVENTORY.tsv",
               "path": "docs/phase1/FILE-INVENTORY.tsv",
-              "sha": "9e8c749f53f25547f60af11da04e66cbcfb7b88a",
+              "sha": "5351dfaae25b68cba95d266edeb11357297135ec",
               "mime": "text/tab-separated-values"
             },
             {
               "type": "file",
               "name": "FILE-RESPONSIBILITY-MANIFEST.json",
               "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.json",
-              "sha": "2e8a6058e98b4ef50df386c24719f38ad1456acc",
+              "sha": "58cbfe8a3ef47216216c0f1862bfb72d52065381",
               "mime": "application/json"
             },
             {
               "type": "file",
               "name": "FILE-RESPONSIBILITY-MANIFEST.md",
               "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md",
-              "sha": "5d02c5fc2bc39b3d3e52950958129aaf19b0e195",
+              "sha": "9d4a973d914bf5edde8456dbf807fce67f7b4e6e",
               "mime": "text/markdown"
             },
             {
@@ -488,7 +461,7 @@
               "type": "file",
               "name": "PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
               "path": "docs/phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
-              "sha": "7d1cefb8dda1926bb04f30df7163f42cb4c08bee",
+              "sha": "891b0b3b6d2bde21f253035e3f8f3718aec08875",
               "mime": "text/markdown"
             },
             {
@@ -620,9 +593,16 @@
         },
         {
           "type": "file",
+          "name": "WORKFLOW_CONSOLIDATION_HANDOFF.md",
+          "path": "docs/WORKFLOW_CONSOLIDATION_HANDOFF.md",
+          "sha": "0bf851ffd321261b9779c9ccb68248da388a6331",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
           "name": "WORKFLOW_TREE_REBUILD.md",
           "path": "docs/WORKFLOW_TREE_REBUILD.md",
-          "sha": "e5c4e0430861ffb6e422bbc50b6312f43c21050e",
+          "sha": "aa9a29a938016f95ba171451de69aebac2e2f19b",
           "mime": "text/markdown"
         }
       ]
@@ -697,8 +677,63 @@
           "type": "file",
           "name": "build-file-responsibility-manifest.mjs",
           "path": "scripts/build-file-responsibility-manifest.mjs",
-          "sha": "f1ee790a56209ca64fd0c4527e3b579731ba7572",
+          "sha": "2f7f091c8c9c9f4301989adcba5a1b1c8573d8bd",
           "mime": "text/javascript"
+        },
+        {
+          "type": "file",
+          "name": "validate-workflows.py",
+          "path": "scripts/validate-workflows.py",
+          "sha": "bb837583189f1d79bcca9a2b45b64630e6aa6c5b",
+          "mime": "text/x-python"
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "skill",
+      "children": [
+        {
+          "type": "file",
+          "name": "biology-generator.skill.md",
+          "path": "skill/biology-generator.skill.md",
+          "sha": "f15bdd783ec8ec42cd9fd8cfcb92492cb25d9ffc",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "chemistry-generator.skill.md",
+          "path": "skill/chemistry-generator.skill.md",
+          "sha": "eee702a2dfe6c4b9577737aa9da1265b9747732a",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "cs-generator.skill.md",
+          "path": "skill/cs-generator.skill.md",
+          "sha": "f602066945fca094287e5ac9b2e3f061a95ea57e",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "maths-generator.skill.md",
+          "path": "skill/maths-generator.skill.md",
+          "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "notes-generator.skill.md",
+          "path": "skill/notes-generator.skill.md",
+          "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "physics-generator.skill.md",
+          "path": "skill/physics-generator.skill.md",
+          "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
+          "mime": "text/markdown"
         }
       ]
     },
@@ -749,7 +784,7 @@
       "name": "zipCreate.sh",
       "path": "zipCreate.sh",
       "sha": "96e7234cc3244bcd85f2ebae7a890d11de5f700e",
-      "mime": "text/x-sh"
+      "mime": "application/x-sh"
     }
   ]
 }
