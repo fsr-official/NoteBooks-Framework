@@ -314,7 +314,7 @@
             }
         });
     }
-    /* ── Rule: raw LaTeX delimiters \(...\) and \[...\] ─────���────────────────── */
+    /* ── Rule: raw LaTeX delimiters \(...\) and \[...\] ─────�����────────────────── */
     /* Handles math pasted from other editors / AI outputs that use backslash      */
     /* delimiter style rather than dollar-sign style.                               */
     /*                                                                              */
@@ -874,7 +874,7 @@
             return self.renderToken(tokens, idx, options);
         };
     }
-    /* ── Front-matter parser ────────────────────────────────────────────────── */
+    /* ── Front-matter parser ────────────────────────────��───────────────────── */
     function parseFrontmatter(raw) {
         var m = raw.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/);
         if (!m)
@@ -1206,7 +1206,6 @@
             (root || document).querySelectorAll('.desmos-block:not([data-desmos-ready])').forEach(function (elt) {
                 var lock = elt.getAttribute('data-lock') || 'none';
                 var allowZoom = elt.getAttribute('data-zoom') !== 'false';
-                try {
                 var calc = window.Desmos.GraphingCalculator(elt, {
                     invertedColors: true,
                     settingsMenu: false,
@@ -1238,8 +1237,7 @@
                         }
                         calc.setExpression(expr);
                     });
-                }
-                elt.setAttribute('data-desmos-ready', 'true');
+                    elt.setAttribute('data-desmos-ready', 'true');
                 }
                 catch (e) {
                     console.warn('[obsidian-markdown-it] Desmos initialization error:', e);
@@ -1673,7 +1671,7 @@
         ruleDesmos3D(md);
         ruleHeadingIds(md);
     }
-    /* ── Expose globals ─────────────────────────────────────────────────────── */
+    /* ── Expose globals ─────────────────────────────────────��───────────────── */
     global.obsidianPlugin = obsidianPlugin;
     global.obsidianParseFrontmatter = parseFrontmatter;
     global.obsidianGetCSS = function () { return DEFAULT_CSS; };
