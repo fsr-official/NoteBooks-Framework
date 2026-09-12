@@ -58,3 +58,7 @@
 {"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-12T05:56:51.998Z"}
 {"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-13T05:56:52.005Z","at":"2026-09-12T05:56:52.007Z"}
 {"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-12T05:56:52.011Z"}
+{"action":"assign-role","actor":"admin@example.com","target":"target@example.com","role":"editor","label":"editor","at":"2026-09-12T06:19:52.430Z"}
+{"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-12T06:19:52.439Z"}
+{"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-13T06:19:52.444Z","at":"2026-09-12T06:19:52.447Z"}
+{"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-12T06:19:52.450Z"}
