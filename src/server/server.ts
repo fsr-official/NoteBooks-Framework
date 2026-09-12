@@ -87,7 +87,8 @@ export function createApp() {
           'https://cdnjs.cloudflare.com',
           'https://www.google.com',
           'https://www.gstatic.com',
-          'https://va.vercel-scripts.com'
+          'https://va.vercel-scripts.com',
+          'https://www.desmos.com'
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         scriptSrcElem: [
@@ -98,7 +99,8 @@ export function createApp() {
           'https://cdnjs.cloudflare.com',
           'https://www.google.com',
           'https://www.gstatic.com',
-          'https://va.vercel-scripts.com'
+          'https://va.vercel-scripts.com',
+          'https://www.desmos.com'
         ],
         workerSrc: ["'self'", 'blob:'],
         connectSrc: [
@@ -109,7 +111,8 @@ export function createApp() {
           'https://www.google.com',
           'https://www.gstatic.com',
           'https://cdnjs.cloudflare.com',
-          'https://va.vercel-scripts.com'
+          'https://va.vercel-scripts.com',
+          'https://www.desmos.com'
         ],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
         mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],

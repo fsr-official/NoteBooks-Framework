@@ -64,7 +64,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <!-- Engine lives in public/bin/tikzjax/output/; fonts in public/bin/tikzjax/css/ -->
   <!-- highlight.js — syntax highlighting for code blocks -->
   <!-- Mermaid — diagram / flowchart rendering (```mermaid blocks) -->
-  <!-- Desmos Graphing Calculator API -->
+  <!-- Desmos APIs must load before the Markdown renderer initializes fences. -->
+  <script src="/api/desmos.js" defer></script>
+  <script src="/api/desmos3d.js" defer></script>
   <!-- Obsidian-syntax compatibility layer (replaces obsidian-md.js) -->
   <script defer src="/public/js/obsidian-markdown-it.js"></script>
   <!-- Modern Email + Password Auth System -->
