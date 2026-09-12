@@ -5,7 +5,7 @@ const STREAM_ROUTES = ['science', 'commerce', 'humanities'] as const;
 const PORTAL_ROUTES = ['community', 'volunteers', 'accounts', 'issues', 'about'] as const;
 
 function setAssetContentType(res: express.Response, filePath: string): void {
-  if (/\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf)$/.test(filePath)) {
+  if (/\.(?:css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|otf)$/.test(filePath)) {
     res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
   }
   if (filePath.endsWith('.css')) {
@@ -14,6 +14,8 @@ function setAssetContentType(res: express.Response, filePath: string): void {
     res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
   } else if (filePath.endsWith('.woff') || filePath.endsWith('.woff2')) {
     res.setHeader('Content-Type', 'font/woff2');
+  } else if (filePath.endsWith('.otf')) {
+    res.setHeader('Content-Type', 'font/otf');
   } else if (filePath.endsWith('.ttf')) {
     res.setHeader('Content-Type', 'font/ttf');
   } else if (filePath.endsWith('.gz')) {

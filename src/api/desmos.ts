@@ -7,7 +7,7 @@ if (typeof window !== 'undefined') {
 }
 `;
 
-export default function handler(req: Request, res: Response) {
+export default async function handler(_req: Request, res: Response) {
   const apiKey = process.env.DESMOS_API_KEY?.trim();
 
   // Diagnostic: log whether the key was loaded (don't print the key itself)
@@ -20,8 +20,29 @@ export default function handler(req: Request, res: Response) {
     return res.status(200).send(NO_KEY_FALLBACK);
   }
 
-  // Redirect directly to the 3D bundle so relative imports load from desmos.com
-  // Use the supported 3D channel (v1.10) rather than v1.12 which breaks 3D.
-  const upstream = `https://www.desmos.com/api/v1.10/calculator3d.js?apiKey=${apiKey}`;
-  return res.redirect(307, upstream);
+  const upstream = `https://www.desmos.com/api/v1.10/calculator3d.js?apiKey=${encodeURIComponent(apiKey)}`;
+
+  try {
+    const response = await fetch(upstream, {
+      headers: {
+        accept: 'application/javascript, text/javascript, */*;q=0.8'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Desmos upstream returned ${response.status}`);
+    }
+
+    const scriptText = await response.text();
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    return res.status(200).send(scriptText);
+  } catch (error) {
+    console.warn('[api/desmos] Fallback to local stub:', error instanceof Error ? error.message : error);
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    return res.status(200).send(NO_KEY_FALLBACK);
+  }
 }
