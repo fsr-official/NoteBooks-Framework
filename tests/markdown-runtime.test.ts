@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
+import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import createApp from '../src/server/server';
 
 function loadScript(relativePath: string, context: any) {
   const absolutePath = path.resolve(__dirname, '..', relativePath);
@@ -64,6 +66,23 @@ function createContext() {
 }
 
 describe('markdown runtime bootstrap', () => {
+  it('serves valid font assets and avoids bad vendor redirects', async () => {
+    const app = createApp();
+    const styleSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/css/style.css'), 'utf8');
+    const tikzFontSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/bin/tikzjax/css/fonts.css'), 'utf8');
+
+    expect(styleSource).toContain('url("/public/fonts/TestTiemposText-Regular.otf")');
+    expect(styleSource).not.toContain('url("fonts/TestTiemposText-Regular.otf")');
+    expect(tikzFontSource).toContain('font-family: cmr10');
+    expect(tikzFontSource).not.toContain('font-family: cmr6');
+
+    const desmosResponse = await request(app).get('/api/desmos.js');
+    expect(desmosResponse.status).toBe(200);
+    expect(desmosResponse.headers['content-type']).toContain('application/javascript');
+    expect(desmosResponse.text).toContain('Desmos API key is not configured');
+    expect(desmosResponse.text).not.toContain('res.redirect');
+  });
+
   it('reports missing dependencies instead of crashing the preview renderer', () => {
     const context = createContext();
     loadScript('public/js/md-init.js', context);
