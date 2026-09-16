@@ -113,9 +113,14 @@ describe('markdown runtime bootstrap', () => {
     expect(styleSource).toContain('.suggest-changes-dialog');
     expect(styleSource).toContain('.markdown-content .note-figure');
     expect(styleSource).toContain('.markdown-content h4 {');
+    expect(styleSource).toContain('.markdown-table-scroll');
     expect(styleSource).not.toContain('letter-spacing: 0.5px;\n  font-size: 0.9em;');
     expect(mdInitSource).toContain('renderDiagramFence');
+    expect(mdInitSource).toContain('markdown-table-scroll');
     expect(mdInitSource).toContain("securityLevel: 'strict'");
+    expect(appSource).toContain('GLOSSARY');
+    expect(appSource).toContain('CNOTES');
+    expect(appSource).toContain('NOTES');
     expect(markdownVendorsSource).toContain("load: ['[tex]/boldsymbol']");
     expect(markdownVendorsSource).toContain("packages: { '[+]': ['ams', 'boldsymbol'] }");
     expect(readingPreferencesSource).toContain("narrow: '72ch'");

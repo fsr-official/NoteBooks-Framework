@@ -22,10 +22,12 @@
       const branch = options.branch || options.appConfig?.GITHUB_BRANCH || 'main';
       const sourcePath = sourcePathForRepository(path, options.repoPath, options.repo);
       const rawGithub = options.precomputedRaw || `https://raw.githubusercontent.com/${options.repo}/${branch}/${sourcePath}`;
+      const mediaGithub = options.precomputedMedia || `https://media.githubusercontent.com/media/${options.repo}/refs/heads/${branch}/${sourcePath.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`;
       const jsdelivr = `https://cdn.jsdelivr.net/gh/${options.repo}@${branch}/${sourcePath}`;
       const apiRaw = `${origin}/api/raw?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(options.repo)}&branch=${encodeURIComponent(branch)}&raw=${encodeURIComponent(rawGithub)}`;
+      const apiMedia = `${origin}/api/media?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(options.repo)}&branch=${encodeURIComponent(branch)}&media=${encodeURIComponent(mediaGithub)}`;
       const pages = options.pagesBase ? [`${String(options.pagesBase).replace(/\/$/, '')}/${sourcePath}`] : [];
-      return [apiRaw, ...pages, rawGithub, jsdelivr];
+      return [apiRaw, apiMedia, ...pages, rawGithub, mediaGithub, jsdelivr];
     }
     const candidates = [`${origin}/api/raw?path=${encodeURIComponent(path)}`];
     if (options.isGitHubPages && options.githubRepo) {

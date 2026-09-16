@@ -91,6 +91,20 @@ function renderSvgFence(token) {
     return '<div class="note-figure diagram-figure diagram-svg" data-diagram-domain="svg">' + svg + '</div>\n';
 }
 
+function wrapMarkdownTables(container) {
+    if (!container || !(container instanceof Element))
+        return;
+    var tables = container.querySelectorAll('table');
+    tables.forEach(function (table) {
+        if (table.parentElement && table.parentElement.classList.contains('markdown-table-scroll'))
+            return;
+        var wrapper = document.createElement('div');
+        wrapper.className = 'markdown-table-scroll';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+    });
+}
+
 window.initializeMarkdownRenderer = function () {
     if (window.__markdownRuntimeState.renderer && typeof window.__markdownRuntimeState.renderer.render === 'function') {
         return window.__markdownRuntimeState.renderer;

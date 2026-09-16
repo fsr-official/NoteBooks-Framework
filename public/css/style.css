@@ -1011,6 +1011,9 @@ body {
 /* File type icons */
 .file-icon[data-type="folder"] { color: #f59e0b; }
 .file-icon[data-type="md"] { color: var(--accent); }
+.file-icon[data-type="notes"] { color: #10b981; }
+.file-icon[data-type="glossary"] { color: #8b5cf6; }
+.file-icon[data-type="cnotes"] { color: #f97316; }
 .file-icon[data-type="pdf"] { color: #ef4444; }
 .file-icon[data-type="txt"] { color: #64748b; }
 .file-icon[data-type="json"] { color: #f97316; }
@@ -1614,14 +1617,24 @@ body { background:var(--bg); color:var(--fg); font-size:calc(16px * var(--densit
 }
 
 /* Enhanced tables */
+.markdown-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.5em 0;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
 .markdown-content table {
   border-collapse: collapse;
   width: 100%;
-  margin: 1.5em 0;
+  min-width: min(720px, 100%);
+  margin: 0;
   font-size: 0.95em;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  box-shadow: var(--shadow);
 }
 
 .markdown-content table th {
