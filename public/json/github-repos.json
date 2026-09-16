@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceFile": "GITHUB-REPOSITORIES.md",
-  "sourceSha256": "0db0e6f159e8e31396a4a28ff1efb38765b5d21602b09c65dd16ef332c0eea62",
+  "sourceSha256": "b6992aab2c358204b851a668e9ebfc1fb0861d8eb5f706a5705240ace20cc37c",
   "entries": [
     {
       "name": "NCERT-SCIENCE",
@@ -12,7 +12,8 @@
       "enabled": true,
       "priority": 1,
       "pages": true,
-      "empty": false
+      "empty": false,
+      "lfs": false
     },
     {
       "name": "NCERT-COMMERCE",
@@ -23,7 +24,8 @@
       "enabled": true,
       "priority": 2,
       "pages": true,
-      "empty": true
+      "empty": true,
+      "lfs": false
     },
     {
       "name": "NCERT-HUMANITIES",
@@ -34,7 +36,8 @@
       "enabled": true,
       "priority": 3,
       "pages": true,
-      "empty": false
+      "empty": false,
+      "lfs": false
     },
     {
       "name": "NoteBooks-Community",
@@ -45,7 +48,8 @@
       "enabled": true,
       "priority": 4,
       "pages": false,
-      "empty": false
+      "empty": true,
+      "lfs": false
     },
     {
       "name": "NoteBooks-Issues",
@@ -56,7 +60,44 @@
       "enabled": true,
       "priority": 5,
       "pages": false,
-      "empty": false
+      "empty": true,
+      "lfs": false
+    },
+    {
+      "name": "cengage-physics",
+      "stream": "science",
+      "repo": "fsr-science/cengage-physics",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 6,
+      "pages": false,
+      "empty": false,
+      "lfs": false
+    },
+    {
+      "name": "cengage-maths",
+      "stream": "science",
+      "repo": "fsr-science/cengage-maths",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 7,
+      "pages": false,
+      "empty": false,
+      "lfs": false
+    },
+    {
+      "name": "cengage-chemistry",
+      "stream": "science",
+      "repo": "fsr-science/cengage-chemistry",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 8,
+      "pages": false,
+      "empty": false,
+      "lfs": true
     }
   ]
 }

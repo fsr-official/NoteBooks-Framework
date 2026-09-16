@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response as ExpressResponse } from 'express';
 import { readFile } from 'fs/promises';
 import { resolve, normalize } from 'path';
 import { getRepoConfig, findRegisteredRepo } from './_shared.js';
@@ -67,7 +67,7 @@ export function buildMediaGithubUrl(filePath: string, repoCfg: { owner: string; 
   return `https://media.githubusercontent.com/media/${repoCfg.owner}/${repoCfg.repo}/refs/heads/${branch}/${encodedPath}`;
 }
 
-async function serveLocalFile(filePath: string, res: Response) {
+async function serveLocalFile(filePath: string, res: ExpressResponse) {
   const projectRoot = process.cwd();
   const normalizedPath = normalize(filePath).replace(/^(\.\.(\/|\\|$))+/g, '');
   const absolutePath = resolve(projectRoot, normalizedPath);
@@ -93,7 +93,7 @@ async function serveLocalFile(filePath: string, res: Response) {
   }
 }
 
-export default async function handler(req: Request, res: Response) {
+export default async function handler(req: Request, res: ExpressResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -171,7 +171,7 @@ export default async function handler(req: Request, res: Response) {
       ? [mediaUrl, rawUrl]
       : [rawUrl, mediaUrl];
 
-    let lastResponse: Response | null = null;
+    let lastResponse: globalThis.Response | null = null;
     for (const candidateUrl of fetchCandidates) {
       const candidateRes = await fetch(candidateUrl, {
         headers: {
