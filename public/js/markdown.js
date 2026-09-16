@@ -56,6 +56,21 @@ function markdownToHTML(rawText, filePath) {
 }
 
 window.markdownToHTML = markdownToHTML;
+
+function wrapMarkdownTables(container) {
+    if (!container || !(container instanceof Element))
+        return;
+    const tables = container.querySelectorAll('table');
+    tables.forEach((table) => {
+        if (!table || !table.parentElement || table.parentElement.classList.contains('markdown-table-scroll'))
+            return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'markdown-table-scroll';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+    });
+}
+
 /**
  * Activate all post-render Obsidian features scoped to a specific DOM element.
  * Must be called AFTER the rendered HTML has been inserted into the DOM.
@@ -91,4 +106,5 @@ async function initMarkdownFeatures(container) {
     if (typeof window.obsidianInitHighlight === 'function') {
         window.obsidianInitHighlight(container);
     }
+    wrapMarkdownTables(container);
 }

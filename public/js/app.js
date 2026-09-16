@@ -339,7 +339,10 @@ const EXCLUDED_ROOT_FILES = [
 const FILE_ICONS = {
     folder: "📁",
     md: "📝",
-    markdown: "��",
+    markdown: "📝",
+    notes: "📘",
+    glossary: "📚",
+    cnotes: "📖",
     pdf: "📕",
     txt: "📄",
     json: "🔧",
@@ -1172,12 +1175,26 @@ function toggleSidebar() {
 function getFileIcon(file) {
     if (file.type === "folder")
         return FILE_ICONS.folder;
+    const baseName = String(file.name || '').toUpperCase();
+    if (baseName.endsWith('NOTES.MD') || baseName.endsWith('NOTES.MARKDOWN'))
+        return FILE_ICONS.notes;
+    if (baseName.endsWith('GLOSSARY.MD') || baseName.endsWith('GLOSSARY.MARKDOWN'))
+        return FILE_ICONS.glossary;
+    if (baseName.endsWith('CNOTES.MD') || baseName.endsWith('CNOTES.MARKDOWN'))
+        return FILE_ICONS.cnotes;
     const ext = file.name.split('.').pop().toLowerCase();
     return FILE_ICONS[ext] || FILE_ICONS.default;
 }
 function getFileTypeClass(file) {
     if (file.type === "folder")
         return "folder";
+    const baseName = String(file.name || '').toUpperCase();
+    if (baseName.endsWith('NOTES.MD') || baseName.endsWith('NOTES.MARKDOWN'))
+        return "notes";
+    if (baseName.endsWith('GLOSSARY.MD') || baseName.endsWith('GLOSSARY.MARKDOWN'))
+        return "glossary";
+    if (baseName.endsWith('CNOTES.MD') || baseName.endsWith('CNOTES.MARKDOWN'))
+        return "cnotes";
     const ext = file.name.split('.').pop().toLowerCase();
     if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext))
         return "image";
