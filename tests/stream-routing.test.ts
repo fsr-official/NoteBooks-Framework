@@ -36,7 +36,10 @@ describe('STREAM repository routing', () => {
       ['commerce', 'fsr-commerce/NCERT-Commerce'],
       ['humanities', 'fsr-humanities/NCERT-Humanities'],
       ['community', 'fsr-official/NoteBooks-Community'],
-      ['issues', 'fsr-official/NoteBooks-Issues']
+      ['issues', 'fsr-official/NoteBooks-Issues'],
+      ['science', 'fsr-science/cengage-physics'],
+      ['science', 'fsr-science/cengage-maths'],
+      ['science', 'fsr-science/cengage-chemistry']
     ]);
   });
 });
