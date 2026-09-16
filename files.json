@@ -4,9 +4,9 @@
   "children": [
     {
       "type": "file",
-      "name": ".env.development.local",
-      "path": ".env.development.local",
-      "sha": "872a2fb99941cdce64797cb931d75486f8bd3eb3",
+      "name": ".env",
+      "path": ".env",
+      "sha": "8946f481bb487196de6d3d58ec837ce5c87081ba",
       "mime": "application/octet-stream"
     },
     {
@@ -22,28 +22,28 @@
               "name": "ci.yml",
               "path": ".github/workflows/ci.yml",
               "sha": "4f3cdc386f171e03fed14cbfa40a401188f0ef37",
-              "mime": "application/octet-stream"
+              "mime": "application/yaml"
             },
             {
               "type": "file",
               "name": "deploy-staging.yml",
               "path": ".github/workflows/deploy-staging.yml",
               "sha": "c8a7bf62e32a6461000fd8eff22f256cb98d538d",
-              "mime": "application/octet-stream"
+              "mime": "application/yaml"
             },
             {
               "type": "file",
               "name": "integration.yml",
               "path": ".github/workflows/integration.yml",
               "sha": "9426df455347388a471610c5c8fa30022adfe62e",
-              "mime": "application/octet-stream"
+              "mime": "application/yaml"
             },
             {
               "type": "file",
               "name": "tree-sync.yml",
               "path": ".github/workflows/tree-sync.yml",
               "sha": "9dda66ce396932212f8a69eda64bffe7ce2dfecc",
-              "mime": "application/octet-stream"
+              "mime": "application/yaml"
             }
           ]
         }
@@ -53,7 +53,7 @@
       "type": "file",
       "name": ".gitignore",
       "path": ".gitignore",
-      "sha": "0d5d5ca5681a3dbe4b46e6b5bd685a26dd27ad0d",
+      "sha": "35151ca56d2f2e893509378a82bdd982f7c4af6f",
       "mime": "application/octet-stream"
     },
     {
@@ -61,11 +61,9 @@
       "name": ".vercel",
       "children": [
         {
-          "type": "file",
-          "name": "project.json",
-          "path": ".vercel/project.json",
-          "sha": "6c2dc6875701559d918d865227de38f7414d835f",
-          "mime": "application/json"
+          "type": "folder",
+          "name": "cache",
+          "children": []
         }
       ]
     },
@@ -78,7 +76,7 @@
           "name": "[...all].ts",
           "path": "api/[...all].ts",
           "sha": "ae55bd7e831efe58298d8dbca43d925aa6629291",
-          "mime": "application/octet-stream"
+          "mime": "text/vnd.trolltech.linguist"
         },
         {
           "type": "folder",
@@ -89,7 +87,7 @@
               "name": "feed.ts",
               "path": "api/community/feed.ts",
               "sha": "1ca15e9b2308c858c67d7345abea787ca059b525",
-              "mime": "application/octet-stream"
+              "mime": "text/vnd.trolltech.linguist"
             }
           ]
         },
@@ -106,7 +104,7 @@
                   "name": "refresh.ts",
                   "path": "api/system/[stream]/refresh.ts",
                   "sha": "49d9b873f17f2522bed976e03477bee1796a757a",
-                  "mime": "application/octet-stream"
+                  "mime": "text/vnd.trolltech.linguist"
                 }
               ]
             },
@@ -115,7 +113,7 @@
               "name": "[stream].ts",
               "path": "api/system/[stream].ts",
               "sha": "f4ead377339495b2efc5c4eed619144df6dad8bd",
-              "mime": "application/octet-stream"
+              "mime": "text/vnd.trolltech.linguist"
             }
           ]
         }
@@ -144,77 +142,49 @@
                   "type": "file",
                   "name": "_shared.js",
                   "path": "dist/server/api/_shared.js",
-                  "sha": "04a68dce8255356d00ebff8699e2b7bf6caf75f7",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "admin-dashboard.js",
-                  "path": "dist/server/api/admin-dashboard.js",
-                  "sha": "d8ce4905f7a43dfead54f8d1b05303c2f995c227",
+                  "sha": "12c56be31a5760f26fc1d8842e54b2527542a62f",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "admin.js",
                   "path": "dist/server/api/admin.js",
-                  "sha": "b500a58551935ce597cc9861a94f870542bee03e",
+                  "sha": "777bbc7fd5d688ba00b12f87d9c58d987a788f3c",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "auth.js",
                   "path": "dist/server/api/auth.js",
-                  "sha": "c12acd60d96fb6e5998c05c394765fb747daf974",
+                  "sha": "2013318d6ef386ad09131486d84b6d9f32fb28fc",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "blob.js",
                   "path": "dist/server/api/blob.js",
-                  "sha": "21ffa0d87e9195c0df1c5f9b3b597c1f7df5a0c9",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "community-channels.js",
-                  "path": "dist/server/api/community-channels.js",
-                  "sha": "f01d24bf94dd68c8a562c54e23ceaba26f70d193",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "community-profile.js",
-                  "path": "dist/server/api/community-profile.js",
-                  "sha": "2139b38a645f2f8185f498ede3e05b4f696495b9",
+                  "sha": "639c3cefd9cac308d2fad75b5ebdba919113ddd6",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "community.js",
                   "path": "dist/server/api/community.js",
-                  "sha": "1d314fb6150f270249d2905291e3e1de18efd239",
+                  "sha": "d5d57d171559bfa8de8efff471bd6a1f5a1c1b34",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "config.js",
                   "path": "dist/server/api/config.js",
-                  "sha": "3f04e5ce87ba678e1b6b433b68a59fa0bbdc259d",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "dashboard.js",
-                  "path": "dist/server/api/dashboard.js",
-                  "sha": "298a4028fa743f383ca634adb7e29902ba91e57f",
+                  "sha": "db65e567df92c0b0426c64ec3ed20ac2b4d68078",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "desmos.js",
                   "path": "dist/server/api/desmos.js",
-                  "sha": "450e95b20a24ec16ed6fd0bb0b06e8cbc5e158a8",
+                  "sha": "8dc6c4d3a25f4da46bcebb961cab6de434a6126b",
                   "mime": "text/javascript"
                 },
                 {
@@ -222,6 +192,13 @@
                   "name": "files-manifest.js",
                   "path": "dist/server/api/files-manifest.js",
                   "sha": "a054319330500676b68ec82e3cbc1a852db38958",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "forum.js",
+                  "path": "dist/server/api/forum.js",
+                  "sha": "079aada754e7428d7a34e1e55e4e51dc96150571",
                   "mime": "text/javascript"
                 },
                 {
@@ -235,28 +212,14 @@
                   "type": "file",
                   "name": "github-app.js",
                   "path": "dist/server/api/github-app.js",
-                  "sha": "a6a57ac7b37320a80dd528756aa07e19b8292db9",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "issue-review.js",
-                  "path": "dist/server/api/issue-review.js",
-                  "sha": "46145d262afd290a01b284bb16d130a1b4ea34e2",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "issues.js",
-                  "path": "dist/server/api/issues.js",
-                  "sha": "57269bf97918655d546a4fe55c4f0d3220025d17",
+                  "sha": "1f45b08393de8953361bbcf5bdb762d4fd8ead99",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "oauth.js",
                   "path": "dist/server/api/oauth.js",
-                  "sha": "badaecccc3188d89674248b307e2bf7e1b092e42",
+                  "sha": "a3f91e205cf35f8f7fd9eb44fcff71a6abf43913",
                   "mime": "text/javascript"
                 },
                 {
@@ -270,21 +233,14 @@
                   "type": "file",
                   "name": "pr-review.js",
                   "path": "dist/server/api/pr-review.js",
-                  "sha": "e291a2ee688e8fe3a71fbd51a78ad0b14657fcac",
+                  "sha": "e6eb256952cb9d559ba4fa395e92d7ead616f4fc",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "raw.js",
                   "path": "dist/server/api/raw.js",
-                  "sha": "2d893e9e92aace69d81181635a451860fe737422",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "rebuild-tree.js",
-                  "path": "dist/server/api/rebuild-tree.js",
-                  "sha": "e405de04b85a5ad3de021a9a5399a2a49000b6b0",
+                  "sha": "cc2051987f3e3c7d8bc9fa6c39b1b5f543320e59",
                   "mime": "text/javascript"
                 },
                 {
@@ -298,42 +254,28 @@
                   "type": "file",
                   "name": "repo-registry.js",
                   "path": "dist/server/api/repo-registry.js",
-                  "sha": "99ac8dd432930371573cba6b9642984116f2c0e4",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "session.js",
-                  "path": "dist/server/api/session.js",
-                  "sha": "187e7399c1bd1ba0259b16fb57fbdeda6d47017d",
+                  "sha": "3d7326d3491fbe6f2962b5d2704a87c912f4de41",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "submit-pr.js",
                   "path": "dist/server/api/submit-pr.js",
-                  "sha": "47aff443b055773e80c6f28ad97cc908960a90ca",
+                  "sha": "118a60b80cfe33fe1282e259076a7bfd6250f912",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "system.js",
                   "path": "dist/server/api/system.js",
-                  "sha": "e74b8d908b953c36284e4cd06cb07ee8f123667a",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "theme.js",
-                  "path": "dist/server/api/theme.js",
-                  "sha": "ae1b51b93b8b79d6e6337d12035ac6bd4a6140fe",
+                  "sha": "36506e8e317135f948e29ddc59538fd783d24f8b",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "totp.js",
                   "path": "dist/server/api/totp.js",
-                  "sha": "fdc2f3c6e06f8bf9bf916e8534f23270d0d5ffdc",
+                  "sha": "3d0a48e749a6c42ddc765c0b5292861442887f10",
                   "mime": "text/javascript"
                 },
                 {
@@ -353,6 +295,19 @@
             },
             {
               "type": "folder",
+              "name": "client",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "main.js",
+                  "path": "dist/server/client/main.js",
+                  "sha": "79dc247bbfb35c7e7f16257d5f0a3a6b75afb49b",
+                  "mime": "text/javascript"
+                }
+              ]
+            },
+            {
+              "type": "folder",
               "name": "lib",
               "children": [
                 {
@@ -364,37 +319,16 @@
                 },
                 {
                   "type": "file",
-                  "name": "browser-session.js",
-                  "path": "dist/server/lib/browser-session.js",
-                  "sha": "40241656414cff313282a713876ba256f2acba7e",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
                   "name": "db.js",
                   "path": "dist/server/lib/db.js",
-                  "sha": "1c66a5289b1225e355cb59172202328f8e238de5",
+                  "sha": "2292a5aa08287680041616cdf8a281c2430db92c",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "github-app.js",
                   "path": "dist/server/lib/github-app.js",
-                  "sha": "d7eb3757708a16832b367af024b3e713ee987cd1",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "github-repositories.js",
-                  "path": "dist/server/lib/github-repositories.js",
-                  "sha": "14dad3aff23472eae0ca9598c83049c7616a0df0",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "image-to-svg.js",
-                  "path": "dist/server/lib/image-to-svg.js",
-                  "sha": "04083b2e258b60557e5aace04d9d93f6eeecd82c",
+                  "sha": "330cb86919f6e72f41f89580ce834e5d1e4ca05e",
                   "mime": "text/javascript"
                 },
                 {
@@ -406,71 +340,16 @@
                 },
                 {
                   "type": "file",
-                  "name": "octokit-loader.js",
-                  "path": "dist/server/lib/octokit-loader.js",
-                  "sha": "ab09c8a1779141c43a5a8a1525ad0228ac98a4c8",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
                   "name": "permissions.js",
                   "path": "dist/server/lib/permissions.js",
-                  "sha": "9ad14f67719efbbb15ebbda15aaa945248fe2aba",
+                  "sha": "6c27332653bcbb8a0ee96ae8244a78262a5c717f",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
-                  "name": "roles.js",
-                  "path": "dist/server/lib/roles.js",
-                  "sha": "2313a79e357cb161d305f44309cb4e46229709ca",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "safe-file-path.js",
-                  "path": "dist/server/lib/safe-file-path.js",
-                  "sha": "32329c9be471544165739ef85e9bb07d9c9e45db",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "shared-cache.js",
-                  "path": "dist/server/lib/shared-cache.js",
-                  "sha": "034250ccb4451e37e73bd0d45c3c4bbbf3a7c8b0",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "theme-catalog.js",
-                  "path": "dist/server/lib/theme-catalog.js",
-                  "sha": "004b501d834190ac1ca14dfe6c15f5c837a97877",
-                  "mime": "text/javascript"
-                }
-              ]
-            },
-            {
-              "type": "folder",
-              "name": "scripts",
-              "children": [
-                {
-                  "type": "file",
-                  "name": "generate-github-repos.js",
-                  "path": "dist/server/scripts/generate-github-repos.js",
-                  "sha": "3762cef6972e871b03e18d21ed6bcd511fb4c5fb",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "generate-json-files.js",
-                  "path": "dist/server/scripts/generate-json-files.js",
-                  "sha": "599fdc77dbf23f911c44193976069caf99e69ce9",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "json-fetch.js",
-                  "path": "dist/server/scripts/json-fetch.js",
-                  "sha": "9402f293b6b711443b7bd94bce2dcc9769a3fd5f",
+                  "name": "runtime-config.js",
+                  "path": "dist/server/lib/runtime-config.js",
+                  "sha": "a3ccaf7aa4874f9fb170b5c70b8f49e130ba9d8a",
                   "mime": "text/javascript"
                 }
               ]
@@ -481,47 +360,19 @@
               "children": [
                 {
                   "type": "file",
-                  "name": "api-routes.js",
-                  "path": "dist/server/server/api-routes.js",
-                  "sha": "5efeac73e425e2d0f73844116885e140c01c1d94",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "observability.js",
-                  "path": "dist/server/server/observability.js",
-                  "sha": "7c3c46003eae8c4e39c520c5dd8c83e8353a9a0f",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "public-routes.js",
-                  "path": "dist/server/server/public-routes.js",
-                  "sha": "8f7e53765a66ba86b821797a50f80c44721ff1a0",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
                   "name": "server.js",
                   "path": "dist/server/server/server.js",
-                  "sha": "4834ee63c109445a46bee284fc46bc48eb419577",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "startup.js",
-                  "path": "dist/server/server/startup.js",
-                  "sha": "4872a5eb418199b1a99efe43d2287c5b7171a6b4",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "workspace-routes.js",
-                  "path": "dist/server/server/workspace-routes.js",
-                  "sha": "e68f359700f8d67e6095465c642fb873afcf690a",
+                  "sha": "28c48d75b5a7130be45f6ba5b20a49984936b990",
                   "mime": "text/javascript"
                 }
               ]
+            },
+            {
+              "type": "file",
+              "name": "service-worker.js",
+              "path": "dist/server/service-worker.js",
+              "sha": "976cab2b07ba9f412e5e945390d0d92351e28dc4",
+              "mime": "text/javascript"
             },
             {
               "type": "folder",
@@ -545,7 +396,7 @@
       "name": "docker-compose.yml",
       "path": "docker-compose.yml",
       "sha": "7048fa90636bdf46380463a3e5a8eb10ab89f686",
-      "mime": "application/octet-stream"
+      "mime": "application/yaml"
     },
     {
       "type": "file",
@@ -595,7 +446,7 @@
               "name": "architecture-real.mmd",
               "path": "docs/phase1/architecture-real.mmd",
               "sha": "c8d21c0ecbddb4cdfb4f3e181e50ef8973b01f1a",
-              "mime": "application/octet-stream"
+              "mime": "application/vnd.chipnuts.karaoke-mmd"
             },
             {
               "type": "file",
@@ -1049,7 +900,7 @@
           "name": "admin-actions.log",
           "path": "logs/admin-actions.log",
           "sha": "8b69c4312e6eaa0f80fd990083b2f1013f754e08",
-          "mime": "application/octet-stream"
+          "mime": "text/plain"
         },
         {
           "type": "file",
@@ -1078,7 +929,7 @@
       "type": "file",
       "name": "README.md",
       "path": "README.md",
-      "sha": "264e7562efbfa3510afccdb5c8bf5bfbd5e1a549",
+      "sha": "7d64394edc85ced6f6cb35315cd5c9a70efbf79d",
       "mime": "text/markdown"
     },
     {
@@ -1087,9 +938,37 @@
       "children": [
         {
           "type": "file",
+          "name": "assistant_release.sh",
+          "path": "scripts/assistant_release.sh",
+          "sha": "d327ca1449179a8d20b3042551f2a8ba2ad5162b",
+          "mime": "application/x-sh"
+        },
+        {
+          "type": "file",
           "name": "build-file-responsibility-manifest.mjs",
           "path": "scripts/build-file-responsibility-manifest.mjs",
           "sha": "2f7f091c8c9c9f4301989adcba5a1b1c8573d8bd",
+          "mime": "text/javascript"
+        },
+        {
+          "type": "file",
+          "name": "commit_and_merge.sh",
+          "path": "scripts/commit_and_merge.sh",
+          "sha": "d0865e80e3d4dca63c4d0747673209c97ac3d8b5",
+          "mime": "application/x-sh"
+        },
+        {
+          "type": "file",
+          "name": "test-desmos-headless.js",
+          "path": "scripts/test-desmos-headless.js",
+          "sha": "629b4d539e8f80777ba22ba65cb32711fa6c0a55",
+          "mime": "text/javascript"
+        },
+        {
+          "type": "file",
+          "name": "validate-desmos-parser.js",
+          "path": "scripts/validate-desmos-parser.js",
+          "sha": "3e864bcc6ebd4ed6dd92129dc403397f752e7dfc",
           "mime": "text/javascript"
         },
         {
@@ -1188,7 +1067,7 @@
       "type": "file",
       "name": "version.json",
       "path": "version.json",
-      "sha": "eafafddf6a9b5909b9a93879dccb33879d771546",
+      "sha": "a9c97242543354f0d9163bd0a7b8cdfe1904a07b",
       "mime": "application/json"
     },
     {
