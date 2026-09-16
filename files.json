@@ -142,49 +142,77 @@
                   "type": "file",
                   "name": "_shared.js",
                   "path": "dist/server/api/_shared.js",
-                  "sha": "12c56be31a5760f26fc1d8842e54b2527542a62f",
+                  "sha": "04a68dce8255356d00ebff8699e2b7bf6caf75f7",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "admin-dashboard.js",
+                  "path": "dist/server/api/admin-dashboard.js",
+                  "sha": "d8ce4905f7a43dfead54f8d1b05303c2f995c227",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "admin.js",
                   "path": "dist/server/api/admin.js",
-                  "sha": "777bbc7fd5d688ba00b12f87d9c58d987a788f3c",
+                  "sha": "b500a58551935ce597cc9861a94f870542bee03e",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "auth.js",
                   "path": "dist/server/api/auth.js",
-                  "sha": "2013318d6ef386ad09131486d84b6d9f32fb28fc",
+                  "sha": "e7677678afbfdbebfcc38f84d7f59288e1934f73",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "blob.js",
                   "path": "dist/server/api/blob.js",
-                  "sha": "639c3cefd9cac308d2fad75b5ebdba919113ddd6",
+                  "sha": "21ffa0d87e9195c0df1c5f9b3b597c1f7df5a0c9",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "community-channels.js",
+                  "path": "dist/server/api/community-channels.js",
+                  "sha": "f01d24bf94dd68c8a562c54e23ceaba26f70d193",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "community-profile.js",
+                  "path": "dist/server/api/community-profile.js",
+                  "sha": "2139b38a645f2f8185f498ede3e05b4f696495b9",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "community.js",
                   "path": "dist/server/api/community.js",
-                  "sha": "d5d57d171559bfa8de8efff471bd6a1f5a1c1b34",
+                  "sha": "1d314fb6150f270249d2905291e3e1de18efd239",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "config.js",
                   "path": "dist/server/api/config.js",
-                  "sha": "db65e567df92c0b0426c64ec3ed20ac2b4d68078",
+                  "sha": "3f04e5ce87ba678e1b6b433b68a59fa0bbdc259d",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "dashboard.js",
+                  "path": "dist/server/api/dashboard.js",
+                  "sha": "298a4028fa743f383ca634adb7e29902ba91e57f",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "desmos.js",
                   "path": "dist/server/api/desmos.js",
-                  "sha": "8dc6c4d3a25f4da46bcebb961cab6de434a6126b",
+                  "sha": "450e95b20a24ec16ed6fd0bb0b06e8cbc5e158a8",
                   "mime": "text/javascript"
                 },
                 {
@@ -212,14 +240,28 @@
                   "type": "file",
                   "name": "github-app.js",
                   "path": "dist/server/api/github-app.js",
-                  "sha": "1f45b08393de8953361bbcf5bdb762d4fd8ead99",
+                  "sha": "a6a57ac7b37320a80dd528756aa07e19b8292db9",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "issue-review.js",
+                  "path": "dist/server/api/issue-review.js",
+                  "sha": "46145d262afd290a01b284bb16d130a1b4ea34e2",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "issues.js",
+                  "path": "dist/server/api/issues.js",
+                  "sha": "57269bf97918655d546a4fe55c4f0d3220025d17",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "oauth.js",
                   "path": "dist/server/api/oauth.js",
-                  "sha": "a3f91e205cf35f8f7fd9eb44fcff71a6abf43913",
+                  "sha": "badaecccc3188d89674248b307e2bf7e1b092e42",
                   "mime": "text/javascript"
                 },
                 {
@@ -233,14 +275,21 @@
                   "type": "file",
                   "name": "pr-review.js",
                   "path": "dist/server/api/pr-review.js",
-                  "sha": "e6eb256952cb9d559ba4fa395e92d7ead616f4fc",
+                  "sha": "e291a2ee688e8fe3a71fbd51a78ad0b14657fcac",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "raw.js",
                   "path": "dist/server/api/raw.js",
-                  "sha": "cc2051987f3e3c7d8bc9fa6c39b1b5f543320e59",
+                  "sha": "a9e864f1af3106eddfa4d947682f09af3541f3bf",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "rebuild-tree.js",
+                  "path": "dist/server/api/rebuild-tree.js",
+                  "sha": "e405de04b85a5ad3de021a9a5399a2a49000b6b0",
                   "mime": "text/javascript"
                 },
                 {
@@ -254,28 +303,42 @@
                   "type": "file",
                   "name": "repo-registry.js",
                   "path": "dist/server/api/repo-registry.js",
-                  "sha": "3d7326d3491fbe6f2962b5d2704a87c912f4de41",
+                  "sha": "99ac8dd432930371573cba6b9642984116f2c0e4",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "session.js",
+                  "path": "dist/server/api/session.js",
+                  "sha": "187e7399c1bd1ba0259b16fb57fbdeda6d47017d",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "submit-pr.js",
                   "path": "dist/server/api/submit-pr.js",
-                  "sha": "118a60b80cfe33fe1282e259076a7bfd6250f912",
+                  "sha": "47aff443b055773e80c6f28ad97cc908960a90ca",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "system.js",
                   "path": "dist/server/api/system.js",
-                  "sha": "36506e8e317135f948e29ddc59538fd783d24f8b",
+                  "sha": "e74b8d908b953c36284e4cd06cb07ee8f123667a",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "theme.js",
+                  "path": "dist/server/api/theme.js",
+                  "sha": "ae1b51b93b8b79d6e6337d12035ac6bd4a6140fe",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "totp.js",
                   "path": "dist/server/api/totp.js",
-                  "sha": "3d0a48e749a6c42ddc765c0b5292861442887f10",
+                  "sha": "fdc2f3c6e06f8bf9bf916e8534f23270d0d5ffdc",
                   "mime": "text/javascript"
                 },
                 {
@@ -319,16 +382,37 @@
                 },
                 {
                   "type": "file",
+                  "name": "browser-session.js",
+                  "path": "dist/server/lib/browser-session.js",
+                  "sha": "40241656414cff313282a713876ba256f2acba7e",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
                   "name": "db.js",
                   "path": "dist/server/lib/db.js",
-                  "sha": "2292a5aa08287680041616cdf8a281c2430db92c",
+                  "sha": "7fb9e4029038ebc41b0b7deb8eb2d6694046a712",
                   "mime": "text/javascript"
                 },
                 {
                   "type": "file",
                   "name": "github-app.js",
                   "path": "dist/server/lib/github-app.js",
-                  "sha": "330cb86919f6e72f41f89580ce834e5d1e4ca05e",
+                  "sha": "d7eb3757708a16832b367af024b3e713ee987cd1",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "github-repositories.js",
+                  "path": "dist/server/lib/github-repositories.js",
+                  "sha": "45787956b48856b11bc4aaae953706d2a84fb2b1",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "image-to-svg.js",
+                  "path": "dist/server/lib/image-to-svg.js",
+                  "sha": "04083b2e258b60557e5aace04d9d93f6eeecd82c",
                   "mime": "text/javascript"
                 },
                 {
@@ -340,9 +424,23 @@
                 },
                 {
                   "type": "file",
+                  "name": "octokit-loader.js",
+                  "path": "dist/server/lib/octokit-loader.js",
+                  "sha": "ab09c8a1779141c43a5a8a1525ad0228ac98a4c8",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
                   "name": "permissions.js",
                   "path": "dist/server/lib/permissions.js",
-                  "sha": "6c27332653bcbb8a0ee96ae8244a78262a5c717f",
+                  "sha": "9ad14f67719efbbb15ebbda15aaa945248fe2aba",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "roles.js",
+                  "path": "dist/server/lib/roles.js",
+                  "sha": "2313a79e357cb161d305f44309cb4e46229709ca",
                   "mime": "text/javascript"
                 },
                 {
@@ -350,6 +448,54 @@
                   "name": "runtime-config.js",
                   "path": "dist/server/lib/runtime-config.js",
                   "sha": "a3ccaf7aa4874f9fb170b5c70b8f49e130ba9d8a",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "safe-file-path.js",
+                  "path": "dist/server/lib/safe-file-path.js",
+                  "sha": "32329c9be471544165739ef85e9bb07d9c9e45db",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "shared-cache.js",
+                  "path": "dist/server/lib/shared-cache.js",
+                  "sha": "034250ccb4451e37e73bd0d45c3c4bbbf3a7c8b0",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "theme-catalog.js",
+                  "path": "dist/server/lib/theme-catalog.js",
+                  "sha": "004b501d834190ac1ca14dfe6c15f5c837a97877",
+                  "mime": "text/javascript"
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "scripts",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "generate-github-repos.js",
+                  "path": "dist/server/scripts/generate-github-repos.js",
+                  "sha": "3762cef6972e871b03e18d21ed6bcd511fb4c5fb",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "generate-json-files.js",
+                  "path": "dist/server/scripts/generate-json-files.js",
+                  "sha": "599fdc77dbf23f911c44193976069caf99e69ce9",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "json-fetch.js",
+                  "path": "dist/server/scripts/json-fetch.js",
+                  "sha": "6e40796339a3004bac6860779a35c8e77456ecbc",
                   "mime": "text/javascript"
                 }
               ]
@@ -360,9 +506,44 @@
               "children": [
                 {
                   "type": "file",
+                  "name": "api-routes.js",
+                  "path": "dist/server/server/api-routes.js",
+                  "sha": "636284bbaccaff050dc55aa9d5ad1b2a129ab95d",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "observability.js",
+                  "path": "dist/server/server/observability.js",
+                  "sha": "7c3c46003eae8c4e39c520c5dd8c83e8353a9a0f",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "public-routes.js",
+                  "path": "dist/server/server/public-routes.js",
+                  "sha": "8f7e53765a66ba86b821797a50f80c44721ff1a0",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
                   "name": "server.js",
                   "path": "dist/server/server/server.js",
-                  "sha": "28c48d75b5a7130be45f6ba5b20a49984936b990",
+                  "sha": "8b3ebfb1120185f44ef618b659e97e9daad84729",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "startup.js",
+                  "path": "dist/server/server/startup.js",
+                  "sha": "4872a5eb418199b1a99efe43d2287c5b7171a6b4",
+                  "mime": "text/javascript"
+                },
+                {
+                  "type": "file",
+                  "name": "workspace-routes.js",
+                  "path": "dist/server/server/workspace-routes.js",
+                  "sha": "e68f359700f8d67e6095465c642fb873afcf690a",
                   "mime": "text/javascript"
                 }
               ]
@@ -881,7 +1062,7 @@
       "type": "file",
       "name": "GITHUB-REPOSITORIES.md",
       "path": "GITHUB-REPOSITORIES.md",
-      "sha": "c9cf7b5e8f294ff95be5c8d15a79d9cd56f7b230",
+      "sha": "be1cb78b472d93f8ed71f676570d637b0620cdcb",
       "mime": "text/markdown"
     },
     {
@@ -1007,6 +1188,13 @@
         },
         {
           "type": "file",
+          "name": "desmos-upgrade.skill.md",
+          "path": "skill/desmos-upgrade.skill.md",
+          "sha": "8ffa3823f848a7873e8a296889ac6698a07c4ba6",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
           "name": "maths-generator.skill.md",
           "path": "skill/maths-generator.skill.md",
           "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
@@ -1018,6 +1206,13 @@
           "path": "skill/notes-generator.skill.md",
           "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
           "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "notes-triad.skill",
+          "path": "skill/notes-triad.skill",
+          "sha": "7a995d650a99c43f30f7e23d5096ab1d1ead9558",
+          "mime": "application/octet-stream"
         },
         {
           "type": "file",
@@ -1067,7 +1262,7 @@
       "type": "file",
       "name": "version.json",
       "path": "version.json",
-      "sha": "a9c97242543354f0d9163bd0a7b8cdfe1904a07b",
+      "sha": "d76020dc4e2685a1b071c6f12f0d0749f0bab963",
       "mime": "application/json"
     },
     {
