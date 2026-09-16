@@ -36,10 +36,11 @@ function normalizeRequestedPath(rawPath: string) {
   return String(rawPath || '').replace(/^\/+/, '').replace(/\\/g, '/');
 }
 
-export function buildRawGithubUrl(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) {
+function getRepoRelativePath(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) {
   const rawPath = normalizeRequestedPath(filePath || '');
   const rawMatch = rawPath.match(/^https?:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+\/(.+)$/);
-  const unresolvedPath = rawMatch ? rawMatch[1] : rawPath;
+  const mediaMatch = rawPath.match(/^https?:\/\/media\.githubusercontent\.com\/media\/[^/]+\/[^/]+\/refs\/heads\/[^/]+\/(.+)$/);
+  const unresolvedPath = mediaMatch ? mediaMatch[1] : rawMatch ? rawMatch[1] : rawPath;
   const repoFolder = String(repoCfg.repo).split('/').pop() || '';
   let repoRelativePath = unresolvedPath;
 
@@ -47,26 +48,23 @@ export function buildRawGithubUrl(filePath: string, repoCfg: { owner: string; re
     repoRelativePath = repoRelativePath.slice(repoFolder.length + 1);
   }
 
-  const cleanedPath = repoRelativePath.replace(/^\/+/, '');
+  return repoRelativePath.replace(/^\/+/, '');
+}
+
+export function buildRawGithubUrl(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) {
+  const cleanedPath = getRepoRelativePath(filePath, repoCfg);
   const branch = repoCfg.branch || process.env.GITHUB_BRANCH || 'main';
   return `https://raw.githubusercontent.com/${repoCfg.owner}/${repoCfg.repo}/${branch}/${cleanedPath}`;
 }
 
-function getRepoRelativePath(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) {
-  let normalizedPath = normalizeRequestedPath(filePath);
-  const repoFolder = String(repoCfg.repo).split('/').pop()?.toLowerCase() || '';
-  const rootPrefix = normalizeRequestedPath(repoCfg.root || '');
-  const prefixes = [repoFolder, rootPrefix].filter(Boolean);
-
-  for (const prefix of prefixes) {
-    const lowerPrefix = prefix.toLowerCase();
-    if (normalizedPath.toLowerCase().startsWith(`${lowerPrefix}/`)) {
-      normalizedPath = normalizedPath.slice(prefix.length + 1);
-      break;
-    }
-  }
-
-  return normalizedPath;
+export function buildMediaGithubUrl(filePath: string, repoCfg: { owner: string; repo: string; branch?: string; root?: string }) {
+  const cleanedPath = getRepoRelativePath(filePath, repoCfg);
+  const branch = repoCfg.branch || process.env.GITHUB_BRANCH || 'main';
+  const encodedPath = cleanedPath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  return `https://media.githubusercontent.com/media/${repoCfg.owner}/${repoCfg.repo}/refs/heads/${branch}/${encodedPath}`;
 }
 
 async function serveLocalFile(filePath: string, res: Response) {
@@ -124,6 +122,8 @@ export default async function handler(req: Request, res: Response) {
   const repoOverride = String(req.query.repo || '').trim();
   const branchOverride = String(req.query.branch || '').trim();
   const suppliedRawUrl = String(req.query.raw || '').trim();
+  const suppliedMediaUrl = String(req.query.media || '').trim();
+  const useMediaRoute = req.path === '/api/media' || req.path === '/api/media.js';
 
   try {
     let repoCfg = await getRepoConfig();
@@ -144,14 +144,18 @@ export default async function handler(req: Request, res: Response) {
       return serveLocalFile(filePath, res);
     }
 
-    if (filePath.startsWith('http') && !/^https?:\/\/raw\.githubusercontent\.com\//.test(filePath)) {
+    if (filePath.startsWith('http') && !/^(https?:\/\/raw\.githubusercontent\.com\/|https?:\/\/media\.githubusercontent\.com\/)/.test(filePath)) {
       return res.status(400).json({ error: 'Unsupported URL format for path parameter' });
     }
 
     const expectedRawUrl = buildRawGithubUrl(filePath, repoCfg);
+    const expectedMediaUrl = buildMediaGithubUrl(filePath, repoCfg);
     const rawUrl = suppliedRawUrl
       ? (suppliedRawUrl === expectedRawUrl ? suppliedRawUrl : expectedRawUrl)
       : expectedRawUrl;
+    const mediaUrl = suppliedMediaUrl
+      ? (suppliedMediaUrl === expectedMediaUrl ? suppliedMediaUrl : expectedMediaUrl)
+      : expectedMediaUrl;
     const repoPath = normalizeRequestedPath(filePath);
     const ext = repoPath.split('.').pop()?.toLowerCase() || '';
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
@@ -163,20 +167,37 @@ export default async function handler(req: Request, res: Response) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
-    const rawRes = await fetch(rawUrl, {
-      headers: {
-        Accept: '*/*'
-      }
-    });
+    const fetchCandidates = useMediaRoute
+      ? [mediaUrl, rawUrl]
+      : [rawUrl, mediaUrl];
 
-    if (!rawRes.ok) {
-      if (rawRes.status === 404) {
+    let lastResponse: Response | null = null;
+    for (const candidateUrl of fetchCandidates) {
+      const candidateRes = await fetch(candidateUrl, {
+        headers: {
+          Accept: '*/*'
+        }
+      });
+      lastResponse = candidateRes;
+      if (candidateRes.ok) {
+        return res.status(200).send(Buffer.from(await candidateRes.arrayBuffer()));
+      }
+      if (candidateRes.status === 404 && candidateUrl !== fetchCandidates[fetchCandidates.length - 1]) {
+        continue;
+      }
+      if (candidateRes.status === 404) {
         return res.status(404).json({ error: 'File not found' });
       }
-      return res.status(rawRes.status).json({ error: 'Failed to fetch raw file' });
+      if (candidateUrl === fetchCandidates[fetchCandidates.length - 1]) {
+        return res.status(candidateRes.status).json({ error: 'Failed to fetch raw file' });
+      }
     }
 
-    return res.status(200).send(Buffer.from(await rawRes.arrayBuffer()));
+    if (lastResponse) {
+      return res.status(lastResponse.status).json({ error: 'Failed to fetch raw file' });
+    }
+
+    return res.status(500).json({ error: 'Failed to resolve file' });
   } catch (error: any) {
     if (error?.status === 404) {
       return res.status(404).json({ error: 'File not found' });

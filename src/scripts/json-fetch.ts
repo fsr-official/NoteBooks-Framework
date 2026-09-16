@@ -10,6 +10,7 @@ export interface JsonFetchRegistryEntry {
   priority?: number;
   pages?: boolean | string;
   empty?: boolean | string;
+  lfs?: boolean | string;
 }
 
 export interface JsonFetchNode {
@@ -73,6 +74,15 @@ export function buildRawFileUrl(repo: string, branch: string, filePath: string):
   return `https://raw.githubusercontent.com/${repo}/${encodeURIComponent(branch || DEFAULT_BRANCH)}/${normalizePath(filePath)}`;
 }
 
+export function buildMediaFileUrl(repo: string, branch: string, filePath: string): string {
+  const normalized = normalizePath(filePath);
+  const encodedPath = normalized
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  return `https://media.githubusercontent.com/media/${repo}/refs/heads/${encodeURIComponent(branch || DEFAULT_BRANCH)}/${encodedPath}`;
+}
+
 function buildPagesFilesJsonUrl(entry: JsonFetchRegistryEntry): string {
   const pagesBase = resolvePagesBaseUrl(entry);
   const root = normalizePath(entry.root || '');
@@ -107,6 +117,7 @@ function annotateFile(node: any, entry: JsonFetchRegistryEntry, stream: string, 
   const rawPath = node?.path ? normalizePath(node.path) : joinPath(parentPath, String(node?.name || ''));
   if (!rawPath) return null;
   const branch = entry.branch || DEFAULT_BRANCH;
+  const useMediaUrl = entry.lfs === true || String(entry.lfs || '').toLowerCase() === 'true';
   const result: JsonFetchNode = {
     ...node,
     type: 'file',
@@ -116,7 +127,7 @@ function annotateFile(node: any, entry: JsonFetchRegistryEntry, stream: string, 
     repo: entry.repo,
     branch,
     stream,
-    raw: buildRawFileUrl(entry.repo, branch, rawPath)
+    raw: useMediaUrl ? buildMediaFileUrl(entry.repo, branch, rawPath) : buildRawFileUrl(entry.repo, branch, rawPath)
   };
   if (typeof node?.size === 'number') result.size = node.size;
   delete result.children;

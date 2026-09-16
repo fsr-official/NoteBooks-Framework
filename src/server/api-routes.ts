@@ -84,6 +84,10 @@ export function registerApiRoutes(app: express.Application): void {
   app.get('/api/raw.js', rawHandler);
   app.options('/api/raw', rawHandler);
   app.options('/api/raw.js', rawHandler);
+  app.get('/api/media', rawHandler);
+  app.get('/api/media.js', rawHandler);
+  app.options('/api/media', rawHandler);
+  app.options('/api/media.js', rawHandler);
 
   app.use('/api/submit-pr', submitPrLimiter);
   app.post('/api/submit-pr', permissions.requireTotpEnrolled, submitPrHandler);

@@ -109,14 +109,15 @@ export function createApp() {
           'https://*.github.io',
           'https://cdn.jsdelivr.net',
           'https://raw.githubusercontent.com',
+          'https://media.githubusercontent.com',
           'https://www.google.com',
           'https://www.gstatic.com',
           'https://cdnjs.cloudflare.com',
           'https://va.vercel-scripts.com',
           'https://www.desmos.com'
         ],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
-        mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com', 'https://media.githubusercontent.com'],
+        mediaSrc: ["'self'", 'blob:', 'https://*.github.io', 'https://raw.githubusercontent.com', 'https://media.githubusercontent.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         frameSrc: ["'self'", 'https://docs.google.com', 'https://*.github.io', 'https://www.google.com'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com', 'https://www.google.com', 'https://fonts.googleapis.com']
