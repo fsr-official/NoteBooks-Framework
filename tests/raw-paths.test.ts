@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMediaGithubUrl, buildRawGithubUrl } from '../src/api/raw';
+import { buildFetchCandidates, buildMediaGithubUrl, buildRawGithubUrl } from '../src/api/raw';
 
 describe('raw CDN URL builder', () => {
   it('builds a raw.githubusercontent URL from a repo-scoped path', () => {
@@ -33,5 +33,17 @@ describe('raw CDN URL builder', () => {
     });
 
     expect(url).toBe('https://media.githubusercontent.com/media/fsr-science/cengage-chemistry/refs/heads/main/IOC/1.%20General%20Principles%20and%20Processes%20of%20Isolation%20of%20Elements.pdf');
+  });
+
+  it('prefers an explicit GitHub media URL when an LFS-backed file is supplied as the raw source', () => {
+    const mediaUrl = 'https://media.githubusercontent.com/media/fsr-science/cengage-chemistry/refs/heads/main/IOC/1.%20General%20Principles%20and%20Processes%20of%20Isolation%20of%20Elements.pdf';
+    const rawUrl = 'https://raw.githubusercontent.com/fsr-science/cengage-chemistry/main/IOC/1.%20General%20Principles%20and%20Processes%20of%20Isolation%20of%20Elements.pdf';
+
+    expect(buildFetchCandidates({
+      expectedRawUrl: rawUrl,
+      expectedMediaUrl: mediaUrl,
+      suppliedRawUrl: mediaUrl,
+      useMediaRoute: false,
+    })[0]).toBe(mediaUrl);
   });
 });

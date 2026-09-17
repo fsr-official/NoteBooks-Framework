@@ -67,6 +67,24 @@ export function buildMediaGithubUrl(filePath: string, repoCfg: { owner: string; 
   return `https://media.githubusercontent.com/media/${repoCfg.owner}/${repoCfg.repo}/refs/heads/${branch}/${encodedPath}`;
 }
 
+export function buildFetchCandidates({
+  expectedRawUrl,
+  expectedMediaUrl,
+  suppliedRawUrl,
+  suppliedMediaUrl,
+  useMediaRoute,
+}: {
+  expectedRawUrl: string;
+  expectedMediaUrl: string;
+  suppliedRawUrl?: string;
+  suppliedMediaUrl?: string;
+  useMediaRoute: boolean;
+}) {
+  const explicitCandidates = [suppliedRawUrl, suppliedMediaUrl].filter((value): value is string => Boolean(value && value.trim()));
+  const defaultCandidates = useMediaRoute ? [expectedMediaUrl, expectedRawUrl] : [expectedRawUrl, expectedMediaUrl];
+  return [...new Set([...explicitCandidates, ...defaultCandidates])];
+}
+
 async function serveLocalFile(filePath: string, res: ExpressResponse) {
   const projectRoot = process.cwd();
   const normalizedPath = normalize(filePath).replace(/^(\.\.(\/|\\|$))+/g, '');
@@ -167,9 +185,13 @@ export default async function handler(req: Request, res: ExpressResponse) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
-    const fetchCandidates = useMediaRoute
-      ? [mediaUrl, rawUrl]
-      : [rawUrl, mediaUrl];
+    const fetchCandidates = buildFetchCandidates({
+      expectedRawUrl: rawUrl,
+      expectedMediaUrl: mediaUrl,
+      suppliedRawUrl: suppliedRawUrl || undefined,
+      suppliedMediaUrl: suppliedMediaUrl || undefined,
+      useMediaRoute,
+    });
 
     let lastResponse: globalThis.Response | null = null;
     for (const candidateUrl of fetchCandidates) {
