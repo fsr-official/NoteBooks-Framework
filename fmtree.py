@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a repository-local files.json manifest.
-
-The manifest format intentionally remains compatible with the existing
-NoteBooks subject-tree consumer: folders contain ``type``, ``name``, and
-``children``; files additionally contain ``path``, ``sha``, and ``mime``.
-"""
+"""Generate a repository-local files.json manifest for document-like content only."""
 
 from __future__ import annotations
 
@@ -19,6 +14,7 @@ from pathlib import Path
 from typing import Iterable
 
 ROOT = Path(__file__).resolve().parent
+
 SKIP_DIRECTORIES = {
     ".git",
     ".venv",
@@ -27,8 +23,69 @@ SKIP_DIRECTORIES = {
     ".mypy_cache",
     ".ruff_cache",
     "node_modules",
+    ".github",
+    ".vscode",
 }
-SKIP_FILES = {".DS_Store", "files.json"}
+
+# Top-level directories that are not part of the landing content and should be
+# excluded when discovered at the repository root.
+TOP_LEVEL_EXCLUDE = {
+    "src",
+    "public",
+    "tests",
+}
+
+ALLOWED_FILE_SUFFIXES = {
+    ".md",
+    ".markdown",
+    ".txt",
+    ".rtf",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".ppt",
+    ".pptx",
+    ".xls",
+    ".xlsx",
+    ".csv",
+    ".odt",
+    ".odp",
+    ".ods",
+    ".epub",
+}
+
+SKIP_FILE_SUFFIXES = {
+    ".py",
+    ".pyw",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".ini",
+    ".cfg",
+    ".lock",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".css",
+    ".scss",
+    ".sass",
+    ".html",
+    ".htm",
+    ".xml",
+    ".svg",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".ico",
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".ps1",
+}
 
 
 def run_git(*arguments: str) -> str:
@@ -55,7 +112,6 @@ def repository_name() -> str:
     if remote_name:
         return remote_name.group(1)
 
-    # SSH remotes use the form git@github.com:owner/repository.git.
     ssh_name = re.search(r":([^/:]+?)(?:\.git)?$", remote)
     return ssh_name.group(1) if ssh_name else ROOT.name
 
@@ -67,6 +123,11 @@ def blob_sha(path: Path) -> str:
 
 def relative_path(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
+
+
+def is_allowed_file(path: Path) -> bool:
+    suffix = path.suffix.lower()
+    return suffix in ALLOWED_FILE_SUFFIXES and suffix not in SKIP_FILE_SUFFIXES
 
 
 def file_entry(path: Path) -> dict[str, str]:
@@ -81,7 +142,19 @@ def file_entry(path: Path) -> dict[str, str]:
 
 
 def should_skip(path: Path, output_path: Path) -> bool:
-    if path.name in SKIP_DIRECTORIES or path.name in SKIP_FILES:
+    if path.name in SKIP_DIRECTORIES:
+        return True
+    # Exclude common non-landing directories when they are immediate children
+    # of the repository root. This keeps the landing `files.json` focused on
+    # documentation-like content that appears at the repository root.
+    try:
+        if path.parent.resolve() == ROOT.resolve() and path.name in TOP_LEVEL_EXCLUDE:
+            return True
+    except OSError:
+        pass
+    if path.is_dir():
+        return False
+    if path.is_file() and not is_allowed_file(path):
         return True
     try:
         return path.resolve() == output_path
@@ -100,28 +173,18 @@ def iter_children(path: Path, output_path: Path) -> Iterable[Path]:
             continue
         try:
             if child.is_symlink():
-                # Symlinks can escape the repository or introduce cycles.
                 continue
             if child.is_dir():
                 yield child
-            elif child.is_file():
+            elif child.is_file() and is_allowed_file(child):
                 yield child
         except OSError as exc:
             raise RuntimeError(f"Unable to inspect path: {child}") from exc
 
 
-def build_tree(path: Path, output_path: Path, is_root: bool = False) -> list[dict]:
+def build_tree(path: Path, output_path: Path) -> list[dict]:
     children: list[dict] = []
     for child in iter_children(path, output_path):
-        # Preserve the landing-manifest policy: root-level website
-        # implementation files are not content entries, while text notes and
-        # documentation remain discoverable alongside README.md.
-        if is_root and child.is_dir() and child.name.casefold() in {"src", "public", "tests"}:
-            continue
-        if is_root and child.is_file() and child.name.casefold() != "readme.md":
-            if child.suffix.casefold() in {".html", ".css", ".js", ".ts", ".tsx", ".jsx", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico"}:
-                continue
-
         if child.is_dir():
             children.append(
                 {
@@ -189,7 +252,7 @@ def main() -> int:
     payload = {
         "type": "folder",
         "name": name,
-        "children": build_tree(ROOT, output_path, is_root=True),
+        "children": build_tree(ROOT, output_path),
     }
     write_manifest(output_path, payload)
     print(f"files.json generated for {name} at {output_path}")

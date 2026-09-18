@@ -15,3 +15,6 @@ Set STREAM to the workspace that should receive the repository's `files.json` tr
 | CENGAGE-Maths                 | SCIENCE    | fsr-science/CENGAGE-Maths        | main   |      | true    | 7        | false | false | false |
 | CENGAGE-Chemistry             | SCIENCE    | fsr-science/CENGAGE-Chemistry    | main   |      | true    | 8        | false | false | true  |
 | COMPUER_SCIENCE-PREETI-AURORA | SCIENCE    | fsr-science/CS-PREETI-AURORA     | main   |      | true    | 9        | false | false | false |
+| MATHEMATICS-RD-SHARMA         | SCIENCE    | fsr-science/MATHS-RD-SHARMA      | main   |      | true    | 10       | false | false | false |
+| PHYSICS-HC-VERMA-I            | SCIENCE    | fsr-science/PHYSICS-HC-VERMA-I   | main   |      | true    | 11       | false | false | false |
+| PHYSICS-HC-VERMA-II           | SCIENCE    | fsr-science/PHYSICS-HC-VERMA-II  | main   |      | true    | 12       | false | false | false |
