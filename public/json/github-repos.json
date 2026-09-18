@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceFile": "GITHUB-REPOSITORIES.md",
-  "sourceSha256": "b6992aab2c358204b851a668e9ebfc1fb0861d8eb5f706a5705240ace20cc37c",
+  "sourceSha256": "b86b9e623ca1903448ab55020b885bd569f401a661d8033cfbadf297c88883db",
   "entries": [
     {
       "name": "NCERT-SCIENCE",
@@ -48,7 +48,7 @@
       "enabled": true,
       "priority": 4,
       "pages": false,
-      "empty": true,
+      "empty": false,
       "lfs": false
     },
     {
@@ -60,13 +60,13 @@
       "enabled": true,
       "priority": 5,
       "pages": false,
-      "empty": true,
+      "empty": false,
       "lfs": false
     },
     {
-      "name": "cengage-physics",
+      "name": "CENGAGE-Physics",
       "stream": "science",
-      "repo": "fsr-science/cengage-physics",
+      "repo": "fsr-science/CENGAGE-Physics",
       "branch": "main",
       "root": "",
       "enabled": true,
@@ -76,9 +76,9 @@
       "lfs": false
     },
     {
-      "name": "cengage-maths",
+      "name": "CENGAGE-Maths",
       "stream": "science",
-      "repo": "fsr-science/cengage-maths",
+      "repo": "fsr-science/CENGAGE-Maths",
       "branch": "main",
       "root": "",
       "enabled": true,
@@ -88,9 +88,9 @@
       "lfs": false
     },
     {
-      "name": "cengage-chemistry",
+      "name": "CENGAGE-Chemistry",
       "stream": "science",
-      "repo": "fsr-science/cengage-chemistry",
+      "repo": "fsr-science/CENGAGE-Chemistry",
       "branch": "main",
       "root": "",
       "enabled": true,
@@ -98,6 +98,54 @@
       "pages": false,
       "empty": false,
       "lfs": true
+    },
+    {
+      "name": "COMPUER_SCIENCE-PREETI-AURORA",
+      "stream": "science",
+      "repo": "fsr-science/CS-PREETI-AURORA",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 9,
+      "pages": false,
+      "empty": false,
+      "lfs": false
+    },
+    {
+      "name": "MATHEMATICS-RD-SHARMA",
+      "stream": "science",
+      "repo": "fsr-science/MATHS-RD-SHARMA",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 10,
+      "pages": false,
+      "empty": false,
+      "lfs": false
+    },
+    {
+      "name": "PHYSICS-HC-VERMA-I",
+      "stream": "science",
+      "repo": "fsr-science/PHYSICS-HC-VERMA-I",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 11,
+      "pages": false,
+      "empty": false,
+      "lfs": false
+    },
+    {
+      "name": "PHYSICS-HC-VERMA-II",
+      "stream": "science",
+      "repo": "fsr-science/PHYSICS-HC-VERMA-II",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 12,
+      "pages": false,
+      "empty": false,
+      "lfs": false
     }
   ]
 }

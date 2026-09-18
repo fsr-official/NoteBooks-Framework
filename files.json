@@ -531,113 +531,13 @@
       "type": "file",
       "name": "GITHUB-REPOSITORIES.md",
       "path": "GITHUB-REPOSITORIES.md",
-      "sha": "97c9ffb1b97b4c5f29c30277c47b21cca4c703ee",
+      "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
       "mime": "text/markdown"
     },
     {
       "type": "folder",
       "name": "logs",
       "children": []
-    },
-    {
-      "type": "folder",
-      "name": "public",
-      "children": [
-        {
-          "type": "folder",
-          "name": "assets",
-          "children": [
-            {
-              "type": "folder",
-              "name": "diagrams",
-              "children": [
-                {
-                  "type": "folder",
-                  "name": "starter",
-                  "children": [
-                    {
-                      "type": "file",
-                      "name": "ATTRIBUTIONS.md",
-                      "path": "public/assets/diagrams/starter/ATTRIBUTIONS.md",
-                      "sha": "a720c2c5ac9d61fa441ac4e06c5e34c318ad313e",
-                      "mime": "text/markdown"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "folder",
-          "name": "bin",
-          "children": [
-            {
-              "type": "folder",
-              "name": "tikzjax",
-              "children": [
-                {
-                  "type": "folder",
-                  "name": "css",
-                  "children": [
-                    {
-                      "type": "folder",
-                      "name": "bakoma",
-                      "children": [
-                        {
-                          "type": "folder",
-                          "name": "ttf",
-                          "children": []
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "folder",
-                  "name": "output",
-                  "children": []
-                },
-                {
-                  "type": "folder",
-                  "name": "tex_files",
-                  "children": []
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "folder",
-          "name": "client",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "css",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "fonts",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "html",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "js",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "json",
-          "children": []
-        }
-      ]
     },
     {
       "type": "file",
@@ -703,89 +603,6 @@
           "path": "skill/physics-generator.skill.md",
           "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
           "mime": "text/markdown"
-        }
-      ]
-    },
-    {
-      "type": "folder",
-      "name": "src",
-      "children": [
-        {
-          "type": "folder",
-          "name": "api",
-          "children": [
-            {
-              "type": "folder",
-              "name": "webhooks",
-              "children": []
-            }
-          ]
-        },
-        {
-          "type": "folder",
-          "name": "client",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "db",
-          "children": [
-            {
-              "type": "folder",
-              "name": "migrations",
-              "children": []
-            }
-          ]
-        },
-        {
-          "type": "folder",
-          "name": "lib",
-          "children": [
-            {
-              "type": "folder",
-              "name": "schemas",
-              "children": []
-            }
-          ]
-        },
-        {
-          "type": "folder",
-          "name": "scripts",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "server",
-          "children": [
-            {
-              "type": "file",
-              "name": "README.md",
-              "path": "src/server/README.md",
-              "sha": "0109664eeaacd00a581e1d5aaca0e3c42a89a03f",
-              "mime": "text/markdown"
-            }
-          ]
-        },
-        {
-          "type": "folder",
-          "name": "shims",
-          "children": []
-        },
-        {
-          "type": "folder",
-          "name": "types",
-          "children": []
-        }
-      ]
-    },
-    {
-      "type": "folder",
-      "name": "tests",
-      "children": [
-        {
-          "type": "folder",
-          "name": "webhooks",
-          "children": []
         }
       ]
     }
