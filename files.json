@@ -3,60 +3,6 @@
   "name": "NoteBooks-Framework",
   "children": [
     {
-      "type": "file",
-      "name": ".env",
-      "path": ".env",
-      "sha": "8946f481bb487196de6d3d58ec837ce5c87081ba",
-      "mime": "application/octet-stream"
-    },
-    {
-      "type": "folder",
-      "name": ".github",
-      "children": [
-        {
-          "type": "folder",
-          "name": "workflows",
-          "children": [
-            {
-              "type": "file",
-              "name": "ci.yml",
-              "path": ".github/workflows/ci.yml",
-              "sha": "4f3cdc386f171e03fed14cbfa40a401188f0ef37",
-              "mime": "application/yaml"
-            },
-            {
-              "type": "file",
-              "name": "deploy-staging.yml",
-              "path": ".github/workflows/deploy-staging.yml",
-              "sha": "c8a7bf62e32a6461000fd8eff22f256cb98d538d",
-              "mime": "application/yaml"
-            },
-            {
-              "type": "file",
-              "name": "integration.yml",
-              "path": ".github/workflows/integration.yml",
-              "sha": "9426df455347388a471610c5c8fa30022adfe62e",
-              "mime": "application/yaml"
-            },
-            {
-              "type": "file",
-              "name": "tree-sync.yml",
-              "path": ".github/workflows/tree-sync.yml",
-              "sha": "9dda66ce396932212f8a69eda64bffe7ce2dfecc",
-              "mime": "application/yaml"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "file",
-      "name": ".gitignore",
-      "path": ".gitignore",
-      "sha": "35151ca56d2f2e893509378a82bdd982f7c4af6f",
-      "mime": "application/octet-stream"
-    },
-    {
       "type": "folder",
       "name": ".vercel",
       "children": [
@@ -72,24 +18,9 @@
       "name": "api",
       "children": [
         {
-          "type": "file",
-          "name": "[...all].ts",
-          "path": "api/[...all].ts",
-          "sha": "ae55bd7e831efe58298d8dbca43d925aa6629291",
-          "mime": "text/vnd.trolltech.linguist"
-        },
-        {
           "type": "folder",
           "name": "community",
-          "children": [
-            {
-              "type": "file",
-              "name": "feed.ts",
-              "path": "api/community/feed.ts",
-              "sha": "1ca15e9b2308c858c67d7345abea787ca059b525",
-              "mime": "text/vnd.trolltech.linguist"
-            }
-          ]
+          "children": []
         },
         {
           "type": "folder",
@@ -98,22 +29,7 @@
             {
               "type": "folder",
               "name": "[stream]",
-              "children": [
-                {
-                  "type": "file",
-                  "name": "refresh.ts",
-                  "path": "api/system/[stream]/refresh.ts",
-                  "sha": "49d9b873f17f2522bed976e03477bee1796a757a",
-                  "mime": "text/vnd.trolltech.linguist"
-                }
-              ]
-            },
-            {
-              "type": "file",
-              "name": "[stream].ts",
-              "path": "api/system/[stream].ts",
-              "sha": "f4ead377339495b2efc5c4eed619144df6dad8bd",
-              "mime": "text/vnd.trolltech.linguist"
+              "children": []
             }
           ]
         }
@@ -139,452 +55,40 @@
               "name": "api",
               "children": [
                 {
-                  "type": "file",
-                  "name": "_shared.js",
-                  "path": "dist/server/api/_shared.js",
-                  "sha": "04a68dce8255356d00ebff8699e2b7bf6caf75f7",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "admin-dashboard.js",
-                  "path": "dist/server/api/admin-dashboard.js",
-                  "sha": "d8ce4905f7a43dfead54f8d1b05303c2f995c227",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "admin.js",
-                  "path": "dist/server/api/admin.js",
-                  "sha": "b500a58551935ce597cc9861a94f870542bee03e",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "auth.js",
-                  "path": "dist/server/api/auth.js",
-                  "sha": "e7677678afbfdbebfcc38f84d7f59288e1934f73",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "blob.js",
-                  "path": "dist/server/api/blob.js",
-                  "sha": "21ffa0d87e9195c0df1c5f9b3b597c1f7df5a0c9",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "community-channels.js",
-                  "path": "dist/server/api/community-channels.js",
-                  "sha": "f01d24bf94dd68c8a562c54e23ceaba26f70d193",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "community-profile.js",
-                  "path": "dist/server/api/community-profile.js",
-                  "sha": "2139b38a645f2f8185f498ede3e05b4f696495b9",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "community.js",
-                  "path": "dist/server/api/community.js",
-                  "sha": "1d314fb6150f270249d2905291e3e1de18efd239",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "config.js",
-                  "path": "dist/server/api/config.js",
-                  "sha": "3f04e5ce87ba678e1b6b433b68a59fa0bbdc259d",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "dashboard.js",
-                  "path": "dist/server/api/dashboard.js",
-                  "sha": "298a4028fa743f383ca634adb7e29902ba91e57f",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "desmos.js",
-                  "path": "dist/server/api/desmos.js",
-                  "sha": "450e95b20a24ec16ed6fd0bb0b06e8cbc5e158a8",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "files-manifest.js",
-                  "path": "dist/server/api/files-manifest.js",
-                  "sha": "a054319330500676b68ec82e3cbc1a852db38958",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "forum.js",
-                  "path": "dist/server/api/forum.js",
-                  "sha": "079aada754e7428d7a34e1e55e4e51dc96150571",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "gh.js",
-                  "path": "dist/server/api/gh.js",
-                  "sha": "d323676ac5d8537815e8489f22ceecafb7053f5a",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "github-app.js",
-                  "path": "dist/server/api/github-app.js",
-                  "sha": "a6a57ac7b37320a80dd528756aa07e19b8292db9",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "issue-review.js",
-                  "path": "dist/server/api/issue-review.js",
-                  "sha": "46145d262afd290a01b284bb16d130a1b4ea34e2",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "issues.js",
-                  "path": "dist/server/api/issues.js",
-                  "sha": "57269bf97918655d546a4fe55c4f0d3220025d17",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "oauth.js",
-                  "path": "dist/server/api/oauth.js",
-                  "sha": "badaecccc3188d89674248b307e2bf7e1b092e42",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "pages-fetch.js",
-                  "path": "dist/server/api/pages-fetch.js",
-                  "sha": "9c0df09518583f7cb706952d419f75f4f33c2a71",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "pr-review.js",
-                  "path": "dist/server/api/pr-review.js",
-                  "sha": "e291a2ee688e8fe3a71fbd51a78ad0b14657fcac",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "raw.js",
-                  "path": "dist/server/api/raw.js",
-                  "sha": "a9e864f1af3106eddfa4d947682f09af3541f3bf",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "rebuild-tree.js",
-                  "path": "dist/server/api/rebuild-tree.js",
-                  "sha": "e405de04b85a5ad3de021a9a5399a2a49000b6b0",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "refresh-signal.js",
-                  "path": "dist/server/api/refresh-signal.js",
-                  "sha": "2120ca3833b6f21a9cf95c4c5a7b1c6bcea7e100",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "repo-registry.js",
-                  "path": "dist/server/api/repo-registry.js",
-                  "sha": "99ac8dd432930371573cba6b9642984116f2c0e4",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "session.js",
-                  "path": "dist/server/api/session.js",
-                  "sha": "187e7399c1bd1ba0259b16fb57fbdeda6d47017d",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "submit-pr.js",
-                  "path": "dist/server/api/submit-pr.js",
-                  "sha": "47aff443b055773e80c6f28ad97cc908960a90ca",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "system.js",
-                  "path": "dist/server/api/system.js",
-                  "sha": "e74b8d908b953c36284e4cd06cb07ee8f123667a",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "theme.js",
-                  "path": "dist/server/api/theme.js",
-                  "sha": "ae1b51b93b8b79d6e6337d12035ac6bd4a6140fe",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "totp.js",
-                  "path": "dist/server/api/totp.js",
-                  "sha": "fdc2f3c6e06f8bf9bf916e8534f23270d0d5ffdc",
-                  "mime": "text/javascript"
-                },
-                {
                   "type": "folder",
                   "name": "webhooks",
-                  "children": [
-                    {
-                      "type": "file",
-                      "name": "github-app.js",
-                      "path": "dist/server/api/webhooks/github-app.js",
-                      "sha": "1bc7432e136d1fc15c2714a379dae80fe1df8932",
-                      "mime": "text/javascript"
-                    }
-                  ]
+                  "children": []
                 }
               ]
             },
             {
               "type": "folder",
               "name": "client",
-              "children": [
-                {
-                  "type": "file",
-                  "name": "main.js",
-                  "path": "dist/server/client/main.js",
-                  "sha": "79dc247bbfb35c7e7f16257d5f0a3a6b75afb49b",
-                  "mime": "text/javascript"
-                }
-              ]
+              "children": []
             },
             {
               "type": "folder",
               "name": "lib",
-              "children": [
-                {
-                  "type": "file",
-                  "name": "ai-markdown.js",
-                  "path": "dist/server/lib/ai-markdown.js",
-                  "sha": "99956db0ad11528bff049cc6805969de15f62074",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "browser-session.js",
-                  "path": "dist/server/lib/browser-session.js",
-                  "sha": "40241656414cff313282a713876ba256f2acba7e",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "db.js",
-                  "path": "dist/server/lib/db.js",
-                  "sha": "7fb9e4029038ebc41b0b7deb8eb2d6694046a712",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "github-app.js",
-                  "path": "dist/server/lib/github-app.js",
-                  "sha": "d7eb3757708a16832b367af024b3e713ee987cd1",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "github-repositories.js",
-                  "path": "dist/server/lib/github-repositories.js",
-                  "sha": "45787956b48856b11bc4aaae953706d2a84fb2b1",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "image-to-svg.js",
-                  "path": "dist/server/lib/image-to-svg.js",
-                  "sha": "04083b2e258b60557e5aace04d9d93f6eeecd82c",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "metrics.js",
-                  "path": "dist/server/lib/metrics.js",
-                  "sha": "25f9bc180d79ccb9db8092e42f7d6c90a1490a00",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "octokit-loader.js",
-                  "path": "dist/server/lib/octokit-loader.js",
-                  "sha": "ab09c8a1779141c43a5a8a1525ad0228ac98a4c8",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "permissions.js",
-                  "path": "dist/server/lib/permissions.js",
-                  "sha": "9ad14f67719efbbb15ebbda15aaa945248fe2aba",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "roles.js",
-                  "path": "dist/server/lib/roles.js",
-                  "sha": "2313a79e357cb161d305f44309cb4e46229709ca",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "runtime-config.js",
-                  "path": "dist/server/lib/runtime-config.js",
-                  "sha": "a3ccaf7aa4874f9fb170b5c70b8f49e130ba9d8a",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "safe-file-path.js",
-                  "path": "dist/server/lib/safe-file-path.js",
-                  "sha": "32329c9be471544165739ef85e9bb07d9c9e45db",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "shared-cache.js",
-                  "path": "dist/server/lib/shared-cache.js",
-                  "sha": "034250ccb4451e37e73bd0d45c3c4bbbf3a7c8b0",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "theme-catalog.js",
-                  "path": "dist/server/lib/theme-catalog.js",
-                  "sha": "004b501d834190ac1ca14dfe6c15f5c837a97877",
-                  "mime": "text/javascript"
-                }
-              ]
+              "children": []
             },
             {
               "type": "folder",
               "name": "scripts",
-              "children": [
-                {
-                  "type": "file",
-                  "name": "generate-github-repos.js",
-                  "path": "dist/server/scripts/generate-github-repos.js",
-                  "sha": "3762cef6972e871b03e18d21ed6bcd511fb4c5fb",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "generate-json-files.js",
-                  "path": "dist/server/scripts/generate-json-files.js",
-                  "sha": "599fdc77dbf23f911c44193976069caf99e69ce9",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "json-fetch.js",
-                  "path": "dist/server/scripts/json-fetch.js",
-                  "sha": "6e40796339a3004bac6860779a35c8e77456ecbc",
-                  "mime": "text/javascript"
-                }
-              ]
+              "children": []
             },
             {
               "type": "folder",
               "name": "server",
-              "children": [
-                {
-                  "type": "file",
-                  "name": "api-routes.js",
-                  "path": "dist/server/server/api-routes.js",
-                  "sha": "636284bbaccaff050dc55aa9d5ad1b2a129ab95d",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "observability.js",
-                  "path": "dist/server/server/observability.js",
-                  "sha": "7c3c46003eae8c4e39c520c5dd8c83e8353a9a0f",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "public-routes.js",
-                  "path": "dist/server/server/public-routes.js",
-                  "sha": "8f7e53765a66ba86b821797a50f80c44721ff1a0",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "server.js",
-                  "path": "dist/server/server/server.js",
-                  "sha": "8b3ebfb1120185f44ef618b659e97e9daad84729",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "startup.js",
-                  "path": "dist/server/server/startup.js",
-                  "sha": "4872a5eb418199b1a99efe43d2287c5b7171a6b4",
-                  "mime": "text/javascript"
-                },
-                {
-                  "type": "file",
-                  "name": "workspace-routes.js",
-                  "path": "dist/server/server/workspace-routes.js",
-                  "sha": "e68f359700f8d67e6095465c642fb873afcf690a",
-                  "mime": "text/javascript"
-                }
-              ]
-            },
-            {
-              "type": "file",
-              "name": "service-worker.js",
-              "path": "dist/server/service-worker.js",
-              "sha": "976cab2b07ba9f412e5e945390d0d92351e28dc4",
-              "mime": "text/javascript"
+              "children": []
             },
             {
               "type": "folder",
               "name": "shims",
-              "children": [
-                {
-                  "type": "file",
-                  "name": "pages-fetch.js",
-                  "path": "dist/server/shims/pages-fetch.js",
-                  "sha": "20dab77dcc5089f9e697dc01f8083c944fa0fd2d",
-                  "mime": "text/javascript"
-                }
-              ]
+              "children": []
             }
           ]
         }
       ]
-    },
-    {
-      "type": "file",
-      "name": "docker-compose.yml",
-      "path": "docker-compose.yml",
-      "sha": "7048fa90636bdf46380463a3e5a8eb10ab89f686",
-      "mime": "application/yaml"
-    },
-    {
-      "type": "file",
-      "name": "Dockerfile",
-      "path": "Dockerfile",
-      "sha": "3a63777df61fd07a5c62b7fd2e3ef6abab8e7fe1",
-      "mime": "application/octet-stream"
     },
     {
       "type": "folder",
@@ -624,20 +128,6 @@
           "children": [
             {
               "type": "file",
-              "name": "architecture-real.mmd",
-              "path": "docs/phase1/architecture-real.mmd",
-              "sha": "c8d21c0ecbddb4cdfb4f3e181e50ef8973b01f1a",
-              "mime": "application/vnd.chipnuts.karaoke-mmd"
-            },
-            {
-              "type": "file",
-              "name": "architecture-real.png",
-              "path": "docs/phase1/architecture-real.png",
-              "sha": "0a767e74b6e4519a33905cea2ee3023ed19783db",
-              "mime": "image/png"
-            },
-            {
-              "type": "file",
               "name": "CANDIDATE-CLASSIFICATION.txt",
               "path": "docs/phase1/CANDIDATE-CLASSIFICATION.txt",
               "sha": "c3e2174d9a2c97b6c863c9db6d1e3123749384ea",
@@ -649,20 +139,6 @@
               "path": "docs/phase1/FILE-AREA-INVENTORY.txt",
               "sha": "210d66fe50b73dee624bf43af0b978dd59f542e0",
               "mime": "text/plain"
-            },
-            {
-              "type": "file",
-              "name": "FILE-INVENTORY.tsv",
-              "path": "docs/phase1/FILE-INVENTORY.tsv",
-              "sha": "5351dfaae25b68cba95d266edeb11357297135ec",
-              "mime": "text/tab-separated-values"
-            },
-            {
-              "type": "file",
-              "name": "FILE-RESPONSIBILITY-MANIFEST.json",
-              "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.json",
-              "sha": "58cbfe8a3ef47216216c0f1862bfb72d52065381",
-              "mime": "application/json"
             },
             {
               "type": "file",
@@ -1053,58 +529,115 @@
     },
     {
       "type": "file",
-      "name": "fmtree.py",
-      "path": "fmtree.py",
-      "sha": "4d9c5269d78d298ba59997f5b39467ee3819d438",
-      "mime": "text/x-python"
-    },
-    {
-      "type": "file",
       "name": "GITHUB-REPOSITORIES.md",
       "path": "GITHUB-REPOSITORIES.md",
-      "sha": "be1cb78b472d93f8ed71f676570d637b0620cdcb",
+      "sha": "97c9ffb1b97b4c5f29c30277c47b21cca4c703ee",
       "mime": "text/markdown"
-    },
-    {
-      "type": "file",
-      "name": "LICENSE",
-      "path": "LICENSE",
-      "sha": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
-      "mime": "application/octet-stream"
     },
     {
       "type": "folder",
       "name": "logs",
+      "children": []
+    },
+    {
+      "type": "folder",
+      "name": "public",
       "children": [
         {
-          "type": "file",
-          "name": "admin-actions.log",
-          "path": "logs/admin-actions.log",
-          "sha": "8b69c4312e6eaa0f80fd990083b2f1013f754e08",
-          "mime": "text/plain"
+          "type": "folder",
+          "name": "assets",
+          "children": [
+            {
+              "type": "folder",
+              "name": "diagrams",
+              "children": [
+                {
+                  "type": "folder",
+                  "name": "starter",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "ATTRIBUTIONS.md",
+                      "path": "public/assets/diagrams/starter/ATTRIBUTIONS.md",
+                      "sha": "a720c2c5ac9d61fa441ac4e06c5e34c318ad313e",
+                      "mime": "text/markdown"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         },
         {
-          "type": "file",
-          "name": "localhost.har",
-          "path": "logs/localhost.har",
-          "sha": "fe80235782d842a84ef636b8f6863d85b1c2934c",
-          "mime": "application/octet-stream"
+          "type": "folder",
+          "name": "bin",
+          "children": [
+            {
+              "type": "folder",
+              "name": "tikzjax",
+              "children": [
+                {
+                  "type": "folder",
+                  "name": "css",
+                  "children": [
+                    {
+                      "type": "folder",
+                      "name": "bakoma",
+                      "children": [
+                        {
+                          "type": "folder",
+                          "name": "ttf",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "folder",
+                  "name": "output",
+                  "children": []
+                },
+                {
+                  "type": "folder",
+                  "name": "tex_files",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "client",
+          "children": []
+        },
+        {
+          "type": "folder",
+          "name": "css",
+          "children": []
+        },
+        {
+          "type": "folder",
+          "name": "fonts",
+          "children": []
+        },
+        {
+          "type": "folder",
+          "name": "html",
+          "children": []
+        },
+        {
+          "type": "folder",
+          "name": "js",
+          "children": []
+        },
+        {
+          "type": "folder",
+          "name": "json",
+          "children": []
         }
       ]
-    },
-    {
-      "type": "file",
-      "name": "package-lock.json",
-      "path": "package-lock.json",
-      "sha": "216491c778b7a44690046a4943bf069dd2accfcf",
-      "mime": "application/json"
-    },
-    {
-      "type": "file",
-      "name": "package.json",
-      "path": "package.json",
-      "sha": "948055a746a0d7b4b37e8f49059e21469a7a6886",
-      "mime": "application/json"
     },
     {
       "type": "file",
@@ -1116,50 +649,7 @@
     {
       "type": "folder",
       "name": "scripts",
-      "children": [
-        {
-          "type": "file",
-          "name": "assistant_release.sh",
-          "path": "scripts/assistant_release.sh",
-          "sha": "d327ca1449179a8d20b3042551f2a8ba2ad5162b",
-          "mime": "application/x-sh"
-        },
-        {
-          "type": "file",
-          "name": "build-file-responsibility-manifest.mjs",
-          "path": "scripts/build-file-responsibility-manifest.mjs",
-          "sha": "2f7f091c8c9c9f4301989adcba5a1b1c8573d8bd",
-          "mime": "text/javascript"
-        },
-        {
-          "type": "file",
-          "name": "commit_and_merge.sh",
-          "path": "scripts/commit_and_merge.sh",
-          "sha": "d0865e80e3d4dca63c4d0747673209c97ac3d8b5",
-          "mime": "application/x-sh"
-        },
-        {
-          "type": "file",
-          "name": "test-desmos-headless.js",
-          "path": "scripts/test-desmos-headless.js",
-          "sha": "629b4d539e8f80777ba22ba65cb32711fa6c0a55",
-          "mime": "text/javascript"
-        },
-        {
-          "type": "file",
-          "name": "validate-desmos-parser.js",
-          "path": "scripts/validate-desmos-parser.js",
-          "sha": "3e864bcc6ebd4ed6dd92129dc403397f752e7dfc",
-          "mime": "text/javascript"
-        },
-        {
-          "type": "file",
-          "name": "validate-workflows.py",
-          "path": "scripts/validate-workflows.py",
-          "sha": "bb837583189f1d79bcca9a2b45b64630e6aa6c5b",
-          "mime": "text/x-python"
-        }
-      ]
+      "children": []
     },
     {
       "type": "folder",
@@ -1209,13 +699,6 @@
         },
         {
           "type": "file",
-          "name": "notes-triad.skill",
-          "path": "skill/notes-triad.skill",
-          "sha": "7a995d650a99c43f30f7e23d5096ab1d1ead9558",
-          "mime": "application/octet-stream"
-        },
-        {
-          "type": "file",
           "name": "physics-generator.skill.md",
           "path": "skill/physics-generator.skill.md",
           "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
@@ -1224,53 +707,87 @@
       ]
     },
     {
-      "type": "file",
-      "name": "tsconfig.client.compat.json",
-      "path": "tsconfig.client.compat.json",
-      "sha": "82ebb09f20080c239e8f83c2becccc5cea3f1b41",
-      "mime": "application/json"
+      "type": "folder",
+      "name": "src",
+      "children": [
+        {
+          "type": "folder",
+          "name": "api",
+          "children": [
+            {
+              "type": "folder",
+              "name": "webhooks",
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "client",
+          "children": []
+        },
+        {
+          "type": "folder",
+          "name": "db",
+          "children": [
+            {
+              "type": "folder",
+              "name": "migrations",
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "lib",
+          "children": [
+            {
+              "type": "folder",
+              "name": "schemas",
+              "children": []
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "scripts",
+          "children": []
+        },
+        {
+          "type": "folder",
+          "name": "server",
+          "children": [
+            {
+              "type": "file",
+              "name": "README.md",
+              "path": "src/server/README.md",
+              "sha": "0109664eeaacd00a581e1d5aaca0e3c42a89a03f",
+              "mime": "text/markdown"
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "shims",
+          "children": []
+        },
+        {
+          "type": "folder",
+          "name": "types",
+          "children": []
+        }
+      ]
     },
     {
-      "type": "file",
-      "name": "tsconfig.client.json",
-      "path": "tsconfig.client.json",
-      "sha": "d3deaf5434483ddab2d2cfdd2e21388757510ae9",
-      "mime": "application/json"
-    },
-    {
-      "type": "file",
-      "name": "tsconfig.json",
-      "path": "tsconfig.json",
-      "sha": "4e3b4670565f61fbf72ec1fb592b0a16211a19aa",
-      "mime": "application/json"
-    },
-    {
-      "type": "file",
-      "name": "tsconfig.server.json",
-      "path": "tsconfig.server.json",
-      "sha": "5d9ab9c64d6c61bc1795944037329228900bb333",
-      "mime": "application/json"
-    },
-    {
-      "type": "file",
-      "name": "vercel.json",
-      "path": "vercel.json",
-      "sha": "f5375130bdecc527c28c7330d15b8d6db90db289",
-      "mime": "application/json"
-    },
-    {
-      "type": "file",
-      "name": "version.json",
-      "path": "version.json",
-      "sha": "d76020dc4e2685a1b071c6f12f0d0749f0bab963",
-      "mime": "application/json"
-    },
-    {
-      "type": "file",
-      "name": "zipCreate.sh",
-      "path": "zipCreate.sh",
-      "sha": "96e7234cc3244bcd85f2ebae7a890d11de5f700e",
-      "mime": "application/x-sh"
+      "type": "folder",
+      "name": "tests",
+      "children": [
+        {
+          "type": "folder",
+          "name": "webhooks",
+          "children": []
+        }
+      ]
     }
   ]
 }
