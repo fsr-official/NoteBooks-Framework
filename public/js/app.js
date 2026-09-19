@@ -1123,9 +1123,17 @@ function toggleSidebar() {
         // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
-        // Start collapsed; folders expand only through the active route or user interaction.
+        // Keep the repository root expanded on first load so the workspace opens
+        // with the tree hierarchy visible, while still allowing a user to collapse it.
         autoExpandedTreePaths.clear();
         expandedTreePaths.clear();
+        if (treeRoot && Array.isArray(treeRoot.children)) {
+            for (const child of treeRoot.children) {
+                if (child && child.type === 'folder') {
+                    autoExpandedTreePaths.add(getNodePath(child));
+                }
+            }
+        }
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
         // Preserve independently collapsed folders across refreshes; remove paths no longer present.

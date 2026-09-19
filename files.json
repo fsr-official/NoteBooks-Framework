@@ -5,7 +5,13 @@
     {
       "type": "folder",
       "name": ".vercel",
-      "children": []
+      "children": [
+        {
+          "type": "folder",
+          "name": "cache",
+          "children": []
+        }
+      ]
     },
     {
       "type": "folder",
@@ -35,6 +41,54 @@
       "path": "COPYLEFT-NOTICES.md",
       "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
       "mime": "text/markdown"
+    },
+    {
+      "type": "folder",
+      "name": "dist",
+      "children": [
+        {
+          "type": "folder",
+          "name": "server",
+          "children": [
+            {
+              "type": "folder",
+              "name": "api",
+              "children": [
+                {
+                  "type": "folder",
+                  "name": "webhooks",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "name": "client",
+              "children": []
+            },
+            {
+              "type": "folder",
+              "name": "lib",
+              "children": []
+            },
+            {
+              "type": "folder",
+              "name": "scripts",
+              "children": []
+            },
+            {
+              "type": "folder",
+              "name": "server",
+              "children": []
+            },
+            {
+              "type": "folder",
+              "name": "shims",
+              "children": []
+            }
+          ]
+        }
+      ]
     },
     {
       "type": "folder",
