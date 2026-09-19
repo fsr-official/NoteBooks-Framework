@@ -91,11 +91,12 @@ async function initMarkdownFeatures(container) {
     if (typeof window.obsidianInitTikz === 'function') {
         window.obsidianInitTikz(container);
     }
-    if (typeof window.obsidianInitMath === 'function') {
-        await window.obsidianInitMath(container);
-    }
+    // Start Mermaid immediately after insertion so mindmaps are not held behind math typesetting.
     if (typeof window.obsidianInitMermaid === 'function') {
         window.obsidianInitMermaid(container);
+    }
+    if (typeof window.obsidianInitMath === 'function') {
+        await window.obsidianInitMath(container);
     }
     if (typeof window.obsidianInitDesmos === 'function') {
         window.obsidianInitDesmos(container);
