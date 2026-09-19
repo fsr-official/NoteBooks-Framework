@@ -1,0 +1,16 @@
+{"action":"assign-role","actor":"admin@example.com","target":"target@example.com","role":"editor","label":"editor","at":"2026-09-19T18:29:54.495Z"}
+{"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-19T18:29:54.541Z"}
+{"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-20T18:29:54.570Z","at":"2026-09-19T18:29:54.580Z"}
+{"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-19T18:29:54.600Z"}
+{"action":"assign-role","actor":"admin@example.com","target":"target@example.com","role":"editor","label":"editor","at":"2026-09-19T18:30:55.864Z"}
+{"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-19T18:30:56.025Z"}
+{"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-20T18:30:56.054Z","at":"2026-09-19T18:30:56.062Z"}
+{"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-19T18:30:56.080Z"}
+{"action":"assign-role","actor":"admin@example.com","target":"target@example.com","role":"editor","label":"editor","at":"2026-09-19T18:32:45.994Z"}
+{"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-19T18:32:46.044Z"}
+{"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-20T18:32:46.071Z","at":"2026-09-19T18:32:46.081Z"}
+{"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-19T18:32:46.098Z"}
+{"action":"assign-role","actor":"admin@example.com","target":"target@example.com","role":"editor","label":"editor","at":"2026-09-19T18:34:04.187Z"}
+{"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-19T18:34:04.251Z"}
+{"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-20T18:34:04.313Z","at":"2026-09-19T18:34:04.322Z"}
+{"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-19T18:34:04.338Z"}

@@ -1736,8 +1736,8 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
     const isFullScreen = isMarkdown || ext === 'pdf' || ext === 'html' || ext === 'htm'
         || ext === 'doc' || ext === 'docx' || ext === 'xls' || ext === 'xlsx'
         || ext === 'ppt' || ext === 'pptx';
-    // Edit button — only for markdown files
-  const editBtnHTML = '';
+    // Keep the split-view editor logic available, but do not attach a visible button yet.
+    const editBtnHTML = '';
     win.innerHTML = `
     <div class="title-bar" onmousedown="startDrag(event, '${id}')">
       <div class="title">${filename}</div>

@@ -127,7 +127,7 @@ describe('frontend stream shell', () => {
     const appJs = await request(app).get('/public/js/app.js');
     expect(appJs.status).toBe(200);
     expect(appJs.text).toContain('20260828-sw-v43');
-    expect(appJs.text).toContain('Edit existing Markdown file');
+    expect(appJs.text).not.toContain('Edit existing Markdown file');
     expect(appJs.text).toContain('isNewFile: false');
     expect(appJs.text).toContain('window.NoteBooksRawDelivery');
     expect(appJs.text).toContain('const delivery = window.NoteBooksRawDelivery;');
@@ -168,7 +168,7 @@ describe('frontend stream shell', () => {
     expect(authJs.text).not.toContain('if (!loginBtn)\n        return;');
     const mobileJs = await request(app).get('/public/js/mobile.js');
     expect(mobileJs.status).toBe(200);
-    expect(mobileJs.text).toContain('Edit existing Markdown file');
+    expect(mobileJs.text).not.toContain('Edit existing Markdown file');
     expect(mobileJs.text).toContain("selected.repo || ''");
     expect(mobileJs.text).not.toContain('restoreModernSession();');
     expect(mobileJs.text).toContain('updatePendingBadge();');
