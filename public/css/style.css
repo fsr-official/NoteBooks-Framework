@@ -4163,6 +4163,26 @@ th { background: var(--surface-strong); color: var(--fg); }
   .stream-workspace-main .tree-rail .tree-current-location--marker { max-width: 100%; }
 }
 
+/* Keep the navigator tree stretched through the complete available rail area. */
+.tree-rail .sidebar-browse-section {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tree-rail .sidebar-tree {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  max-height: none !important;
+  overflow-y: auto;
+}
+
+.tree-rail .tree-hover-details {
+  flex: 0 0 auto;
+}
+
 
 /* Focused About page: a full project statement, not a generic portal card. */
 .about-page {
