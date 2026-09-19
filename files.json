@@ -5,13 +5,7 @@
     {
       "type": "folder",
       "name": ".vercel",
-      "children": [
-        {
-          "type": "folder",
-          "name": "cache",
-          "children": []
-        }
-      ]
+      "children": []
     },
     {
       "type": "folder",
@@ -60,11 +54,6 @@
                   "children": []
                 }
               ]
-            },
-            {
-              "type": "folder",
-              "name": "client",
-              "children": []
             },
             {
               "type": "folder",
