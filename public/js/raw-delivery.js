@@ -27,7 +27,13 @@
       const apiRaw = `${origin}/api/raw?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(options.repo)}&branch=${encodeURIComponent(branch)}&raw=${encodeURIComponent(rawGithub)}`;
       const apiMedia = `${origin}/api/media?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(options.repo)}&branch=${encodeURIComponent(branch)}&media=${encodeURIComponent(mediaGithub)}`;
       const pages = options.pagesBase ? [`${String(options.pagesBase).replace(/\/$/, '')}/${sourcePath}`] : [];
-      return [apiRaw, apiMedia, ...pages, rawGithub, mediaGithub, jsdelivr];
+      const isMedia = /\.(pdf|png|jpe?g|gif|bmp|webp|svg|mp3|wav|ogg|flac|mp4|webm|docx?|xlsx?|pptx?)$/i.test(sourcePath);
+      // Binary assets are served faster and with the correct content type by the
+      // media route. Keep the raw route first for text so markdown/code remains
+      // cheap and predictable.
+      return isMedia
+        ? [apiMedia, mediaGithub, apiRaw, ...pages, rawGithub, jsdelivr]
+        : [apiRaw, apiMedia, ...pages, rawGithub, mediaGithub, jsdelivr];
     }
     const candidates = [`${origin}/api/raw?path=${encodeURIComponent(path)}`];
     if (options.isGitHubPages && options.githubRepo) {
