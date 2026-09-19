@@ -38,49 +38,6 @@
     },
     {
       "type": "folder",
-      "name": "dist",
-      "children": [
-        {
-          "type": "folder",
-          "name": "server",
-          "children": [
-            {
-              "type": "folder",
-              "name": "api",
-              "children": [
-                {
-                  "type": "folder",
-                  "name": "webhooks",
-                  "children": []
-                }
-              ]
-            },
-            {
-              "type": "folder",
-              "name": "lib",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "scripts",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "server",
-              "children": []
-            },
-            {
-              "type": "folder",
-              "name": "shims",
-              "children": []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "folder",
       "name": "docs",
       "children": [
         {
