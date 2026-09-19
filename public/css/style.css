@@ -320,7 +320,84 @@
 .app-sidebar--collapsed .sidebar-brand > div:not(.brand-mark) { display: none; }
 .app-sidebar--collapsed .sidebar-collapse-control { margin-left: 0; }
 
-@media (max-width: 980px) {
+  @media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .mobile-tree-toggle {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 1200;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(94, 234, 212, 0.45);
+    border-radius: 12px;
+    background: rgba(6, 21, 29, 0.94);
+    color: #b8fff0;
+    box-shadow: 0 8px 24px rgba(2, 6, 23, 0.35);
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .mobile-tree-toggle:focus-visible {
+    outline: 2px solid #67e8f9;
+    outline-offset: 3px;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: 0;
+    padding: 10px 10px calc(20px + env(safe-area-inset-bottom));
+    gap: 12px;
+  }
+
+  .tree-rail {
+    position: fixed;
+    inset: max(10px, env(safe-area-inset-top)) 10px auto 10px;
+    z-index: 1100;
+    display: flex;
+    width: auto;
+    min-width: 0;
+    max-height: min(78vh, 620px);
+    transform: translateY(calc(-100% - 24px));
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+
+  .tree-rail.mobile-tree-open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .tree-rail .sidebar-tree {
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 auto;
+  }
+
+  .tree-rail-header {
+    padding-right: 56px;
+  }
+
+  .workspace-window {
+    min-height: calc(100vh - 20px);
+  }
+
+  .workspace-window,
+  .workspace-window * {
+    max-width: 100%;
+  }
+  }
+
+  @media (max-width: 980px) {
   .app-shell { height: auto; min-height: 0; padding: 10px 10px 20px; gap: 12px; }
   .app-sidebar { width: 100%; min-width: 0; height: auto; max-height: 58vh; }
   .sidebar-tree { max-height: 34vh; }
@@ -331,8 +408,12 @@
   .app-sidebar--collapsed .sidebar-collapse-control { margin-left: auto; }
 }
 
-/* ===== THREE-PANE WORKSPACE: UTILITY LEFT / WORKSPACE CENTER / TREE RIGHT ===== */
-.app-shell {
+  /* ===== THREE-PANE WORKSPACE: UTILITY LEFT / WORKSPACE CENTER / TREE RIGHT ===== */
+  .mobile-tree-toggle {
+    display: none;
+  }
+
+  .app-shell {
   display: flex;
   align-items: stretch;
   width: 100%;

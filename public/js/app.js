@@ -39,7 +39,8 @@ let treeCurrentLocation = null;
 let activeTreePath = '';
 let treeInteractionStarted = false;
 let pendingTreeFocusPath = null;
-const expandedTreePaths = new Set();
+  const expandedTreePaths = new Set();
+  const autoExpandedTreePaths = new Set();
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
 // Runtime configuration. Avoid hardcoded repo/page defaults; load per-stream trees at runtime.
@@ -824,12 +825,14 @@ function setActiveTreePath(path) {
     activeTreePath = String(path || '').replace(/^\/+|\/+$/g, '');
     if (activeTreePath)
         treeInteractionStarted = true;
+    autoExpandedTreePaths.clear();
     if (activeTreePath && treeRoot) {
-        const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
-        activeAncestors.forEach((ancestor) => {
-            if (ancestor.type === 'folder' && getNodePath(ancestor) !== activeTreePath)
-                expandedTreePaths.add(getNodePath(ancestor));
-        });
+      const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
+      activeAncestors.forEach((ancestor) => {
+        const ancestorPath = getNodePath(ancestor);
+        if (ancestor.type === 'folder' && ancestorPath !== 'root')
+          autoExpandedTreePaths.add(ancestorPath);
+      });
     }
     if (treeCurrentLocation) {
         const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
@@ -886,7 +889,7 @@ function createSidebarTreeItem(node, query) {
     const isActive = activeTreePath && nodePath === activeTreePath;
     const isAncestor = activeTreePath && findAncestors(treeRoot, activeTreePath)?.some((ancestor) => getNodePath(ancestor) === nodePath);
     const shouldExpandForSearch = Boolean(query && childItems.length);
-    const isExpanded = hasChildren && (shouldExpandForSearch || expandedTreePaths.has(nodePath));
+    const isExpanded = hasChildren && (shouldExpandForSearch || expandedTreePaths.has(nodePath) || autoExpandedTreePaths.has(nodePath));
     if (isActive)
         li.classList.add('current');
     if (isAncestor)
@@ -1120,13 +1123,9 @@ function toggleSidebar() {
         // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
-        // Show the repository roots by default. This keeps the tree useful on first
-        // paint while leaving deeper folders explicitly expandable by the reader.
-        if (!treeInteractionStarted && !searchQuery && Array.isArray(treeRoot.children)) {
-            treeRoot.children
-                .filter((child) => child?.type === 'folder' && Array.isArray(child.children) && child.children.length > 0)
-                .forEach((child) => expandedTreePaths.add(getNodePath(child)));
-        }
+        // Start collapsed; folders expand only through the active route or user interaction.
+        autoExpandedTreePaths.clear();
+        expandedTreePaths.clear();
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
         // Preserve independently collapsed folders across refreshes; remove paths no longer present.
