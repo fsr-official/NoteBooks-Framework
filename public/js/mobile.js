@@ -1,3 +1,33 @@
+// ===== MOBILE REPOSITORY NAVIGATOR =====
+function setMobileTreeOpen(open) {
+    const rail = document.getElementById('treeRail');
+    const toggle = document.getElementById('mobileTreeToggle');
+    if (!rail || !toggle) return;
+    const isOpen = Boolean(open);
+    rail.classList.toggle('mobile-tree-open', isOpen);
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.setAttribute('aria-label', isOpen ? 'Close repository navigator' : 'Open repository navigator');
+    toggle.title = isOpen ? 'Close repository navigator' : 'Open repository navigator';
+}
+function toggleMobileTree() {
+    const rail = document.getElementById('treeRail');
+    setMobileTreeOpen(!rail?.classList.contains('mobile-tree-open'));
+}
+function initMobileTree() {
+    const toggle = document.getElementById('mobileTreeToggle');
+    const rail = document.getElementById('treeRail');
+    if (!toggle || !rail) return;
+    toggle.addEventListener('click', toggleMobileTree);
+    rail.addEventListener('click', (event) => {
+        if (event.target.closest('.sidebar-collapse-control')) return;
+        if (event.target.closest('.tree-item, .sidebar-tree')) return;
+        if (event.target.closest('.tree-rail-header')) return;
+        if (window.matchMedia('(max-width: 768px)').matches) setMobileTreeOpen(false);
+    });
+    setMobileTreeOpen(false);
+}
+window.toggleMobileTree = toggleMobileTree;
+
 // ===== MOBILE OVERFLOW MENU =====
 function toggleMobOverflow() {
     document.getElementById('mobOverflowMenu')?.classList.toggle('open');
@@ -225,5 +255,6 @@ function updateTaskbar() {
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', async () => {
+    initMobileTree();
     await updatePendingBadge();
 });

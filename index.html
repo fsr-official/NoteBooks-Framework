@@ -487,8 +487,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
     </div>
   </div>
 
-<!-- The workspace toolbar is intentionally title-only; navigation and file actions live in the tree and context surfaces. -->
-<div class="app-shell">
+  <!-- The workspace toolbar is intentionally title-only; navigation and file actions live in the tree and context surfaces. -->
+  <button class="mobile-tree-toggle" id="mobileTreeToggle" type="button" aria-controls="treeRail" aria-expanded="false" aria-label="Open repository navigator" title="Open repository navigator">
+    <span aria-hidden="true">☰</span>
+  </button>
+  <div class="app-shell">
   <aside class="app-sidebar legacy-sidebar" id="appSidebar" aria-hidden="true" hidden>
       <div class="sidebar-brand">
         <div class="brand-mark">N</div>

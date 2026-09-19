@@ -39,7 +39,8 @@ let treeCurrentLocation = null;
 let activeTreePath = '';
 let treeInteractionStarted = false;
 let pendingTreeFocusPath = null;
-const expandedTreePaths = new Set();
+  const expandedTreePaths = new Set();
+  const autoExpandedTreePaths = new Set();
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
 // Runtime configuration. Avoid hardcoded repo/page defaults; load per-stream trees at runtime.
@@ -824,12 +825,14 @@ function setActiveTreePath(path) {
     activeTreePath = String(path || '').replace(/^\/+|\/+$/g, '');
     if (activeTreePath)
         treeInteractionStarted = true;
+    autoExpandedTreePaths.clear();
     if (activeTreePath && treeRoot) {
-        const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
-        activeAncestors.forEach((ancestor) => {
-            if (ancestor.type === 'folder' && getNodePath(ancestor) !== activeTreePath)
-                expandedTreePaths.add(getNodePath(ancestor));
-        });
+      const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
+      activeAncestors.forEach((ancestor) => {
+        const ancestorPath = getNodePath(ancestor);
+        if (ancestor.type === 'folder' && ancestorPath !== 'root')
+          autoExpandedTreePaths.add(ancestorPath);
+      });
     }
     if (treeCurrentLocation) {
         const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
@@ -886,7 +889,7 @@ function createSidebarTreeItem(node, query) {
     const isActive = activeTreePath && nodePath === activeTreePath;
     const isAncestor = activeTreePath && findAncestors(treeRoot, activeTreePath)?.some((ancestor) => getNodePath(ancestor) === nodePath);
     const shouldExpandForSearch = Boolean(query && childItems.length);
-    const isExpanded = hasChildren && (shouldExpandForSearch || expandedTreePaths.has(nodePath));
+    const isExpanded = hasChildren && (shouldExpandForSearch || expandedTreePaths.has(nodePath) || autoExpandedTreePaths.has(nodePath));
     if (isActive)
         li.classList.add('current');
     if (isAncestor)
@@ -1120,13 +1123,9 @@ function toggleSidebar() {
         // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
-        // Show the repository roots by default. This keeps the tree useful on first
-        // paint while leaving deeper folders explicitly expandable by the reader.
-        if (!treeInteractionStarted && !searchQuery && Array.isArray(treeRoot.children)) {
-            treeRoot.children
-                .filter((child) => child?.type === 'folder' && Array.isArray(child.children) && child.children.length > 0)
-                .forEach((child) => expandedTreePaths.add(getNodePath(child)));
-        }
+        // Start collapsed; folders expand only through the active route or user interaction.
+        autoExpandedTreePaths.clear();
+        expandedTreePaths.clear();
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
         // Preserve independently collapsed folders across refreshes; remove paths no longer present.
@@ -1738,11 +1737,7 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
         || ext === 'doc' || ext === 'docx' || ext === 'xls' || ext === 'xlsx'
         || ext === 'ppt' || ext === 'pptx';
     // Edit button — only for markdown files
-    const editBtnHTML = isMarkdown
-        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Edit existing Markdown file" aria-label="Edit existing Markdown file" onclick="toggleSplitEditor('${id}')">
-         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Open editor</span><span class="sv-dot"></span>
-       </button>`
-        : '';
+  const editBtnHTML = '';
     win.innerHTML = `
     <div class="title-bar" onmousedown="startDrag(event, '${id}')">
       <div class="title">${filename}</div>
@@ -1925,36 +1920,17 @@ function renderRawMarkdown(text) {
 }
 
 function renderMarkdownIntoContainer(text, filePath, container) {
-  const win = container.closest('.floating-window');
   const toolbar = document.createElement('div');
   toolbar.className = 'markdown-mode-toolbar';
   toolbar.innerHTML = '<span class="markdown-mode-label">Document</span><button type="button" data-mode="preview" class="active">Reader</button><button type="button" data-mode="raw">Raw view</button>';
   const wrapper = document.createElement('div');
   wrapper.className = 'markdown-content';
   wrapper.dataset.sourceFile = filePath || '';
-  let lastEvidence = null;
   wrapper.innerHTML = markdownToHTML(text, filePath);
   container.innerHTML = '';
   container.appendChild(toolbar);
   container.appendChild(wrapper);
 
-  const suggestButton = document.createElement('button');
-  suggestButton.type = 'button';
-  suggestButton.dataset.mode = 'suggest';
-  suggestButton.textContent = 'Suggest changes';
-  suggestButton.className = 'markdown-suggest-button';
-  suggestButton.disabled = true;
-  suggestButton.title = 'Select source text first';
-  suggestButton.addEventListener('mousedown', (event) => event.preventDefault());
-  suggestButton.addEventListener('click', () => openSuggestChangesComposer(win, text, filePath, lastEvidence));
-  toolbar.appendChild(suggestButton);
-  wrapper.addEventListener('mouseup', () => {
-    const selection = window.getSelection();
-    if (!selection || !wrapper.contains(selection.anchorNode) || !wrapper.contains(selection.focusNode)) return;
-    lastEvidence = sourceRangeForSelection(selection, text);
-    suggestButton.disabled = !lastEvidence;
-    suggestButton.title = lastEvidence ? `Suggest changes for lines ${lastEvidence.startLine}–${lastEvidence.endLine}` : 'Select source text that maps to source lines';
-  });
 
   const setMode = (mode) => {
     toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((item) => item.classList.toggle('active', item.dataset.mode === mode));
@@ -1965,13 +1941,13 @@ function renderMarkdownIntoContainer(text, filePath, container) {
     }
     wrapper.classList.remove('raw-markdown');
     wrapper.innerHTML = markdownToHTML(text, filePath);
-    setTimeout(() => initMarkdownFeatures(wrapper), 0);
+    void initMarkdownFeatures(wrapper);
   };
 
   toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((button) => button.addEventListener('click', () => {
     setMode(button.dataset.mode || 'preview');
   }));
-  setTimeout(() => initMarkdownFeatures(wrapper), 0);
+  void initMarkdownFeatures(wrapper);
 }
 // ─── Split-view editor ────────────────────────────────────────────────────────
 /**
