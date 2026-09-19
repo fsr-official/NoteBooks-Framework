@@ -24,6 +24,7 @@
     "setup": "npm run dev",
     "test": "vitest run",
     "test:browser": "node tests/browser-navigation.smoke.cjs",
+    "test:browser:ci": "bash ./scripts/run-browser-smoke-local.sh",
     "pretest": "node src/scripts/migrate-db.js || true",
     "migrate": "node src/scripts/migrate-db.js",
     "typecheck": "tsc --noEmit -p tsconfig.server.json",

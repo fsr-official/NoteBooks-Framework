@@ -1141,6 +1141,13 @@ function toggleSidebar() {
         [...expandedTreePaths].forEach((path) => { if (!validPaths.has(path)) expandedTreePaths.delete(path); });
         treeInteractionStarted = treeInteractionStarted || expandedTreePaths.size > 0;
         setActiveTreePath('');
+        if (treeRoot && Array.isArray(treeRoot.children)) {
+            for (const child of treeRoot.children) {
+                if (child && child.type === 'folder') {
+                    autoExpandedTreePaths.add(getNodePath(child));
+                }
+            }
+        }
         pathHistory = [];
         renderSidebarTree(treeRoot, searchQuery);
         if (searchQuery) {
