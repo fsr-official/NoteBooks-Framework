@@ -1123,9 +1123,17 @@ function toggleSidebar() {
         // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
         treeRoot = tree;
-        // Start collapsed; folders expand only through the active route or user interaction.
+        // Keep the repository root expanded on first load so the workspace opens
+        // with the tree hierarchy visible, while still allowing a user to collapse it.
         autoExpandedTreePaths.clear();
         expandedTreePaths.clear();
+        if (treeRoot && Array.isArray(treeRoot.children)) {
+            for (const child of treeRoot.children) {
+                if (child && child.type === 'folder') {
+                    autoExpandedTreePaths.add(getNodePath(child));
+                }
+            }
+        }
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
         // Preserve independently collapsed folders across refreshes; remove paths no longer present.
@@ -1736,8 +1744,8 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
     const isFullScreen = isMarkdown || ext === 'pdf' || ext === 'html' || ext === 'htm'
         || ext === 'doc' || ext === 'docx' || ext === 'xls' || ext === 'xlsx'
         || ext === 'ppt' || ext === 'pptx';
-    // Edit button — only for markdown files
-  const editBtnHTML = '';
+    // Keep the split-view editor logic available, but do not attach a visible button yet.
+    const editBtnHTML = '';
     win.innerHTML = `
     <div class="title-bar" onmousedown="startDrag(event, '${id}')">
       <div class="title">${filename}</div>
