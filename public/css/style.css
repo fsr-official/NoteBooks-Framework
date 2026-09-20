@@ -246,13 +246,14 @@
 
 /* ===== FULL-VIEWPORT NAVIGATOR / WORKSPACE SHELL ===== */
 .app-shell {
+  --workspace-shell-gap: 18px;
   width: 100%;
   max-width: none;
   min-height: 100vh;
   height: 100vh;
   margin: 0;
   padding: 16px;
-  gap: 16px;
+  gap: var(--workspace-shell-gap);
   background: transparent;
 }
 
@@ -1740,7 +1741,7 @@ body {
 
 /* Final shell: the navigator is the sole persistent rail on the right. */
 .app-sidebar.legacy-sidebar { display:none !important; }
-.app-shell { display:grid; grid-template-columns:minmax(0, 1fr) clamp(280px, 25vw, 380px); align-items:stretch; gap:18px; padding:18px; background:var(--bg); transition:grid-template-columns 180ms ease; }
+.app-shell { display:grid; grid-template-columns:minmax(0, 1fr) clamp(280px, 25vw, 380px); align-items:stretch; gap:var(--workspace-shell-gap, 18px); padding:18px; background:var(--bg); transition:grid-template-columns 180ms ease; }
 .app-shell.app-shell--tree-collapsed { grid-template-columns:minmax(0, 1fr) 54px; }
 .workspace-window { grid-column:1; grid-row:1; width:auto; max-width:none; height:calc(100vh - 36px); }
 .tree-rail { grid-column:2; grid-row:1; width:auto; min-width:0; height:calc(100vh - 36px); background:var(--panel, var(--item)); border-color:var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
@@ -3863,6 +3864,23 @@ body {
   min-width: 0;
   padding: 18px 14px;
   background: rgba(5, 14, 18, .94);
+}
+.stream-workspace-main .tree-rail--collapsed {
+  width: 62px;
+  min-width: 62px;
+  max-width: 62px;
+  padding: 12px 8px;
+}
+.stream-workspace-main .tree-rail--collapsed > *:not(.tree-rail-header) {
+  display: none;
+}
+.stream-workspace-main .tree-rail--collapsed .tree-rail-header {
+  justify-content: center;
+  padding-bottom: 8px;
+  border-bottom: 0;
+}
+.stream-workspace-main .tree-rail--collapsed .tree-rail-header > div {
+  display: none;
 }
 .stream-workspace-main .tree-rail-header { padding: 2px 4px 16px; border-bottom-color: rgba(56, 189, 174, .24); }
 .stream-workspace-main .tree-rail-kicker { color: #76a49d; font-family: var(--font-mono); font-weight: 700; }

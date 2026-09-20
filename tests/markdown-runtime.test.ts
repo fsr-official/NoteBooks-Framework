@@ -121,12 +121,10 @@ describe('markdown runtime bootstrap', () => {
     expect(appSource).toContain('GLOSSARY');
     expect(appSource).toContain('CNOTES');
     expect(appSource).toContain('NOTES');
-    expect(appSource).toContain('const NOTES_ICON_SVG');
-    expect(appSource).toContain('const GLOSSARY_ICON_SVG');
-    expect(appSource).toContain('const CNOTES_ICON_SVG');
-    expect(appSource).not.toContain('"📓"');
-    expect(appSource).not.toContain('"📒"');
-    expect(appSource).not.toContain('"📔"');
+    expect(appSource).toContain('notes: "�"');
+    expect(appSource).toContain('glossary: "📒"');
+    expect(appSource).toContain('cnotes: "📓"');
+    expect(appSource).toContain('normalizeDisplayName');
     expect(appSource).toContain("if (label.includes('biology')) return 'biology';");
     expect(appSource).toContain("if (label.includes('cs') || label.includes('computer science') || label.includes('computer-science')) return 'cs';");
     expect(markdownVendorsSource).toContain("load: ['[tex]/boldsymbol']");

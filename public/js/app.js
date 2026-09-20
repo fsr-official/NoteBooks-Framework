@@ -349,35 +349,13 @@ const OPEN_FOLDER_ICON_SVG = `
     <path d="M3 11.5h18"/>
   </svg>
 `;
-const NOTES_ICON_SVG = `
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
-    <path d="M15 3.5v4h4"/>
-    <path d="M8 11h8M8 15h8"/>
-  </svg>
-`;
-const GLOSSARY_ICON_SVG = `
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
-    <path d="M15 3.5v4h4"/>
-    <path d="M8 11.5h8M8 15.5h6"/>
-    <path d="M10 7.5h2"/>
-  </svg>
-`;
-const CNOTES_ICON_SVG = `
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
-    <path d="M15 3.5v4h4"/>
-    <path d="M8 9.5h8M8 13h8M8 16.5h5"/>
-  </svg>
-`;
 const FILE_ICONS = {
     folder: FOLDER_ICON_SVG,
 
     // Your notes-triad scheme
-    notes: NOTES_ICON_SVG,
-    glossary: GLOSSARY_ICON_SVG,
-    cnotes: CNOTES_ICON_SVG,
+    notes: "📔",
+    glossary: "📒",
+    cnotes: "📓",
     readme: "📖",
 
     // Docs / text
@@ -1307,11 +1285,11 @@ function getFileIcon(file) {
     const baseName = String(file.name || '').toUpperCase();
     if (baseName === 'README.MD')
         return FILE_ICONS.readme;
-    if (baseName.endsWith('NOTES.MD') || baseName.endsWith('NOTES.MARKDOWN'))
+    if (baseName.endsWith('-NOTES.MD') || baseName.endsWith('-NOTES.MARKDOWN'))
         return FILE_ICONS.notes;
-    if (baseName.endsWith('GLOSSARY.MD') || baseName.endsWith('GLOSSARY.MARKDOWN'))
+    if (baseName.endsWith('-GLOSSARY.MD') || baseName.endsWith('-GLOSSARY.MARKDOWN'))
         return FILE_ICONS.glossary;
-    if (baseName.endsWith('CNOTES.MD') || baseName.endsWith('CNOTES.MARKDOWN'))
+    if (baseName.endsWith('-CNOTES.MD') || baseName.endsWith('-CNOTES.MARKDOWN'))
         return FILE_ICONS.cnotes;
     const ext = file.name.split('.').pop().toLowerCase();
     return FILE_ICONS[ext] || FILE_ICONS.default;
