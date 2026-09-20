@@ -435,11 +435,13 @@
 /* Restored compact navigator: the rail collapses to a slim menu tab. */
 .stream-workspace-main .tree-rail {
   align-items: stretch;
+  flex: 0 0 clamp(290px, 24vw, 370px);
   padding: 12px;
   background: var(--panel, rgba(15, 23, 42, .72));
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow-sm, 0 8px 24px rgba(0, 0, 0, .18));
+  transition: flex-basis 180ms ease, width 180ms ease, padding 180ms ease;
 }
 
 .stream-workspace-main .tree-rail-header {
