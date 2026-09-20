@@ -74,3 +74,11 @@
 {"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-20T11:53:14.004Z"}
 {"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-21T11:53:14.044Z","at":"2026-09-20T11:53:14.051Z"}
 {"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-20T11:53:14.078Z"}
+{"action":"assign-role","actor":"admin@example.com","target":"target@example.com","role":"editor","label":"editor","at":"2026-09-20T11:57:20.603Z"}
+{"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-20T11:57:20.655Z"}
+{"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-21T11:57:20.687Z","at":"2026-09-20T11:57:20.697Z"}
+{"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-20T11:57:20.713Z"}
+{"action":"assign-role","actor":"admin@example.com","target":"target@example.com","role":"editor","label":"editor","at":"2026-09-20T12:10:33.607Z"}
+{"action":"revoke-role","actor":"admin@example.com","target":"target@example.com","role":null,"at":"2026-09-20T12:10:33.658Z"}
+{"action":"ban","actor":"admin@example.com","target":"target@example.com","until":"2026-09-21T12:10:33.704Z","at":"2026-09-20T12:10:33.715Z"}
+{"action":"unban","actor":"admin@example.com","target":"target@example.com","at":"2026-09-20T12:10:33.734Z"}

@@ -121,9 +121,9 @@ describe('markdown runtime bootstrap', () => {
     expect(appSource).toContain('GLOSSARY');
     expect(appSource).toContain('CNOTES');
     expect(appSource).toContain('NOTES');
-    expect(appSource).toContain('notes: "📓"');
+    expect(appSource).toContain('notes: "�"');
     expect(appSource).toContain('glossary: "📒"');
-    expect(appSource).toContain('cnotes: "📔"');
+    expect(appSource).toContain('cnotes: "📓"');
     expect(appSource).toContain('normalizeDisplayName');
     expect(appSource).toContain("if (label.includes('biology')) return 'biology';");
     expect(appSource).toContain("if (label.includes('cs') || label.includes('computer science') || label.includes('computer-science')) return 'cs';");
