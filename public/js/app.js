@@ -1928,11 +1928,14 @@ function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
   dialog.querySelector('input')?.focus();
 }
 
-function renderRawMarkdown(text) {
-  const lines = String(text || '').split(/\r?\n/);
-  const renderedLines = lines.map((line, index) => `<span class="raw-source-line" data-source-line="${index + 1}"><span class="raw-line-number" aria-hidden="true">${index + 1}</span><span class="raw-line-text">${escapeHTML(line) || ' '}</span></span>`).join('');
-  return `<pre class="raw-markdown-line-view" data-raw-source="true"><code>${renderedLines}</code></pre>`;
-}
+  function renderRawMarkdown(text) {
+  const source = String(text || '');
+  let highlighted = escapeHTML(source);
+  if (window.hljs && typeof window.hljs.highlightAuto === 'function' && source) {
+  highlighted = window.hljs.highlightAuto(source, ['markdown', 'yaml', 'javascript', 'typescript', 'json', 'css', 'html']).value;
+  }
+  return `<pre class="raw-markdown-line-view" data-raw-source="true"><code class="language-markdown">${highlighted}</code></pre>`;
+  }
 
 function renderMarkdownIntoContainer(text, filePath, container) {
   const toolbar = document.createElement('div');
