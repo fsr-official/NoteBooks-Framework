@@ -1194,14 +1194,21 @@ body {
 }
 
 .title-bar .title {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
   font-size: 14px;
-  flex-grow: 1;
+  line-height: 1.35;
 }
 
 .title-bar .buttons {
   display: flex;
+  flex: 0 0 auto;
   gap: 8px;
+  margin-left: 12px;
 }
 
 .title-bar button {
