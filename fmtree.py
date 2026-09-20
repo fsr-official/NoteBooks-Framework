@@ -25,14 +25,12 @@ SKIP_DIRECTORIES = {
     "node_modules",
     ".github",
     ".vscode",
-}
-
-# Top-level directories that are not part of the landing content and should be
-# excluded when discovered at the repository root.
-TOP_LEVEL_EXCLUDE = {
-    "src",
+    ".vercel",
+    "api",
     "public",
     "tests",
+    "docs",
+    "scripts"
 }
 
 ALLOWED_FILE_SUFFIXES = {
@@ -52,6 +50,18 @@ ALLOWED_FILE_SUFFIXES = {
     ".odp",
     ".ods",
     ".epub",
+}
+
+SECTION_ORDER = {
+    "GLOSSARY": 0,
+    "NOTES": 1,
+    "CNOTES": 2,
+}
+
+SECTION_EMOJI = {
+    "GLOSSARY": "📒",
+    "NOTES": "📓",
+    "CNOTES": "📔",
 }
 
 SKIP_FILE_SUFFIXES = {
@@ -130,11 +140,31 @@ def is_allowed_file(path: Path) -> bool:
     return suffix in ALLOWED_FILE_SUFFIXES and suffix not in SKIP_FILE_SUFFIXES
 
 
+def manifest_name(name: str) -> str:
+    suffix = Path(name).suffix
+    stem = name[: -len(suffix)] if suffix else name
+    upper_stem = stem.upper()
+    for label, emoji in SECTION_EMOJI.items():
+        if upper_stem == label or upper_stem.endswith(f"-{label}") or upper_stem.endswith(f"_{label}"):
+            return f"{emoji} {name}"
+    return name
+
+
+def child_sort_key(path: Path) -> tuple[int, str]:
+    suffix = path.suffix
+    stem = path.name[: -len(suffix)] if suffix else path.name
+    upper_stem = stem.upper()
+    for label, index in SECTION_ORDER.items():
+        if upper_stem == label or upper_stem.endswith(f"-{label}") or upper_stem.endswith(f"_{label}"):
+            return (index, path.name.casefold())
+    return (len(SECTION_ORDER), path.name.casefold())
+
+
 def file_entry(path: Path) -> dict[str, str]:
     mime, _ = mimetypes.guess_type(path.name)
     return {
         "type": "file",
-        "name": path.name,
+        "name": manifest_name(path.name),
         "path": relative_path(path),
         "sha": blob_sha(path),
         "mime": mime or "application/octet-stream",
@@ -144,14 +174,6 @@ def file_entry(path: Path) -> dict[str, str]:
 def should_skip(path: Path, output_path: Path) -> bool:
     if path.name in SKIP_DIRECTORIES:
         return True
-    # Exclude common non-landing directories when they are immediate children
-    # of the repository root. This keeps the landing `files.json` focused on
-    # documentation-like content that appears at the repository root.
-    try:
-        if path.parent.resolve() == ROOT.resolve() and path.name in TOP_LEVEL_EXCLUDE:
-            return True
-    except OSError:
-        pass
     if path.is_dir():
         return False
     if path.is_file() and not is_allowed_file(path):
@@ -164,7 +186,7 @@ def should_skip(path: Path, output_path: Path) -> bool:
 
 def iter_children(path: Path, output_path: Path) -> Iterable[Path]:
     try:
-        children = sorted(path.iterdir(), key=lambda item: item.name.casefold())
+        children = sorted(path.iterdir(), key=child_sort_key)
     except OSError as exc:
         raise RuntimeError(f"Unable to read directory: {path}") from exc
 
@@ -189,7 +211,7 @@ def build_tree(path: Path, output_path: Path) -> list[dict]:
             children.append(
                 {
                     "type": "folder",
-                    "name": child.name,
+                    "name": manifest_name(child.name),
                     "children": build_tree(child, output_path),
                 }
             )
