@@ -2152,15 +2152,14 @@ function openCommunity() {
 }
 async function bootNoteBooks() {
     const treeRail = document.getElementById('treeRail');
-    const treeRailToggle = document.getElementById('treeRailToggle');
-    treeRailToggle?.addEventListener('click', () => {
-        const collapsed = treeRail?.classList.toggle('is-collapsed') ?? false;
-        if (treeRailToggle) {
-            treeRailToggle.textContent = collapsed ? '›' : '‹';
-            treeRailToggle.setAttribute('aria-label', collapsed ? 'Expand repository tree' : 'Collapse repository tree');
-            treeRailToggle.title = collapsed ? 'Expand repository tree' : 'Collapse repository tree';
+    if (treeRail) {
+        treeRail.classList.remove('tree-rail--collapsed');
+        const collapseButton = document.getElementById('sidebarCollapseBtn');
+        if (collapseButton) {
+            collapseButton.textContent = '‹';
+            collapseButton.setAttribute('aria-expanded', 'true');
         }
-    });
+    }
     sidebarSearchInput = document.getElementById("sidebarSearch");
     sidebarTree = document.getElementById("sidebarTree");
     treeHoverDetails = document.getElementById("treeHoverDetails");
