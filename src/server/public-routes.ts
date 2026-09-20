@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'node:path';
 
-const STREAM_ROUTES = ['science', 'commerce', 'humanities'] as const;
+const STREAM_ROUTES = ['science', 'commerce', 'humanities', 'developers'] as const;
 const PORTAL_ROUTES = ['community', 'volunteers', 'accounts', 'issues', 'about'] as const;
 
 function setAssetContentType(res: express.Response, filePath: string): void {

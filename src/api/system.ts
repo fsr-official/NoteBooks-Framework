@@ -5,7 +5,7 @@ import { getSubjectRepo } from './_shared.js';
 import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
 import { sharedDelete, sharedGetJson, sharedSetJson } from '../lib/shared-cache.js';
 
-const STREAMS = new Set(['science', 'commerce', 'humanities']);
+const STREAMS = new Set(['science', 'commerce', 'humanities', 'developers']);
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const SHARED_CACHE_TTL_SECONDS = Math.floor(CACHE_TTL_MS / 1000);
 const SHARED_CACHE_KEY_PREFIX = 'notebooks:stream-tree:v1';
@@ -125,7 +125,7 @@ async function fetchGithubTree(repo: string, branch: string): Promise<any> {
 
 function normalizeStream(value: unknown): string | null {
   const stream = String(value || '').trim().toLowerCase();
-  if (stream === 'science' || stream === 'commerce' || stream === 'humanities') return stream;
+  if (stream === 'science' || stream === 'commerce' || stream === 'humanities' || stream === 'developers') return stream;
   if (stream === 'humanity' || stream === 'arts') return 'humanities';
   return null;
 }

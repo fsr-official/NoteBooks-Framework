@@ -48,6 +48,7 @@ for (const file of [
   'public/json/science-tree.json',
   'public/json/commerce-tree.json',
   'public/json/humanities-tree.json',
+  'public/json/developers-tree.json',
   'public/js/session-state.js',
   'public/js/shell-nav.js',
   'public/js/settings-nav.js',

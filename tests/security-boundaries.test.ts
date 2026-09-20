@@ -7,6 +7,7 @@ describe('security boundaries', () => {
   it('accepts published content paths and rejects private path forms', () => {
     expect(isSafePublishedFilePath('README.md')).toBe(true);
     expect(isSafePublishedFilePath('public/json/science-tree.json')).toBe(true);
+    expect(isSafePublishedFilePath('public/json/developers-tree.json')).toBe(true);
     expect(isSafePublishedFilePath('../.env')).toBe(false);
     expect(isSafePublishedFilePath('.env.production')).toBe(false);
     expect(isSafePublishedFilePath('private/id_rsa')).toBe(false);

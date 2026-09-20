@@ -23,7 +23,8 @@ export async function hasValidGeneratedArtifacts(projectDir: string): Promise<bo
     path.join(projectDir, 'public', 'json', 'repo-registry.json'),
     path.join(projectDir, 'public', 'json', 'science-tree.json'),
     path.join(projectDir, 'public', 'json', 'commerce-tree.json'),
-    path.join(projectDir, 'public', 'json', 'humanities-tree.json')
+    path.join(projectDir, 'public', 'json', 'humanities-tree.json'),
+    path.join(projectDir, 'public', 'json', 'developers-tree.json')
   ];
   try {
     const githubArtifact = JSON.parse(await fs.promises.readFile(candidates[0], 'utf8'));

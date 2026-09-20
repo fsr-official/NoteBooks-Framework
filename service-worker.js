@@ -50,6 +50,7 @@ const APP_SHELL = [
   'public/json/science-tree.json',
   'public/json/commerce-tree.json',
   'public/json/humanities-tree.json',
+  'public/json/developers-tree.json',
   'public/json/repo-registry.json',
   'public/bin/tikzjax/css/fonts.css',
   'public/bin/tikzjax/output/tikzjax.js',
@@ -75,7 +76,7 @@ const COOP_COEP_HEADERS = {
 const STREAM_TREES = {};
 
 async function loadStreamTrees() {
-  const streams = ['science', 'commerce', 'humanities'];
+  const streams = ['science', 'commerce', 'humanities', 'developers'];
   await Promise.all(streams.map(async (s) => {
     try {
       const runtimeUrl = `/api/system/${s}`;

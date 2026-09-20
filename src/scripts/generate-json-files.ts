@@ -8,7 +8,7 @@ import {
   type RepositoryManifestInstance
 } from './json-fetch.js';
 
-export const STREAMS = ['science', 'commerce', 'humanities'] as const;
+export const STREAMS = ['science', 'commerce', 'humanities', 'developers'] as const;
 export type Stream = (typeof STREAMS)[number];
 
 export interface GeneratedStreamTree {
@@ -118,6 +118,37 @@ function buildStreamTree(stream: Stream, repos: RepositoryManifestInstance[]): G
   };
 }
 
+async function loadLocalDeveloperTree(cwd: string): Promise<RepositoryManifestInstance | null> {
+  const filePath = path.resolve(cwd, 'files.json');
+  try {
+    const raw = await fs.readFile(filePath, 'utf8');
+    const parsed = JSON.parse(raw) as JsonFetchNode;
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.children)) {
+      return null;
+    }
+
+    const tree = cloneNode(parsed) as JsonFetchNode;
+    tree.stream = 'developers';
+    tree.repo = 'local/NoteBooks-Framework';
+    tree.branch = 'local';
+    tree.path = tree.path || tree.name || 'NoteBooks-Framework';
+
+    return {
+      stream: 'developers',
+      repo: 'local/NoteBooks-Framework',
+      branch: 'local',
+      root: '',
+      name: String(tree.name || 'NoteBooks-Framework'),
+      manifestUrl: filePath,
+      source: 'raw',
+      files: collectFiles(tree),
+      tree
+    };
+  } catch {
+    return null;
+  }
+}
+
 function buildRegistryTree(streamTrees: GeneratedStreamTree[], generatedAt: string): GeneratedRegistry {
   const children = streamTrees.map((streamTree) => ({
     type: 'folder' as const,
@@ -173,6 +204,11 @@ export async function generateJsonFiles(options: GenerateJsonFilesOptions = {}) 
     } catch (error) {
       failures.push({ repo: entry.repo, error: error instanceof Error ? error.message : String(error) });
     }
+  }
+
+  const localDevelopersInstance = await loadLocalDeveloperTree(cwd);
+  if (localDevelopersInstance && !instances.some((instance) => normalizeStream(instance.stream) === 'developers')) {
+    instances.push(localDevelopersInstance);
   }
 
   if (instances.length === 0) {
