@@ -349,13 +349,35 @@ const OPEN_FOLDER_ICON_SVG = `
     <path d="M3 11.5h18"/>
   </svg>
 `;
+const NOTES_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
+    <path d="M15 3.5v4h4"/>
+    <path d="M8 11h8M8 15h8"/>
+  </svg>
+`;
+const GLOSSARY_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
+    <path d="M15 3.5v4h4"/>
+    <path d="M8 11.5h8M8 15.5h6"/>
+    <path d="M10 7.5h2"/>
+  </svg>
+`;
+const CNOTES_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
+    <path d="M15 3.5v4h4"/>
+    <path d="M8 9.5h8M8 13h8M8 16.5h5"/>
+  </svg>
+`;
 const FILE_ICONS = {
     folder: FOLDER_ICON_SVG,
 
     // Your notes-triad scheme
-    notes: "📓",
-    glossary: "📒",
-    cnotes: "📔",
+    notes: NOTES_ICON_SVG,
+    glossary: GLOSSARY_ICON_SVG,
+    cnotes: CNOTES_ICON_SVG,
     readme: "📖",
 
     // Docs / text
@@ -779,6 +801,7 @@ function renderSearchResults(results) {
     results.sort((a, b) => a.name.localeCompare(b.name));
     for (let i = 0; i < results.length; i++) {
         const itemData = results[i];
+        const displayName = normalizeDisplayName(itemData.name);
         const item = document.createElement('div');
         item.className = 'file-item';
         item._childData = itemData;
@@ -788,7 +811,7 @@ function renderSearchResults(results) {
         item.innerHTML = `
       <div class="file-icon" data-type="${fileTypeClass}">${fileIcon}</div>
       <div class="file-name">
-        ${itemData.name}
+        ${displayName}
         ${subtitle}
       </div>
     `;
@@ -873,7 +896,7 @@ function setActiveTreePath(path) {
     }
     if (treeCurrentLocation) {
         const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
-        const label = activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root');
+        const label = normalizeDisplayName(activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root'));
         const locationPath = activeTreePath || 'workspace root';
         treeCurrentLocation.textContent = `Current: ${label}`;
         treeCurrentLocation.title = locationPath;
@@ -1014,8 +1037,9 @@ function createSidebarTreeItem(node, query) {
     row.appendChild(toggle);
     const label = document.createElement('span');
     label.className = 'sidebar-tree-label';
-    label.textContent = node.name;
-    label.title = node.name;
+    const displayName = normalizeDisplayName(node.name);
+    label.textContent = displayName;
+    label.title = displayName;
     row.appendChild(label);
     li.appendChild(row);
     if (childItems.length > 0) {
@@ -1180,7 +1204,7 @@ function toggleSidebar() {
         // A full-document navigation owns route changes; ignore any result if the
         // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
-        treeRoot = tree;
+        treeRoot = sanitizeTreeNodeNames(tree);
         // Keep the repository root expanded on first load so the workspace opens
         // with the tree hierarchy visible, while still allowing a user to collapse it.
         autoExpandedTreePaths.clear();
@@ -1242,8 +1266,9 @@ function getFolderTypeKey(file) {
     const label = String(file?.name || file?.path || '').toLowerCase();
     if (label.includes('physics')) return 'physics';
     if (label.includes('chemistry')) return 'chemistry';
+    if (label.includes('biology')) return 'biology';
     if (label.includes('math') || label.includes('mathematics')) return 'maths';
-    if (label.includes('cs') || label.includes('computer science')) return 'cs';
+    if (label.includes('cs') || label.includes('computer science') || label.includes('computer-science')) return 'cs';
     if (label.includes('english')) return 'english';
     return 'default';
 }
@@ -1258,6 +1283,23 @@ function sortTreeEntries(a, b) {
     if (a.type !== b.type)
         return a.type === 'folder' ? -1 : 1;
     return String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' });
+}
+function normalizeDisplayName(name) {
+    const raw = String(name || '').trim();
+    if (!raw)
+        return '';
+    return raw.replace(/^(?:[\p{Extended_Pictographic}\uFE0F\u200D\s]+)(?=\S)/gu, '').trim();
+}
+function sanitizeTreeNodeNames(node) {
+    if (!node || typeof node !== 'object')
+        return node;
+    if (typeof node.name === 'string') {
+        node.name = normalizeDisplayName(node.name);
+    }
+    if (Array.isArray(node.children)) {
+        node.children.forEach((child) => sanitizeTreeNodeNames(child));
+    }
+    return node;
 }
 function getFileIcon(file) {
     if (file.type === "folder")
@@ -1318,6 +1360,7 @@ function renderFolder(node) {
     }
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
+        const displayName = normalizeDisplayName(child.name);
         const item = document.createElement("div");
         item.className = "file-item";
         item.setAttribute("data-index", i);
@@ -1326,7 +1369,7 @@ function renderFolder(node) {
         const fileTypeClass = getFileTypeClass(child);
         item.innerHTML = `
       <div class="file-icon" data-type="${fileTypeClass}">${fileIcon}</div>
-      <div class="file-name">${child.name}</div>
+      <div class="file-name">${displayName}</div>
       <div class="file-actions">
         ${child.type === "file" ? `
           <div class="file-action" onclick="previewFile(event, ${i})">👁️</div>

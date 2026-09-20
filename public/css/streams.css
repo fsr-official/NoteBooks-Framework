@@ -139,8 +139,9 @@ color: inherit;
 }
 .stream-tree-folder[data-folder-type="folder-physics"] { color: #ef4444; }
 .stream-tree-folder[data-folder-type="folder-chemistry"] { color: #22c55e; }
+.stream-tree-folder[data-folder-type="folder-biology"] { color: #8b5cf6; }
 .stream-tree-folder[data-folder-type="folder-maths"] { color: #3b82f6; }
-.stream-tree-folder[data-folder-type="folder-cs"] { color: #111827; }
+.stream-tree-folder[data-folder-type="folder-cs"] { color: #000000; }
 .stream-tree-folder[data-folder-type="folder-english"] { color: #f8fafc; }
 .stream-tree-folder[data-folder-type="folder-default"] { color: #fbbf24; }
 

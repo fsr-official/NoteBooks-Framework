@@ -1171,8 +1171,9 @@ body {
 .file-icon[data-type~="folder"] { color: #fbbf24; }
 .file-icon[data-type~="folder-physics"] { color: #ef4444; }
 .file-icon[data-type~="folder-chemistry"] { color: #22c55e; }
+.file-icon[data-type~="folder-biology"] { color: #8b5cf6; }
 .file-icon[data-type~="folder-maths"] { color: #3b82f6; }
-.file-icon[data-type~="folder-cs"] { color: #111827; text-shadow: 0 0 0 1px rgba(255,255,255,0.7); }
+.file-icon[data-type~="folder-cs"] { color: #000000; text-shadow: 0 0 0 1px rgba(255,255,255,0.7); }
 .file-icon[data-type~="folder-english"] { color: #f8fafc; text-shadow: 0 0 0 1px rgba(15,23,42,0.65); }
 .file-icon[data-type~="folder-default"] { color: #fbbf24; }
 .file-icon[data-type="md"] { color: var(--accent); }

@@ -305,6 +305,11 @@ self.addEventListener('fetch', event => {
 self.addEventListener('message', event => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting();
   if (event.data === 'CLEAR_CACHE') {
-    caches.delete(CACHE_VERSION).then(() => event.source?.postMessage({ type: 'CACHE_CLEARED' }));
+    caches.keys().then((names) => Promise.all(names.map((name) => caches.delete(name)))).then(() => {
+      event.source?.postMessage({ type: 'CACHE_CLEARED' });
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'CACHE_CLEARED' }));
+      });
+    });
   }
 });
