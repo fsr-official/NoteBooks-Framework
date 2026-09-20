@@ -2,7 +2,8 @@
 const STREAM_ARTIFACTS = Object.freeze({
     science: '/public/json/science-tree.json',
     commerce: '/public/json/commerce-tree.json',
-    humanities: '/public/json/humanities-tree.json'
+    humanities: '/public/json/humanities-tree.json',
+    developers: '/public/json/developers-tree.json'
 });
 const state = { manifest: null, loadPromise: null };
 function loadStreamTree() {

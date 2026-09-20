@@ -18,7 +18,8 @@ interface StreamTreeNode {
 const STREAM_SHELL_ARTIFACTS: Record<string, string> = {
   science: '/public/json/science-tree.json',
   commerce: '/public/json/commerce-tree.json',
-  humanities: '/public/json/humanities-tree.json'
+  humanities: '/public/json/humanities-tree.json',
+  developers: '/public/json/developers-tree.json'
 };
 const STREAM_SLUGS = Object.keys(STREAM_SHELL_ARTIFACTS);
 
@@ -69,6 +70,22 @@ function streamFileIcon(name: string): string {
   return '📄';
 }
 
+function getStreamFolderTypeKey(name: string): string {
+  const label = String(name || '').toLowerCase();
+  if (label.includes('physics')) return 'folder-physics';
+  if (label.includes('chemistry')) return 'folder-chemistry';
+  if (label.includes('math') || label.includes('mathematics')) return 'folder-maths';
+  if (label.includes('cs') || label.includes('computer science')) return 'folder-cs';
+  if (label.includes('english')) return 'folder-english';
+  return 'folder-default';
+}
+
+const STREAM_FOLDER_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+  </svg>
+`;
+
 /**
  * Renders a compact nested Contents tree into `container`, sorted folders-first.
  * File clicks call the existing global openPreview()/openMobilePreview() so files open
@@ -91,8 +108,10 @@ function renderStreamTree(container: HTMLElement, nodes: StreamTreeNode[]): void
     if (node.type === 'folder') {
       const btn = document.createElement('button');
       btn.type = 'button';
+      const folderType = getStreamFolderTypeKey(node.name);
       btn.className = 'stream-tree-folder';
-      btn.innerHTML = `<span class="stream-tree-caret">▸</span><span class="stream-tree-glyph">📁</span><span>${escapeStreamHTML(node.name)}</span>`;
+      btn.dataset.folderType = folderType;
+      btn.innerHTML = `<span class="stream-tree-caret">▸</span><span class="stream-tree-glyph">${STREAM_FOLDER_ICON_SVG}</span><span>${escapeStreamHTML(node.name)}</span>`;
       const childWrap = document.createElement('div');
       childWrap.className = 'stream-tree-children';
       childWrap.hidden = true;

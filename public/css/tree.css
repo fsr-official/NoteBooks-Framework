@@ -67,6 +67,33 @@
   transition: color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
+.tree-rail .sidebar-tree-section {
+  display: flex;
+  align-items: center;
+  margin: 12px 0 8px;
+  padding-left: 6px;
+}
+
+.tree-rail .sidebar-tree-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted, var(--fg));
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  opacity: .8;
+}
+
+.tree-rail .sidebar-tree-section-label::before {
+  content: "";
+  width: 18px;
+  height: 1px;
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
 .tree-rail .sidebar-tree-row:hover,
 .tree-rail .sidebar-tree-row:focus-visible {
   background: transparent;

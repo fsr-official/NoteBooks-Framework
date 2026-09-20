@@ -1,0 +1,1713 @@
+{
+  "stream": "developers",
+  "root": {
+    "type": "folder",
+    "name": "NoteBooks-Developers",
+    "path": "NoteBooks-Developers",
+    "stream": "developers",
+    "children": [
+      {
+        "type": "folder",
+        "name": "NoteBooks-Framework",
+        "children": [
+          {
+            "type": "folder",
+            "name": ".vercel",
+            "children": []
+          },
+          {
+            "type": "folder",
+            "name": "api",
+            "children": [
+              {
+                "type": "folder",
+                "name": "community",
+                "children": []
+              },
+              {
+                "type": "folder",
+                "name": "system",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "[stream]",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "file",
+            "name": "COPYLEFT-NOTICES.md",
+            "path": "COPYLEFT-NOTICES.md",
+            "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "dist",
+            "children": [
+              {
+                "type": "folder",
+                "name": "server",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "api",
+                    "children": [
+                      {
+                        "type": "folder",
+                        "name": "webhooks",
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "type": "folder",
+                    "name": "lib",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "scripts",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "server",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "shims",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "folder",
+            "name": "docs",
+            "children": [
+              {
+                "type": "file",
+                "name": "community-issues-ui-findings-2026-08-30.md",
+                "path": "docs/community-issues-ui-findings-2026-08-30.md",
+                "sha": "9b3033429fdf3682d9a2da927e1dc1fdfe2d44f0",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "DEVELOPER-ONBOARDING.md",
+                "path": "docs/DEVELOPER-ONBOARDING.md",
+                "sha": "530de492fcd03cad43eb8476c4d963612180c364",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "MARKDOWN-RENDERER.md",
+                "path": "docs/MARKDOWN-RENDERER.md",
+                "sha": "a45095cf65b37c4f5cad7754487aac993cfe49a4",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "PHASE-PLANS.md",
+                "path": "docs/PHASE-PLANS.md",
+                "sha": "c384149b94fb62c3c598fb359e5e26843aab090f",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "folder",
+                "name": "phase1",
+                "children": [
+                  {
+                    "type": "file",
+                    "name": "CANDIDATE-CLASSIFICATION.txt",
+                    "path": "docs/phase1/CANDIDATE-CLASSIFICATION.txt",
+                    "sha": "c3e2174d9a2c97b6c863c9db6d1e3123749384ea",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FILE-AREA-INVENTORY.txt",
+                    "path": "docs/phase1/FILE-AREA-INVENTORY.txt",
+                    "sha": "210d66fe50b73dee624bf43af0b978dd59f542e0",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FILE-RESPONSIBILITY-MANIFEST.md",
+                    "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md",
+                    "sha": "9d4a973d914bf5edde8456dbf807fce67f7b4e6e",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FILE-REVAMP-DESIGN.md",
+                    "path": "docs/phase1/FILE-REVAMP-DESIGN.md",
+                    "sha": "8e951886501938c90bb07134cc7ed13c7dd31922",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FINAL-REFACTOR-REPORT.md",
+                    "path": "docs/phase1/FINAL-REFACTOR-REPORT.md",
+                    "sha": "53e167482c6c3678067e94550216030fbec39672",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FUNCTIONAL-OWNERSHIP-INDEX.txt",
+                    "path": "docs/phase1/FUNCTIONAL-OWNERSHIP-INDEX.txt",
+                    "sha": "3795840589717b49913e81e12d3ac6a0deac9f12",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOCAL-MANIFEST-OWNERSHIP.md",
+                    "path": "docs/phase1/LOCAL-MANIFEST-OWNERSHIP.md",
+                    "sha": "585c55cdaf02255e69e6495c2658f25973c1ce72",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOOSE-END-DETAILS.txt",
+                    "path": "docs/phase1/LOOSE-END-DETAILS.txt",
+                    "sha": "957c00198abbac473cc2aaa35106c65942017fba",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOOSE-END-DIAGNOSIS.md",
+                    "path": "docs/phase1/LOOSE-END-DIAGNOSIS.md",
+                    "sha": "c579ba3ed8139880c8decd560b2f5b17abb2d92b",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOOSE-END-EVIDENCE.txt",
+                    "path": "docs/phase1/LOOSE-END-EVIDENCE.txt",
+                    "sha": "39d14df202e7029708b6e9bf39bb3c4cc1dba742",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOOSE-END-FOCUSED.txt",
+                    "path": "docs/phase1/LOOSE-END-FOCUSED.txt",
+                    "sha": "9e16740fb8596ed179299a97ee9d23cbf1abce01",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "NEXT-CLEANUP-ROADMAP.md",
+                    "path": "docs/phase1/NEXT-CLEANUP-ROADMAP.md",
+                    "sha": "543f60fd39212e7425d345e9f53f8fdca7ec7370",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PHASE-I-PLAN.md",
+                    "path": "docs/phase1/PHASE-I-PLAN.md",
+                    "sha": "d305d7a18e24f32413222784b9b4319541ef6130",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PHASE-I-VERIFICATION.md",
+                    "path": "docs/phase1/PHASE-I-VERIFICATION.md",
+                    "sha": "27a90332869ad35db4c3d14e407f35b48673e28d",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PRODUCTION-RELIABILITY-FIX.md",
+                    "path": "docs/phase1/PRODUCTION-RELIABILITY-FIX.md",
+                    "sha": "6696a81a85a6b254ac67890837621d5907507a55",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PUBLIC-ASSET-INVENTORY.txt",
+                    "path": "docs/phase1/PUBLIC-ASSET-INVENTORY.txt",
+                    "sha": "35ff3b75bb0ebeb1e847026a937f31fe1ba6af93",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "REACHABILITY-INDEX.txt",
+                    "path": "docs/phase1/REACHABILITY-INDEX.txt",
+                    "sha": "cd5e26808d05893be73b3a594dee4f1b88ae31a2",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "REAL-ARCHITECTURE.md",
+                    "path": "docs/phase1/REAL-ARCHITECTURE.md",
+                    "sha": "29f5554f58b137a98da28adcd7254faac126b8b6",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "REFACTOR-BASELINE.md",
+                    "path": "docs/phase1/REFACTOR-BASELINE.md",
+                    "sha": "0d62bad9da19a922fbab2fcc37acb5a80197e577",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "REMOVAL-CANDIDATE-REFERENCES.txt",
+                    "path": "docs/phase1/REMOVAL-CANDIDATE-REFERENCES.txt",
+                    "sha": "027900d619ece07ca5d5666a4c86c6bb47ffb9c4",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "SERVICE-WORKER-OWNERSHIP.md",
+                    "path": "docs/phase1/SERVICE-WORKER-OWNERSHIP.md",
+                    "sha": "bd3c435d6187d80aef6927979f5b379f458369cc",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "STREAM-CLEANUP-VERIFICATION.md",
+                    "path": "docs/phase1/STREAM-CLEANUP-VERIFICATION.md",
+                    "sha": "e4948a6543c9ae4a3ffedca538101e537b291b6c",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "STREAM-TERMINOLOGY-AUDIT.md",
+                    "path": "docs/phase1/STREAM-TERMINOLOGY-AUDIT.md",
+                    "sha": "2da93bf26c40032f80eb911536859328a3112734",
+                    "mime": "text/markdown"
+                  }
+                ]
+              },
+              {
+                "type": "folder",
+                "name": "phase2-3",
+                "children": [
+                  {
+                    "type": "file",
+                    "name": "AUDIT-AND-DECISIONS.md",
+                    "path": "docs/phase2-3/AUDIT-AND-DECISIONS.md",
+                    "sha": "dc1725388ec59d6cd439a3ef5c6ee6cda97e2cf1",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "COMMUNITY-CHANNELS.md",
+                    "path": "docs/phase2-3/COMMUNITY-CHANNELS.md",
+                    "sha": "bd400310cdc68f7bcec2a82330b00290ca7a1591",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "DATA-MODEL.md",
+                    "path": "docs/phase2-3/DATA-MODEL.md",
+                    "sha": "8470661fb3f53b3b6f75185aee1d6017d7bb9fc7",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "DEPLOYMENT-RECOVERY-RUNBOOK.md",
+                    "path": "docs/phase2-3/DEPLOYMENT-RECOVERY-RUNBOOK.md",
+                    "sha": "517b5403aa17922b1f2c55d42d80c809dac66fd5",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
+                    "path": "docs/phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
+                    "sha": "426ece06a26c4ced5aac13703a9c1336aeb10576",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "ENVIRONMENT-AND-REMAINING-GAPS.md",
+                    "path": "docs/phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md",
+                    "sha": "f4813adb00cd7ab6459011bd8ca0a7d9cb4c6f73",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FINAL-AUDIT-AND-VERIFICATION.md",
+                    "path": "docs/phase2-3/FINAL-AUDIT-AND-VERIFICATION.md",
+                    "sha": "f70c51380803a406d941fa0c2aacf61a4ddf2a97",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FINAL-RELEASE-AUDIT-2026-08-25.md",
+                    "path": "docs/phase2-3/FINAL-RELEASE-AUDIT-2026-08-25.md",
+                    "sha": "e18c14be6e80d7530b8f2d3998e5665bab51c619",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "GITHUB-REPOS-MANIFEST.md",
+                    "path": "docs/phase2-3/GITHUB-REPOS-MANIFEST.md",
+                    "sha": "70e89c0d6e62f3b0b5355fc0dae9d0d76694156c",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
+                    "path": "docs/phase2-3/HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
+                    "sha": "613759bc54be3dad3cb37793fa694157867c1135",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "ISSUES-ADMIN-REVIEW.md",
+                    "path": "docs/phase2-3/ISSUES-ADMIN-REVIEW.md",
+                    "sha": "3527936de783ff4a14f0984e57597750bc037406",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PHASE2-3-STATUS.md",
+                    "path": "docs/phase2-3/PHASE2-3-STATUS.md",
+                    "sha": "38420f4d81d1e6f62918c2f14171569b982c0b66",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
+                    "path": "docs/phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
+                    "sha": "891b0b3b6d2bde21f253035e3f8f3718aec08875",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
+                    "path": "docs/phase2-3/SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
+                    "sha": "664c71e85f14955e79d4cd80fa3108000f1fdc0a",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "SUPABASE-RLS-AUDIT-2026-08-26.md",
+                    "path": "docs/phase2-3/SUPABASE-RLS-AUDIT-2026-08-26.md",
+                    "sha": "58da0d5cbf5a748e48e8e5d9dae67f6818c66696",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
+                    "path": "docs/phase2-3/THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
+                    "sha": "270ae5aff5c1df704076452f9650d048c11f9934",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "THEME-ROUTE-MAP-2026-08-26.txt",
+                    "path": "docs/phase2-3/THEME-ROUTE-MAP-2026-08-26.txt",
+                    "sha": "48085d11ad63695fc82bf17d98b55c4dc9a25004",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
+                    "path": "docs/phase2-3/THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
+                    "sha": "6edaa8abc423d4b801a63cc035f1381f815699ac",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "TREE-NAVIGATION-TRACE-2026-08-28.md",
+                    "path": "docs/phase2-3/TREE-NAVIGATION-TRACE-2026-08-28.md",
+                    "sha": "c09776c031ddf6f3e41a60d2dbfc854cbcbb5e28",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "UPGRADE-ROADMAP-2026-08-26.md",
+                    "path": "docs/phase2-3/UPGRADE-ROADMAP-2026-08-26.md",
+                    "sha": "2cf8da958be6c32159d20afb82b43ea4f7d79eb8",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
+                    "path": "docs/phase2-3/VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
+                    "sha": "1c2baed2eb8b9c326f9e54be78023abb560bd0a7",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "WEBSITE-WIDE-AUDIT-2026-08-26.md",
+                    "path": "docs/phase2-3/WEBSITE-WIDE-AUDIT-2026-08-26.md",
+                    "sha": "65ac9bcaa5484d14c6373d4e0726902736e2e4da",
+                    "mime": "text/markdown"
+                  }
+                ]
+              },
+              {
+                "type": "folder",
+                "name": "phases",
+                "children": [
+                  {
+                    "type": "file",
+                    "name": "phase-1.md",
+                    "path": "docs/phases/phase-1.md",
+                    "sha": "15694ddeaf8a6e9ba00ca05948ed3fda8f5658c2",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-2.md",
+                    "path": "docs/phases/phase-2.md",
+                    "sha": "cc444e0432fc5b67e2c1bf0d74a41fbca4c95bb1",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-3.md",
+                    "path": "docs/phases/phase-3.md",
+                    "sha": "961ce3831605ce411f3b080de3d15af7f3564488",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-4.md",
+                    "path": "docs/phases/phase-4.md",
+                    "sha": "b50963d982f0261199d68197e0c52d2be32de80b",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-5.md",
+                    "path": "docs/phases/phase-5.md",
+                    "sha": "0d5eae07182958e347d4922b80dc55af1962ce36",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-6.md",
+                    "path": "docs/phases/phase-6.md",
+                    "sha": "0a617d75f4839c1d131bd9b7a65fa9e4d45c7076",
+                    "mime": "text/markdown"
+                  }
+                ]
+              },
+              {
+                "type": "file",
+                "name": "README.md",
+                "path": "docs/README.md",
+                "sha": "f35a8b13fd86bd11eb41a8f90b4bf591c3e1916e",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "REMAINING.md",
+                "path": "docs/REMAINING.md",
+                "sha": "5dc0646308fa41a9429d4ba2a6df2e8d01587545",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "WORKFLOW_CONSOLIDATION_HANDOFF.md",
+                "path": "docs/WORKFLOW_CONSOLIDATION_HANDOFF.md",
+                "sha": "0bf851ffd321261b9779c9ccb68248da388a6331",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "WORKFLOW_TREE_REBUILD.md",
+                "path": "docs/WORKFLOW_TREE_REBUILD.md",
+                "sha": "aa9a29a938016f95ba171451de69aebac2e2f19b",
+                "mime": "text/markdown"
+              }
+            ]
+          },
+          {
+            "type": "file",
+            "name": "GITHUB-REPOSITORIES.md",
+            "path": "GITHUB-REPOSITORIES.md",
+            "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "logs",
+            "children": []
+          },
+          {
+            "type": "file",
+            "name": "README.md",
+            "path": "README.md",
+            "sha": "7d64394edc85ced6f6cb35315cd5c9a70efbf79d",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "scripts",
+            "children": []
+          },
+          {
+            "type": "folder",
+            "name": "skill",
+            "children": [
+              {
+                "type": "file",
+                "name": "biology-generator.skill.md",
+                "path": "skill/biology-generator.skill.md",
+                "sha": "f15bdd783ec8ec42cd9fd8cfcb92492cb25d9ffc",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "chemistry-generator.skill.md",
+                "path": "skill/chemistry-generator.skill.md",
+                "sha": "eee702a2dfe6c4b9577737aa9da1265b9747732a",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "cs-generator.skill.md",
+                "path": "skill/cs-generator.skill.md",
+                "sha": "f602066945fca094287e5ac9b2e3f061a95ea57e",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "desmos-upgrade.skill.md",
+                "path": "skill/desmos-upgrade.skill.md",
+                "sha": "8ffa3823f848a7873e8a296889ac6698a07c4ba6",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "maths-generator.skill.md",
+                "path": "skill/maths-generator.skill.md",
+                "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "notes-generator.skill.md",
+                "path": "skill/notes-generator.skill.md",
+                "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "physics-generator.skill.md",
+                "path": "skill/physics-generator.skill.md",
+                "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
+                "mime": "text/markdown"
+              }
+            ]
+          }
+        ],
+        "stream": "developers",
+        "repo": "local/NoteBooks-Framework",
+        "branch": "local",
+        "path": "NoteBooks-Framework"
+      }
+    ]
+  },
+  "repos": [
+    {
+      "stream": "developers",
+      "repo": "local/NoteBooks-Framework",
+      "branch": "local",
+      "root": "",
+      "name": "NoteBooks-Framework",
+      "manifestUrl": "/home/harshit9745/SFXFolder/NoteBooks-Project/NoteBooks-Framework/files.json",
+      "source": "raw",
+      "files": [
+        {
+          "type": "file",
+          "name": "COPYLEFT-NOTICES.md",
+          "path": "COPYLEFT-NOTICES.md",
+          "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "community-issues-ui-findings-2026-08-30.md",
+          "path": "docs/community-issues-ui-findings-2026-08-30.md",
+          "sha": "9b3033429fdf3682d9a2da927e1dc1fdfe2d44f0",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "DEVELOPER-ONBOARDING.md",
+          "path": "docs/DEVELOPER-ONBOARDING.md",
+          "sha": "530de492fcd03cad43eb8476c4d963612180c364",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "MARKDOWN-RENDERER.md",
+          "path": "docs/MARKDOWN-RENDERER.md",
+          "sha": "a45095cf65b37c4f5cad7754487aac993cfe49a4",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "PHASE-PLANS.md",
+          "path": "docs/PHASE-PLANS.md",
+          "sha": "c384149b94fb62c3c598fb359e5e26843aab090f",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "CANDIDATE-CLASSIFICATION.txt",
+          "path": "docs/phase1/CANDIDATE-CLASSIFICATION.txt",
+          "sha": "c3e2174d9a2c97b6c863c9db6d1e3123749384ea",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "FILE-AREA-INVENTORY.txt",
+          "path": "docs/phase1/FILE-AREA-INVENTORY.txt",
+          "sha": "210d66fe50b73dee624bf43af0b978dd59f542e0",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "FILE-RESPONSIBILITY-MANIFEST.md",
+          "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md",
+          "sha": "9d4a973d914bf5edde8456dbf807fce67f7b4e6e",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "FILE-REVAMP-DESIGN.md",
+          "path": "docs/phase1/FILE-REVAMP-DESIGN.md",
+          "sha": "8e951886501938c90bb07134cc7ed13c7dd31922",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "FINAL-REFACTOR-REPORT.md",
+          "path": "docs/phase1/FINAL-REFACTOR-REPORT.md",
+          "sha": "53e167482c6c3678067e94550216030fbec39672",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "FUNCTIONAL-OWNERSHIP-INDEX.txt",
+          "path": "docs/phase1/FUNCTIONAL-OWNERSHIP-INDEX.txt",
+          "sha": "3795840589717b49913e81e12d3ac6a0deac9f12",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "LOCAL-MANIFEST-OWNERSHIP.md",
+          "path": "docs/phase1/LOCAL-MANIFEST-OWNERSHIP.md",
+          "sha": "585c55cdaf02255e69e6495c2658f25973c1ce72",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "LOOSE-END-DETAILS.txt",
+          "path": "docs/phase1/LOOSE-END-DETAILS.txt",
+          "sha": "957c00198abbac473cc2aaa35106c65942017fba",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "LOOSE-END-DIAGNOSIS.md",
+          "path": "docs/phase1/LOOSE-END-DIAGNOSIS.md",
+          "sha": "c579ba3ed8139880c8decd560b2f5b17abb2d92b",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "LOOSE-END-EVIDENCE.txt",
+          "path": "docs/phase1/LOOSE-END-EVIDENCE.txt",
+          "sha": "39d14df202e7029708b6e9bf39bb3c4cc1dba742",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "LOOSE-END-FOCUSED.txt",
+          "path": "docs/phase1/LOOSE-END-FOCUSED.txt",
+          "sha": "9e16740fb8596ed179299a97ee9d23cbf1abce01",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "NEXT-CLEANUP-ROADMAP.md",
+          "path": "docs/phase1/NEXT-CLEANUP-ROADMAP.md",
+          "sha": "543f60fd39212e7425d345e9f53f8fdca7ec7370",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "PHASE-I-PLAN.md",
+          "path": "docs/phase1/PHASE-I-PLAN.md",
+          "sha": "d305d7a18e24f32413222784b9b4319541ef6130",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "PHASE-I-VERIFICATION.md",
+          "path": "docs/phase1/PHASE-I-VERIFICATION.md",
+          "sha": "27a90332869ad35db4c3d14e407f35b48673e28d",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "PRODUCTION-RELIABILITY-FIX.md",
+          "path": "docs/phase1/PRODUCTION-RELIABILITY-FIX.md",
+          "sha": "6696a81a85a6b254ac67890837621d5907507a55",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "PUBLIC-ASSET-INVENTORY.txt",
+          "path": "docs/phase1/PUBLIC-ASSET-INVENTORY.txt",
+          "sha": "35ff3b75bb0ebeb1e847026a937f31fe1ba6af93",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "REACHABILITY-INDEX.txt",
+          "path": "docs/phase1/REACHABILITY-INDEX.txt",
+          "sha": "cd5e26808d05893be73b3a594dee4f1b88ae31a2",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "REAL-ARCHITECTURE.md",
+          "path": "docs/phase1/REAL-ARCHITECTURE.md",
+          "sha": "29f5554f58b137a98da28adcd7254faac126b8b6",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "REFACTOR-BASELINE.md",
+          "path": "docs/phase1/REFACTOR-BASELINE.md",
+          "sha": "0d62bad9da19a922fbab2fcc37acb5a80197e577",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "REMOVAL-CANDIDATE-REFERENCES.txt",
+          "path": "docs/phase1/REMOVAL-CANDIDATE-REFERENCES.txt",
+          "sha": "027900d619ece07ca5d5666a4c86c6bb47ffb9c4",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "SERVICE-WORKER-OWNERSHIP.md",
+          "path": "docs/phase1/SERVICE-WORKER-OWNERSHIP.md",
+          "sha": "bd3c435d6187d80aef6927979f5b379f458369cc",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "STREAM-CLEANUP-VERIFICATION.md",
+          "path": "docs/phase1/STREAM-CLEANUP-VERIFICATION.md",
+          "sha": "e4948a6543c9ae4a3ffedca538101e537b291b6c",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "STREAM-TERMINOLOGY-AUDIT.md",
+          "path": "docs/phase1/STREAM-TERMINOLOGY-AUDIT.md",
+          "sha": "2da93bf26c40032f80eb911536859328a3112734",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "AUDIT-AND-DECISIONS.md",
+          "path": "docs/phase2-3/AUDIT-AND-DECISIONS.md",
+          "sha": "dc1725388ec59d6cd439a3ef5c6ee6cda97e2cf1",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "COMMUNITY-CHANNELS.md",
+          "path": "docs/phase2-3/COMMUNITY-CHANNELS.md",
+          "sha": "bd400310cdc68f7bcec2a82330b00290ca7a1591",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "DATA-MODEL.md",
+          "path": "docs/phase2-3/DATA-MODEL.md",
+          "sha": "8470661fb3f53b3b6f75185aee1d6017d7bb9fc7",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "DEPLOYMENT-RECOVERY-RUNBOOK.md",
+          "path": "docs/phase2-3/DEPLOYMENT-RECOVERY-RUNBOOK.md",
+          "sha": "517b5403aa17922b1f2c55d42d80c809dac66fd5",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
+          "path": "docs/phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
+          "sha": "426ece06a26c4ced5aac13703a9c1336aeb10576",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "ENVIRONMENT-AND-REMAINING-GAPS.md",
+          "path": "docs/phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md",
+          "sha": "f4813adb00cd7ab6459011bd8ca0a7d9cb4c6f73",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "FINAL-AUDIT-AND-VERIFICATION.md",
+          "path": "docs/phase2-3/FINAL-AUDIT-AND-VERIFICATION.md",
+          "sha": "f70c51380803a406d941fa0c2aacf61a4ddf2a97",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "FINAL-RELEASE-AUDIT-2026-08-25.md",
+          "path": "docs/phase2-3/FINAL-RELEASE-AUDIT-2026-08-25.md",
+          "sha": "e18c14be6e80d7530b8f2d3998e5665bab51c619",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "GITHUB-REPOS-MANIFEST.md",
+          "path": "docs/phase2-3/GITHUB-REPOS-MANIFEST.md",
+          "sha": "70e89c0d6e62f3b0b5355fc0dae9d0d76694156c",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
+          "path": "docs/phase2-3/HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
+          "sha": "613759bc54be3dad3cb37793fa694157867c1135",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "ISSUES-ADMIN-REVIEW.md",
+          "path": "docs/phase2-3/ISSUES-ADMIN-REVIEW.md",
+          "sha": "3527936de783ff4a14f0984e57597750bc037406",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "PHASE2-3-STATUS.md",
+          "path": "docs/phase2-3/PHASE2-3-STATUS.md",
+          "sha": "38420f4d81d1e6f62918c2f14171569b982c0b66",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
+          "path": "docs/phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
+          "sha": "891b0b3b6d2bde21f253035e3f8f3718aec08875",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
+          "path": "docs/phase2-3/SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
+          "sha": "664c71e85f14955e79d4cd80fa3108000f1fdc0a",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "SUPABASE-RLS-AUDIT-2026-08-26.md",
+          "path": "docs/phase2-3/SUPABASE-RLS-AUDIT-2026-08-26.md",
+          "sha": "58da0d5cbf5a748e48e8e5d9dae67f6818c66696",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
+          "path": "docs/phase2-3/THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
+          "sha": "270ae5aff5c1df704076452f9650d048c11f9934",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "THEME-ROUTE-MAP-2026-08-26.txt",
+          "path": "docs/phase2-3/THEME-ROUTE-MAP-2026-08-26.txt",
+          "sha": "48085d11ad63695fc82bf17d98b55c4dc9a25004",
+          "mime": "text/plain"
+        },
+        {
+          "type": "file",
+          "name": "THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
+          "path": "docs/phase2-3/THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
+          "sha": "6edaa8abc423d4b801a63cc035f1381f815699ac",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "TREE-NAVIGATION-TRACE-2026-08-28.md",
+          "path": "docs/phase2-3/TREE-NAVIGATION-TRACE-2026-08-28.md",
+          "sha": "c09776c031ddf6f3e41a60d2dbfc854cbcbb5e28",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "UPGRADE-ROADMAP-2026-08-26.md",
+          "path": "docs/phase2-3/UPGRADE-ROADMAP-2026-08-26.md",
+          "sha": "2cf8da958be6c32159d20afb82b43ea4f7d79eb8",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
+          "path": "docs/phase2-3/VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
+          "sha": "1c2baed2eb8b9c326f9e54be78023abb560bd0a7",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "WEBSITE-WIDE-AUDIT-2026-08-26.md",
+          "path": "docs/phase2-3/WEBSITE-WIDE-AUDIT-2026-08-26.md",
+          "sha": "65ac9bcaa5484d14c6373d4e0726902736e2e4da",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "phase-1.md",
+          "path": "docs/phases/phase-1.md",
+          "sha": "15694ddeaf8a6e9ba00ca05948ed3fda8f5658c2",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "phase-2.md",
+          "path": "docs/phases/phase-2.md",
+          "sha": "cc444e0432fc5b67e2c1bf0d74a41fbca4c95bb1",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "phase-3.md",
+          "path": "docs/phases/phase-3.md",
+          "sha": "961ce3831605ce411f3b080de3d15af7f3564488",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "phase-4.md",
+          "path": "docs/phases/phase-4.md",
+          "sha": "b50963d982f0261199d68197e0c52d2be32de80b",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "phase-5.md",
+          "path": "docs/phases/phase-5.md",
+          "sha": "0d5eae07182958e347d4922b80dc55af1962ce36",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "phase-6.md",
+          "path": "docs/phases/phase-6.md",
+          "sha": "0a617d75f4839c1d131bd9b7a65fa9e4d45c7076",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "docs/README.md",
+          "sha": "f35a8b13fd86bd11eb41a8f90b4bf591c3e1916e",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "REMAINING.md",
+          "path": "docs/REMAINING.md",
+          "sha": "5dc0646308fa41a9429d4ba2a6df2e8d01587545",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "WORKFLOW_CONSOLIDATION_HANDOFF.md",
+          "path": "docs/WORKFLOW_CONSOLIDATION_HANDOFF.md",
+          "sha": "0bf851ffd321261b9779c9ccb68248da388a6331",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "WORKFLOW_TREE_REBUILD.md",
+          "path": "docs/WORKFLOW_TREE_REBUILD.md",
+          "sha": "aa9a29a938016f95ba171451de69aebac2e2f19b",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "GITHUB-REPOSITORIES.md",
+          "path": "GITHUB-REPOSITORIES.md",
+          "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "README.md",
+          "sha": "7d64394edc85ced6f6cb35315cd5c9a70efbf79d",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "biology-generator.skill.md",
+          "path": "skill/biology-generator.skill.md",
+          "sha": "f15bdd783ec8ec42cd9fd8cfcb92492cb25d9ffc",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "chemistry-generator.skill.md",
+          "path": "skill/chemistry-generator.skill.md",
+          "sha": "eee702a2dfe6c4b9577737aa9da1265b9747732a",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "cs-generator.skill.md",
+          "path": "skill/cs-generator.skill.md",
+          "sha": "f602066945fca094287e5ac9b2e3f061a95ea57e",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "desmos-upgrade.skill.md",
+          "path": "skill/desmos-upgrade.skill.md",
+          "sha": "8ffa3823f848a7873e8a296889ac6698a07c4ba6",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "maths-generator.skill.md",
+          "path": "skill/maths-generator.skill.md",
+          "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "notes-generator.skill.md",
+          "path": "skill/notes-generator.skill.md",
+          "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "physics-generator.skill.md",
+          "path": "skill/physics-generator.skill.md",
+          "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
+          "mime": "text/markdown"
+        }
+      ],
+      "tree": {
+        "type": "folder",
+        "name": "NoteBooks-Framework",
+        "children": [
+          {
+            "type": "folder",
+            "name": ".vercel",
+            "children": []
+          },
+          {
+            "type": "folder",
+            "name": "api",
+            "children": [
+              {
+                "type": "folder",
+                "name": "community",
+                "children": []
+              },
+              {
+                "type": "folder",
+                "name": "system",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "[stream]",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "file",
+            "name": "COPYLEFT-NOTICES.md",
+            "path": "COPYLEFT-NOTICES.md",
+            "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "dist",
+            "children": [
+              {
+                "type": "folder",
+                "name": "server",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "api",
+                    "children": [
+                      {
+                        "type": "folder",
+                        "name": "webhooks",
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "type": "folder",
+                    "name": "lib",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "scripts",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "server",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "shims",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "folder",
+            "name": "docs",
+            "children": [
+              {
+                "type": "file",
+                "name": "community-issues-ui-findings-2026-08-30.md",
+                "path": "docs/community-issues-ui-findings-2026-08-30.md",
+                "sha": "9b3033429fdf3682d9a2da927e1dc1fdfe2d44f0",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "DEVELOPER-ONBOARDING.md",
+                "path": "docs/DEVELOPER-ONBOARDING.md",
+                "sha": "530de492fcd03cad43eb8476c4d963612180c364",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "MARKDOWN-RENDERER.md",
+                "path": "docs/MARKDOWN-RENDERER.md",
+                "sha": "a45095cf65b37c4f5cad7754487aac993cfe49a4",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "PHASE-PLANS.md",
+                "path": "docs/PHASE-PLANS.md",
+                "sha": "c384149b94fb62c3c598fb359e5e26843aab090f",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "folder",
+                "name": "phase1",
+                "children": [
+                  {
+                    "type": "file",
+                    "name": "CANDIDATE-CLASSIFICATION.txt",
+                    "path": "docs/phase1/CANDIDATE-CLASSIFICATION.txt",
+                    "sha": "c3e2174d9a2c97b6c863c9db6d1e3123749384ea",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FILE-AREA-INVENTORY.txt",
+                    "path": "docs/phase1/FILE-AREA-INVENTORY.txt",
+                    "sha": "210d66fe50b73dee624bf43af0b978dd59f542e0",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FILE-RESPONSIBILITY-MANIFEST.md",
+                    "path": "docs/phase1/FILE-RESPONSIBILITY-MANIFEST.md",
+                    "sha": "9d4a973d914bf5edde8456dbf807fce67f7b4e6e",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FILE-REVAMP-DESIGN.md",
+                    "path": "docs/phase1/FILE-REVAMP-DESIGN.md",
+                    "sha": "8e951886501938c90bb07134cc7ed13c7dd31922",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FINAL-REFACTOR-REPORT.md",
+                    "path": "docs/phase1/FINAL-REFACTOR-REPORT.md",
+                    "sha": "53e167482c6c3678067e94550216030fbec39672",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FUNCTIONAL-OWNERSHIP-INDEX.txt",
+                    "path": "docs/phase1/FUNCTIONAL-OWNERSHIP-INDEX.txt",
+                    "sha": "3795840589717b49913e81e12d3ac6a0deac9f12",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOCAL-MANIFEST-OWNERSHIP.md",
+                    "path": "docs/phase1/LOCAL-MANIFEST-OWNERSHIP.md",
+                    "sha": "585c55cdaf02255e69e6495c2658f25973c1ce72",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOOSE-END-DETAILS.txt",
+                    "path": "docs/phase1/LOOSE-END-DETAILS.txt",
+                    "sha": "957c00198abbac473cc2aaa35106c65942017fba",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOOSE-END-DIAGNOSIS.md",
+                    "path": "docs/phase1/LOOSE-END-DIAGNOSIS.md",
+                    "sha": "c579ba3ed8139880c8decd560b2f5b17abb2d92b",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOOSE-END-EVIDENCE.txt",
+                    "path": "docs/phase1/LOOSE-END-EVIDENCE.txt",
+                    "sha": "39d14df202e7029708b6e9bf39bb3c4cc1dba742",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "LOOSE-END-FOCUSED.txt",
+                    "path": "docs/phase1/LOOSE-END-FOCUSED.txt",
+                    "sha": "9e16740fb8596ed179299a97ee9d23cbf1abce01",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "NEXT-CLEANUP-ROADMAP.md",
+                    "path": "docs/phase1/NEXT-CLEANUP-ROADMAP.md",
+                    "sha": "543f60fd39212e7425d345e9f53f8fdca7ec7370",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PHASE-I-PLAN.md",
+                    "path": "docs/phase1/PHASE-I-PLAN.md",
+                    "sha": "d305d7a18e24f32413222784b9b4319541ef6130",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PHASE-I-VERIFICATION.md",
+                    "path": "docs/phase1/PHASE-I-VERIFICATION.md",
+                    "sha": "27a90332869ad35db4c3d14e407f35b48673e28d",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PRODUCTION-RELIABILITY-FIX.md",
+                    "path": "docs/phase1/PRODUCTION-RELIABILITY-FIX.md",
+                    "sha": "6696a81a85a6b254ac67890837621d5907507a55",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PUBLIC-ASSET-INVENTORY.txt",
+                    "path": "docs/phase1/PUBLIC-ASSET-INVENTORY.txt",
+                    "sha": "35ff3b75bb0ebeb1e847026a937f31fe1ba6af93",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "REACHABILITY-INDEX.txt",
+                    "path": "docs/phase1/REACHABILITY-INDEX.txt",
+                    "sha": "cd5e26808d05893be73b3a594dee4f1b88ae31a2",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "REAL-ARCHITECTURE.md",
+                    "path": "docs/phase1/REAL-ARCHITECTURE.md",
+                    "sha": "29f5554f58b137a98da28adcd7254faac126b8b6",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "REFACTOR-BASELINE.md",
+                    "path": "docs/phase1/REFACTOR-BASELINE.md",
+                    "sha": "0d62bad9da19a922fbab2fcc37acb5a80197e577",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "REMOVAL-CANDIDATE-REFERENCES.txt",
+                    "path": "docs/phase1/REMOVAL-CANDIDATE-REFERENCES.txt",
+                    "sha": "027900d619ece07ca5d5666a4c86c6bb47ffb9c4",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "SERVICE-WORKER-OWNERSHIP.md",
+                    "path": "docs/phase1/SERVICE-WORKER-OWNERSHIP.md",
+                    "sha": "bd3c435d6187d80aef6927979f5b379f458369cc",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "STREAM-CLEANUP-VERIFICATION.md",
+                    "path": "docs/phase1/STREAM-CLEANUP-VERIFICATION.md",
+                    "sha": "e4948a6543c9ae4a3ffedca538101e537b291b6c",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "STREAM-TERMINOLOGY-AUDIT.md",
+                    "path": "docs/phase1/STREAM-TERMINOLOGY-AUDIT.md",
+                    "sha": "2da93bf26c40032f80eb911536859328a3112734",
+                    "mime": "text/markdown"
+                  }
+                ]
+              },
+              {
+                "type": "folder",
+                "name": "phase2-3",
+                "children": [
+                  {
+                    "type": "file",
+                    "name": "AUDIT-AND-DECISIONS.md",
+                    "path": "docs/phase2-3/AUDIT-AND-DECISIONS.md",
+                    "sha": "dc1725388ec59d6cd439a3ef5c6ee6cda97e2cf1",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "COMMUNITY-CHANNELS.md",
+                    "path": "docs/phase2-3/COMMUNITY-CHANNELS.md",
+                    "sha": "bd400310cdc68f7bcec2a82330b00290ca7a1591",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "DATA-MODEL.md",
+                    "path": "docs/phase2-3/DATA-MODEL.md",
+                    "sha": "8470661fb3f53b3b6f75185aee1d6017d7bb9fc7",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "DEPLOYMENT-RECOVERY-RUNBOOK.md",
+                    "path": "docs/phase2-3/DEPLOYMENT-RECOVERY-RUNBOOK.md",
+                    "sha": "517b5403aa17922b1f2c55d42d80c809dac66fd5",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
+                    "path": "docs/phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md",
+                    "sha": "426ece06a26c4ced5aac13703a9c1336aeb10576",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "ENVIRONMENT-AND-REMAINING-GAPS.md",
+                    "path": "docs/phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md",
+                    "sha": "f4813adb00cd7ab6459011bd8ca0a7d9cb4c6f73",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FINAL-AUDIT-AND-VERIFICATION.md",
+                    "path": "docs/phase2-3/FINAL-AUDIT-AND-VERIFICATION.md",
+                    "sha": "f70c51380803a406d941fa0c2aacf61a4ddf2a97",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "FINAL-RELEASE-AUDIT-2026-08-25.md",
+                    "path": "docs/phase2-3/FINAL-RELEASE-AUDIT-2026-08-25.md",
+                    "sha": "e18c14be6e80d7530b8f2d3998e5665bab51c619",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "GITHUB-REPOS-MANIFEST.md",
+                    "path": "docs/phase2-3/GITHUB-REPOS-MANIFEST.md",
+                    "sha": "70e89c0d6e62f3b0b5355fc0dae9d0d76694156c",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
+                    "path": "docs/phase2-3/HOMEPAGE-PERFORMANCE-POSTMORTEM.md",
+                    "sha": "613759bc54be3dad3cb37793fa694157867c1135",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "ISSUES-ADMIN-REVIEW.md",
+                    "path": "docs/phase2-3/ISSUES-ADMIN-REVIEW.md",
+                    "sha": "3527936de783ff4a14f0984e57597750bc037406",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PHASE2-3-STATUS.md",
+                    "path": "docs/phase2-3/PHASE2-3-STATUS.md",
+                    "sha": "38420f4d81d1e6f62918c2f14171569b982c0b66",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
+                    "path": "docs/phase2-3/PRODUCTION-CONFIGURATION-AND-FUTURE-SCOPE.md",
+                    "sha": "891b0b3b6d2bde21f253035e3f8f3718aec08875",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
+                    "path": "docs/phase2-3/SETTINGS-PERFORMANCE-AUDIT-2026-08-26.md",
+                    "sha": "664c71e85f14955e79d4cd80fa3108000f1fdc0a",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "SUPABASE-RLS-AUDIT-2026-08-26.md",
+                    "path": "docs/phase2-3/SUPABASE-RLS-AUDIT-2026-08-26.md",
+                    "sha": "58da0d5cbf5a748e48e8e5d9dae67f6818c66696",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
+                    "path": "docs/phase2-3/THEME-CLASSIC-DARK-TRACE-2026-08-28.md",
+                    "sha": "270ae5aff5c1df704076452f9650d048c11f9934",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "THEME-ROUTE-MAP-2026-08-26.txt",
+                    "path": "docs/phase2-3/THEME-ROUTE-MAP-2026-08-26.txt",
+                    "sha": "48085d11ad63695fc82bf17d98b55c4dc9a25004",
+                    "mime": "text/plain"
+                  },
+                  {
+                    "type": "file",
+                    "name": "THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
+                    "path": "docs/phase2-3/THEME-ROUTE-PERFORMANCE-TRACE-2026-08-27.md",
+                    "sha": "6edaa8abc423d4b801a63cc035f1381f815699ac",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "TREE-NAVIGATION-TRACE-2026-08-28.md",
+                    "path": "docs/phase2-3/TREE-NAVIGATION-TRACE-2026-08-28.md",
+                    "sha": "c09776c031ddf6f3e41a60d2dbfc854cbcbb5e28",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "UPGRADE-ROADMAP-2026-08-26.md",
+                    "path": "docs/phase2-3/UPGRADE-ROADMAP-2026-08-26.md",
+                    "sha": "2cf8da958be6c32159d20afb82b43ea4f7d79eb8",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
+                    "path": "docs/phase2-3/VERCEL-RUNTIME-INCIDENT-2026-08-25.md",
+                    "sha": "1c2baed2eb8b9c326f9e54be78023abb560bd0a7",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "WEBSITE-WIDE-AUDIT-2026-08-26.md",
+                    "path": "docs/phase2-3/WEBSITE-WIDE-AUDIT-2026-08-26.md",
+                    "sha": "65ac9bcaa5484d14c6373d4e0726902736e2e4da",
+                    "mime": "text/markdown"
+                  }
+                ]
+              },
+              {
+                "type": "folder",
+                "name": "phases",
+                "children": [
+                  {
+                    "type": "file",
+                    "name": "phase-1.md",
+                    "path": "docs/phases/phase-1.md",
+                    "sha": "15694ddeaf8a6e9ba00ca05948ed3fda8f5658c2",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-2.md",
+                    "path": "docs/phases/phase-2.md",
+                    "sha": "cc444e0432fc5b67e2c1bf0d74a41fbca4c95bb1",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-3.md",
+                    "path": "docs/phases/phase-3.md",
+                    "sha": "961ce3831605ce411f3b080de3d15af7f3564488",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-4.md",
+                    "path": "docs/phases/phase-4.md",
+                    "sha": "b50963d982f0261199d68197e0c52d2be32de80b",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-5.md",
+                    "path": "docs/phases/phase-5.md",
+                    "sha": "0d5eae07182958e347d4922b80dc55af1962ce36",
+                    "mime": "text/markdown"
+                  },
+                  {
+                    "type": "file",
+                    "name": "phase-6.md",
+                    "path": "docs/phases/phase-6.md",
+                    "sha": "0a617d75f4839c1d131bd9b7a65fa9e4d45c7076",
+                    "mime": "text/markdown"
+                  }
+                ]
+              },
+              {
+                "type": "file",
+                "name": "README.md",
+                "path": "docs/README.md",
+                "sha": "f35a8b13fd86bd11eb41a8f90b4bf591c3e1916e",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "REMAINING.md",
+                "path": "docs/REMAINING.md",
+                "sha": "5dc0646308fa41a9429d4ba2a6df2e8d01587545",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "WORKFLOW_CONSOLIDATION_HANDOFF.md",
+                "path": "docs/WORKFLOW_CONSOLIDATION_HANDOFF.md",
+                "sha": "0bf851ffd321261b9779c9ccb68248da388a6331",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "WORKFLOW_TREE_REBUILD.md",
+                "path": "docs/WORKFLOW_TREE_REBUILD.md",
+                "sha": "aa9a29a938016f95ba171451de69aebac2e2f19b",
+                "mime": "text/markdown"
+              }
+            ]
+          },
+          {
+            "type": "file",
+            "name": "GITHUB-REPOSITORIES.md",
+            "path": "GITHUB-REPOSITORIES.md",
+            "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "logs",
+            "children": []
+          },
+          {
+            "type": "file",
+            "name": "README.md",
+            "path": "README.md",
+            "sha": "7d64394edc85ced6f6cb35315cd5c9a70efbf79d",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "scripts",
+            "children": []
+          },
+          {
+            "type": "folder",
+            "name": "skill",
+            "children": [
+              {
+                "type": "file",
+                "name": "biology-generator.skill.md",
+                "path": "skill/biology-generator.skill.md",
+                "sha": "f15bdd783ec8ec42cd9fd8cfcb92492cb25d9ffc",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "chemistry-generator.skill.md",
+                "path": "skill/chemistry-generator.skill.md",
+                "sha": "eee702a2dfe6c4b9577737aa9da1265b9747732a",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "cs-generator.skill.md",
+                "path": "skill/cs-generator.skill.md",
+                "sha": "f602066945fca094287e5ac9b2e3f061a95ea57e",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "desmos-upgrade.skill.md",
+                "path": "skill/desmos-upgrade.skill.md",
+                "sha": "8ffa3823f848a7873e8a296889ac6698a07c4ba6",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "maths-generator.skill.md",
+                "path": "skill/maths-generator.skill.md",
+                "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "notes-generator.skill.md",
+                "path": "skill/notes-generator.skill.md",
+                "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "physics-generator.skill.md",
+                "path": "skill/physics-generator.skill.md",
+                "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
+                "mime": "text/markdown"
+              }
+            ]
+          }
+        ],
+        "stream": "developers",
+        "repo": "local/NoteBooks-Framework",
+        "branch": "local",
+        "path": "NoteBooks-Framework"
+      }
+    }
+  ]
+}

@@ -16,7 +16,10 @@ describe('frontend stream shell', () => {
     expect(home.text).not.toContain('id="mobOverflowBtn"');
     expect(home.text).toContain('id="treeCurrentLocation"');
     expect(home.text).toContain('tree-current-location--marker');
-    for (const nav of ['home', 'science', 'commerce', 'humanities', 'community', 'issues', 'volunteers', 'accounts', 'settings', 'about']) expect(home.text).toContain(`data-nav="${nav}"`);
+    for (const nav of ['home', 'science', 'commerce', 'humanities', 'developers', 'community', 'issues', 'volunteers', 'accounts', 'settings', 'about']) expect(home.text).toContain(`data-nav="${nav}"`);
+    const developersHome = await request(app).get('/developers');
+    expect(developersHome.status).toBe(200);
+    expect(developersHome.text).toContain('NoteBooks');
     expect(home.text).not.toContain('mathjax@3/es5/tex-svg.js');
     expect(home.text).not.toContain('mermaid@11/dist/mermaid.min.js');
 

@@ -170,6 +170,7 @@ const SUBJECT_PAGES = {
     science: { icon: '🧪', title: 'Science', description: 'Structured notes, experiments, and concept reviews.' },
     commerce: { icon: '💼', title: 'Commerce', description: 'Business, economics, and practical career knowledge.' },
     humanities: { icon: '📚', title: 'Humanities', description: 'History, civics, culture, and critical essays.' },
+    developers: { icon: '🛠️', title: 'Developers', description: 'Repository architecture, contributor documentation, and project mechanics.' },
     community: { icon: '💬', title: 'Community', description: 'Discuss concepts, share ideas, and collaborate.' },
     issues: { icon: '🛠️', title: 'Issues', description: 'Request changes, flag gaps, and improve the portal.' },
     accounts: { icon: '🔐', title: 'Accounts', description: 'Authentication, profiles, and access management.' },
@@ -337,28 +338,79 @@ async function fetchConfig() {
 const EXCLUDED_ROOT_FILES = [
     "fmtree.py", "files.json", "index.html", "favicon.png", "tree.py", "autocommit.ps1"
 ];
+const FOLDER_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+  </svg>
+`;
+const OPEN_FOLDER_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h4.1a2.5 2.5 0 0 1 1.8.8l1.1 1.3a2.5 2.5 0 0 0 1.8.8h7.2A2.5 2.5 0 0 1 24 11.4v7.1A2.5 2.5 0 0 1 21.5 21H5.5A2.5 2.5 0 0 1 3 18.5z"/>
+    <path d="M3 11.5h18"/>
+  </svg>
+`;
+const NOTES_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
+    <path d="M15 3.5v4h4"/>
+    <path d="M8 11h8M8 15h8"/>
+  </svg>
+`;
+const GLOSSARY_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
+    <path d="M15 3.5v4h4"/>
+    <path d="M8 11.5h8M8 15.5h6"/>
+    <path d="M10 7.5h2"/>
+  </svg>
+`;
+const CNOTES_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3.5h9l4 4v12A2.5 2.5 0 0 1 16.5 22h-10A2.5 2.5 0 0 1 4 19.5v-13A2.5 2.5 0 0 1 6.5 4H6z"/>
+    <path d="M15 3.5v4h4"/>
+    <path d="M8 9.5h8M8 13h8M8 16.5h5"/>
+  </svg>
+`;
 const FILE_ICONS = {
-    folder: "📁",
+    folder: FOLDER_ICON_SVG,
+
+    // Your notes-triad scheme
+    notes: NOTES_ICON_SVG,
+    glossary: GLOSSARY_ICON_SVG,
+    cnotes: CNOTES_ICON_SVG,
+    readme: "📖",
+
+    // Docs / text
     md: "📝",
     markdown: "📝",
-    notes: "📘",
-    glossary: "📚",
-    cnotes: "📖",
-    pdf: "📕",
     txt: "📄",
-    json: "🔧",
-    js: "📜",
-    html: "🌐",
-    css: "🎨",
-    py: "🐍",
-    jpg: "🖼️",
-    jpeg: "🖼️",
-    png: "🖼️",
-    gif: "🖼️",
-    svg: "🖼️",
+    pdf: "📕",
     doc: "📘", docx: "📘",
     xls: "📗", xlsx: "📗",
     ppt: "📙", pptx: "📙",
+    csv: "📊",
+
+    // Code
+    js: "📜",
+    ts: "📜",
+    jsx: "⚛️",
+    tsx: "⚛️",
+    py: "🐍",
+    json: "🔧",
+    yaml: "🔧", yml: "🔧",
+    html: "🌐",
+    css: "🎨",
+    scss: "🎨",
+    sh: "💻",
+    c: "⚙️", cpp: "⚙️",
+    sql: "🗄️",
+
+    // Media
+    jpg: "🖼️", jpeg: "🖼️", png: "🖼️", gif: "🖼️", svg: "🖼️",
+    mp3: "🎵", wav: "🎵",
+    mp4: "🎬", mov: "🎬",
+    zip: "🗜️", rar: "🗜️", tar: "🗜️", gz: "🗜️",
+
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
@@ -749,6 +801,7 @@ function renderSearchResults(results) {
     results.sort((a, b) => a.name.localeCompare(b.name));
     for (let i = 0; i < results.length; i++) {
         const itemData = results[i];
+        const displayName = normalizeDisplayName(itemData.name);
         const item = document.createElement('div');
         item.className = 'file-item';
         item._childData = itemData;
@@ -758,7 +811,7 @@ function renderSearchResults(results) {
         item.innerHTML = `
       <div class="file-icon" data-type="${fileTypeClass}">${fileIcon}</div>
       <div class="file-name">
-        ${itemData.name}
+        ${displayName}
         ${subtitle}
       </div>
     `;
@@ -843,7 +896,7 @@ function setActiveTreePath(path) {
     }
     if (treeCurrentLocation) {
         const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
-        const label = activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root');
+        const label = normalizeDisplayName(activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root'));
         const locationPath = activeTreePath || 'workspace root';
         treeCurrentLocation.textContent = `Current: ${label}`;
         treeCurrentLocation.title = locationPath;
@@ -877,11 +930,7 @@ function createSidebarTreeItem(node, query) {
         return null;
     const matchesSelf = nodeMatchesQuery(node, query);
     const childItems = Array.isArray(node.children)
-        ? [...node.children].sort((a, b) => {
-            if (a.type !== b.type)
-                return a.type === 'folder' ? -1 : 1;
-            return String(a.name || '').localeCompare(String(b.name || ''));
-        })
+        ? [...node.children].sort(sortTreeEntries)
             .map((child) => createSidebarTreeItem(child, query))
             .filter(Boolean)
         : [];
@@ -988,8 +1037,9 @@ function createSidebarTreeItem(node, query) {
     row.appendChild(toggle);
     const label = document.createElement('span');
     label.className = 'sidebar-tree-label';
-    label.textContent = node.name;
-    label.title = node.name;
+    const displayName = normalizeDisplayName(node.name);
+    label.textContent = displayName;
+    label.title = displayName;
     row.appendChild(label);
     li.appendChild(row);
     if (childItems.length > 0) {
@@ -1027,15 +1077,38 @@ function renderSidebarTree(root, query = '') {
     }
     const ul = document.createElement('ul');
     ul.className = 'sidebar-tree-root';
-    [...root.children].sort((a, b) => {
-        if (a.type !== b.type)
-            return a.type === 'folder' ? -1 : 1;
-        return String(a.name || '').localeCompare(String(b.name || ''));
-    }).forEach((child) => {
-        const childLi = createSidebarTreeItem(child, query);
-        if (childLi)
-            ul.appendChild(childLi);
-    });
+    const sortedChildren = [...root.children].sort(sortTreeEntries);
+    const pinnedChildren = sortedChildren.filter((child) => isPinnedDirectoryEntry(child?.name));
+    const regularChildren = sortedChildren.filter((child) => !isPinnedDirectoryEntry(child?.name));
+    const addChildren = (children) => {
+        children.forEach((child) => {
+            const childLi = createSidebarTreeItem(child, query);
+            if (childLi)
+                ul.appendChild(childLi);
+        });
+    };
+    if (pinnedChildren.length > 0) {
+        const pinnedHeader = document.createElement('li');
+        pinnedHeader.className = 'sidebar-tree-section sidebar-tree-section--pinned';
+        const pinnedLabel = document.createElement('div');
+        pinnedLabel.className = 'sidebar-tree-section-label';
+        pinnedLabel.textContent = 'NCERT';
+        pinnedHeader.appendChild(pinnedLabel);
+        ul.appendChild(pinnedHeader);
+        addChildren(pinnedChildren);
+    }
+    if (regularChildren.length > 0) {
+        if (pinnedChildren.length > 0 && regularChildren.length > 0) {
+            const divider = document.createElement('li');
+            divider.className = 'sidebar-tree-section sidebar-tree-section--divider';
+            const dividerLabel = document.createElement('div');
+            dividerLabel.className = 'sidebar-tree-section-label';
+            dividerLabel.textContent = 'Library';
+            divider.appendChild(dividerLabel);
+            ul.appendChild(divider);
+        }
+        addChildren(regularChildren);
+    }
     if (!ul.children.length) {
         sidebarTree.innerHTML = `<div class="sidebar-tree-empty">No matches found.</div>`;
         return;
@@ -1051,10 +1124,12 @@ function renderSidebarTree(root, query = '') {
 }
 function toggleSidebar() {
     const sidebar = document.getElementById('treeRail');
+    const shell = document.querySelector('.app-shell');
     const button = document.getElementById('sidebarCollapseBtn');
     if (!sidebar || !button)
         return;
     const collapsed = sidebar.classList.toggle('tree-rail--collapsed');
+    shell?.classList.toggle('app-shell--tree-collapsed', collapsed);
     button.setAttribute('aria-expanded', String(!collapsed));
     button.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} repository navigator`);
     button.title = `${collapsed ? 'Expand' : 'Collapse'} repository navigator`;
@@ -1129,7 +1204,7 @@ function toggleSidebar() {
         // A full-document navigation owns route changes; ignore any result if the
         // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
-        treeRoot = tree;
+        treeRoot = sanitizeTreeNodeNames(tree);
         // Keep the repository root expanded on first load so the workspace opens
         // with the tree hierarchy visible, while still allowing a user to collapse it.
         autoExpandedTreePaths.clear();
@@ -1187,10 +1262,51 @@ function toggleSidebar() {
         }
     }
 }
+function getFolderTypeKey(file) {
+    const label = String(file?.name || file?.path || '').toLowerCase();
+    if (label.includes('physics')) return 'physics';
+    if (label.includes('chemistry')) return 'chemistry';
+    if (label.includes('biology')) return 'biology';
+    if (label.includes('math') || label.includes('mathematics')) return 'maths';
+    if (label.includes('cs') || label.includes('computer science') || label.includes('computer-science')) return 'cs';
+    if (label.includes('english')) return 'english';
+    return 'default';
+}
+function isPinnedDirectoryEntry(name) {
+    return /^NCERT[-_]/i.test(String(name || ''));
+}
+function sortTreeEntries(a, b) {
+    const aPinned = isPinnedDirectoryEntry(a?.name);
+    const bPinned = isPinnedDirectoryEntry(b?.name);
+    if (aPinned !== bPinned)
+        return aPinned ? -1 : 1;
+    if (a.type !== b.type)
+        return a.type === 'folder' ? -1 : 1;
+    return String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' });
+}
+function normalizeDisplayName(name) {
+    const raw = String(name || '').trim();
+    if (!raw)
+        return '';
+    return raw.replace(/^(?:[\p{Extended_Pictographic}\uFE0F\u200D\s]+)(?=\S)/gu, '').trim();
+}
+function sanitizeTreeNodeNames(node) {
+    if (!node || typeof node !== 'object')
+        return node;
+    if (typeof node.name === 'string') {
+        node.name = normalizeDisplayName(node.name);
+    }
+    if (Array.isArray(node.children)) {
+        node.children.forEach((child) => sanitizeTreeNodeNames(child));
+    }
+    return node;
+}
 function getFileIcon(file) {
     if (file.type === "folder")
         return FILE_ICONS.folder;
     const baseName = String(file.name || '').toUpperCase();
+    if (baseName === 'README.MD')
+        return FILE_ICONS.readme;
     if (baseName.endsWith('NOTES.MD') || baseName.endsWith('NOTES.MARKDOWN'))
         return FILE_ICONS.notes;
     if (baseName.endsWith('GLOSSARY.MD') || baseName.endsWith('GLOSSARY.MARKDOWN'))
@@ -1201,15 +1317,19 @@ function getFileIcon(file) {
     return FILE_ICONS[ext] || FILE_ICONS.default;
 }
 function getFileTypeClass(file) {
-    if (file.type === "folder")
-        return "folder";
+    if (file.type === "folder") {
+        const folderType = getFolderTypeKey(file);
+        return `folder folder-${folderType}`;
+    }
     const baseName = String(file.name || '').toUpperCase();
+    if (baseName === 'README.MD')
+        return 'readme';
     if (baseName.endsWith('NOTES.MD') || baseName.endsWith('NOTES.MARKDOWN'))
-        return "notes";
+        return 'notes';
     if (baseName.endsWith('GLOSSARY.MD') || baseName.endsWith('GLOSSARY.MARKDOWN'))
-        return "glossary";
+        return 'glossary';
     if (baseName.endsWith('CNOTES.MD') || baseName.endsWith('CNOTES.MARKDOWN'))
-        return "cnotes";
+        return 'cnotes';
     const ext = file.name.split('.').pop().toLowerCase();
     if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext))
         return "image";
@@ -1227,15 +1347,11 @@ function renderFolder(node) {
             return false;
         return true;
     });
-    children.sort((a, b) => {
-        if (a.type === b.type)
-            return a.name.localeCompare(b.name);
-        return a.type === "folder" ? -1 : 1;
-    });
+    children.sort(sortTreeEntries);
     if (children.length === 0) {
         listView.innerHTML = `
       <div class="empty-state">
-        <div class="icon">📂</div>
+        <div class="icon">${OPEN_FOLDER_ICON_SVG}</div>
         <h3>This folder is empty</h3>
         <p>No files or folders to display</p>
       </div>
@@ -1244,6 +1360,7 @@ function renderFolder(node) {
     }
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
+        const displayName = normalizeDisplayName(child.name);
         const item = document.createElement("div");
         item.className = "file-item";
         item.setAttribute("data-index", i);
@@ -1252,7 +1369,7 @@ function renderFolder(node) {
         const fileTypeClass = getFileTypeClass(child);
         item.innerHTML = `
       <div class="file-icon" data-type="${fileTypeClass}">${fileIcon}</div>
-      <div class="file-name">${child.name}</div>
+      <div class="file-name">${displayName}</div>
       <div class="file-actions">
         ${child.type === "file" ? `
           <div class="file-action" onclick="previewFile(event, ${i})">👁️</div>

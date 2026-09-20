@@ -50,6 +50,7 @@ const APP_SHELL = [
   'public/json/science-tree.json',
   'public/json/commerce-tree.json',
   'public/json/humanities-tree.json',
+  'public/json/developers-tree.json',
   'public/json/repo-registry.json',
   'public/bin/tikzjax/css/fonts.css',
   'public/bin/tikzjax/output/tikzjax.js',
@@ -75,7 +76,7 @@ const COOP_COEP_HEADERS = {
 const STREAM_TREES = {};
 
 async function loadStreamTrees() {
-  const streams = ['science', 'commerce', 'humanities'];
+  const streams = ['science', 'commerce', 'humanities', 'developers'];
   await Promise.all(streams.map(async (s) => {
     try {
       const runtimeUrl = `/api/system/${s}`;
@@ -304,6 +305,11 @@ self.addEventListener('fetch', event => {
 self.addEventListener('message', event => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting();
   if (event.data === 'CLEAR_CACHE') {
-    caches.delete(CACHE_VERSION).then(() => event.source?.postMessage({ type: 'CACHE_CLEARED' }));
+    caches.keys().then((names) => Promise.all(names.map((name) => caches.delete(name)))).then(() => {
+      event.source?.postMessage({ type: 'CACHE_CLEARED' });
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'CACHE_CLEARED' }));
+      });
+    });
   }
 });
