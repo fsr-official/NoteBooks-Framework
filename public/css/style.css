@@ -4470,6 +4470,7 @@ th { background: var(--surface-strong); color: var(--fg); }
 @media (max-width: 700px) { .accounts-access-grid { grid-template-columns: 1fr; } .accounts-hero { min-height: 360px; } }
 @media (prefers-reduced-motion: reduce) { .accounts-hero { transition: none; } }
 .portal-space { gap: 22px; }
+.stream-landing.portal-page { width: min(1180px, calc(100% - 32px)); margin: 32px auto 0; padding: 28px 20px 26px; border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 30px; background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.9)); box-shadow: var(--shadow-lg); }
 .space-hero { max-width: 980px; padding: 18px 0 4px; }
 .space-hero h1 { max-width: 880px; font-size: clamp(2.35rem, 5vw, 5.2rem); line-height: .98; }
 .space-hero p { max-width: 680px; font-size: 15px; line-height: 1.7; }
