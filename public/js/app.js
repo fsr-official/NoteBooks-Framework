@@ -1285,11 +1285,11 @@ function getFileIcon(file) {
     const baseName = String(file.name || '').toUpperCase();
     if (baseName === 'README.MD')
         return FILE_ICONS.readme;
-    if (baseName.endsWith('-NOTES.MD') || baseName.endsWith('NOTES.MARKDOWN'))
+    if (baseName.endsWith('-NOTES.MD') || baseName.endsWith('-NOTES.MARKDOWN'))
         return FILE_ICONS.notes;
-    if (baseName.endsWith('-GLOSSARY.MD') || baseName.endsWith('GLOSSARY.MARKDOWN'))
+    if (baseName.endsWith('-GLOSSARY.MD') || baseName.endsWith('-GLOSSARY.MARKDOWN'))
         return FILE_ICONS.glossary;
-    if (baseName.endsWith('-CNOTES.MD') || baseName.endsWith('CNOTES.MARKDOWN'))
+    if (baseName.endsWith('-CNOTES.MD') || baseName.endsWith('-CNOTES.MARKDOWN'))
         return FILE_ICONS.cnotes;
     const ext = file.name.split('.').pop().toLowerCase();
     return FILE_ICONS[ext] || FILE_ICONS.default;
