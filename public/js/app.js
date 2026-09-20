@@ -826,6 +826,13 @@ function setActiveTreePath(path) {
     if (activeTreePath)
         treeInteractionStarted = true;
     autoExpandedTreePaths.clear();
+    if (!activeTreePath && treeRoot && Array.isArray(treeRoot.children)) {
+      treeRoot.children.forEach((child) => {
+        if (child && child.type === 'folder') {
+          autoExpandedTreePaths.add(getNodePath(child));
+        }
+      });
+    }
     if (activeTreePath && treeRoot) {
       const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
       activeAncestors.forEach((ancestor) => {
@@ -1139,12 +1146,11 @@ function toggleSidebar() {
         // Preserve independently collapsed folders across refreshes; remove paths no longer present.
         const validPaths = new Set(fileIndex.map((item) => getNodePath(item.node)));
         [...expandedTreePaths].forEach((path) => { if (!validPaths.has(path)) expandedTreePaths.delete(path); });
-  treeInteractionStarted = treeInteractionStarted || expandedTreePaths.size > 0;
-  // The navigator starts quiet: folders open only after the user enters them,
-  // expands them manually, or searches for a matching descendant.
-  expandedTreePaths.clear();
-  autoExpandedTreePaths.clear();
-  setActiveTreePath('');
+        treeInteractionStarted = treeInteractionStarted || expandedTreePaths.size > 0;
+        // The navigator starts quiet: folders open only after the user enters them,
+        // expands them manually, or searches for a matching descendant.
+        expandedTreePaths.clear();
+        setActiveTreePath('');
   if (searchQuery) {
             updateSearchResults(searchQuery);
         }
