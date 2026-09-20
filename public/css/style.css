@@ -1581,13 +1581,15 @@ body {
 
 .utility-brand { display:flex; align-items:center; gap:10px; min-width:220px; }.utility-brand div { display:flex; flex-direction:column; gap:2px; }.utility-brand span:last-child { font-size:11px; opacity:.6; }.utility-mark { display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:var(--accent); color:var(--bg); font-weight:800; }.utility-status { flex:1; color:var(--accent); font:500 12px var(--font-mono); }.utility-actions { display:flex; gap:8px; }.utility-button,.markdown-mode-toolbar button { border:1px solid var(--border); border-radius:9px; padding:8px 12px; background:var(--btn-bg); color:var(--fg); cursor:pointer; }.utility-button--accent,.markdown-mode-toolbar button.active { background:var(--accent); color:var(--bg); border-color:var(--accent); }
 .utility-brand { display:flex; align-items:center; gap:10px; min-width:220px; }.utility-brand div { display:flex; flex-direction:column; gap:2px; }.utility-brand span:last-child { font-size:11px; opacity:.6; }.utility-mark { display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:var(--accent); color:var(--bg); font-weight:800; }.utility-status { flex:1; color:var(--accent); font:500 12px var(--font-mono); }.utility-actions { display:flex; gap:8px; }.utility-button,.markdown-mode-toolbar button { border:1px solid var(--border); border-radius:9px; padding:8px 12px; background:var(--btn-bg); color:var(--fg); cursor:pointer; }.utility-button--accent,.markdown-mode-toolbar button.active { background:var(--accent); color:var(--bg); border-color:var(--accent); }
-.markdown-mode-toolbar { display:flex; align-items:center; gap:7px; padding:0 0 14px; border-bottom:1px solid var(--border); margin-bottom:18px; }.markdown-mode-toolbar button { font-size:12px; }.markdown-mode-label { margin-right:auto; font:600 11px var(--font-mono); text-transform:uppercase; letter-spacing:.12em; opacity:.55; }.raw-markdown { white-space:pre-wrap; font:14px/1.7 var(--font-mono); color:var(--accent); background:var(--code-bg); border:1px solid var(--accent); border-radius:12px; padding:20px; }
-.raw-markdown-line-view { margin: 0; padding: 18px 0; width: 100%; min-height: 100%; box-sizing: border-box; overflow: auto; white-space: normal; font: 13px/1.65 var(--font-mono); color: #e5e7eb; background: #000; border: 0; border-radius: 0; }
-.raw-markdown-line-view code { display: block; min-width: max-content; }
-.raw-source-line { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); min-height: 1.65em; padding-right: 18px; }
-.raw-source-line:hover, .raw-source-line:has(::selection) { background: var(--accent-subtle); }
-.raw-line-number { user-select: none; color: #6b7280; text-align: right; padding-right: 1.2em; border-right: 1px solid #27272a; }
-.raw-line-text { padding-left: 1.2em; white-space: pre; }
+.markdown-mode-toolbar { display:flex; align-items:center; gap:7px; padding:0 0 14px; border-bottom:1px solid var(--border); margin-bottom:18px; }.markdown-mode-toolbar button { font-size:12px; }.markdown-mode-label { margin-right:auto; font:600 11px var(--font-mono); text-transform:uppercase; letter-spacing:.12em; opacity:.55; }.raw-markdown { background: #000; color: #f5f5f5; }
+.raw-markdown-line-view { margin: 0; padding: 22px clamp(16px, 3vw, 34px); width: 100%; min-height: 100%; box-sizing: border-box; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; font: 14px/1.7 var(--font-mono); color: #f5f5f5; background: #000; border: 0; border-radius: 0; }
+.raw-markdown-line-view code { display: block; white-space: inherit; overflow-wrap: inherit; word-break: inherit; }
+.raw-markdown-line-view .hljs-comment { color: #737373; }
+.raw-markdown-line-view .hljs-keyword, .raw-markdown-line-view .hljs-title, .raw-markdown-line-view .hljs-section { color: #7dd3fc; }
+.raw-markdown-line-view .hljs-string, .raw-markdown-line-view .hljs-meta { color: #86efac; }
+.raw-markdown-line-view .hljs-number, .raw-markdown-line-view .hljs-literal { color: #fbbf24; }
+.raw-markdown-line-view mark { background: #facc15; color: #111827; padding: 0 .15em; border-radius: 2px; }
+.raw-source-line, .raw-line-number, .raw-line-text { display: contents; }
 .markdown-suggest-button { margin-left: 6px; }
 .markdown-suggest-button:disabled { opacity: .45; cursor: not-allowed; }
 .suggest-changes-dialog { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.68); }
