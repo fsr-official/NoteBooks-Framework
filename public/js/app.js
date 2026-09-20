@@ -1139,18 +1139,13 @@ function toggleSidebar() {
         // Preserve independently collapsed folders across refreshes; remove paths no longer present.
         const validPaths = new Set(fileIndex.map((item) => getNodePath(item.node)));
         [...expandedTreePaths].forEach((path) => { if (!validPaths.has(path)) expandedTreePaths.delete(path); });
-        treeInteractionStarted = treeInteractionStarted || expandedTreePaths.size > 0;
-        setActiveTreePath('');
-        if (treeRoot && Array.isArray(treeRoot.children)) {
-            for (const child of treeRoot.children) {
-                if (child && child.type === 'folder') {
-                    autoExpandedTreePaths.add(getNodePath(child));
-                }
-            }
-        }
-        pathHistory = [];
-        renderSidebarTree(treeRoot, searchQuery);
-        if (searchQuery) {
+  treeInteractionStarted = treeInteractionStarted || expandedTreePaths.size > 0;
+  // The navigator starts quiet: folders open only after the user enters them,
+  // expands them manually, or searches for a matching descendant.
+  expandedTreePaths.clear();
+  autoExpandedTreePaths.clear();
+  setActiveTreePath('');
+  if (searchQuery) {
             updateSearchResults(searchQuery);
         }
         else {
