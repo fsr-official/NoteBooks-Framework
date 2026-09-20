@@ -189,7 +189,7 @@ let defaultLandingMarkup = null;
 function renderPublicPortal(subject) {
     const landing = document.getElementById('streamLanding');
     if (!landing || !subject) return;
-    const pages = {
+        const pages = {
         community: { kicker: 'Open discussion', title: 'A thoughtful place to ask, answer, and compare notes.', copy: 'Community conversations are grounded in the three stream libraries and surfaced from the existing GitHub-backed feed.', primary: 'Start a thread', links: [{ label: 'Latest discussions', href: '/community?sort=latest' }, { label: 'Trending now', href: '/community?sort=trending' }] },
         issues: { kicker: 'Improve the shelf', title: 'Spot a gap. Make a clear request. Help the library get better.', copy: 'Issues turn reader friction into visible, actionable work for the NoteBooks community.', primary: 'Submit an issue', links: [{ label: 'Latest issues', href: '/issues?sort=latest' }, { label: 'Active work', href: '/issues?status=open' }] },
         volunteers: { kicker: 'Contribute your craft', title: 'There is more than one way to leave the shelf better.', copy: 'Help with reference books, AI support, moderation, or coding. The page is public; applications continue through your account.', primary: 'Get started', links: [{ label: 'Reference books', href: '/accounts' }, { label: 'Moderation and coding', href: '/accounts' }] },
@@ -1929,7 +1929,7 @@ function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
   if (window.hljs && typeof window.hljs.highlightAuto === 'function' && source) {
   highlighted = window.hljs.highlightAuto(source, ['markdown', 'yaml', 'javascript', 'typescript', 'json', 'css', 'html']).value;
   }
-  return `<pre class="raw-markdown-line-view" data-raw-source="true"><code class="language-markdown">${highlighted}</code></pre>`;
+    return `<pre class="raw-markdown-line-view raw-source-line" data-raw-source="true"><code class="language-markdown">${highlighted}</code></pre>`;
   }
 
 function renderMarkdownIntoContainer(text, filePath, container) {
