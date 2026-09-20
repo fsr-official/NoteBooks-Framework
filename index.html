@@ -542,8 +542,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
           <div class="tree-current-location tree-current-location--marker" id="treeCurrentLocation" role="status" aria-live="polite" title="Current location">Current: workspace root</div>
         </div>
         <button class="sidebar-collapse-control" id="sidebarCollapseBtn" type="button"
-          aria-label="Collapse repository navigator" aria-expanded="true"
-          title="Collapse repository navigator">›</button>
+aria-label="Collapse repository navigator" aria-expanded="true"
+  title="Collapse repository navigator">‹</button>
       </div>
       <div class="sidebar-section sidebar-browse-section">
         <label class="sidebar-section-title" for="sidebarSearch">Search files and folders</label>
@@ -553,7 +553,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
         </div>
   <div class="tree-hover-details" id="treeHoverDetails" role="tooltip" aria-live="polite" hidden></div>
   </div>
-  <div class="tree-rail-simple-footer" aria-hidden="true"></div>
+  <div class="tree-rail-simple-footer" role="note">
+  <span class="tree-rail-footer-hint">Click a folder to navigate · use the arrow to collapse</span>
+  <span class="tree-rail-footer-collapsed" aria-hidden="true">TREE</span>
+  </div>
   </aside>
   </div>
 

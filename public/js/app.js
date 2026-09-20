@@ -189,7 +189,7 @@ let defaultLandingMarkup = null;
 function renderPublicPortal(subject) {
     const landing = document.getElementById('streamLanding');
     if (!landing || !subject) return;
-    const pages = {
+        const pages = {
         community: { kicker: 'Open discussion', title: 'A thoughtful place to ask, answer, and compare notes.', copy: 'Community conversations are grounded in the three stream libraries and surfaced from the existing GitHub-backed feed.', primary: 'Start a thread', links: [{ label: 'Latest discussions', href: '/community?sort=latest' }, { label: 'Trending now', href: '/community?sort=trending' }] },
         issues: { kicker: 'Improve the shelf', title: 'Spot a gap. Make a clear request. Help the library get better.', copy: 'Issues turn reader friction into visible, actionable work for the NoteBooks community.', primary: 'Submit an issue', links: [{ label: 'Latest issues', href: '/issues?sort=latest' }, { label: 'Active work', href: '/issues?status=open' }] },
         volunteers: { kicker: 'Contribute your craft', title: 'There is more than one way to leave the shelf better.', copy: 'Help with reference books, AI support, moderation, or coding. The page is public; applications continue through your account.', primary: 'Get started', links: [{ label: 'Reference books', href: '/accounts' }, { label: 'Moderation and coding', href: '/accounts' }] },
@@ -826,6 +826,13 @@ function setActiveTreePath(path) {
     if (activeTreePath)
         treeInteractionStarted = true;
     autoExpandedTreePaths.clear();
+    if (!activeTreePath && treeRoot && Array.isArray(treeRoot.children)) {
+      treeRoot.children.forEach((child) => {
+        if (child && child.type === 'folder') {
+          autoExpandedTreePaths.add(getNodePath(child));
+        }
+      });
+    }
     if (activeTreePath && treeRoot) {
       const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
       activeAncestors.forEach((ancestor) => {
@@ -1140,17 +1147,11 @@ function toggleSidebar() {
         const validPaths = new Set(fileIndex.map((item) => getNodePath(item.node)));
         [...expandedTreePaths].forEach((path) => { if (!validPaths.has(path)) expandedTreePaths.delete(path); });
         treeInteractionStarted = treeInteractionStarted || expandedTreePaths.size > 0;
+        // The navigator starts quiet: folders open only after the user enters them,
+        // expands them manually, or searches for a matching descendant.
+        expandedTreePaths.clear();
         setActiveTreePath('');
-        if (treeRoot && Array.isArray(treeRoot.children)) {
-            for (const child of treeRoot.children) {
-                if (child && child.type === 'folder') {
-                    autoExpandedTreePaths.add(getNodePath(child));
-                }
-            }
-        }
-        pathHistory = [];
-        renderSidebarTree(treeRoot, searchQuery);
-        if (searchQuery) {
+  if (searchQuery) {
             updateSearchResults(searchQuery);
         }
         else {
@@ -1928,11 +1929,14 @@ function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
   dialog.querySelector('input')?.focus();
 }
 
-function renderRawMarkdown(text) {
-  const lines = String(text || '').split(/\r?\n/);
-  const renderedLines = lines.map((line, index) => `<span class="raw-source-line" data-source-line="${index + 1}"><span class="raw-line-number" aria-hidden="true">${index + 1}</span><span class="raw-line-text">${escapeHTML(line) || ' '}</span></span>`).join('');
-  return `<pre class="raw-markdown-line-view" data-raw-source="true"><code>${renderedLines}</code></pre>`;
-}
+  function renderRawMarkdown(text) {
+  const source = String(text || '');
+  let highlighted = escapeHTML(source);
+  if (window.hljs && typeof window.hljs.highlightAuto === 'function' && source) {
+  highlighted = window.hljs.highlightAuto(source, ['markdown', 'yaml', 'javascript', 'typescript', 'json', 'css', 'html']).value;
+  }
+    return `<pre class="raw-markdown-line-view raw-source-line" data-raw-source="true"><code class="language-markdown">${highlighted}</code></pre>`;
+  }
 
 function renderMarkdownIntoContainer(text, filePath, container) {
   const toolbar = document.createElement('div');
@@ -2154,15 +2158,14 @@ function openCommunity() {
 }
 async function bootNoteBooks() {
     const treeRail = document.getElementById('treeRail');
-    const treeRailToggle = document.getElementById('treeRailToggle');
-    treeRailToggle?.addEventListener('click', () => {
-        const collapsed = treeRail?.classList.toggle('is-collapsed') ?? false;
-        if (treeRailToggle) {
-            treeRailToggle.textContent = collapsed ? '›' : '‹';
-            treeRailToggle.setAttribute('aria-label', collapsed ? 'Expand repository tree' : 'Collapse repository tree');
-            treeRailToggle.title = collapsed ? 'Expand repository tree' : 'Collapse repository tree';
+    if (treeRail) {
+        treeRail.classList.remove('tree-rail--collapsed');
+        const collapseButton = document.getElementById('sidebarCollapseBtn');
+        if (collapseButton) {
+            collapseButton.textContent = '‹';
+            collapseButton.setAttribute('aria-expanded', 'true');
         }
-    });
+    }
     sidebarSearchInput = document.getElementById("sidebarSearch");
     sidebarTree = document.getElementById("sidebarTree");
     treeHoverDetails = document.getElementById("treeHoverDetails");
