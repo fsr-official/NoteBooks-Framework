@@ -199,6 +199,30 @@
 }
 
 @media (max-width: 768px) {
+  /* Keep markdown tables readable: scroll the table instead of crushing columns. */
+  .markdown-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+  }
+
+  .markdown-content table {
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
+  }
+
+  .markdown-content table th,
+  .markdown-content table td {
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
   .stream-landing {
     width: min(100% - 20px, 100%);
     margin-top: 18px;
