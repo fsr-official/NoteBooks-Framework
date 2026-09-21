@@ -198,6 +198,13 @@
   line-height: 1.6;
 }
 
+@media (min-width: 981px) {
+  .app-shell { display: flex !important; flex-direction: row !important; align-items: stretch; }
+  .app-shell > #workspaceWindow { order: 1 !important; flex: 1 1 0; min-width: 0; width: auto; }
+  .app-shell > #treeRail { order: 2 !important; flex: 0 0 clamp(290px, 24vw, 370px); width: clamp(290px, 24vw, 370px); min-width: 290px; max-width: 370px; }
+  .app-shell > #treeRail.tree-rail--collapsed { flex-basis: 54px; width: 54px; min-width: 54px; max-width: 54px; }
+}
+
 @media (max-width: 768px) {
   /* Keep markdown tables readable: scroll the table instead of crushing columns. */
   .markdown-table-scroll {
@@ -345,7 +352,54 @@
 .app-sidebar--collapsed .sidebar-brand > div:not(.brand-mark) { display: none; }
 .app-sidebar--collapsed .sidebar-collapse-control { margin-left: 0; }
 
-  @media (max-width: 768px) {
+/* Desktop navigator layout: content owns the left side, tree owns the right side. */
+@media (min-width: 981px) {
+  .stream-workspace-main > .app-shell {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 18px;
+    width: 100%;
+    max-width: none;
+    padding: 16px;
+  }
+
+  .stream-workspace-main > .app-shell > .workspace-window {
+    order: 1;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    overflow: visible;
+    transition: flex-grow 220ms ease, flex-basis 220ms ease;
+  }
+
+  .stream-workspace-main > .app-shell > .tree-rail {
+    order: 2;
+    flex: 0 0 clamp(290px, 24vw, 370px);
+    width: clamp(290px, 24vw, 370px);
+    min-width: 290px;
+    max-width: 370px;
+    overflow: hidden;
+    transition: flex-basis 220ms ease, width 220ms ease, min-width 220ms ease, max-width 220ms ease, padding 220ms ease;
+  }
+
+  .stream-workspace-main > .app-shell > .tree-rail.tree-rail--collapsed {
+    flex-basis: 54px;
+    width: 54px;
+    min-width: 54px;
+    max-width: 54px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .stream-workspace-main > .app-shell > .workspace-window,
+  .stream-workspace-main > .app-shell #listView,
+  .stream-workspace-main > .app-shell #previewContainer {
+    max-width: none;
+  }
+}
+
+@media (max-width: 768px) {
   body {
     overflow-x: hidden;
   }
@@ -642,7 +696,7 @@
 /* Keep the canvas tied to the navigator as it opens and closes. Flex sizing is
    intentionally driven by the rail's flex-basis so the list and previews reclaim
    the exact space released by the collapsed rail. */
-.stream-workspace-main.app-shell {
+.stream-workspace-main > .app-shell {
   display: flex;
   align-items: stretch;
   gap: var(--workspace-shell-gap, 18px);
@@ -3828,13 +3882,36 @@ body {
 }
 
 .stream-workspace-main .app-shell {
-  grid-template-columns: minmax(0, 1fr) 330px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch;
   gap: 18px;
   height: calc(100vh - 152px);
   min-height: 650px;
   padding: 0;
   background: transparent;
   border: 0;
+}
+
+.stream-workspace-main .app-shell > .workspace-window {
+  order: 1 !important;
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+}
+
+.stream-workspace-main .app-shell > .tree-rail {
+  order: 2 !important;
+  flex: 0 0 330px;
+  width: 330px;
+  min-width: 330px;
+  transition: flex-basis 220ms ease, width 220ms ease, min-width 220ms ease;
+}
+
+.stream-workspace-main .app-shell > .tree-rail.tree-rail--collapsed {
+  flex-basis: 54px;
+  width: 54px;
+  min-width: 54px;
 }
 
 .stream-workspace-main .workspace-window,
