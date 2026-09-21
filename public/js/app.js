@@ -1130,6 +1130,15 @@ function toggleSidebar() {
                 // combined registry into another subject workspace. Phase-I payloads
                 // expose a stream root so all configured repositories remain visible.
                 tree = streamPayload.root || repoEntry?.tree || { type: 'folder', name: streamSlug, children: [] };
+                // Developers is a documentation workspace, not a repository browser.
+                // Remove the generated repository wrapper so the useful docs appear at
+                // the first level instead of behind “NoteBooks-Framework”.
+                if (streamSlug === 'developers' && tree?.children?.length === 1) {
+                    const repositoryFolder = tree.children[0];
+                    if (repositoryFolder?.type === 'folder' && repositoryFolder.children) {
+                        tree = { ...repositoryFolder, name: 'Developer documentation' };
+                    }
+                }
                 console.info('[tree] Reused stream-scoped', streamSlug, 'workspace manifest');
             }
         } catch (streamTreeError) {
