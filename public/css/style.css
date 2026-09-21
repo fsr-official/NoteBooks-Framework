@@ -657,10 +657,11 @@
 }
 
 .stream-workspace-main .workspace-window {
-  flex: 1 1 0;
+  order: 2;
+  flex: 1 1 auto;
   min-width: 0;
-  width: 0;
-  overflow: hidden;
+  width: auto;
+  overflow: visible;
   transition: flex-basis 220ms ease, width 220ms ease;
 }
 
@@ -679,7 +680,8 @@
 }
 
 .stream-workspace-main .tree-rail--collapsed + .workspace-window {
-  flex-basis: 1 1 0;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* Theme variants are defined centrally in theme.css. */
