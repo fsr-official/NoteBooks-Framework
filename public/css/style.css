@@ -639,6 +639,49 @@
   }
 }
 
+/* Keep the canvas tied to the navigator as it opens and closes. Flex sizing is
+   intentionally driven by the rail's flex-basis so the list and previews reclaim
+   the exact space released by the collapsed rail. */
+.stream-workspace-main.app-shell {
+  display: flex;
+  align-items: stretch;
+  gap: var(--workspace-shell-gap, 18px);
+}
+
+.stream-workspace-main .tree-rail {
+  flex: 0 0 clamp(290px, 24vw, 370px);
+  width: clamp(290px, 24vw, 370px);
+  min-width: 0;
+  overflow: hidden;
+  transition: flex-basis 220ms ease, width 220ms ease, min-width 220ms ease, padding 220ms ease, border-color 220ms ease, opacity 180ms ease;
+}
+
+.stream-workspace-main .workspace-window {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+  overflow: hidden;
+  transition: flex-basis 220ms ease, width 220ms ease;
+}
+
+.stream-workspace-main .list-view,
+.stream-workspace-main #previewContainer {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stream-workspace-main .tree-rail--collapsed {
+  flex-basis: 54px;
+  width: 54px;
+  min-width: 54px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.stream-workspace-main .tree-rail--collapsed + .workspace-window {
+  flex-basis: 1 1 0;
+}
+
 /* Theme variants are defined centrally in theme.css. */
 
 /* ===== BASE STYLES ===== */
