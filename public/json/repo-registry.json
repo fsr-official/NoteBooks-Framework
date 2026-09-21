@@ -11722,33 +11722,6 @@
               "mime": "text/markdown"
             },
             {
-              "type": "folder",
-              "name": "dist",
-              "children": [
-                {
-                  "type": "folder",
-                  "name": "server",
-                  "children": [
-                    {
-                      "type": "folder",
-                      "name": "lib",
-                      "children": []
-                    },
-                    {
-                      "type": "folder",
-                      "name": "server",
-                      "children": []
-                    },
-                    {
-                      "type": "folder",
-                      "name": "shims",
-                      "children": []
-                    }
-                  ]
-                }
-              ]
-            },
-            {
               "type": "file",
               "name": "GITHUB-REPOSITORIES.md",
               "path": "GITHUB-REPOSITORIES.md",
@@ -45158,33 +45131,6 @@
                 "mime": "text/markdown"
               },
               {
-                "type": "folder",
-                "name": "dist",
-                "children": [
-                  {
-                    "type": "folder",
-                    "name": "server",
-                    "children": [
-                      {
-                        "type": "folder",
-                        "name": "lib",
-                        "children": []
-                      },
-                      {
-                        "type": "folder",
-                        "name": "server",
-                        "children": []
-                      },
-                      {
-                        "type": "folder",
-                        "name": "shims",
-                        "children": []
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
                 "type": "file",
                 "name": "GITHUB-REPOSITORIES.md",
                 "path": "GITHUB-REPOSITORIES.md",
@@ -45490,33 +45436,6 @@
                 "mime": "text/markdown"
               },
               {
-                "type": "folder",
-                "name": "dist",
-                "children": [
-                  {
-                    "type": "folder",
-                    "name": "server",
-                    "children": [
-                      {
-                        "type": "folder",
-                        "name": "lib",
-                        "children": []
-                      },
-                      {
-                        "type": "folder",
-                        "name": "server",
-                        "children": []
-                      },
-                      {
-                        "type": "folder",
-                        "name": "shims",
-                        "children": []
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
                 "type": "file",
                 "name": "GITHUB-REPOSITORIES.md",
                 "path": "GITHUB-REPOSITORIES.md",
@@ -45696,5 +45615,5 @@
       ]
     }
   ],
-  "generatedAt": "2026-09-21T16:00:01.339Z"
+  "generatedAt": "2026-09-21T16:04:06.407Z"
 }
