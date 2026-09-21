@@ -260,6 +260,17 @@ def main() -> int:
         default=None,
         help="Output path for files.json (default: selected root/files.json)",
     )
+    parser.add_argument(
+        "--name",
+        dest="display_name",
+        default=None,
+        help="Display name for the generated root folder",
+    )
+    parser.add_argument(
+        "--flatten-root",
+        action="store_true",
+        help="Emit the root's children directly, useful for documentation workspaces",
+    )
     args = parser.parse_args()
 
     ROOT = Path(args.root).expanduser().resolve()
@@ -271,11 +282,18 @@ def main() -> int:
     if not name:
         raise SystemExit("Could not determine a repository name")
 
-    payload = {
-        "type": "folder",
-        "name": name,
-        "children": build_tree(ROOT, output_path),
-    }
+    children = build_tree(ROOT, output_path)
+    if args.flatten_root and len(children) == 1 and children[0].get("type") == "folder":
+        payload = {
+            **children[0],
+            "name": args.display_name or children[0].get("name", name),
+        }
+    else:
+        payload = {
+            "type": "folder",
+            "name": args.display_name or name,
+            "children": children,
+        }
     write_manifest(output_path, payload)
     print(f"files.json generated for {name} at {output_path}")
     return 0
