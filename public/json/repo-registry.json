@@ -3289,7 +3289,7 @@
                           "type": "file",
                           "name": "📓 CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
                           "path": "AI-NOTES/CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
-                          "sha": "0ce63a0da1d8caf73fbd04bcc315774c1d399a8d",
+                          "sha": "34f91edb429a3f914f5129a6bddedfbaa2c76dc8",
                           "mime": "text/markdown",
                           "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
                           "repo": "fsr-science/NCERT-Science",
@@ -3336,7 +3336,7 @@
                           "type": "file",
                           "name": "📓 CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
                           "path": "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
-                          "sha": "4506207e66d3419e5d5452c5d1f98efb481e72dc",
+                          "sha": "1bd2b8b74bd63027b1a40c9b6937288294042ff5",
                           "mime": "text/markdown",
                           "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
                           "repo": "fsr-science/NCERT-Science",
@@ -3371,7 +3371,7 @@
                           "type": "file",
                           "name": "📒 CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
                           "path": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
-                          "sha": "c6b4512b0eedd3a588e965394e9eb98f4eb45e68",
+                          "sha": "3bb436fe9762f358ec6d722722a579c2563ddcd2",
                           "mime": "text/markdown",
                           "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
                           "repo": "fsr-science/NCERT-Science",
@@ -3383,7 +3383,7 @@
                           "type": "file",
                           "name": "📓 CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
                           "path": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
-                          "sha": "54a66b7300a6145b469f340d74097b802fbd738d",
+                          "sha": "089d4f98e3d6e75bd4dd223fc9e17d98eefafcd7",
                           "mime": "text/markdown",
                           "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
                           "repo": "fsr-science/NCERT-Science",
@@ -11722,6 +11722,33 @@
               "mime": "text/markdown"
             },
             {
+              "type": "folder",
+              "name": "dist",
+              "children": [
+                {
+                  "type": "folder",
+                  "name": "server",
+                  "children": [
+                    {
+                      "type": "folder",
+                      "name": "lib",
+                      "children": []
+                    },
+                    {
+                      "type": "folder",
+                      "name": "server",
+                      "children": []
+                    },
+                    {
+                      "type": "folder",
+                      "name": "shims",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
               "type": "file",
               "name": "GITHUB-REPOSITORIES.md",
               "path": "GITHUB-REPOSITORIES.md",
@@ -15189,7 +15216,7 @@
                             "type": "file",
                             "name": "📓 CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
                             "path": "AI-NOTES/CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
-                            "sha": "0ce63a0da1d8caf73fbd04bcc315774c1d399a8d",
+                            "sha": "34f91edb429a3f914f5129a6bddedfbaa2c76dc8",
                             "mime": "text/markdown",
                             "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
                             "repo": "fsr-science/NCERT-Science",
@@ -15236,7 +15263,7 @@
                             "type": "file",
                             "name": "📓 CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
                             "path": "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
-                            "sha": "4506207e66d3419e5d5452c5d1f98efb481e72dc",
+                            "sha": "1bd2b8b74bd63027b1a40c9b6937288294042ff5",
                             "mime": "text/markdown",
                             "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
                             "repo": "fsr-science/NCERT-Science",
@@ -15271,7 +15298,7 @@
                             "type": "file",
                             "name": "📒 CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
                             "path": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
-                            "sha": "c6b4512b0eedd3a588e965394e9eb98f4eb45e68",
+                            "sha": "3bb436fe9762f358ec6d722722a579c2563ddcd2",
                             "mime": "text/markdown",
                             "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
                             "repo": "fsr-science/NCERT-Science",
@@ -15283,7 +15310,7 @@
                             "type": "file",
                             "name": "📓 CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
                             "path": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
-                            "sha": "54a66b7300a6145b469f340d74097b802fbd738d",
+                            "sha": "089d4f98e3d6e75bd4dd223fc9e17d98eefafcd7",
                             "mime": "text/markdown",
                             "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
                             "repo": "fsr-science/NCERT-Science",
@@ -20914,7 +20941,7 @@
               "type": "file",
               "name": "📓 CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
               "path": "AI-NOTES/CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
-              "sha": "0ce63a0da1d8caf73fbd04bcc315774c1d399a8d",
+              "sha": "34f91edb429a3f914f5129a6bddedfbaa2c76dc8",
               "mime": "text/markdown",
               "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
               "repo": "fsr-science/NCERT-Science",
@@ -20950,7 +20977,7 @@
               "type": "file",
               "name": "📓 CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
               "path": "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
-              "sha": "4506207e66d3419e5d5452c5d1f98efb481e72dc",
+              "sha": "1bd2b8b74bd63027b1a40c9b6937288294042ff5",
               "mime": "text/markdown",
               "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
               "repo": "fsr-science/NCERT-Science",
@@ -20974,7 +21001,7 @@
               "type": "file",
               "name": "📒 CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
               "path": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
-              "sha": "c6b4512b0eedd3a588e965394e9eb98f4eb45e68",
+              "sha": "3bb436fe9762f358ec6d722722a579c2563ddcd2",
               "mime": "text/markdown",
               "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
               "repo": "fsr-science/NCERT-Science",
@@ -20986,7 +21013,7 @@
               "type": "file",
               "name": "📓 CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
               "path": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
-              "sha": "54a66b7300a6145b469f340d74097b802fbd738d",
+              "sha": "089d4f98e3d6e75bd4dd223fc9e17d98eefafcd7",
               "mime": "text/markdown",
               "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
               "repo": "fsr-science/NCERT-Science",
@@ -25670,7 +25697,7 @@
                             "type": "file",
                             "name": "📓 CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
                             "path": "AI-NOTES/CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
-                            "sha": "0ce63a0da1d8caf73fbd04bcc315774c1d399a8d",
+                            "sha": "34f91edb429a3f914f5129a6bddedfbaa2c76dc8",
                             "mime": "text/markdown",
                             "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY/CHEMISTRY01-SOME_BASIC_CONCEPTS_OF_CHEMISTRY-NOTES.md",
                             "repo": "fsr-science/NCERT-Science",
@@ -25717,7 +25744,7 @@
                             "type": "file",
                             "name": "📓 CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
                             "path": "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
-                            "sha": "4506207e66d3419e5d5452c5d1f98efb481e72dc",
+                            "sha": "1bd2b8b74bd63027b1a40c9b6937288294042ff5",
                             "mime": "text/markdown",
                             "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY02-STRUCTURE_OF_ATOM/CHEMISTRY02-STRUCTURE_OF_ATOM-NOTES.md",
                             "repo": "fsr-science/NCERT-Science",
@@ -25752,7 +25779,7 @@
                             "type": "file",
                             "name": "📒 CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
                             "path": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
-                            "sha": "c6b4512b0eedd3a588e965394e9eb98f4eb45e68",
+                            "sha": "3bb436fe9762f358ec6d722722a579c2563ddcd2",
                             "mime": "text/markdown",
                             "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-GLOSSARY.md",
                             "repo": "fsr-science/NCERT-Science",
@@ -25764,7 +25791,7 @@
                             "type": "file",
                             "name": "📓 CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
                             "path": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
-                            "sha": "54a66b7300a6145b469f340d74097b802fbd738d",
+                            "sha": "089d4f98e3d6e75bd4dd223fc9e17d98eefafcd7",
                             "mime": "text/markdown",
                             "repoPath": "AI-NOTES/CHEMISTRY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY/CHEMISTRY03-CLASSIFICATION_OF_ELEMENTS_AND_PERIODICITY-NOTES.md",
                             "repo": "fsr-science/NCERT-Science",
@@ -45131,6 +45158,33 @@
                 "mime": "text/markdown"
               },
               {
+                "type": "folder",
+                "name": "dist",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "server",
+                    "children": [
+                      {
+                        "type": "folder",
+                        "name": "lib",
+                        "children": []
+                      },
+                      {
+                        "type": "folder",
+                        "name": "server",
+                        "children": []
+                      },
+                      {
+                        "type": "folder",
+                        "name": "shims",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
                 "type": "file",
                 "name": "GITHUB-REPOSITORIES.md",
                 "path": "GITHUB-REPOSITORIES.md",
@@ -45436,6 +45490,33 @@
                 "mime": "text/markdown"
               },
               {
+                "type": "folder",
+                "name": "dist",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "server",
+                    "children": [
+                      {
+                        "type": "folder",
+                        "name": "lib",
+                        "children": []
+                      },
+                      {
+                        "type": "folder",
+                        "name": "server",
+                        "children": []
+                      },
+                      {
+                        "type": "folder",
+                        "name": "shims",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
                 "type": "file",
                 "name": "GITHUB-REPOSITORIES.md",
                 "path": "GITHUB-REPOSITORIES.md",
@@ -45615,5 +45696,5 @@
       ]
     }
   ],
-  "generatedAt": "2026-09-21T16:35:28.963Z"
+  "generatedAt": "2026-09-22T05:22:26.879Z"
 }
