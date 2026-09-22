@@ -9,6 +9,7 @@ const previewContainer = document.getElementById("previewContainer");
 const mobilePreview = document.getElementById("mobilePreview");
 const mobilePreviewContent = document.getElementById("mobilePreviewContent");
 const mobilePreviewTitle = document.getElementById("mobilePreviewTitle");
+const mobilePreviewHeader = mobilePreview ? mobilePreview.querySelector(".header") : null;
 const taskbar = document.getElementById("taskbar");
 const statusEl = document.getElementById("status");
 function hideSplash() {
@@ -1640,6 +1641,54 @@ function handleDownload() {
     }
     contextMenu.style.display = 'none';
 }
+let mobilePreviewScrollY = 0;
+let mobilePreviewHeaderVisible = true;
+let mobilePreviewTapTimer = null;
+
+function setMobilePreviewHeaderVisibility(visible) {
+    if (!mobilePreviewHeader) return;
+    mobilePreviewHeaderVisible = visible;
+    mobilePreviewHeader.classList.toggle('is-hidden', !visible);
+}
+
+function toggleMobilePreviewHeader() {
+    if (!mobilePreviewHeader) return;
+    setMobilePreviewHeaderVisibility(!mobilePreviewHeaderVisible);
+}
+
+function bindMobilePreviewScrollHide() {
+    if (!mobilePreviewContent || mobilePreviewContent.dataset.mobileScrollBound === 'true') return;
+
+    mobilePreviewContent.dataset.mobileScrollBound = 'true';
+    mobilePreviewContent.addEventListener('scroll', () => {
+        const nextScroll = mobilePreviewContent.scrollTop;
+        const delta = nextScroll - mobilePreviewScrollY;
+
+        if (Math.abs(delta) < 6) return;
+
+        if (delta > 0 && mobilePreviewHeaderVisible) {
+            setMobilePreviewHeaderVisibility(false);
+        }
+        else if (delta < 0 && !mobilePreviewHeaderVisible && nextScroll <= 24) {
+            setMobilePreviewHeaderVisibility(true);
+        }
+
+        mobilePreviewScrollY = nextScroll;
+    }, { passive: true });
+
+    mobilePreview.addEventListener('pointerdown', (event) => {
+        if (event.target.closest('.close')) return;
+        if (event.target.closest('.header')) return;
+        if (mobilePreviewTapTimer) {
+            clearTimeout(mobilePreviewTapTimer);
+        }
+        mobilePreviewTapTimer = setTimeout(() => {
+            toggleMobilePreviewHeader();
+            mobilePreviewTapTimer = null;
+        }, 60);
+    });
+}
+
 function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
     mobilePreviewTitle.textContent = filename;
     mobilePreview._filePath = path;
@@ -1647,12 +1696,19 @@ function openMobilePreview(path, filename, repo = '', branch = '', repoPath = ''
     mobilePreview._branch = branch;
     mobilePreview._repoPath = repoPath || path;
     mobilePreview._filename = filename;
+    mobilePreviewContent.scrollTop = 0;
+    mobilePreviewScrollY = 0;
+    setMobilePreviewHeaderVisibility(true);
+    bindMobilePreviewScrollHide();
     fetchFileContent(path, filename, mobilePreviewContent, mobilePreview, repo, branch, repoPath, precomputedRaw);
     mobilePreview.style.display = "flex";
 }
 function closeMobilePreview() {
     mobilePreview.style.display = "none";
     mobilePreviewContent.innerHTML = "";
+    mobilePreviewContent.scrollTop = 0;
+    mobilePreviewScrollY = 0;
+    setMobilePreviewHeaderVisibility(true);
 }
 // ─── Split-view editor styles (injected once) ────────────────────────────────
 function injectSplitViewStyles() {
