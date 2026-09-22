@@ -353,7 +353,7 @@ const FILE_ICONS = {
     folder: FOLDER_ICON_SVG,
 
     // Your notes-triad scheme
-    notes: "📔",
+    notes: "�",
     glossary: "📒",
     cnotes: "📓",
     readme: "📖",

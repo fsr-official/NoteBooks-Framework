@@ -28,8 +28,8 @@ SKIP_DIRECTORIES = {
     ".vercel",
     "api",
     "public",
+    "src",
     "tests",
-    "docs",
     "scripts"
 }
 
