@@ -2099,12 +2099,14 @@ function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
   }
 
 function renderMarkdownIntoContainer(text, filePath, container) {
+  container.style.cssText = 'display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0; overflow:hidden;';
   const toolbar = document.createElement('div');
   toolbar.className = 'markdown-mode-toolbar';
   toolbar.innerHTML = '<span class="markdown-mode-label">Document</span><button type="button" data-mode="preview" class="active">Reader</button><button type="button" data-mode="raw">Raw view</button>';
   const wrapper = document.createElement('div');
   wrapper.className = 'markdown-content';
   wrapper.dataset.sourceFile = filePath || '';
+  wrapper.style.cssText = 'flex:1 1 auto; width:100%; min-height:0; overflow:auto;';
   wrapper.innerHTML = markdownToHTML(text, filePath);
   container.innerHTML = '';
   container.appendChild(toolbar);
