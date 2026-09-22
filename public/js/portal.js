@@ -40,11 +40,10 @@
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
   const formatDate = (value) => { const date = value ? new Date(value) : null; return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Recently'; };
   const getPathSegments = () => window.location.pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
-  const LEGACY_CHANNEL_ROUTE_PREFIX = '/community/channel/';
   const getCommunityChannelRoute = () => {
     const segments = getPathSegments();
     if (segments[0] !== 'community') return 'general';
-    if ((segments[1] === 'channels' || segments[1] === 'channel') && segments[2]) return decodeURIComponent(segments[2]);
+    if (segments[1] === 'channel' && segments[2]) return decodeURIComponent(segments[2]);
     return 'general';
   };
   const slug = getPathSegments()[0] || 'about';
@@ -83,6 +82,14 @@
 
   function updateChannelRoute(slugName) {
     const target = `/community/channels/${encodeURIComponent(slugName || 'general')}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (current !== target) {
+      window.history.pushState({ channelSlug: slugName || 'general' }, '', target);
+    }
+  }
+
+  function updateChannelRoute(slugName) {
+    const target = `/community/channel/${encodeURIComponent(slugName || 'general')}`;
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (current !== target) {
       window.history.pushState({ channelSlug: slugName || 'general' }, '', target);
