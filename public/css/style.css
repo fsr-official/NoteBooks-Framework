@@ -1846,7 +1846,10 @@ body {
 .community-channel-main > .community-channel-workspace { margin-top: 28px; padding: 0; border: 1px solid var(--border); border-radius: 18px; background: color-mix(in srgb, var(--panel) 88%, transparent); overflow: hidden; }
 .community-channel-main .portal-panel-header { padding: 18px 20px; background: var(--surface-muted); }
 .community-channel-main .channel-layout { padding: 16px; grid-template-columns: minmax(190px, 240px) minmax(0, 1fr); }
-.community-channel-main .channel-list { align-content: start; padding: 4px; border-right: 1px solid var(--border); }
+.community-channel-main .channel-list { align-content: start; padding: 14px; border-right: 1px solid var(--border); }
+.community-channel-main .channel-guide { display: grid; gap: 7px; margin-bottom: 12px; padding: 4px 4px 16px; border-bottom: 1px solid var(--border); }
+.community-channel-main .channel-guide strong { font-size: 13px; line-height: 1.35; }
+.community-channel-main .channel-guide p { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.55; }
 .community-channel-main .channel-list-item { padding: 12px; border-radius: 10px; }
 .community-channel-main .channel-room { min-height: 520px; }
 @media (max-width: 720px) { .community-channel-page { width: min(100% - 20px, 680px); padding-top: 20px; }.community-channel-header { align-items: start; flex-direction: column; gap: 16px; }.community-channel-main > .community-channel-workspace { margin-top: 18px; border-radius: 14px; }.community-channel-main .channel-layout { padding: 10px; }.community-channel-main .channel-list { border-right: 0; border-bottom: 1px solid var(--border); } }
