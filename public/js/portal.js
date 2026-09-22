@@ -39,7 +39,14 @@
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
   const formatDate = (value) => { const date = value ? new Date(value) : null; return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Recently'; };
-  const slug = window.location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0] || 'about';
+  const getPathSegments = () => window.location.pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
+  const getCommunityChannelRoute = () => {
+    const segments = getPathSegments();
+    if (segments[0] !== 'community') return 'general';
+    if (segments[1] === 'channel' && segments[2]) return decodeURIComponent(segments[2]);
+    return 'general';
+  };
+  const slug = getPathSegments()[0] || 'about';
   const page = pages[slug] || pages.about;
 
   if (slug === 'about') {
@@ -70,6 +77,14 @@
     feedSwitcher.insertAdjacentHTML('beforebegin', `<section class="community-channel-workspace" id="communityChannelWorkspace" aria-labelledby="community-channels-title"><div class="portal-panel-header"><span>Community</span><strong id="community-channels-title">Channels</strong></div><div class="channel-layout"><nav class="channel-list" id="communityChannelList" aria-label="Community channels"><p class="feed-loading">Loading channels…</p></nav><section class="channel-room" aria-live="polite"><div class="channel-room-header"><div><strong id="activeChannelName">Select a channel</strong><span id="activeChannelDescription"></span></div><span id="channelReadStatus" class="channel-read-status"></span></div><div class="channel-messages" id="communityChannelMessages"><p class="feed-empty">Choose a channel to read messages.</p></div><form class="channel-composer" id="communityChannelComposer"><label id="channelProposalLinkWrap" for="channelProposalId" hidden>Issue proposal ID<input id="channelProposalId" name="issueProposalId" type="number" min="1" inputmode="numeric" placeholder="Optional proposal reference" /></label><label for="channelMessageInput">Message</label><div class="channel-composer-row"><textarea id="channelMessageInput" name="body" maxlength="4000" rows="2" placeholder="Sign in to join the conversation…" disabled></textarea><button type="submit" class="landing-primary" disabled>Send</button></div><span class="channel-composer-status" id="channelComposerStatus" role="status"></span></form></section></div><section class="community-moderation-panel" id="communityModerationPanel" hidden aria-labelledby="community-moderation-title"><div class="portal-panel-header"><span>Governance</span><strong id="community-moderation-title">Report queue</strong></div><div id="communityModerationReports"><p class="feed-empty">Moderator access is checked securely.</p></div></section></section>`);
   }
 
+  function updateChannelRoute(slugName) {
+    const target = `/community/channel/${encodeURIComponent(slugName || 'general')}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (current !== target) {
+      window.history.pushState({ channelSlug: slugName || 'general' }, '', target);
+    }
+  }
+
   async function loadChannels() {
     const list = document.getElementById('communityChannelList');
     if (!list || page.feed !== 'community') return;
@@ -80,15 +95,17 @@
       availableChannels = Array.isArray(data.channels) ? data.channels : [];
       list.innerHTML = availableChannels.length ? availableChannels.map((channel) => `<button type="button" class="channel-list-item" data-channel-slug="${escapeHtml(channel.slug)}"><span># ${escapeHtml(channel.name)}${channel.unreadCount ? ` <em class="channel-unread-count">${escapeHtml(channel.unreadCount)}</em>` : ''}</span><small>${escapeHtml(channel.description || '')}</small></button>`).join('') : '<p class="feed-empty">No channels are available.</p>';
       list.querySelectorAll('[data-channel-slug]').forEach((button) => button.addEventListener('click', () => selectChannel(button.dataset.channelSlug)));
-      if (availableChannels.length) selectChannel(availableChannels[0].slug);
+      const preferredSlug = availableChannels.some((channel) => channel.slug === getCommunityChannelRoute()) ? getCommunityChannelRoute() : availableChannels.some((channel) => channel.slug === 'general') ? 'general' : availableChannels[0]?.slug || 'general';
+      if (availableChannels.length) selectChannel(preferredSlug);
     } catch (error) { list.innerHTML = `<p class="feed-empty">${escapeHtml(error.message || 'Channels are unavailable right now.')}</p>`; }
   }
 
   async function selectChannel(slug) {
-    const channel = availableChannels.find((item) => item.slug === slug);
+    const channel = availableChannels.find((item) => item.slug === slug) || availableChannels.find((item) => item.slug === 'general') || availableChannels[0];
     if (!channel) return;
     activeChannel = channel;
-    document.querySelectorAll('[data-channel-slug]').forEach((button) => button.classList.toggle('is-active', button.dataset.channelSlug === slug));
+    updateChannelRoute(channel.slug);
+    document.querySelectorAll('[data-channel-slug]').forEach((button) => button.classList.toggle('is-active', button.dataset.channelSlug === channel.slug));
     const name = document.getElementById('activeChannelName');
     const description = document.getElementById('activeChannelDescription');
     const messageList = document.getElementById('communityChannelMessages');
@@ -102,7 +119,7 @@
     if (send) send.disabled = !authToken();
     if (messageList) messageList.innerHTML = '<p class="feed-loading">Loading messages…</p>';
     try {
-      const response = await fetch(`/api/community/channels/${encodeURIComponent(slug)}/messages`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+      const response = await fetch(`/api/community/channels/${encodeURIComponent(channel.slug)}/messages`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Messages unavailable');
       const messages = Array.isArray(data.messages) ? data.messages : [];
@@ -110,8 +127,8 @@
       messageList?.querySelectorAll('[data-report-message]').forEach((button) => button.addEventListener('click', () => reportMessage(button.dataset.reportMessage)));
       const token = authToken();
       if (token) {
-        const readResponse = await fetch(`/api/community/channels/${encodeURIComponent(slug)}/read`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, credentials: 'same-origin' });
-        if (readResponse.ok) document.querySelector(`[data-channel-slug="${CSS.escape(slug)}"] .channel-unread-count`)?.remove();
+        const readResponse = await fetch(`/api/community/channels/${encodeURIComponent(channel.slug)}/read`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, credentials: 'same-origin' });
+        if (readResponse.ok) document.querySelector(`[data-channel-slug="${CSS.escape(channel.slug)}"] .channel-unread-count`)?.remove();
       }
     } catch (error) { if (messageList) messageList.innerHTML = `<p class="feed-empty">${escapeHtml(error.message || 'Messages are unavailable right now.')}</p>`; }
   }
