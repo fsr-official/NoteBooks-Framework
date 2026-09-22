@@ -190,3 +190,35 @@ font-weight: 600;
 background: #0757ba;
 }
 
+/* The stream stylesheet loads after the main shell styles, so keep the pane
+   contract here as the final source of truth for the repository workspace. */
+@media (min-width: 981px) {
+  .stream-workspace-main > .app-shell {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+  }
+
+  .stream-workspace-main > .app-shell > #workspaceWindow {
+    order: 1 !important;
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .stream-workspace-main > .app-shell > #treeRail {
+    order: 2 !important;
+    flex: 0 0 330px;
+    width: 330px;
+    min-width: 330px;
+    transition: flex-basis 220ms ease, width 220ms ease, min-width 220ms ease;
+  }
+
+  .stream-workspace-main > .app-shell > #treeRail.tree-rail--collapsed {
+    flex-basis: 54px;
+    width: 54px;
+    min-width: 54px;
+  }
+}
+
+

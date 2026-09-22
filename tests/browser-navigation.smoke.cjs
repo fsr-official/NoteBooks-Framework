@@ -83,7 +83,7 @@ async function main() {
     }));
     assert.equal(workspaceLayout.treeArea, 'tree');
     assert.equal(workspaceLayout.workspaceArea, 'workspace');
-    assert.ok(workspaceLayout.treeLeft < workspaceLayout.workspaceLeft, 'tree rail is not the left workspace pane');
+    assert.ok(workspaceLayout.workspaceLeft < workspaceLayout.treeLeft, 'workspace pane is not the left side and tree rail is not the right side');
     assert.equal(workspaceLayout.markerInsideHeader, true);
     assert.ok(workspaceLayout.treeWidth >= 320, `tree rail is too narrow: ${workspaceLayout.treeWidth}`);
     assert.equal(await page.locator('.sidebar-tree-root > .sidebar-tree-item.folder > .sidebar-tree-row').first().getAttribute('aria-expanded'), 'true', 'repository root is collapsed on first load');

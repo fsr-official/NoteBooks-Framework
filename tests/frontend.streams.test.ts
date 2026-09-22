@@ -189,6 +189,8 @@ describe('frontend stream shell', () => {
     expect(portalJs.status).toBe(200);
     expect(portalJs.text).toContain('community-channel-workspace');
     expect(portalJs.text).toContain('issueProposalForm');
+    expect(portalJs.text).toContain('/community/channel/');
+    expect(portalJs.text).toContain('window.history.pushState');
     expect(portalJs.text).toContain('/api/issues/proposals');
     expect(portalJs.text).toContain('data-vote-issue');
     expect(portalJs.text).toContain('Sign in from <a href="/accounts">Accounts</a>');

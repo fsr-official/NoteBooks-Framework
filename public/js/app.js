@@ -9,6 +9,7 @@ const previewContainer = document.getElementById("previewContainer");
 const mobilePreview = document.getElementById("mobilePreview");
 const mobilePreviewContent = document.getElementById("mobilePreviewContent");
 const mobilePreviewTitle = document.getElementById("mobilePreviewTitle");
+const mobilePreviewHeader = mobilePreview ? mobilePreview.querySelector(".header") : null;
 const taskbar = document.getElementById("taskbar");
 const statusEl = document.getElementById("status");
 function hideSplash() {
@@ -353,7 +354,7 @@ const FILE_ICONS = {
     folder: FOLDER_ICON_SVG,
 
     // Your notes-triad scheme
-    notes: "📔",
+    notes: "�",
     glossary: "📒",
     cnotes: "📓",
     readme: "📖",
@@ -1130,6 +1131,15 @@ function toggleSidebar() {
                 // combined registry into another subject workspace. Phase-I payloads
                 // expose a stream root so all configured repositories remain visible.
                 tree = streamPayload.root || repoEntry?.tree || { type: 'folder', name: streamSlug, children: [] };
+                // Developers is a documentation workspace, not a repository browser.
+                // Remove the generated repository wrapper so the useful docs appear at
+                // the first level instead of behind “NoteBooks-Framework”.
+                if (streamSlug === 'developers' && tree?.children?.length === 1) {
+                    const repositoryFolder = tree.children[0];
+                    if (repositoryFolder?.type === 'folder' && repositoryFolder.children) {
+                        tree = { ...repositoryFolder, name: 'Developer documentation' };
+                    }
+                }
                 console.info('[tree] Reused stream-scoped', streamSlug, 'workspace manifest');
             }
         } catch (streamTreeError) {
@@ -1631,6 +1641,54 @@ function handleDownload() {
     }
     contextMenu.style.display = 'none';
 }
+let mobilePreviewScrollY = 0;
+let mobilePreviewHeaderVisible = true;
+let mobilePreviewTapTimer = null;
+
+function setMobilePreviewHeaderVisibility(visible) {
+    if (!mobilePreviewHeader) return;
+    mobilePreviewHeaderVisible = visible;
+    mobilePreviewHeader.classList.toggle('is-hidden', !visible);
+}
+
+function toggleMobilePreviewHeader() {
+    if (!mobilePreviewHeader) return;
+    setMobilePreviewHeaderVisibility(!mobilePreviewHeaderVisible);
+}
+
+function bindMobilePreviewScrollHide() {
+    if (!mobilePreviewContent || mobilePreviewContent.dataset.mobileScrollBound === 'true') return;
+
+    mobilePreviewContent.dataset.mobileScrollBound = 'true';
+    mobilePreviewContent.addEventListener('scroll', () => {
+        const nextScroll = mobilePreviewContent.scrollTop;
+        const delta = nextScroll - mobilePreviewScrollY;
+
+        if (Math.abs(delta) < 6) return;
+
+        if (delta > 0 && mobilePreviewHeaderVisible) {
+            setMobilePreviewHeaderVisibility(false);
+        }
+        else if (delta < 0 && !mobilePreviewHeaderVisible && nextScroll <= 24) {
+            setMobilePreviewHeaderVisibility(true);
+        }
+
+        mobilePreviewScrollY = nextScroll;
+    }, { passive: true });
+
+    mobilePreview.addEventListener('pointerdown', (event) => {
+        if (event.target.closest('.close')) return;
+        if (event.target.closest('.header')) return;
+        if (mobilePreviewTapTimer) {
+            clearTimeout(mobilePreviewTapTimer);
+        }
+        mobilePreviewTapTimer = setTimeout(() => {
+            toggleMobilePreviewHeader();
+            mobilePreviewTapTimer = null;
+        }, 60);
+    });
+}
+
 function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
     mobilePreviewTitle.textContent = filename;
     mobilePreview._filePath = path;
@@ -1638,12 +1696,19 @@ function openMobilePreview(path, filename, repo = '', branch = '', repoPath = ''
     mobilePreview._branch = branch;
     mobilePreview._repoPath = repoPath || path;
     mobilePreview._filename = filename;
+    mobilePreviewContent.scrollTop = 0;
+    mobilePreviewScrollY = 0;
+    setMobilePreviewHeaderVisibility(true);
+    bindMobilePreviewScrollHide();
     fetchFileContent(path, filename, mobilePreviewContent, mobilePreview, repo, branch, repoPath, precomputedRaw);
     mobilePreview.style.display = "flex";
 }
 function closeMobilePreview() {
     mobilePreview.style.display = "none";
     mobilePreviewContent.innerHTML = "";
+    mobilePreviewContent.scrollTop = 0;
+    mobilePreviewScrollY = 0;
+    setMobilePreviewHeaderVisibility(true);
 }
 // ─── Split-view editor styles (injected once) ────────────────────────────────
 function injectSplitViewStyles() {
@@ -2034,12 +2099,14 @@ function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
   }
 
 function renderMarkdownIntoContainer(text, filePath, container) {
+  container.style.cssText = 'display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0; overflow:hidden;';
   const toolbar = document.createElement('div');
   toolbar.className = 'markdown-mode-toolbar';
   toolbar.innerHTML = '<span class="markdown-mode-label">Document</span><button type="button" data-mode="preview" class="active">Reader</button><button type="button" data-mode="raw">Raw view</button>';
   const wrapper = document.createElement('div');
   wrapper.className = 'markdown-content';
   wrapper.dataset.sourceFile = filePath || '';
+  wrapper.style.cssText = 'flex:1 1 auto; width:100%; min-height:0; overflow:auto;';
   wrapper.innerHTML = markdownToHTML(text, filePath);
   container.innerHTML = '';
   container.appendChild(toolbar);
