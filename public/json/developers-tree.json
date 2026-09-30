@@ -27,6 +27,11 @@
                 "children": [
                   {
                     "type": "folder",
+                    "name": "client",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
                     "name": "lib",
                     "children": []
                   },
@@ -41,6 +46,47 @@
                     "children": []
                   }
                 ]
+              }
+            ]
+          },
+          {
+            "type": "folder",
+            "name": "docs",
+            "children": [
+              {
+                "type": "file",
+                "name": "DEV-WORKSPACE.md",
+                "path": "docs/DEV-WORKSPACE.md",
+                "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "README.md",
+                "path": "docs/README.md",
+                "sha": "4072df720211f9fbf263923586546e40d95409c7",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "REPO-AND-FILES-JSON.md",
+                "path": "docs/REPO-AND-FILES-JSON.md",
+                "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "STREAM-ARCHITECTURE.md",
+                "path": "docs/STREAM-ARCHITECTURE.md",
+                "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "SYSTEM-OVERVIEW.md",
+                "path": "docs/SYSTEM-OVERVIEW.md",
+                "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
+                "mime": "text/markdown"
               }
             ]
           },
@@ -157,62 +203,6 @@
                 "mime": "text/markdown"
               }
             ]
-          },
-          {
-            "type": "folder",
-            "name": "src",
-            "children": [
-              {
-                "type": "folder",
-                "name": "client",
-                "children": []
-              },
-              {
-                "type": "folder",
-                "name": "db",
-                "children": [
-                  {
-                    "type": "folder",
-                    "name": "migrations",
-                    "children": []
-                  }
-                ]
-              },
-              {
-                "type": "folder",
-                "name": "lib",
-                "children": [
-                  {
-                    "type": "folder",
-                    "name": "schemas",
-                    "children": []
-                  }
-                ]
-              },
-              {
-                "type": "folder",
-                "name": "server",
-                "children": [
-                  {
-                    "type": "file",
-                    "name": "README.md",
-                    "path": "src/server/README.md",
-                    "sha": "0109664eeaacd00a581e1d5aaca0e3c42a89a03f",
-                    "mime": "text/markdown"
-                  }
-                ]
-              },
-              {
-                "type": "folder",
-                "name": "shims",
-                "children": []
-              },
-              {
-                "type": "folder",
-                "name": "types",
-                "children": []
-              }
-            ]
           }
         ],
         "stream": "developers",
@@ -229,7 +219,7 @@
       "branch": "local",
       "root": "",
       "name": "NoteBooks-Framework",
-      "manifestUrl": "/vercel/share/v0-project/files.json",
+      "manifestUrl": "/home/harshit9745/SFXFolder/NoteBooks-Project/NoteBooks-Framework/files.json",
       "source": "raw",
       "files": [
         {
@@ -237,6 +227,41 @@
           "name": "COPYLEFT-NOTICES.md",
           "path": "COPYLEFT-NOTICES.md",
           "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "DEV-WORKSPACE.md",
+          "path": "docs/DEV-WORKSPACE.md",
+          "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "docs/README.md",
+          "sha": "4072df720211f9fbf263923586546e40d95409c7",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "REPO-AND-FILES-JSON.md",
+          "path": "docs/REPO-AND-FILES-JSON.md",
+          "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "STREAM-ARCHITECTURE.md",
+          "path": "docs/STREAM-ARCHITECTURE.md",
+          "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "SYSTEM-OVERVIEW.md",
+          "path": "docs/SYSTEM-OVERVIEW.md",
+          "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
           "mime": "text/markdown"
         },
         {
@@ -329,13 +354,6 @@
           "path": "skill/physics-generator.skill.md",
           "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
           "mime": "text/markdown"
-        },
-        {
-          "type": "file",
-          "name": "README.md",
-          "path": "src/server/README.md",
-          "sha": "0109664eeaacd00a581e1d5aaca0e3c42a89a03f",
-          "mime": "text/markdown"
         }
       ],
       "tree": {
@@ -359,6 +377,11 @@
                 "children": [
                   {
                     "type": "folder",
+                    "name": "client",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
                     "name": "lib",
                     "children": []
                   },
@@ -373,6 +396,47 @@
                     "children": []
                   }
                 ]
+              }
+            ]
+          },
+          {
+            "type": "folder",
+            "name": "docs",
+            "children": [
+              {
+                "type": "file",
+                "name": "DEV-WORKSPACE.md",
+                "path": "docs/DEV-WORKSPACE.md",
+                "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "README.md",
+                "path": "docs/README.md",
+                "sha": "4072df720211f9fbf263923586546e40d95409c7",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "REPO-AND-FILES-JSON.md",
+                "path": "docs/REPO-AND-FILES-JSON.md",
+                "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "STREAM-ARCHITECTURE.md",
+                "path": "docs/STREAM-ARCHITECTURE.md",
+                "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "SYSTEM-OVERVIEW.md",
+                "path": "docs/SYSTEM-OVERVIEW.md",
+                "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
+                "mime": "text/markdown"
               }
             ]
           },
@@ -487,62 +551,6 @@
                 "path": "skill/physics-generator.skill.md",
                 "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
                 "mime": "text/markdown"
-              }
-            ]
-          },
-          {
-            "type": "folder",
-            "name": "src",
-            "children": [
-              {
-                "type": "folder",
-                "name": "client",
-                "children": []
-              },
-              {
-                "type": "folder",
-                "name": "db",
-                "children": [
-                  {
-                    "type": "folder",
-                    "name": "migrations",
-                    "children": []
-                  }
-                ]
-              },
-              {
-                "type": "folder",
-                "name": "lib",
-                "children": [
-                  {
-                    "type": "folder",
-                    "name": "schemas",
-                    "children": []
-                  }
-                ]
-              },
-              {
-                "type": "folder",
-                "name": "server",
-                "children": [
-                  {
-                    "type": "file",
-                    "name": "README.md",
-                    "path": "src/server/README.md",
-                    "sha": "0109664eeaacd00a581e1d5aaca0e3c42a89a03f",
-                    "mime": "text/markdown"
-                  }
-                ]
-              },
-              {
-                "type": "folder",
-                "name": "shims",
-                "children": []
-              },
-              {
-                "type": "folder",
-                "name": "types",
-                "children": []
               }
             ]
           }

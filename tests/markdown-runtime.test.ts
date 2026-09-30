@@ -96,6 +96,60 @@ describe('markdown runtime bootstrap', () => {
     expect(context.window.__markdownRuntimeError).toContain('markdown-it');
   });
 
+  it('auto-formats plain subscript notation outside math while preserving math tokens', () => {
+    const registry: Array<{ name: string; fn?: (state: any) => void }> = [];
+    const md = {
+      core: {
+        ruler: {
+          push(name: string, fn: (state: any) => void) {
+            registry.push({ name, fn });
+          }
+        }
+      },
+      inline: {
+        ruler: {
+          before() {
+            return undefined;
+          }
+        }
+      },
+      renderer: { rules: {} },
+      use() {
+        return this;
+      }
+    };
+
+    const source = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/obsidian-markdown-it.js'), 'utf8');
+    vm.runInNewContext(source, { window: { ...globalThis, document: { head: { appendChild() {} } } }, document: { head: { appendChild() {} } }, console }, { filename: 'obsidian-markdown-it.js' });
+    (globalThis as any).obsidianPlugin(md, { enableMath: true, enableComments: true, enableTags: false, enableHighlight: false, enableStrikethrough: false, enableTaskLists: false, enableMermaid: false, enableBlockIds: false, enableTikz: false });
+
+    const subscriptRule = registry.find((entry) => entry.name === 'obs_subscript');
+    expect(subscriptRule).toBeTruthy();
+
+    const state = {
+      tokens: [{
+        type: 'inline',
+        children: [
+          { type: 'text', content: 'A_z and B_{xy} and ' },
+          { type: 'html_inline', content: '<span class="math math-inline">\\(x+y\\)</span>' },
+          { type: 'text', content: ' and C_1' }
+        ]
+      }],
+      md: { renderInline: (value: string) => value }
+    };
+
+    subscriptRule!.fn!(state);
+
+    const rendered = state.tokens[0].children.map((token: any) => token.type === 'text' ? token.content : token.content).join('');
+    expect(rendered).toContain('A<sub>z</sub>');
+    expect(rendered).toContain('B<sub>xy</sub>');
+    expect(rendered).toContain('C<sub>1</sub>');
+    expect(rendered).toContain('x+y');
+    expect(rendered).not.toContain('A_z');
+    expect(rendered).not.toContain('B_{xy}');
+    expect(rendered).not.toContain('C_1');
+  });
+
   it('keeps the reader controls source-aware and connected to Issues proposals', () => {
     const appSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/js/app.js'), 'utf8');
     const styleSource = fs.readFileSync(path.resolve(__dirname, '..', 'public/css/style.css'), 'utf8');
