@@ -220,6 +220,64 @@
             }
         });
     }
+    /* ── Rule: subscript  A_z / B_{xy} ─────────────────────────────────────── */
+    function ruleSubscript(md) {
+        md.core.ruler.push('obs_subscript', function (state) {
+            var i, bt, j, child, text, match, lastIndex, prefix, base, rawSub, subText, htmlToken;
+            for (i = 0; i < state.tokens.length; i++) {
+                bt = state.tokens[i];
+                if (bt.type !== 'inline' || !bt.children)
+                    continue;
+                var out = [];
+                for (j = 0; j < bt.children.length; j++) {
+                    child = bt.children[j];
+                    if (child.type !== 'text') {
+                        out.push(child);
+                        continue;
+                    }
+                    text = child.content || '';
+                    if (!text || text.indexOf('_') === -1) {
+                        out.push(child);
+                        continue;
+                    }
+                    lastIndex = 0;
+                    var found = false;
+                    var re = /([A-Za-z0-9]+)_((?:\{[^}]+\})|[A-Za-z0-9])/g;
+                    while ((match = re.exec(text)) !== null) {
+                        found = true;
+                        prefix = text.slice(lastIndex, match.index);
+                        if (prefix) {
+                            var textToken = new state.Token('text', '', 0);
+                            textToken.content = prefix;
+                            out.push(textToken);
+                        }
+                        base = match[1];
+                        rawSub = match[2];
+                        if (rawSub.charAt(0) === '{' && rawSub.charAt(rawSub.length - 1) === '}') {
+                            subText = rawSub.slice(1, -1);
+                        }
+                        else {
+                            subText = rawSub;
+                        }
+                        htmlToken = new state.Token('html_inline', '', 0);
+                        htmlToken.content = base + '<sub>' + esc(subText) + '</sub>';
+                        out.push(htmlToken);
+                        lastIndex = re.lastIndex;
+                    }
+                    if (!found) {
+                        out.push(child);
+                        continue;
+                    }
+                    if (lastIndex < text.length) {
+                        var tailToken = new state.Token('text', '', 0);
+                        tailToken.content = text.slice(lastIndex);
+                        out.push(tailToken);
+                    }
+                }
+                bt.children = out;
+            }
+        });
+    }
     /* ── Rule: tags  #tag  #nested/tag ─────────────────────────────────────── */
     function ruleTags(md, opts) {
         md.core.ruler.push('obs_tags', function (state) {
@@ -1791,7 +1849,8 @@
             resolveTransclusion: null, calloutIcons: {},
             enableMath: true, enableTags: true, enableComments: true, enableTikz: true,
             enableHighlight: true, enableStrikethrough: true,
-            enableTaskLists: true, enableMermaid: true, enableBlockIds: true
+            enableTaskLists: true, enableMermaid: true, enableBlockIds: true,
+            enableSubscript: true
         };
         if (options) {
             for (var k in options) {
@@ -1809,6 +1868,7 @@
             ruleMathInlineDisplay(md);
             ruleMathInline(md);
         }
+        ruleSubscript(md);
         if (opts.enableHighlight)
             ruleHighlight(md);
         if (opts.enableStrikethrough)
