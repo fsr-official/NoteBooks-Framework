@@ -393,7 +393,7 @@ const FILE_ICONS = {
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v43", { updateViaCache: "none" }).then(() => {
+    navigator.serviceWorker.register("/service-worker.js?v=20260930-cache-lifecycle", { updateViaCache: "none" }).then(() => {
         console.log("Service Worker registered");
     }).catch(err => {
         console.error("SW registration failed:", err);
@@ -430,6 +430,68 @@ const PRESERVED_LOCAL_STORAGE_KEYS = [
     'authToken',
     'lastViewedPath'
 ];
+
+function attachCacheLifecycleHooks(hooks = {}, target = window) {
+    const safeTarget = target || window;
+
+    const handleVisibilityChange = () => {
+        const visibilityState = safeTarget.document?.visibilityState;
+        if (visibilityState === 'hidden') {
+            if (hooks.onHidden) {
+                void Promise.resolve(hooks.onHidden());
+            }
+            return;
+        }
+
+        if (visibilityState === 'visible' && hooks.onVisible) {
+            void Promise.resolve(hooks.onVisible());
+        }
+    };
+
+    const handleBackgroundExit = () => {
+        if (hooks.onClosed) {
+            void Promise.resolve(hooks.onClosed());
+        }
+    };
+
+    safeTarget.addEventListener('visibilitychange', handleVisibilityChange);
+    safeTarget.addEventListener('pagehide', handleBackgroundExit);
+    safeTarget.addEventListener('beforeunload', handleBackgroundExit);
+    safeTarget.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+        safeTarget.removeEventListener('visibilitychange', handleVisibilityChange);
+        safeTarget.removeEventListener('pagehide', handleBackgroundExit);
+        safeTarget.removeEventListener('beforeunload', handleBackgroundExit);
+        safeTarget.removeEventListener('focus', handleVisibilityChange);
+    };
+}
+
+let cacheLifecycleCleanup = null;
+function registerCacheLifecycleHooks() {
+    if (cacheLifecycleCleanup || !window || !document) {
+        return;
+    }
+
+    cacheLifecycleCleanup = attachCacheLifecycleHooks({
+        onVisible: async () => {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+
+            await checkForAppUpdates();
+            if (typeof fetchTree === 'function') {
+                await fetchTree();
+            }
+        },
+        onHidden: async () => {
+            await clearAppCaches();
+        },
+        onClosed: async () => {
+            await clearAppCaches();
+        }
+    });
+}
 
 function notifyRefreshSignal(type, message) {
     if (type === 'directory') {
@@ -2366,6 +2428,7 @@ async function bootNoteBooks() {
   if (utilityTitle) utilityTitle.textContent = document.getElementById('workspaceHeader')?.textContent || 'NoteBooks';
   const activeRoute = getCurrentStreamRoute();
     const shouldLoadWorkspace = NoteBooksStreamRuntime.streams.has(activeRoute);
+  registerCacheLifecycleHooks();
   if (shouldLoadWorkspace) {
     await NoteBooksStreamRuntime.loadStreamTree();
     await startUpdatePolling();
