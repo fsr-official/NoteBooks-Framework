@@ -12,6 +12,7 @@ export interface JsonFetchRegistryEntry {
   pages?: boolean | string;
   empty?: boolean | string;
   lfs?: boolean | string;
+  fallback?: string;
 }
 
 export interface JsonFetchNode {
@@ -36,7 +37,7 @@ export interface RepositoryManifestInstance {
   root: string;
   name: string;
   manifestUrl: string;
-  source: 'raw' | 'pages';
+  source: 'raw' | 'pages' | 'github-tree';
   files: JsonFetchNode[];
   tree: JsonFetchNode;
 }
@@ -261,6 +262,51 @@ async function fetchJson(url: string): Promise<unknown> {
   }
 }
 
+async function fetchGithubTreeManifest(entry: JsonFetchRegistryEntry, stream: string): Promise<RepositoryManifestInstance> {
+  const ref = entry.commitSha || entry.branch || DEFAULT_BRANCH;
+  const url = `https://api.github.com/repos/${entry.repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'NoteBooks-json-fetch'
+    };
+    const token = String(process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(url, { signal: controller.signal, headers });
+    if (!response.ok) throw new Error(`GitHub tree request failed with ${response.status} ${response.statusText}`);
+    const payload = await response.json() as { tree?: Array<{ path?: string; type?: string; sha?: string; size?: number }>; truncated?: boolean };
+    if (payload.truncated) throw new Error(`GitHub returned a truncated tree for ${entry.repo}@${ref}`);
+    if (!Array.isArray(payload.tree)) throw new Error(`GitHub returned an invalid tree for ${entry.repo}@${ref}`);
+
+    const files = payload.tree
+      .filter((node) => node.type === 'blob' && node.path)
+      .map((node) => ({
+        type: 'file',
+        path: node.path,
+        name: basename(String(node.path)),
+        sha: node.sha,
+        ...(typeof node.size === 'number' ? { size: node.size } : {})
+      }));
+    const normalized = normalizeManifest(files, entry, stream);
+    return {
+      stream,
+      repo: entry.repo,
+      branch: entry.branch || DEFAULT_BRANCH,
+      ...(entry.commitSha ? { commitSha: entry.commitSha } : {}),
+      root: normalizePath(entry.root || ''),
+      name: String(entry.name || repositoryName(entry.repo)),
+      manifestUrl: url,
+      source: 'github-tree',
+      files: normalized.files,
+      tree: normalized.tree
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Promise<RepositoryManifestInstance> {
   const stream = normalizeStream(entry.stream || entry.name || entry.repo);
   const branch = entry.branch || DEFAULT_BRANCH;
@@ -305,6 +351,14 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
         files: normalized.files,
         tree: normalized.tree
       };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (String(entry.fallback || '').toLowerCase() === 'github-tree') {
+    try {
+      return await fetchGithubTreeManifest(normalizedEntry, stream);
     } catch (error) {
       lastError = error;
     }

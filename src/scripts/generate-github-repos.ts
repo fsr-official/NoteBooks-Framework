@@ -26,12 +26,22 @@ export async function generateGithubRepositories(options: GenerateGithubReposito
     sourcePath = path.resolve(cwd, options.sourceFile || process.env.REPO_REGISTRY_PATH || 'GITHUB-REPOSITORIES.md');
     markdown = await fs.readFile(sourcePath, 'utf8');
   } else {
-    const compatibilityPath = path.resolve(cwd, 'GITHUB-REPOSITORIES.md');
-    try {
-      markdown = await fs.readFile(compatibilityPath, 'utf8');
-      sourcePath = compatibilityPath;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error;
+    const localRegistryCandidates = [
+      path.resolve(cwd, 'GITHUB-REPOSITORIES.md'),
+      path.resolve(cwd, '..', 'NoteBooks-Documents', 'GITHUB-REPOSITORIES.md')
+    ];
+    let localSourceFound = false;
+    for (const candidate of localRegistryCandidates) {
+      try {
+        markdown = await fs.readFile(candidate, 'utf8');
+        sourcePath = candidate;
+        localSourceFound = true;
+        break;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error;
+      }
+    }
+    if (!localSourceFound) {
       const repo = String(process.env.NOTEBOOKS_DOCUMENTS_REPO || 'fsr-official/NoteBooks-Documents');
       const branch = String(process.env.NOTEBOOKS_DOCUMENTS_BRANCH || 'main');
       const sourceUrl = options.sourceUrl || process.env.NOTEBOOKS_DOCUMENTS_REGISTRY_URL ||

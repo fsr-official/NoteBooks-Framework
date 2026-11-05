@@ -199,6 +199,28 @@ async function buildStreamTree(stream: string, catalogVersion: number): Promise<
       };
     }
   }));
+  if (stream === 'developers') {
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const artifactPath = path.resolve(process.cwd(), 'public', 'json', 'developers-tree.json');
+      const artifact = JSON.parse(await fs.readFile(artifactPath, 'utf8'));
+      const localRepo = artifact?.repos?.find((repo: any) => repo?.repo === 'local/NoteBooks-Framework');
+      if (localRepo?.tree && !repos.some((repo) => repo.repo === localRepo.repo)) {
+        repos.push({
+          repo: localRepo.repo,
+          branch: localRepo.branch || 'local',
+          pagesBase: '',
+          commitSha: undefined,
+          tree: localRepo.tree
+        });
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn('[system] local Developers workspace fallback unavailable:', error instanceof Error ? error.message : error);
+      }
+    }
+  }
 
   const rootName = `NoteBooks-${stream.charAt(0).toUpperCase()}${stream.slice(1)}`;
   return {

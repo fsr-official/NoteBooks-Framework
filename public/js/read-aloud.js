@@ -81,7 +81,7 @@
       sourceOffset += character.length;
       const end = sourceOffset;
       const spoken = run && (inMath || run.end - run.start === 1)
-        ? greekName(character)
+        ? `${inMath && index > run.start ? ' ' : ''}${greekName(character)}`
         : character;
       return { text: spoken, start, end };
     });
@@ -123,7 +123,7 @@
       .replace(/[*·]/g, ' times ')
       .replace(/[/]/g, ' over ')
       .replace(/[<>]/g, (symbol) => symbol === '<' ? ' less than ' : ' greater than ')
-      .replace(/\p{Script=Greek}/gu, (letter) => greekName(letter) || letter)
+      .replace(/\p{Script=Greek}+/gu, (letters) => Array.from(letters, (letter) => greekName(letter) || letter).join(' '))
       .replace(/\b([A-Za-z])\b/g, (letter) => {
         const name = LATIN_NAMES[letter.toLowerCase()];
         return name ? `${letter === letter.toUpperCase() ? 'capital ' : ''}${name}` : letter;
@@ -220,6 +220,27 @@
     return chunks;
   }
 
+  function rankVoices(voices, preferredLanguage) {
+    const language = String(preferredLanguage || '').toLowerCase();
+    const baseLanguage = language.split('-')[0];
+    const qualityHints = /\b(natural|neural|premium|enhanced)\b/i;
+    return [...voices].sort((a, b) => {
+      const score = (voice) => {
+        const voiceLanguage = String(voice.lang || '').toLowerCase();
+        const name = String(voice.name || '');
+        let value = 0;
+        if (voiceLanguage === language) value += 100;
+        else if (baseLanguage && voiceLanguage.split('-')[0] === baseLanguage) value += 70;
+        if (qualityHints.test(name)) value += 20;
+        if (/\bonline\b/i.test(name)) value += 5;
+        if (/\bgoogle\b/i.test(name)) value += 2;
+        if (voice.default) value += 1;
+        return value;
+      };
+      return score(b) - score(a) || String(a.name).localeCompare(String(b.name));
+    });
+  }
+
   function rangeForWord(model, word) {
     const start = model.ranges[word.start];
     const end = model.ranges[Math.max(word.start, word.end - 1)];
@@ -260,11 +281,6 @@
     next.type = 'button';
     next.textContent = 'Word →';
     next.setAttribute('aria-label', 'Go forward one word');
-    const stopButton = document.createElement('button');
-    stopButton.type = 'button';
-    stopButton.textContent = '■ Stop';
-    stopButton.setAttribute('aria-label', 'Stop reading aloud');
-
     const rateLabel = document.createElement('label');
     rateLabel.className = 'read-aloud-rate';
     rateLabel.textContent = 'Pace';
@@ -283,14 +299,14 @@
     voiceLabel.className = 'read-aloud-voice';
     voiceLabel.textContent = 'Voice';
     const voiceSelect = document.createElement('select');
-    voiceSelect.setAttribute('aria-label', 'Speech voice');
+    voiceSelect.setAttribute('aria-label', 'Speech voice; natural and neural voices are recommended when available');
     voiceLabel.appendChild(voiceSelect);
 
     const status = document.createElement('span');
     status.className = 'read-aloud-status';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
-    controls.append(previous, play, next, stopButton, rateLabel, voiceLabel, status);
+    controls.append(previous, play, next, rateLabel, voiceLabel, status);
     toolbar.after(controls);
 
     const synth = global.speechSynthesis;
@@ -307,27 +323,32 @@
       play.disabled = true;
       status.textContent = 'Read aloud is not supported by this browser.';
     } else {
-      status.textContent = 'Press Listen to begin. While reading, ←/→ moves one word.';
+      status.textContent = 'Press Listen to begin. Use ←/→ to move a word; Escape stops. Voice quality depends on your device; choose a Natural/Neural voice if available.';
     }
 
     function populateVoices() {
       if (!supported) return;
       const savedVoice = getPreference('notebooks-read-aloud-voice');
       const selectedVoice = voiceSelect.value || savedVoice;
-      const voices = synth.getVoices();
+      const language = document.documentElement.lang || global.navigator?.language || 'en-US';
+      const voices = rankVoices(synth.getVoices(), language);
       voiceSelect.replaceChildren();
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'Device default';
-      voiceSelect.appendChild(defaultOption);
-      voices.forEach((voice) => {
+      voices.forEach((voice, index) => {
         const option = document.createElement('option');
         option.value = voice.voiceURI;
-        option.textContent = `${voice.name} (${voice.lang})`;
+        option.textContent = `${index === 0 ? 'Recommended · ' : ''}${voice.name} (${voice.lang})`;
         voiceSelect.appendChild(option);
       });
       if ([...voiceSelect.options].some((option) => option.value === selectedVoice)) {
         voiceSelect.value = selectedVoice;
+      } else if (voices.length) {
+        voiceSelect.value = voices[0].voiceURI;
+        setPreference('notebooks-read-aloud-voice', voiceSelect.value);
+      } else {
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Device default';
+        voiceSelect.appendChild(defaultOption);
       }
     }
 
@@ -402,12 +423,12 @@
       if (selectedVoice) utterance.voice = selectedVoice;
       utterance.lang = selectedVoice?.lang || document.documentElement.lang || global.navigator?.language || 'en-US';
       utterance.rate = Number(rate.value);
-      utterance.pitch = 1.12;
+      utterance.pitch = 1;
       const thisUtterance = ++utteranceId;
       active = true;
       play.textContent = '⏸ Pause';
       play.setAttribute('aria-label', 'Pause reading aloud');
-      status.textContent = `Reading word ${startWord + 1} of ${model.words.length}. Use the left and right arrow keys to move one word.`;
+      status.textContent = `Reading word ${startWord + 1} of ${model.words.length}. Use the left and right arrow keys to move one word; Escape stops.`;
       highlightWord(startWord);
       utterance.onboundary = (event) => {
         if (thisUtterance !== utteranceId || !active) return;
@@ -474,7 +495,6 @@
     });
     previous.addEventListener('click', () => speakFrom(Math.max(0, currentWord - 1)));
     next.addEventListener('click', () => speakFrom(Math.min(model.words.length - 1, currentWord + 1)));
-    stopButton.addEventListener('click', () => stopReading());
     rate.addEventListener('input', () => {
       rateValue.textContent = `${Number(rate.value).toFixed(2)}×`;
       setPreference('notebooks-read-aloud-rate', rate.value);
@@ -536,5 +556,5 @@
   global.speechSynthesis?.addEventListener?.('voiceschanged', () => {
     controllers.forEach((controller) => controller.populateVoices?.());
   });
-  global.NoteBooksReadAloud = { attach, destroyIn, mathToSpeech, normalizeGreekText };
+  global.NoteBooksReadAloud = { attach, destroyIn, mathToSpeech, normalizeGreekText, rankVoices };
 })(window);

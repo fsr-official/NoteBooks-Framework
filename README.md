@@ -65,7 +65,7 @@ Express application
 
 ### Repository registry and eager trees
 
-The canonical human-maintained registry is [`NoteBooks-Documents/GITHUB-REPOSITORIES.md`](../NoteBooks-Documents/GITHUB-REPOSITORIES.md). The build fetches it to create a bootstrap `public/json/github-repos.json` artifact. At runtime, a signed update from the documents repository activates registry changes in Upstash Redis without rebuilding or restarting the app.
+The canonical human-maintained registry is [`NoteBooks-Documents/GITHUB-REPOSITORIES.md`](../NoteBooks-Documents/GITHUB-REPOSITORIES.md). The build fetches it to create a bootstrap `public/json/github-repos.json` artifact. Local server startup regenerates the registry and stream artifacts before listening; when both repositories are checked out side-by-side, it uses that local Documents registry, otherwise it fetches the canonical GitHub copy. Production build does this before deployment. NoteBooks-Documents is also indexed in the Developers workspace through the GitHub tree API because that repository does not publish `files.json`. At runtime, a signed update from the documents repository activates registry changes in Upstash Redis without rebuilding or restarting the app.
 
 Content repositories use the reusable workflow in NoteBooks-Documents to generate `files.json` with Git blob SHAs and POST their commit SHA. The app reads that exact manifest, diffs per-file SHAs, and publishes changed content through the runtime catalog. Clients refresh the tree in place; an open changed file stays put until the reader chooses to update it. Generated JSON remains a bootstrap/offline fallback and is not rewritten by update events. Commerce is intentionally represented as an empty configured repository when its upstream content root is empty or unavailable, rather than receiving stale Science or Humanities content.
 
@@ -107,7 +107,7 @@ A file click is handled by the browser preview flow and ultimately resolves thro
 | `src/api/issues.ts` / `src/api/issue-review.ts` / `src/api/pr-review.ts` | Source-linked proposals, review records, approvals, and GitHub PR lifecycle. |
 | `src/api/blob.ts` / `src/lib/image-to-svg.ts` | Protected Blob operations and validated biology/chemistry image normalization. |
 | `src/db/migrations/*.sql` | Ordered PostgreSQL schema changes for identity, sessions, themes, Community, Issues, and review state. |
-| `fmtree.py` / `src/scripts/generate-*.ts` | Local manifest, registry, version, and eager stream artifact generation. |
+| `fmtree.py` / `src/scripts/generate-*.ts` | Local manifest, central registry, GitHub tree fallback, version, and eager stream artifact generation. |
 
 ## Markdown renderer
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceFile": "GITHUB-REPOSITORIES.md",
-  "sourceSha256": "b86b9e623ca1903448ab55020b885bd569f401a661d8033cfbadf297c88883db",
+  "sourceSha256": "1c0ee7e9166c01a04344114b3573836a88007c36fd2fe0009127849c0f2c787c",
   "entries": [
     {
       "name": "NCERT-SCIENCE",
@@ -64,13 +64,26 @@
       "lfs": false
     },
     {
+      "name": "NoteBooks-Documents",
+      "stream": "developers",
+      "repo": "fsr-official/NoteBooks-Documents",
+      "branch": "main",
+      "root": "",
+      "enabled": true,
+      "priority": 6,
+      "pages": false,
+      "empty": false,
+      "lfs": false,
+      "fallback": "github-tree"
+    },
+    {
       "name": "CENGAGE-Physics",
       "stream": "science",
       "repo": "fsr-science/CENGAGE-Physics",
       "branch": "main",
       "root": "",
       "enabled": true,
-      "priority": 6,
+      "priority": 7,
       "pages": false,
       "empty": false,
       "lfs": false
@@ -82,7 +95,7 @@
       "branch": "main",
       "root": "",
       "enabled": true,
-      "priority": 7,
+      "priority": 8,
       "pages": false,
       "empty": false,
       "lfs": false
@@ -94,7 +107,7 @@
       "branch": "main",
       "root": "",
       "enabled": true,
-      "priority": 8,
+      "priority": 9,
       "pages": false,
       "empty": false,
       "lfs": true
@@ -106,7 +119,7 @@
       "branch": "main",
       "root": "",
       "enabled": true,
-      "priority": 9,
+      "priority": 10,
       "pages": false,
       "empty": false,
       "lfs": false
@@ -118,7 +131,7 @@
       "branch": "main",
       "root": "",
       "enabled": true,
-      "priority": 10,
+      "priority": 11,
       "pages": false,
       "empty": false,
       "lfs": false
@@ -130,7 +143,7 @@
       "branch": "main",
       "root": "",
       "enabled": true,
-      "priority": 11,
+      "priority": 12,
       "pages": false,
       "empty": false,
       "lfs": false
@@ -142,7 +155,7 @@
       "branch": "main",
       "root": "",
       "enabled": true,
-      "priority": 12,
+      "priority": 13,
       "pages": false,
       "empty": false,
       "lfs": false

@@ -38,6 +38,20 @@ describe('Markdown read aloud', () => {
       .toBe('capital Gamma times why');
   });
 
+  it('prefers a natural voice that matches the user language', () => {
+    const helper = loadReadAloudHelper();
+    const voices = [
+      { name: 'Basic English', lang: 'en-US', voiceURI: 'basic' },
+      { name: 'English Neural', lang: 'en-GB', voiceURI: 'neural' },
+      { name: 'French Natural', lang: 'fr-FR', voiceURI: 'french' }
+    ];
+
+    expect(helper.rankVoices(voices, 'en-US').map((voice) => voice.voiceURI))
+      .toEqual(['basic', 'neural', 'french']);
+    expect(helper.rankVoices(voices, 'en-GB').map((voice) => voice.voiceURI))
+      .toEqual(['neural', 'basic', 'french']);
+  });
+
   it('wires accessible playback and touch controls into both reader shells', () => {
     const framework = path.resolve(__dirname, '..');
     const app = fs.readFileSync(path.join(framework, 'public/js/app.js'), 'utf8');
@@ -53,5 +67,7 @@ describe('Markdown read aloud', () => {
     expect(streamShell).toContain('/public/js/read-aloud.js');
     expect(styles).toContain('::highlight(notebooks-speech-word)');
     expect(worker).toContain('public/js/read-aloud.js');
+    expect(worker).toContain('webman-v52');
+    expect(fs.readFileSync(path.join(framework, 'public/js/read-aloud.js'), 'utf8')).not.toContain('stopButton');
   });
 });

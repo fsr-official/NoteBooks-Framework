@@ -29,7 +29,9 @@ function normalizeRepoEntry(entry: RepoRegistryEntry): RepoRegistryEntry {
     root: entry.root || '',
     enabled: entry.enabled !== false,
     priority: typeof entry.priority === 'number' ? entry.priority : Number.MAX_SAFE_INTEGER,
-    pages: entry.pages
+    pages: entry.pages,
+    fallback: entry.fallback,
+    lfs: entry.lfs
   };
 }
 

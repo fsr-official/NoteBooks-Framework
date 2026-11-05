@@ -190,7 +190,7 @@ describe('markdown runtime bootstrap', () => {
     expect(styleSource).toContain('.file-icon[data-type~="folder-biology"] { color: #8b5cf6;');
     expect(styleSource).toContain('.file-icon[data-type~="folder-cs"] { color: #000000;');
     expect(serviceWorkerSource).toContain("caches.keys().then((names) => Promise.all(names.map((name) => caches.delete(name))))");
-    expect(serviceWorkerSource).toContain("CACHE_VERSION = 'webman-v50'");
+    expect(serviceWorkerSource).toContain("CACHE_VERSION = 'webman-v51'");
     expect(serviceWorkerSource).toContain('public/client/observability.js');
     expect(appSource).toContain('window.NoteBooksReadAloud?.attach(toolbar, wrapper)');
     expect(styleSource).toContain('::highlight(notebooks-speech-word)');

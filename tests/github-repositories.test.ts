@@ -25,6 +25,11 @@ const ROUTING_MARKDOWN = [
   '| NoteBooks-Community | COMMUNITY | fsr-official/NoteBooks-Community | main |  | true | 4 | false |',
   '| NoteBooks-Issues | ISSUES | fsr-official/NoteBooks-Issues | main |  | true | 5 | false |'
 ].join('\n');
+const TREE_FALLBACK_MARKDOWN = [
+  '| name | stream | repo | branch | root | enabled | priority | pages | empty | lfs | fallback |',
+  '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+  '| NoteBooks-Documents | DEVELOPERS | fsr-official/NoteBooks-Documents | main |  | true | 6 | false | false | false | github-tree |'
+].join('\n');
 
 const originalCwd = process.cwd();
 
@@ -52,6 +57,14 @@ describe('github-repos build artifact', () => {
         priority: 9
       })
     ]);
+  });
+
+  it('preserves the opt-in GitHub tree fallback in the repository registry', () => {
+    const entries = parseRepoRegistryMarkdown(TREE_FALLBACK_MARKDOWN);
+    expect(entries.find((entry) => entry.repo === 'fsr-official/NoteBooks-Documents')).toMatchObject({
+      stream: 'developers',
+      fallback: 'github-tree'
+    });
   });
 
   it('creates byte-stable output for the same Markdown source', () => {
@@ -92,5 +105,22 @@ describe('github-repos build artifact', () => {
     await fs.writeFile(path.join(cwd, 'GITHUB-REPOSITORIES.md'), MARKDOWN.replace('owner/science', 'owner/changed'), 'utf8');
     process.chdir(cwd);
     await expect(loadRepoRegistry()).resolves.toEqual(generated.artifact.entries);
+  });
+
+  it('uses a sibling NoteBooks-Documents checkout during local startup', async () => {
+    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'notebooks-local-documents-'));
+    const framework = path.join(workspace, 'NoteBooks-Framework');
+    const documents = path.join(workspace, 'NoteBooks-Documents');
+    await fs.mkdir(path.join(framework, 'public', 'json'), { recursive: true });
+    await fs.mkdir(documents, { recursive: true });
+    await fs.writeFile(path.join(documents, 'GITHUB-REPOSITORIES.md'), TREE_FALLBACK_MARKDOWN, 'utf8');
+
+    const generated = await generateGithubRepositories({ cwd: framework });
+    expect(generated.sourcePath).toBe(path.join(documents, 'GITHUB-REPOSITORIES.md'));
+    expect(generated.artifact.entries).toContainEqual(expect.objectContaining({
+      repo: 'fsr-official/NoteBooks-Documents',
+      stream: 'developers',
+      fallback: 'github-tree'
+    }));
   });
 });
