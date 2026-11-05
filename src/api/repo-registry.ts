@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { fetchRepoManifest, resolvePagesBaseUrl } from '../shims/pages-fetch.js';
 import { parseRepoRegistryMarkdown, type RepoRegistryEntry } from '../lib/github-repositories.js';
+import { readRuntimeRepoRegistry } from '../lib/runtime-catalog.js';
 
 export { parseRepoRegistryMarkdown } from '../lib/github-repositories.js';
 export type { RepoRegistryEntry } from '../lib/github-repositories.js';
@@ -24,6 +25,7 @@ function normalizeRepoEntry(entry: RepoRegistryEntry): RepoRegistryEntry {
     stream: entry.stream ? String(entry.stream).trim().toLowerCase() : undefined,
     repo: entry.repo,
     branch: entry.branch || process.env.GITHUB_BRANCH || 'main',
+    commitSha: entry.commitSha,
     root: entry.root || '',
     enabled: entry.enabled !== false,
     priority: typeof entry.priority === 'number' ? entry.priority : Number.MAX_SAFE_INTEGER,
@@ -169,6 +171,9 @@ function resolveDuplicateFiles(root: TreeNode) {
 }
 
 export async function loadRepoRegistry(): Promise<RepoRegistryEntry[]> {
+  const runtimeEntries = await readRuntimeRepoRegistry();
+  if (runtimeEntries?.length) return runtimeEntries;
+
   const fs = await import('fs/promises');
   const path = await import('path');
   const artifactPath = path.resolve(process.cwd(), 'public', 'json', 'github-repos.json');

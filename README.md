@@ -16,7 +16,7 @@ The repository is licensed under the **GNU General Public License, version 3 or 
 
 ## What the application does
 
-NoteBooks provides a public landing page, stream workspaces, a Markdown reader, raw source delivery, repository tree navigation, authenticated community features, Issues proposals, administrative review, theme and reading preferences, anonymous upload staging, and GitHub-backed publication workflows.
+NoteBooks provides a public landing page, stream workspaces, a Markdown reader with browser-native read-aloud, raw source delivery, repository tree navigation, authenticated community features, Issues proposals, administrative review, theme and reading preferences, anonymous upload staging, and GitHub-backed publication workflows.
 
 The core content rule is simple: **GitHub repositories are the source of curriculum files; generated manifests make discovery fast and resilient; `raw.ts` remains the canonical file-byte delivery path.** The application does not silently turn Community or Issues into content streams, and it does not introduce lazy subtree loading. Stream artifacts are generated eagerly at build/startup and are available as runtime or static fallbacks.
 
@@ -65,9 +65,9 @@ Express application
 
 ### Repository registry and eager trees
 
-`GITHUB-REPOSITORIES.md` is the human-maintained registry. `npm run generate:github-repos` decomposes it into `public/json/github-repos.json`, which is used as the machine-readable registry instead of reparsing Markdown during every request. `npm run generate:json-files` then creates the combined registry and eager stream trees.
+The canonical human-maintained registry is [`NoteBooks-Documents/GITHUB-REPOSITORIES.md`](../NoteBooks-Documents/GITHUB-REPOSITORIES.md). The build fetches it to create a bootstrap `public/json/github-repos.json` artifact. At runtime, a signed update from the documents repository activates registry changes in Upstash Redis without rebuilding or restarting the app.
 
-Each stream tree is rooted with its repository name and includes repository-relative file metadata and precomputed raw URLs where available. Runtime `/api/system/:stream` discovery is the authoritative freshness path; generated JSON is the deployment and offline fallback. Commerce is intentionally represented as an empty configured repository when its upstream content root is empty or unavailable, rather than receiving stale Science or Humanities content.
+Content repositories use the reusable workflow in NoteBooks-Documents to generate `files.json` with Git blob SHAs and POST their commit SHA. The app reads that exact manifest, diffs per-file SHAs, and publishes changed content through the runtime catalog. Clients refresh the tree in place; an open changed file stays put until the reader chooses to update it. Generated JSON remains a bootstrap/offline fallback and is not rewritten by update events. Commerce is intentionally represented as an empty configured repository when its upstream content root is empty or unavailable, rather than receiving stale Science or Humanities content.
 
 ### Raw delivery dominance
 
@@ -86,6 +86,7 @@ A file click is handled by the browser preview flow and ultimately resolves thro
 | `public/js/raw-delivery.js` | Raw/source delivery helpers and line-numbered raw view integration. |
 | `public/js/upload.js` | Admin GitHub upload, anonymous Blob staging, review metadata, approval, re-upload, and optional diagram conversion. |
 | `public/js/markdown.js` | Two-phase Markdown rendering entry point and post-render feature initialization. |
+| `public/js/read-aloud.js` | Browser-native speech, Greek/math pronunciation, word highlighting, pace/voice controls, and keyboard/touch navigation. |
 | `public/js/md-init.js` | Markdown-it setup, safe figure fences, specialized-fence delegation, and Mermaid initialization. |
 | `public/js/obsidian-markdown-it.js` | Wikilinks, embeds, callouts, tasks, tags, math, Mermaid/TikZ/Desmos fence support, and heading anchors. |
 | `public/js/theme.js` | Built-in/custom theme catalog, paired light/dark modes, persistence, and CSS token application. |
@@ -96,6 +97,7 @@ A file click is handled by the browser preview flow and ultimately resolves thro
 | `src/server/server.ts` | Express middleware, CSP/COOP/COEP headers, static serving, body parsing, and application composition. |
 | `src/server/api-routes.ts` | Authoritative API route registration and middleware ordering. |
 | `src/api/system.ts` | Registry-selected stream discovery, remote `files.json` loading, Git tree fallback, caching, and refresh. |
+| `src/api/content-updates.ts` / `src/lib/runtime-catalog.ts` | Signed workflow ingestion, Upstash-backed active registry/catalog, per-file SHA diffing, and client update feed. |
 | `src/api/repo-registry.ts` | Registry reads and combined repository/local tree composition. |
 | `src/api/raw.ts` | Canonical raw file delivery and path/repository validation. |
 | `src/api/auth.ts` / `src/api/oauth.ts` / `src/api/totp.ts` | Email/password identity, OAuth linking, JWT/session behavior, password reset, and TOTP enrollment/verification. |
@@ -110,6 +112,8 @@ A file click is handled by the browser preview flow and ultimately resolves thro
 ## Markdown renderer
 
 The renderer is intentionally a two-phase system. `markdownToHTML()` converts Markdown to HTML synchronously, while `initMarkdownFeatures(container)` activates optional MathJax, TikZJax, Mermaid, Desmos, and Highlight.js behavior after the HTML is inserted. If a vendor is unavailable, the reader keeps an explicit fallback instead of failing silently.
+
+Markdown previews offer an opt-in Read Aloud control using the device's speech synthesis voices. It reads rendered note text rather than Markdown syntax, announces Greek letters and common math notation, highlights the active word, and supports word-by-word arrow-key or touch-button navigation. Voice and pace are adjustable; playback does not start automatically.
 
 ### Supported features
 
@@ -200,14 +204,15 @@ The application reads environment variables by capability. Do not commit `.env` 
 | `GITHUB_OAUTH_REDIRECT_URI` | Optional explicit OAuth callback; otherwise derived from the request origin. |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | GitHub App operations, Discussion/PR automation, and installation-scoped writes. |
 | `GITHUB_COMMUNITY_REPO`, `GITHUB_ISSUES_REPO` | Community and Issues repository targets; registry entries remain preferred where configured. |
-| `WEBHOOK_SECRET` or `GITHUB_WEBHOOK_SECRET` | HMAC verification for refresh/webhook requests. |
+| `WEBHOOK_SECRET` or `GITHUB_WEBHOOK_SECRET` | HMAC verification for legacy refresh webhook requests. |
+| `NOTEBOOKS_UPDATE_SECRET` | Required HMAC secret for repository and registry update workflows. |
 | `RESEND_API_KEY` | Password-reset email delivery. |
 | `RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY` | reCAPTCHA-protected authentication forms. |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth capability, if enabled. |
 
 ### Optional operational variables
 
-`KV_REST_API_URL` and `KV_REST_API_TOKEN` enable shared KV caching/fallback behavior. `USE_SESSION_COOKIE` and `COOKIE_SECURE` control cookie behavior; production cookies should be secure. `ENFORCE_CSRF` enables the configured write-request CSRF checks. `ENABLE_WRITE_LOGS` enables additional write logging. `MAX_OPEN_PRS_PER_ACCOUNT` limits open PRs per account. `DB_POOL_MAX`, `DB_CONNECTION_TIMEOUT_MS`, `DB_IDLE_TIMEOUT_MS`, `DB_STATEMENT_TIMEOUT_MS`, `DB_SSL`, and `DB_SSL_REJECT_UNAUTHORIZED` tune PostgreSQL connectivity. `REPO_REGISTRY_PATH`, `SUBJECT_REPOS`, `MOUNT_PREFIX`, `APP_BASE_PATH`, `WORKSPACE`, `COMMUNITY_CONTENT_PATH`, `GITPAGE_URL`, and `GITHUB_REPO_BASE` are compatibility or deployment-specific overrides.
+`KV_REST_API_URL` and `KV_REST_API_TOKEN` configure Upstash Redis. They are required for accepting and serving runtime registry/content updates; caching-only paths may still operate without Redis. `NOTEBOOKS_DOCUMENTS_REPO`, `NOTEBOOKS_DOCUMENTS_BRANCH`, and `NOTEBOOKS_DOCUMENTS_REGISTRY_URL` optionally override the canonical registry source (defaults to `fsr-official/NoteBooks-Documents`, `main`, and its `GITHUB-REPOSITORIES.md`). `USE_SESSION_COOKIE` and `COOKIE_SECURE` control cookie behavior; production cookies should be secure. `ENFORCE_CSRF` enables the configured write-request CSRF checks. `ENABLE_WRITE_LOGS` enables additional write logging. `MAX_OPEN_PRS_PER_ACCOUNT` limits open PRs per account. `DB_POOL_MAX`, `DB_CONNECTION_TIMEOUT_MS`, `DB_IDLE_TIMEOUT_MS`, `DB_STATEMENT_TIMEOUT_MS`, `DB_SSL`, and `DB_SSL_REJECT_UNAUTHORIZED` tune PostgreSQL connectivity. `REPO_REGISTRY_PATH`, `SUBJECT_REPOS`, `MOUNT_PREFIX`, `APP_BASE_PATH`, `WORKSPACE`, `COMMUNITY_CONTENT_PATH`, `GITPAGE_URL`, and `GITHUB_REPO_BASE` are compatibility or deployment-specific overrides.
 
 ## Local development and release commands
 

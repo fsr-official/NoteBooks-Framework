@@ -2,18 +2,23 @@ import { createOctokit, loadCreateAppAuth } from '../lib/octokit-loader.js';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { parseRepoRegistryMarkdown } from '../lib/github-repositories.js';
+import { readRuntimeRepoRegistry } from '../lib/runtime-catalog.js';
 
 interface RepoRegistryEntryLike {
   name?: string;
   stream?: string;
   repo?: string;
   branch?: string;
+  commitSha?: string;
   root?: string;
   enabled?: boolean;
   priority?: number;
 }
 
 async function readRepoRegistryEntries(): Promise<RepoRegistryEntryLike[]> {
+  const runtimeEntries = await readRuntimeRepoRegistry();
+  if (runtimeEntries?.length) return runtimeEntries;
+
   const projectDir = process.cwd();
   const artifactPath = path.resolve(projectDir, 'public', 'json', 'github-repos.json');
   const registryPath = path.resolve(projectDir, 'GITHUB-REPOSITORIES.md');

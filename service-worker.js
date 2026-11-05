@@ -5,7 +5,7 @@
 //   - GitHub API calls → Network-only (never cache)
 //   - Everything else → Network-first, fall back to cache, fall back to offline page
 
-const CACHE_VERSION = 'webman-v48';
+const CACHE_VERSION = 'webman-v50';
 const OFFLINE_PAGE = 'offline.html';
 
 const APP_SHELL = [
@@ -25,6 +25,7 @@ const APP_SHELL = [
   'public/js/landing-docs.js',
   'public/js/stream-runtime.js',
   'public/js/raw-delivery.js',
+  'public/js/read-aloud.js',
   'public/js/dashboard.js',
   'public/js/admin-dashboard.js',
   'public/client/streams.js',
@@ -38,6 +39,7 @@ const APP_SHELL = [
   'public/js/obsidian-markdown-it.js',
   'public/css/theme.css',
   'public/html/settings.html',
+  'public/html/streams.html',
   'public/html/admin.html',
   'public/html/portal.html',
   'public/js/portal.js',
@@ -178,6 +180,11 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
 
   if (url.hostname === 'api.github.com' || url.hostname.endsWith('.githubusercontent.com')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  if (url.pathname === '/api/content-updates') {
     event.respondWith(fetch(request));
     return;
   }

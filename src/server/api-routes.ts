@@ -24,6 +24,7 @@ import * as communityProfileHandler from '../api/community-profile.js';
 import * as communityChannelsHandler from '../api/community-channels.js';
 import * as issueReviewHandler from '../api/issue-review.js';
 import sessionHandler from '../api/session.js';
+import { readContentUpdates, receiveContentUpdate } from '../api/content-updates.js';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -65,6 +66,8 @@ export function registerApiRoutes(app: express.Application): void {
   app.get('/api/system/:stream', systemHandler);
   app.head('/api/system/:stream', systemHandler);
   app.post('/api/system/:stream/refresh', systemHandler);
+  app.get('/api/content-updates', readContentUpdates);
+  app.post('/api/webhooks/content-update', receiveContentUpdate);
   app.post('/api/workspace/tree/rebuild', rebuildTreeHandler);
   app.get('/api/files', repoRegistryHandler);
   app.get('/api/files.js', repoRegistryHandler);

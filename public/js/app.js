@@ -423,6 +423,9 @@ function showStatus(message, isLoading = false) {
 let currentBuildTimestamp = 0;
 let latestKnownSignalId = '';
 const UPDATE_POLL_INTERVAL = 30_000;
+let contentCatalogVersion = null;
+let contentUpdatePollingStarted = false;
+let contentUpdatePollingTimer = null;
 const PRESERVED_LOCAL_STORAGE_KEYS = [
     'theme',
     'sidebarWidth',
@@ -645,6 +648,194 @@ async function startUpdatePolling() {
     updatePollingStarted = true;
     await checkForAppUpdates();
     updatePollingTimer = window.setInterval(() => checkForAppUpdates(), UPDATE_POLL_INTERVAL);
+}
+
+function findRepositoryFileNode(root, repo, repoPath) {
+    const targetRepo = String(repo || '').toLowerCase();
+    const targetPath = String(repoPath || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+    let found = null;
+    const visit = (node) => {
+        if (!node || found) return;
+        if (node.type === 'file' &&
+            String(node.repo || '').toLowerCase() === targetRepo &&
+            String(node.repoPath || node.path || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/') === targetPath) {
+            found = node;
+            return;
+        }
+        if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(root);
+    return found;
+}
+
+function showFileUpdateNotice(win, node, contentContainer) {
+    if (!win || !node?.sha || node.sha === win._sha) return;
+    const body = contentContainer || document.getElementById(`${win.dataset.id}-body`);
+    if (!body) return;
+    let notice = body.querySelector('.content-update-notice');
+    if (!notice) {
+        notice = document.createElement('div');
+        notice.className = 'content-update-notice';
+        notice.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;background:#fff3cd;color:#594300;border-bottom:1px solid #e6d48a;font:13px system-ui;position:sticky;top:0;z-index:2';
+        body.insertBefore(notice, body.firstChild);
+    }
+    if (notice.dataset.sha === node.sha) return;
+    notice.dataset.sha = node.sha;
+    notice.replaceChildren();
+    const message = document.createElement('span');
+    message.textContent = 'This material has a newer version.';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = 'Update';
+    button.setAttribute('aria-label', `Update ${win._filename} to the latest version`);
+    button.addEventListener('click', async () => {
+        if (MarkdownEditor.hasUnsavedEdits(win._filePath)) {
+            showStatus('Save or discard your draft before updating this file.');
+            return;
+        }
+        const scrollTop = body.scrollTop;
+        const previousRevision = {
+            sha: win._sha,
+            commitSha: win._commitSha,
+            rawUrl: win._rawUrl,
+            originalContent: win._originalContent
+        };
+        const stagingContainer = document.createElement('div');
+        win._sha = node.sha || '';
+        win._commitSha = node.commitSha || '';
+        win._rawUrl = node.raw || '';
+        try {
+            const loaded = await fetchFileContent(
+                win._filePath,
+                win._filename,
+                stagingContainer,
+                win,
+                win._repo,
+                win._branch,
+                win._repoPath,
+                win._rawUrl
+            );
+            if (!loaded) {
+                Object.assign(win, {
+                    _sha: previousRevision.sha,
+                    _commitSha: previousRevision.commitSha,
+                    _rawUrl: previousRevision.rawUrl,
+                    _originalContent: previousRevision.originalContent
+                });
+                showStatus('Could not update this file. Please try again.');
+                return;
+            }
+            body.style.cssText = stagingContainer.style.cssText;
+            body.replaceChildren(...stagingContainer.childNodes);
+            body.scrollTop = scrollTop;
+        } catch (error) {
+            Object.assign(win, {
+                _sha: previousRevision.sha,
+                _commitSha: previousRevision.commitSha,
+                _rawUrl: previousRevision.rawUrl,
+                _originalContent: previousRevision.originalContent
+            });
+            console.error('[content-updates] failed to apply file revision:', error);
+            showStatus('Could not update this file. Please try again.');
+        }
+    });
+    notice.append(message, button);
+}
+
+function reconcileOpenFileRevisions(root) {
+    Object.values(windows).forEach((win) => {
+        if (!win?._repo || !win?._repoPath || win._isEditor) return;
+        const latest = findRepositoryFileNode(root, win._repo, win._repoPath);
+        if (latest) showFileUpdateNotice(win, latest);
+    });
+    if (mobilePreview?.style.display !== 'none' && mobilePreview?._repo && mobilePreview?._repoPath) {
+        const latest = findRepositoryFileNode(root, mobilePreview._repo, mobilePreview._repoPath);
+        if (latest) showFileUpdateNotice(mobilePreview, latest, mobilePreviewContent);
+    }
+}
+
+function rootForStreamManifest(manifest, stream) {
+    let root = manifest?.root || manifest?.repos?.[0]?.tree || null;
+    if (stream === 'developers' && root?.children?.length === 1) {
+        const repositoryFolder = root.children[0];
+        if (repositoryFolder?.type === 'folder' && repositoryFolder.children) {
+            root = { ...repositoryFolder, name: 'Developer documentation' };
+        }
+    }
+    return root;
+}
+
+async function refreshRuntimeStreamTree(version) {
+    const stream = getCurrentStreamRoute();
+    if (!NoteBooksStreamRuntime.streams.has(stream)) return;
+    const currentPath = getNodePath(currentNode);
+    const activePath = activeTreePath;
+    const expandedPaths = [...expandedTreePaths];
+    const scrollTop = listView?.scrollTop || 0;
+    NoteBooksStreamRuntime.reset();
+    const manifest = await NoteBooksStreamRuntime.loadStreamTree(version);
+    const nextRoot = rootForStreamManifest(manifest, stream);
+    if (!nextRoot) throw new Error(`No updated tree was returned for ${stream}`);
+
+    treeRoot = sanitizeTreeNodeNames(nextRoot);
+    fileIndex = buildFileIndex(treeRoot);
+    const validPaths = new Set(fileIndex.map((item) => getNodePath(item.node)));
+    expandedTreePaths.clear();
+    expandedPaths.forEach((value) => {
+        if (validPaths.has(value)) expandedTreePaths.add(value);
+    });
+    renderSidebarTree(treeRoot, searchQuery);
+    if (searchQuery) {
+        updateSearchResults(searchQuery);
+    } else {
+        const ancestors = currentPath ? findAncestors(treeRoot, currentPath) : null;
+        if (ancestors?.length) {
+            currentNode = ancestors[ancestors.length - 1];
+            pathHistory = ancestors.filter((node) => node.name !== 'root').slice(0, -1);
+        } else {
+            currentNode = treeRoot;
+            pathHistory = [];
+        }
+        renderFolder(currentNode);
+        updatePathNav();
+    }
+    setActiveTreePath(validPaths.has(activePath) ? activePath : '');
+    if (listView) listView.scrollTop = scrollTop;
+    reconcileOpenFileRevisions(treeRoot);
+}
+
+async function pollContentCatalog() {
+    const since = contentCatalogVersion ?? 0;
+    const response = await fetch(`/api/content-updates?since=${since}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Content catalog check failed: ${response.status}`);
+    const update = await response.json();
+    if (!Number.isInteger(update.version)) throw new Error('Content catalog returned an invalid version');
+    if (contentCatalogVersion === null) {
+        contentCatalogVersion = update.version;
+        return;
+    }
+    if (update.version === contentCatalogVersion) return;
+
+    const stream = getCurrentStreamRoute();
+    const shouldRefreshTree = update.reset ||
+        update.changes.some((change) => Array.isArray(change.streams) && change.streams.includes(stream));
+    if (shouldRefreshTree) await refreshRuntimeStreamTree(update.version);
+    contentCatalogVersion = update.version;
+}
+
+async function startContentCatalogPolling() {
+    if (contentUpdatePollingStarted) return;
+    contentUpdatePollingStarted = true;
+    try {
+        await pollContentCatalog();
+    } catch (error) {
+        contentUpdatePollingStarted = false;
+        console.warn('[content-updates] initial catalog check failed:', error);
+        return;
+    }
+    contentUpdatePollingTimer = window.setInterval(() => {
+        pollContentCatalog().catch((error) => console.warn('[content-updates] catalog check failed:', error));
+    }, UPDATE_POLL_INTERVAL);
 }
 
 async function refreshFromSignal(payload) {
@@ -1587,6 +1778,7 @@ async function confirmDeleteFile() {
 function closeWindow(id) {
     const win = windows[id];
     if (win) {
+        window.NoteBooksReadAloud?.destroyIn(win);
         win.remove();
         delete windows[id];
         updateTaskbar();
@@ -1752,12 +1944,17 @@ function bindMobilePreviewScrollHide() {
 }
 
 function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+    const fileNode = repo ? findRepositoryFileNode(treeRoot, repo, repoPath || path) : null;
+    precomputedRaw = precomputedRaw || fileNode?.raw || '';
     mobilePreviewTitle.textContent = filename;
     mobilePreview._filePath = path;
     mobilePreview._repo = repo;
     mobilePreview._branch = branch;
     mobilePreview._repoPath = repoPath || path;
     mobilePreview._filename = filename;
+    mobilePreview._sha = fileNode?.sha || '';
+    mobilePreview._commitSha = fileNode?.commitSha || '';
+    mobilePreview._rawUrl = precomputedRaw;
     mobilePreviewContent.scrollTop = 0;
     mobilePreviewScrollY = 0;
     setMobilePreviewHeaderVisibility(true);
@@ -1766,6 +1963,7 @@ function openMobilePreview(path, filename, repo = '', branch = '', repoPath = ''
     mobilePreview.style.display = "flex";
 }
 function closeMobilePreview() {
+    window.NoteBooksReadAloud?.destroyIn(mobilePreviewContent);
     mobilePreview.style.display = "none";
     mobilePreviewContent.innerHTML = "";
     mobilePreviewContent.scrollTop = 0;
@@ -1961,8 +2159,12 @@ function openNewMarkdownEditor() {
     setTimeout(() => toggleFullscreen(id, true), 100);
 }
 
-function openPreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+function openPreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '', sha = '', commitSha = '') {
     injectSplitViewStyles();
+    const fileNode = repo ? findRepositoryFileNode(treeRoot, repo, repoPath || path) : null;
+    precomputedRaw = precomputedRaw || fileNode?.raw || '';
+    sha = sha || fileNode?.sha || '';
+    commitSha = commitSha || fileNode?.commitSha || '';
     const id = 'preview-' + (++previewId);
     const win = document.createElement("div");
     win.className = "floating-window";
@@ -1996,6 +2198,9 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
     win._branch = branch;
     win._repoPath = repoPath || path;
     win._filename = filename;
+    win._sha = sha;
+    win._commitSha = commitSha;
+    win._rawUrl = precomputedRaw;
     win._isMarkdown = isMarkdown;
     win._originalContent = null; // populated by fetchFileContent
     win._splitActive = false;
@@ -2008,6 +2213,8 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
 }
 // ─── fetchFileContent ─────────────────────────────────────────────────────────
 async function fetchFileContent(path, filename, container, winElement = null, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+    window.NoteBooksReadAloud?.destroyIn(container);
+    let loaded = true;
     const ext = (filename.includes('.') ? filename : path).split('.').pop().toLowerCase();
     container.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;"><span class="loader"></span> Loading...</div>';
     const delivery = window.NoteBooksRawDelivery;
@@ -2017,6 +2224,7 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         branch,
         repoPath,
         precomputedRaw,
+        commitSha: winElement?._commitSha || '',
         origin: window.location.origin,
         appConfig,
         isGitHubPages: window.location.hostname.endsWith('github.io'),
@@ -2074,13 +2282,16 @@ async function fetchFileContent(path, filename, container, winElement = null, re
                 container.innerHTML = `<pre style="margin:0;white-space:pre-wrap;font-family:Consolas,monospace;font-size:13px;line-height:1.5">${escapeHTML(text)}</pre>`;
             }
             catch (error) {
+                loaded = false;
                 container.innerHTML = `<div class="error">Error loading file: ${error.message}</div>`;
             }
         }
     }
     catch (error) {
+        loaded = false;
         container.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     }
+    return loaded;
 }
 // ─── Markdown render helper ───────────────────────────────────────────────────
 function sourceLineFromNode(node) {
@@ -2161,6 +2372,7 @@ function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
   }
 
 function renderMarkdownIntoContainer(text, filePath, container) {
+  window.NoteBooksReadAloud?.destroyIn(container);
   container.style.cssText = 'display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0; overflow:hidden;';
   const toolbar = document.createElement('div');
   toolbar.className = 'markdown-mode-toolbar';
@@ -2173,17 +2385,21 @@ function renderMarkdownIntoContainer(text, filePath, container) {
   container.innerHTML = '';
   container.appendChild(toolbar);
   container.appendChild(wrapper);
+  let readAloud = window.NoteBooksReadAloud?.attach(toolbar, wrapper);
 
 
   const setMode = (mode) => {
     toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((item) => item.classList.toggle('active', item.dataset.mode === mode));
     if (mode === 'raw') {
+      readAloud?.destroy();
+      readAloud = null;
       wrapper.classList.add('raw-markdown');
       wrapper.innerHTML = renderRawMarkdown(text);
       return;
     }
     wrapper.classList.remove('raw-markdown');
     wrapper.innerHTML = markdownToHTML(text, filePath);
+    readAloud = window.NoteBooksReadAloud?.attach(toolbar, wrapper);
     void initMarkdownFeatures(wrapper);
   };
 
@@ -2431,6 +2647,7 @@ async function bootNoteBooks() {
   registerCacheLifecycleHooks();
   if (shouldLoadWorkspace) {
     await NoteBooksStreamRuntime.loadStreamTree();
+    await startContentCatalogPolling();
     await startUpdatePolling();
     await fetchTree();
   }

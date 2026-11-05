@@ -6,18 +6,19 @@ const STREAM_ARTIFACTS = Object.freeze({
     developers: '/public/json/developers-tree.json'
 });
 const state = { manifest: null, loadPromise: null };
-function loadStreamTree() {
+function loadStreamTree(catalogVersion) {
     if (state.loadPromise) return state.loadPromise;
     state.loadPromise = (async () => {
         try {
             const stream = (window.CURRENT_STREAM || (window.location.pathname.split('/').filter(Boolean)[0]) || '').toLowerCase();
             if (!stream || !STREAM_ARTIFACTS[stream]) return null;
-            // Build-time artifacts are canonical for the browser. The runtime API is
-            // only a compatibility fallback when a deployment omitted an artifact.
             const runtimeUrl = `/api/system/${stream}`;
+            const runtimeVersionUrl = Number.isInteger(catalogVersion)
+                ? `${runtimeUrl}?v=${encodeURIComponent(catalogVersion)}`
+                : runtimeUrl;
             const jsonUrl = STREAM_ARTIFACTS[stream] || "";
-            let res = await fetch(jsonUrl, { cache: 'default' });
-            if (!res.ok) res = await fetch(runtimeUrl, { cache: 'no-store' });
+            let res = await fetch(runtimeVersionUrl, { cache: 'no-store' });
+            if (!res.ok) res = await fetch(jsonUrl, { cache: 'default' });
             if (!res.ok) {
                 console.debug('No stream-tree manifest at', jsonUrl, 'status', res.status);
                 return null;

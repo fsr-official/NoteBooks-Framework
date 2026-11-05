@@ -5,6 +5,7 @@ export interface RepoRegistryEntry {
   stream?: string;
   repo: string;
   branch?: string;
+  commitSha?: string;
   root?: string;
   enabled?: boolean;
   priority?: number;

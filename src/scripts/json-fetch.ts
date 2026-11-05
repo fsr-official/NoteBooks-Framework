@@ -5,6 +5,7 @@ export interface JsonFetchRegistryEntry {
   stream?: string;
   repo: string;
   branch?: string;
+  commitSha?: string;
   root?: string;
   enabled?: boolean;
   priority?: number;
@@ -31,6 +32,7 @@ export interface RepositoryManifestInstance {
   stream: string;
   repo: string;
   branch: string;
+  commitSha?: string;
   root: string;
   name: string;
   manifestUrl: string;
@@ -64,7 +66,7 @@ export function repositoryName(repo: string): string {
 }
 
 export function buildRawFilesJsonUrl(entry: JsonFetchRegistryEntry): string {
-  const branch = entry.branch || DEFAULT_BRANCH;
+  const branch = entry.commitSha || entry.branch || DEFAULT_BRANCH;
   const root = normalizePath(entry.root || '');
   const suffix = root ? `${root}/files.json` : 'files.json';
   return `https://raw.githubusercontent.com/${entry.repo}/${encodeURIComponent(branch)}/${suffix}`;
@@ -74,13 +76,14 @@ export function buildRawFileUrl(repo: string, branch: string, filePath: string):
   return `https://raw.githubusercontent.com/${repo}/${encodeURIComponent(branch || DEFAULT_BRANCH)}/${normalizePath(filePath)}`;
 }
 
-export function buildMediaFileUrl(repo: string, branch: string, filePath: string): string {
+export function buildMediaFileUrl(repo: string, ref: string, filePath: string, commitSha?: string): string {
   const normalized = normalizePath(filePath);
   const encodedPath = normalized
     .split('/')
     .map((segment) => encodeURIComponent(segment))
     .join('/');
-  return `https://media.githubusercontent.com/media/${repo}/refs/heads/${encodeURIComponent(branch || DEFAULT_BRANCH)}/${encodedPath}`;
+  const mediaRef = commitSha || `refs/heads/${encodeURIComponent(ref || DEFAULT_BRANCH)}`;
+  return `https://media.githubusercontent.com/media/${repo}/${mediaRef}/${encodedPath}`;
 }
 
 function buildPagesFilesJsonUrl(entry: JsonFetchRegistryEntry): string {
@@ -118,6 +121,7 @@ function annotateFile(node: any, entry: JsonFetchRegistryEntry, stream: string, 
   if (!rawPath) return null;
   const branch = entry.branch || DEFAULT_BRANCH;
   const useMediaUrl = entry.lfs === true || String(entry.lfs || '').toLowerCase() === 'true';
+  const rawRef = entry.commitSha || branch;
   const result: JsonFetchNode = {
     ...node,
     type: 'file',
@@ -127,7 +131,10 @@ function annotateFile(node: any, entry: JsonFetchRegistryEntry, stream: string, 
     repo: entry.repo,
     branch,
     stream,
-    raw: useMediaUrl ? buildMediaFileUrl(entry.repo, branch, rawPath) : buildRawFileUrl(entry.repo, branch, rawPath)
+    raw: useMediaUrl
+      ? buildMediaFileUrl(entry.repo, branch, rawPath, entry.commitSha)
+      : buildRawFileUrl(entry.repo, rawRef, rawPath),
+    ...(entry.commitSha ? { commitSha: entry.commitSha } : {})
   };
   if (typeof node?.size === 'number') result.size = node.size;
   delete result.children;
@@ -267,6 +274,7 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
       stream,
       repo: entry.repo,
       branch,
+      ...(entry.commitSha ? { commitSha: entry.commitSha } : {}),
       root: normalizePath(entry.root || ''),
       name: String(entry.name || repositoryName(entry.repo)),
       manifestUrl: rawUrl,
@@ -276,7 +284,9 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
     };
   }
   const attempts: Array<{ url: string; source: 'raw' | 'pages' }> = [{ url: rawUrl, source: 'raw' }];
-  if (pagesEnabled && resolvePagesBaseUrl(entry)) attempts.push({ url: buildPagesFilesJsonUrl(normalizedEntry), source: 'pages' });
+  if (!entry.commitSha && pagesEnabled && resolvePagesBaseUrl(entry)) {
+    attempts.push({ url: buildPagesFilesJsonUrl(normalizedEntry), source: 'pages' });
+  }
 
   let lastError: unknown = null;
   for (const attempt of attempts) {
@@ -287,6 +297,7 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
         stream,
         repo: entry.repo,
         branch,
+        ...(entry.commitSha ? { commitSha: entry.commitSha } : {}),
         root: normalizePath(entry.root || ''),
         name: String(entry.name || repositoryName(entry.repo)),
         manifestUrl: attempt.url,

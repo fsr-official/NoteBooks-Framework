@@ -73,4 +73,26 @@ describe('repository files.json fetching', () => {
 
     expect(result.files[0].raw).toBe('https://media.githubusercontent.com/media/fsr-science/cengage-chemistry/refs/heads/main/IOC/1.%20General%20Principles%20and%20Processes%20of%20Isolation%20of%20Elements.pdf');
   });
+
+  it('pins LFS media URLs to the selected commit when one is available', async () => {
+    const commitSha = 'a'.repeat(40);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify([
+      { type: 'file', name: 'file.pdf', path: 'IOC/file.pdf', sha: 'b'.repeat(40) }
+    ]), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    })));
+
+    const result = await fetchRepositoryManifest({
+      name: 'cengage-chemistry',
+      stream: 'science',
+      repo: 'fsr-science/cengage-chemistry',
+      branch: 'main',
+      commitSha,
+      root: '',
+      lfs: true
+    });
+
+    expect(result.files[0].raw).toBe(`https://media.githubusercontent.com/media/fsr-science/cengage-chemistry/${commitSha}/IOC/file.pdf`);
+  });
 });

@@ -2,8 +2,10 @@ import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import { loadRepoRegistry } from './repo-registry.js';
 import { getSubjectRepo } from './_shared.js';
-import { resolvePagesBaseUrl, fetchRepoManifest } from './pages-fetch.js';
+import { resolvePagesBaseUrl } from './pages-fetch.js';
 import { sharedDelete, sharedGetJson, sharedSetJson } from '../lib/shared-cache.js';
+import { fetchRepositoryManifest } from '../scripts/json-fetch.js';
+import { getRuntimeCatalog, isRuntimeRegistryActive } from '../lib/runtime-catalog.js';
 
 const STREAMS = new Set(['science', 'commerce', 'humanities', 'developers']);
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -13,6 +15,7 @@ const FETCHABLE_EXTENSIONS = /\.(?:md|mdx|markdown|pdf)$/i;
 
 type StreamTreePayload = {
   stream: string;
+  root: any;
   repos: Array<{
     repo: string;
     branch: string;
@@ -25,25 +28,26 @@ type StreamTreePayload = {
 type CacheEntry = {
   payload: StreamTreePayload;
   cachedAt: number;
+  catalogVersion: number;
 };
 
 const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<CacheEntry>>();
 const runtimePreferred = new Set<string>();
 
-function streamCacheKey(stream: string): string {
-  return `${SHARED_CACHE_KEY_PREFIX}:${stream}`;
+function streamCacheKey(stream: string, version: number): string {
+  return `${SHARED_CACHE_KEY_PREFIX}:${stream}:${version}`;
 }
 
 function normalizePath(value: unknown): string {
   return String(value || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
 }
 
-function rawUrlFor(repo: string, branch: string, filePath: string): string {
-  return `https://raw.githubusercontent.com/${repo}/${branch}/${normalizePath(filePath)}`;
+function rawUrlFor(repo: string, branch: string, filePath: string, commitSha?: string): string {
+  return `https://raw.githubusercontent.com/${repo}/${commitSha || branch}/${normalizePath(filePath)}`;
 }
 
-function annotateNode(node: any, repo: string, branch: string, parentPath = ''): any | null {
+function annotateNode(node: any, repo: string, branch: string, commitSha?: string, parentPath = ''): any | null {
   if (!node || !node.name) return null;
   const isFile = node.type === 'file';
   const ownPath = normalizePath(isFile && node.path ? node.path : node.name);
@@ -55,7 +59,7 @@ function annotateNode(node: any, repo: string, branch: string, parentPath = ''):
 
   const children = Array.isArray(node.children)
     ? node.children
-      .map((child: any) => annotateNode(child, repo, branch, repoPath))
+      .map((child: any) => annotateNode(child, repo, branch, commitSha, repoPath))
       .filter(Boolean)
     : undefined;
 
@@ -67,12 +71,16 @@ function annotateNode(node: any, repo: string, branch: string, parentPath = ''):
     repo,
     branch,
     repoPath,
-    ...(isFile ? { raw: rawUrlFor(repo, branch, repoPath) } : {}),
+    ...(isFile ? {
+      raw: node.raw || rawUrlFor(repo, branch, repoPath, commitSha),
+      ...(node.sha ? { sha: node.sha } : {}),
+      ...(commitSha ? { commitSha } : {})
+    } : {}),
     ...(children ? { children } : {})
   };
 }
 
-function buildTreeFromGitHubEntries(repo: string, branch: string, entries: any[]): any {
+function buildTreeFromGitHubEntries(repo: string, branch: string, entries: any[], commitSha?: string): any {
   const repoName = repo.split('/').pop() || repo;
   const root = { type: 'folder', name: repoName, children: [] as any[] };
   for (const entry of entries || []) {
@@ -96,14 +104,16 @@ function buildTreeFromGitHubEntries(repo: string, branch: string, entries: any[]
       repo,
       branch,
       repoPath: filePath,
-      raw: rawUrlFor(repo, branch, filePath),
+      raw: rawUrlFor(repo, branch, filePath, commitSha),
+      ...(typeof entry.sha === 'string' ? { sha: entry.sha } : {}),
+      ...(commitSha ? { commitSha } : {}),
       size: typeof entry.size === 'number' ? entry.size : null
     });
   }
   return root;
 }
 
-async function fetchGithubTree(repo: string, branch: string): Promise<any> {
+async function fetchGithubTree(repo: string, ref: string, branch: string, commitSha?: string): Promise<any> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 8000);
   try {
@@ -113,11 +123,11 @@ async function fetchGithubTree(repo: string, branch: string): Promise<any> {
       'User-Agent': 'NoteBooks-runtime-system'
     };
     if (token) headers.Authorization = `Bearer ${token}`;
-    const url = `https://api.github.com/repos/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+    const url = `https://api.github.com/repos/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`;
     const response = await fetch(url, { headers, signal: controller.signal });
     if (!response.ok) throw new Error(`GitHub tree fetch failed with ${response.status}`);
     const payload = await response.json() as any;
-    return buildTreeFromGitHubEntries(repo, branch, Array.isArray(payload?.tree) ? payload.tree : []);
+    return buildTreeFromGitHubEntries(repo, branch, Array.isArray(payload?.tree) ? payload.tree : [], commitSha);
   } finally {
     clearTimeout(timeoutId);
   }
@@ -149,12 +159,13 @@ function streamEntries(stream: string, entries: any[]): any[] {
   });
 }
 
-async function buildStreamTree(stream: string): Promise<CacheEntry> {
+async function buildStreamTree(stream: string, catalogVersion: number): Promise<CacheEntry> {
   const entries = streamEntries(stream, await loadRepoRegistry());
   const repos = await Promise.all(entries.map(async (entry) => {
     const repo = String(entry.repo);
     const repoName = repo.split('/').pop() || repo;
     const branch = String(entry.branch || process.env.GITHUB_BRANCH || 'main');
+    const commitSha = typeof entry.commitSha === 'string' ? entry.commitSha : undefined;
     const pagesBase = resolvePagesBaseUrl(entry);
     try {
       let tree;
@@ -163,23 +174,25 @@ async function buildStreamTree(stream: string): Promise<CacheEntry> {
         tree = { type: 'folder', name: repoName, children: [] };
       } else {
         try {
-          const children = await fetchRepoManifest(repo, repoName, branch, pagesBase);
+          const manifest = await fetchRepositoryManifest({ ...entry, repo, branch, commitSha });
+          const children = manifest.tree.children || [];
           tree = {
             type: 'folder',
             name: repoName,
-            children: children.map((child: any) => annotateNode(child, repo, branch)).filter(Boolean)
+            children: children.map((child: any) => annotateNode(child, repo, branch, commitSha)).filter(Boolean)
           };
         } catch (manifestError) {
           console.warn(`[system] files.json unavailable for ${repo}; trying GitHub tree:`, manifestError instanceof Error ? manifestError.message : manifestError);
-          tree = await fetchGithubTree(repo, branch);
+          tree = await fetchGithubTree(repo, commitSha || branch, branch, commitSha);
         }
       }
-      return { repo, branch, pagesBase, tree };
+      return { repo, branch, pagesBase, commitSha, tree };
     } catch (error) {
       console.warn(`[system] stream tree failed for ${repo}:`, error instanceof Error ? error.message : error);
       return {
         repo,
         branch,
+        commitSha,
         pagesBase,
         tree: { type: 'folder', name: repoName, children: [] },
         error: 'manifest_unavailable'
@@ -187,20 +200,39 @@ async function buildStreamTree(stream: string): Promise<CacheEntry> {
     }
   }));
 
+  const rootName = `NoteBooks-${stream.charAt(0).toUpperCase()}${stream.slice(1)}`;
   return {
-    payload: { stream, repos },
-    cachedAt: Date.now()
+    payload: {
+      stream,
+      root: {
+        type: 'folder',
+        name: rootName,
+        path: rootName,
+        stream,
+        children: repos.map((repo) => repo.tree)
+      },
+      repos
+    },
+    cachedAt: Date.now(),
+    catalogVersion
   };
 }
 
 export async function getStreamTree(stream: string, forceRefresh = false): Promise<CacheEntry> {
+  let catalogVersion = 0;
+  try {
+    catalogVersion = (await getRuntimeCatalog()).version;
+  } catch {
+    // The static/bootstrap registry remains available when shared Redis is not configured.
+  }
+
   const localCached = cache.get(stream);
-  if (!forceRefresh && localCached && Date.now() - localCached.cachedAt < CACHE_TTL_MS) return localCached;
+  if (!forceRefresh && localCached && localCached.catalogVersion === catalogVersion && Date.now() - localCached.cachedAt < CACHE_TTL_MS) return localCached;
 
   let sharedCached: CacheEntry | null = null;
   try {
-    sharedCached = await sharedGetJson<CacheEntry>(streamCacheKey(stream));
-    if (!forceRefresh && sharedCached?.payload && typeof sharedCached.cachedAt === 'number') {
+    sharedCached = await sharedGetJson<CacheEntry>(streamCacheKey(stream, catalogVersion));
+    if (!forceRefresh && sharedCached?.payload && sharedCached.catalogVersion === catalogVersion && typeof sharedCached.cachedAt === 'number') {
       cache.set(stream, sharedCached);
       if (Date.now() - sharedCached.cachedAt < CACHE_TTL_MS) return sharedCached;
     }
@@ -208,23 +240,24 @@ export async function getStreamTree(stream: string, forceRefresh = false): Promi
     // Shared-cache failures must never prevent the local rebuild path.
   }
 
-  const existing = inFlight.get(stream);
+  const inFlightKey = `${stream}:${catalogVersion}`;
+  const existing = inFlight.get(inFlightKey);
   if (existing) return existing;
 
-  const build = buildStreamTree(stream)
+  const build = buildStreamTree(stream, catalogVersion)
     .then(async (entry) => {
       cache.set(stream, entry);
-      await sharedSetJson(streamCacheKey(stream), entry, SHARED_CACHE_TTL_SECONDS);
+      await sharedSetJson(streamCacheKey(stream, catalogVersion), entry, SHARED_CACHE_TTL_SECONDS);
       return entry;
     })
-    .finally(() => inFlight.delete(stream));
-  inFlight.set(stream, build);
+    .finally(() => inFlight.delete(inFlightKey));
+  inFlight.set(inFlightKey, build);
 
   try {
     return await build;
   } catch (error) {
-    if (localCached) return localCached;
-    if (sharedCached) return sharedCached;
+    if (localCached?.catalogVersion === catalogVersion) return localCached;
+    if (sharedCached?.catalogVersion === catalogVersion) return sharedCached;
     throw error;
   }
 }
@@ -236,7 +269,13 @@ export async function invalidateStreamTree(stream?: string, preferRuntime = fals
     if (preferRuntime) runtimePreferred.add(value);
     else runtimePreferred.delete(value);
   }
-  await Promise.all(streams.map((value) => sharedDelete(streamCacheKey(value))));
+  let version = 0;
+  try {
+    version = (await getRuntimeCatalog()).version;
+  } catch {
+    // A local cache clear remains useful when shared Redis is unavailable.
+  }
+  await Promise.all(streams.map((value) => sharedDelete(streamCacheKey(value, version))));
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -271,7 +310,7 @@ export default async function handler(req: Request, res: Response) {
 
   if (req.method === 'GET' || req.method === 'HEAD') {
     try {
-      if (runtimePreferred.has(stream)) {
+      if (runtimePreferred.has(stream) || await isRuntimeRegistryActive()) {
         const refreshed = await getStreamTree(stream);
         res.setHeader('Cache-Control', 'no-store');
         res.setHeader('X-Stream-Tree-Source', 'runtime-rebuilt');

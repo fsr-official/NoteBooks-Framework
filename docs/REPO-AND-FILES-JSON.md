@@ -2,7 +2,7 @@
 
 ## Registry model
 
-The repository registry is declared in GITHUB-REPOSITORIES.md and compiled into public/json/github-repos.json. The registry is the source of stream repository selection and priority ordering.
+The canonical repository registry is maintained in the NoteBooks-Documents repository's `GITHUB-REPOSITORIES.md` and compiled into `public/json/github-repos.json` during app builds for bootstrap/offline use. Signed registry update notifications activate new registry contents in Upstash Redis at runtime, so edits do not require an app restart.
 
 Each entry includes:
 
@@ -17,13 +17,13 @@ Each entry includes:
 - empty
 - LFS
 
-The build script reads this registry and generates public/json/repo-registry.json and per-stream manifest trees.
+The build script reads the canonical registry and generates `public/json/repo-registry.json` and per-stream manifest trees. Once runtime configuration is active, `/api/system/:stream` uses the shared registry and the latest accepted repository commit SHA instead of preferring those static trees.
 
 ## Manifest generation
 
 The generation pipeline forms a repository manifest by reading a repo’s files.json or Pages manifest, normalizing raw paths, and folding the result into a stream-scoped tree. The root node is then emitted as a JSON artifact such as public/json/science-tree.json.
 
-The system API at /api/system/:stream reads these generated artifacts first and falls back to a runtime build only when needed. This preserves the default static and offline experience while keeping the runtime fresh.
+Content repositories invoke the NoteBooks-Documents reusable workflow on pushes. It regenerates and validates `files.json` with Git blob SHAs, then posts the resulting commit SHA. The app fetches the manifest at that exact commit, compares the per-file SHA map, and publishes only actual material changes. Tree responses use commit-pinned raw URLs; clients receive catalog versions through `/api/content-updates` and refresh the tree without reloading the application shell.
 
 ## Local developer workspace
 
