@@ -1,0 +1,87 @@
+name: NoteBooks System Workflows
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+concurrency:
+  group: notebooks-system-workflows
+  cancel-in-progress: false
+
+jobs:
+  monitor-and-process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe production health and process System workflows
+        env:
+          NOTEBOOKS_UPDATE_URL: ${{ secrets.NOTEBOOKS_UPDATE_URL }}
+          NOTEBOOKS_UPDATE_SECRET: ${{ secrets.NOTEBOOKS_UPDATE_SECRET }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$NOTEBOOKS_UPDATE_URL" || -z "$NOTEBOOKS_UPDATE_SECRET" ]]; then
+            echo "NOTEBOOKS_UPDATE_URL and NOTEBOOKS_UPDATE_SECRET must be configured."
+            exit 1
+          fi
+
+          site_url="$(node -e 'const url = new URL(process.argv[1]); url.pathname = url.pathname.replace(/\/api\/webhooks\/content-update\/?$/, ""); url.search = ""; url.hash = ""; process.stdout.write(url.toString().replace(/\/$/, ""));' "$NOTEBOOKS_UPDATE_URL")"
+          health_url="${site_url}/api/health"
+          workflow_url="${site_url}/api/system-workflows"
+          previous_nonup_state="$(gh variable get NOTEBOOKS_SYSTEM_NONUP_STATE --repo "$GITHUB_REPOSITORY" 2>/dev/null || true)"
+          mapfile -t previous_nonup_parts < <(node -e 'try { const state = JSON.parse(process.argv[1] || "{}"); process.stdout.write(`${state.status || ""}\n${state.since || ""}`); } catch { process.stdout.write("\n"); }' "$previous_nonup_state")
+          previous_nonup_status="${previous_nonup_parts[0]:-}"
+          previous_nonup_since="${previous_nonup_parts[1]:-}"
+          checked_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          set +e
+          probe_output="$(curl --silent --show-error --max-time 20 --output health-response.json --write-out '%{http_code}\n%{time_total}' "$health_url" 2>/dev/null)"
+          probe_exit=$?
+          set -e
+          http_code="$(printf '%s\n' "$probe_output" | head -n 1)"
+          elapsed_seconds="$(printf '%s\n' "$probe_output" | tail -n 1)"
+          response_ms="$(awk -v seconds="${elapsed_seconds:-0}" 'BEGIN { printf "%d", seconds * 1000 }')"
+
+          if [[ "$probe_exit" -ne 0 || ! "$http_code" =~ ^2[0-9][0-9]$ ]]; then
+            current_status="down"
+          else
+            health_status="$(node -e 'try { const data = require("./health-response.json"); process.stdout.write(String(data.status || "unknown")); } catch { process.stdout.write("unknown"); }')"
+            if [[ "$health_status" == "ok" ]]; then
+              current_status="up"
+            else
+              current_status="degraded"
+            fi
+          fi
+
+          if [[ "$current_status" != "up" ]]; then
+            next_nonup_since="$checked_at"
+            if [[ "$previous_nonup_status" == "$current_status" && -n "$previous_nonup_since" ]]; then
+              next_nonup_since="$previous_nonup_since"
+            fi
+            next_nonup_state="$(node -e 'const [status, since] = process.argv.slice(1); process.stdout.write(JSON.stringify({ status, since }));' "$current_status" "$next_nonup_since")"
+            gh variable set NOTEBOOKS_SYSTEM_NONUP_STATE --repo "$GITHUB_REPOSITORY" --body "$next_nonup_state"
+          fi
+
+          request_body="$(node -e 'const [status, responseMs, checkedAt, previousNonUpStatus, previousNonUpSince] = process.argv.slice(1); process.stdout.write(JSON.stringify({ uptime: { status, responseMs: Number(responseMs), checkedAt, previousNonUpStatus: previousNonUpStatus || null, previousNonUpSince: previousNonUpSince || null } }));' "$current_status" "$response_ms" "$checked_at" "$previous_nonup_status" "$previous_nonup_since")"
+          signature="$(printf '%s' "$request_body" | node -e 'const crypto = require("node:crypto"); let body = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", chunk => body += chunk); process.stdin.on("end", () => process.stdout.write("sha256=" + crypto.createHmac("sha256", process.env.NOTEBOOKS_UPDATE_SECRET).update(body, "utf8").digest("hex")));')"
+          curl --fail-with-body --silent --show-error --max-time 30 \
+            --request POST "$workflow_url" \
+            --header 'Content-Type: application/json' \
+            --header "X-Notebooks-Signature: $signature" \
+            --data "$request_body" \
+            --output workflow-response.json
+
+          if [[ "$current_status" == "up" && -n "$previous_nonup_state" ]]; then
+            gh variable delete NOTEBOOKS_SYSTEM_NONUP_STATE --repo "$GITHUB_REPOSITORY" || true
+          fi
+          node -e 'const result = require("./workflow-response.json"); console.log(JSON.stringify({ uptime: result.uptime, jobs: result.jobs, issueMonitor: result.issueMonitor }));'
+
+          if [[ "$current_status" == "down" ]]; then
+            echo "Production health probe reported downtime."
+            exit 1
+          fi
