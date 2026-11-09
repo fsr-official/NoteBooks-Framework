@@ -19,7 +19,7 @@ const CATALOG_KEY = 'notebooks:runtime-catalog:v1';
 const LOCK_KEY = 'notebooks:runtime-update-lock:v1';
 const REPO_STATE_PREFIX = 'notebooks:repo-state:v1:';
 const CHANGE_HISTORY_LIMIT = 100;
-const VALID_STREAMS = new Set(['science', 'commerce', 'humanities']);
+const VALID_STREAMS = new Set(['science', 'commerce', 'humanities', 'developers']);
 const GITHUB_SHA_PATTERN = /^[a-f0-9]{40}$/i;
 
 export type RuntimeUpdateKind = 'registry' | 'content';

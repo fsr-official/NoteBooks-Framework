@@ -41,29 +41,33 @@ function installRedisMock() {
   return store;
 }
 
-async function setupBootstrap(initialFileSha: string) {
+async function setupBootstrap(
+  initialFileSha: string,
+  repository = 'owner/science',
+  stream = 'science'
+) {
   testCwd = await fs.mkdtemp(path.join(os.tmpdir(), 'notebooks-runtime-catalog-'));
   await fs.mkdir(path.join(testCwd, 'public', 'json'), { recursive: true });
   await fs.writeFile(path.join(testCwd, 'public', 'json', 'github-repos.json'), JSON.stringify({
     schemaVersion: 1,
     entries: [{
-      name: 'Science',
-      stream: 'science',
-      repo: 'owner/science',
+      name: stream,
+      stream,
+      repo: repository,
       branch: 'main',
       enabled: true,
       priority: 1
     }]
   }));
-  await fs.writeFile(path.join(testCwd, 'public', 'json', 'science-tree.json'), JSON.stringify({
-    stream: 'science',
+  await fs.writeFile(path.join(testCwd, 'public', 'json', `${stream}-tree.json`), JSON.stringify({
+    stream,
     root: {
       type: 'folder',
       children: [{
         type: 'file',
         path: 'chapter.md',
         repoPath: 'chapter.md',
-        repo: 'owner/science',
+        repo: repository,
         sha: initialFileSha
       }]
     }
@@ -161,5 +165,40 @@ describe('runtime content catalog', () => {
       branch: 'main',
       commitSha: 'c'.repeat(40)
     })).resolves.toMatchObject({ superseded: true, changed: false, version: 0 });
+  });
+
+  it('fetches files.json for registered developer repositories', async () => {
+    installRedisMock();
+    const repository = 'owner/documents';
+    const commitSha = 'd'.repeat(40);
+    await setupBootstrap('a'.repeat(40), repository, 'developers');
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith('/commits/main')) {
+        return new Response(JSON.stringify({ sha: commitSha }), { status: 200 });
+      }
+      if (url.endsWith(`/${commitSha}/files.json`)) {
+        return new Response(JSON.stringify([{
+          type: 'file',
+          name: 'chapter.md',
+          path: 'chapter.md',
+          sha: 'b'.repeat(40)
+        }]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response('not found', { status: 404 });
+    }));
+
+    await expect(processRuntimeUpdate({
+      schemaVersion: 1,
+      kind: 'content',
+      repository,
+      branch: 'main',
+      commitSha
+    })).resolves.toMatchObject({
+      accepted: true,
+      changed: true,
+      filesChanged: 1,
+      streams: ['developers']
+    });
   });
 });

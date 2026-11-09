@@ -164,7 +164,7 @@
                 "type": "file",
                 "name": "REPO-AND-FILES-JSON.md",
                 "path": "docs/REPO-AND-FILES-JSON.md",
-                "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+                "sha": "6074363ae14587daad2250c9b10979a0da6b9804",
                 "mime": "text/markdown"
               },
               {
@@ -178,17 +178,10 @@
                 "type": "file",
                 "name": "SYSTEM-OVERVIEW.md",
                 "path": "docs/SYSTEM-OVERVIEW.md",
-                "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
+                "sha": "29b90a8bb405435ec2225a5327a9a9e4d4a6e99a",
                 "mime": "text/markdown"
               }
             ]
-          },
-          {
-            "type": "file",
-            "name": "GITHUB-REPOSITORIES.md",
-            "path": "GITHUB-REPOSITORIES.md",
-            "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
-            "mime": "text/markdown"
           },
           {
             "type": "folder",
@@ -199,7 +192,7 @@
             "type": "file",
             "name": "README.md",
             "path": "README.md",
-            "sha": "7d64394edc85ced6f6cb35315cd5c9a70efbf79d",
+            "sha": "0c39c847e5a0c75c7d4bbfd8697d83be2fc3a20b",
             "mime": "text/markdown"
           },
           {
@@ -516,7 +509,7 @@
           "type": "file",
           "name": "REPO-AND-FILES-JSON.md",
           "path": "docs/REPO-AND-FILES-JSON.md",
-          "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+          "sha": "6074363ae14587daad2250c9b10979a0da6b9804",
           "mime": "text/markdown"
         },
         {
@@ -530,21 +523,14 @@
           "type": "file",
           "name": "SYSTEM-OVERVIEW.md",
           "path": "docs/SYSTEM-OVERVIEW.md",
-          "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
-          "mime": "text/markdown"
-        },
-        {
-          "type": "file",
-          "name": "GITHUB-REPOSITORIES.md",
-          "path": "GITHUB-REPOSITORIES.md",
-          "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
+          "sha": "29b90a8bb405435ec2225a5327a9a9e4d4a6e99a",
           "mime": "text/markdown"
         },
         {
           "type": "file",
           "name": "README.md",
           "path": "README.md",
-          "sha": "7d64394edc85ced6f6cb35315cd5c9a70efbf79d",
+          "sha": "0c39c847e5a0c75c7d4bbfd8697d83be2fc3a20b",
           "mime": "text/markdown"
         },
         {
@@ -690,7 +676,7 @@
                 "type": "file",
                 "name": "REPO-AND-FILES-JSON.md",
                 "path": "docs/REPO-AND-FILES-JSON.md",
-                "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+                "sha": "6074363ae14587daad2250c9b10979a0da6b9804",
                 "mime": "text/markdown"
               },
               {
@@ -704,17 +690,10 @@
                 "type": "file",
                 "name": "SYSTEM-OVERVIEW.md",
                 "path": "docs/SYSTEM-OVERVIEW.md",
-                "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
+                "sha": "29b90a8bb405435ec2225a5327a9a9e4d4a6e99a",
                 "mime": "text/markdown"
               }
             ]
-          },
-          {
-            "type": "file",
-            "name": "GITHUB-REPOSITORIES.md",
-            "path": "GITHUB-REPOSITORIES.md",
-            "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
-            "mime": "text/markdown"
           },
           {
             "type": "folder",
@@ -725,7 +704,7 @@
             "type": "file",
             "name": "README.md",
             "path": "README.md",
-            "sha": "7d64394edc85ced6f6cb35315cd5c9a70efbf79d",
+            "sha": "0c39c847e5a0c75c7d4bbfd8697d83be2fc3a20b",
             "mime": "text/markdown"
           },
           {
