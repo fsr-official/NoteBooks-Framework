@@ -14,6 +14,19 @@ describe('Vercel clean URL routing', () => {
     expect(vercelConfig.cleanUrls).toBe(true);
     expect(vercelConfig.functions?.['api/[...all].ts']?.includeFiles).toContain('README.md');
     expect(vercelConfig.functions?.['api/[...all].ts']?.includeFiles).toContain('LICENSE');
+    expect(vercelConfig.functions?.['api/[...all].ts']?.includeFiles).toContain('src/db/init_identity_schema.sql');
+    expect(vercelConfig.functions?.['api/[...all].ts']?.includeFiles).toContain('src/db/migrations/**/*.sql');
+    expect(fs.existsSync(path.join(projectDir, 'api', 'community', '[...all].ts'))).toBe(true);
+    expect(vercelConfig.functions?.['api/community/**/*.ts']?.includeFiles).toContain('src/db/migrations/**/*.sql');
+    for (const route of [
+      'api/community/channels/[slug]/messages.ts',
+      'api/community/channels/[slug]/read.ts',
+      'api/community/messages/[id]/[action].ts',
+      'api/community/moderation/reports.ts',
+      'api/community/moderation/reports/[id]/resolve.ts'
+    ]) {
+      expect(fs.existsSync(path.join(projectDir, route))).toBe(true);
+    }
 
     const routes = new Map((vercelConfig.rewrites ?? []).map((route) => [route.source, route.destination]));
     expect(routes.get('/files/:path*')).toBe('/api/workspace-file?path=:path*');
