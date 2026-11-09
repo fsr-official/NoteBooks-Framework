@@ -38,6 +38,7 @@ jobs:
           fi
 
           site_url="$(node -e 'const url = new URL(process.argv[1]); url.pathname = url.pathname.replace(/\/api\/webhooks\/content-update\/?$/, ""); url.search = ""; url.hash = ""; process.stdout.write(url.toString().replace(/\/$/, ""));' "$NOTEBOOKS_UPDATE_URL")"
+          target_host="$(node -e 'process.stdout.write(new URL(process.argv[1]).host);' "$site_url")"
           health_url="${site_url}/api/health"
           workflow_url="${site_url}/api/system-workflows"
           previous_nonup_state="$(node -e 'try { process.stdout.write(JSON.stringify(require("./.system-uptime-state.json"))); } catch { process.stdout.write("{}"); }')"
@@ -64,6 +65,7 @@ jobs:
               current_status="degraded"
             fi
           fi
+          echo "System workflow target: ${target_host}; health classification: ${current_status} (HTTP ${http_code:-000})."
 
           if [[ "$current_status" != "up" ]]; then
             next_nonup_since="$checked_at"
@@ -76,12 +78,21 @@ jobs:
 
           request_body="$(node -e 'const [status, responseMs, checkedAt, previousNonUpStatus, previousNonUpSince] = process.argv.slice(1); process.stdout.write(JSON.stringify({ uptime: { status, responseMs: Number(responseMs), checkedAt, previousNonUpStatus: previousNonUpStatus || null, previousNonUpSince: previousNonUpSince || null } }));' "$current_status" "$response_ms" "$checked_at" "$previous_nonup_status" "$previous_nonup_since")"
           signature="$(printf '%s' "$request_body" | node -e 'const crypto = require("node:crypto"); let body = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", chunk => body += chunk); process.stdin.on("end", () => process.stdout.write("sha256=" + crypto.createHmac("sha256", process.env.NOTEBOOKS_UPDATE_SECRET).update(body, "utf8").digest("hex")));')"
-          curl --fail-with-body --silent --show-error --max-time 30 \
+          set +e
+          workflow_http_status="$(curl --silent --show-error --max-time 30 \
             --request POST "$workflow_url" \
             --header 'Content-Type: application/json' \
             --header "X-Notebooks-Signature: $signature" \
             --data "$request_body" \
-            --output workflow-response.json
+            --output workflow-response.json \
+            --write-out '%{http_code}')"
+          workflow_curl_exit=$?
+          set -e
+          if [[ "$workflow_curl_exit" -ne 0 || ! "$workflow_http_status" =~ ^2[0-9][0-9]$ ]]; then
+            worker_error="$(node -e 'try { const result = require("./workflow-response.json"); process.stdout.write(String(result.error || "")); } catch { process.stdout.write(""); }')"
+            echo "System worker request failed (HTTP ${workflow_http_status:-000}): ${worker_error:-no JSON error detail}."
+            exit 1
+          fi
 
           if [[ "$current_status" == "up" && -n "$previous_nonup_state" ]]; then
             printf '{}' > .system-uptime-state.json
