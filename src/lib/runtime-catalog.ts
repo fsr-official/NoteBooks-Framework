@@ -12,6 +12,8 @@ import {
   sharedSetJsonRequired,
   sharedTryAcquireRequired
 } from './shared-cache.js';
+import { isConfigured as isDbConfigured } from './db.js';
+import { recordSystemEvent, repositoryFileUrl } from './system-events.js';
 import { fetchRepositoryManifest } from '../scripts/json-fetch.js';
 
 const REGISTRY_KEY = 'notebooks:runtime-registry:v1';
@@ -229,6 +231,66 @@ function diffFileShas(previous: Record<string, string>, next: Record<string, str
   return changes.sort((a, b) => a.path.localeCompare(b.path));
 }
 
+function parentFolders(filePaths: string[]): Set<string> {
+  const folders = new Set<string>();
+  for (const filePath of filePaths) {
+    const parts = filePath.split('/').filter(Boolean);
+    for (let index = 1; index < parts.length; index += 1) {
+      folders.add(parts.slice(0, index).join('/'));
+    }
+  }
+  return folders;
+}
+
+async function recordRepositoryContentEvents(
+  repository: string,
+  branch: string,
+  commitSha: string,
+  previousFiles: Record<string, string>,
+  currentFiles: Record<string, string>,
+  changes: CatalogFileChange[]
+): Promise<void> {
+  if (!isDbConfigured()) return;
+
+  for (const change of changes) {
+    const type = change.action === 'added' ? 'file_added' : change.action === 'removed' ? 'file_removed' : 'file_updated';
+    await recordSystemEvent({
+      type,
+      summary: `${change.action === 'added' ? 'File added' : change.action === 'removed' ? 'File removed' : 'File updated'}: ${change.path}`,
+      repository,
+      branch,
+      path: change.path,
+      sourceUrl: repositoryFileUrl(repository, commitSha, change.path, change.action === 'removed'),
+      dedupeKey: `content:${repository.toLowerCase()}:${commitSha}:${type}:${change.path}`
+    });
+  }
+
+  const oldFolders = parentFolders(Object.keys(previousFiles));
+  const newFolders = parentFolders(Object.keys(currentFiles));
+  for (const folder of [...newFolders].filter((value) => !oldFolders.has(value)).sort()) {
+    await recordSystemEvent({
+      type: 'folder_added',
+      summary: `Folder added: ${folder}`,
+      repository,
+      branch,
+      path: folder,
+      sourceUrl: `https://github.com/${repository}/tree/${encodeURIComponent(commitSha)}/${folder.split('/').map(encodeURIComponent).join('/')}`,
+      dedupeKey: `content:${repository.toLowerCase()}:${commitSha}:folder_added:${folder}`
+    });
+  }
+  for (const folder of [...oldFolders].filter((value) => !newFolders.has(value)).sort()) {
+    await recordSystemEvent({
+      type: 'folder_removed',
+      summary: `Folder removed: ${folder}`,
+      repository,
+      branch,
+      path: folder,
+      sourceUrl: `https://github.com/${repository}/commit/${encodeURIComponent(commitSha)}`,
+      dedupeKey: `content:${repository.toLowerCase()}:${commitSha}:folder_removed:${folder}`
+    });
+  }
+}
+
 async function readBootstrapFileShas(entry: RepoRegistryEntry): Promise<Record<string, string>> {
   const stream = String(entry.stream || '').toLowerCase();
   if (!VALID_STREAMS.has(stream)) return {};
@@ -352,6 +414,30 @@ export async function processRuntimeUpdate(event: RuntimeUpdateEvent): Promise<{
         streams,
         files: []
       };
+      if (isDbConfigured()) {
+        const previousRepositories = new Set(priorEntries.map((entry) => normalizeRepository(entry.repo)));
+        const nextRepositories = new Set(mergedEntries.map((entry) => normalizeRepository(entry.repo)));
+        for (const entry of mergedEntries.filter((candidate) => !previousRepositories.has(normalizeRepository(candidate.repo)))) {
+          await recordSystemEvent({
+            type: 'repository_added',
+            summary: `Repository added: ${entry.repo}`,
+            repository: entry.repo,
+            branch: entry.branch || 'main',
+            sourceUrl: `https://github.com/${entry.repo}`,
+            dedupeKey: `registry:${commitSha}:repository_added:${normalizeRepository(entry.repo)}`
+          });
+        }
+        for (const entry of priorEntries.filter((candidate) => !nextRepositories.has(normalizeRepository(candidate.repo)))) {
+          await recordSystemEvent({
+            type: 'repository_removed',
+            summary: `Repository removed: ${entry.repo}`,
+            repository: entry.repo,
+            branch: entry.branch || 'main',
+            sourceUrl: `https://github.com/${entry.repo}`,
+            dedupeKey: `registry:${commitSha}:repository_removed:${normalizeRepository(entry.repo)}`
+          });
+        }
+      }
       if (changed) registryRecord.pendingChange = change;
       await sharedSetJsonRequired(REGISTRY_KEY, registryRecord);
       let version = catalog.version;
@@ -425,6 +511,7 @@ export async function processRuntimeUpdate(event: RuntimeUpdateEvent): Promise<{
         streams: [stream],
         files
       };
+      await recordRepositoryContentEvents(event.repository, event.branch, commitSha, previousFiles, currentFiles, files);
       await sharedSetJsonRequired(REGISTRY_KEY, {
         schemaVersion: 1,
         sourceCommitSha: currentRegistry?.sourceCommitSha,

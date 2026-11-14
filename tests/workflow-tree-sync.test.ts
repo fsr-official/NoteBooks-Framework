@@ -6,10 +6,29 @@ const root = process.cwd();
 const workflowDir = path.join(root, '.github', 'workflows');
 const treeSync = fs.readFileSync(path.join(workflowDir, 'tree-sync.yml'), 'utf8');
 const deployStaging = fs.readFileSync(path.join(workflowDir, 'deploy-staging.yml'), 'utf8');
+const systemWorkflows = fs.readFileSync(path.join(workflowDir, 'system-workflows.yml'), 'utf8');
 
 describe('canonical tree-sync workflow', () => {
-  it('keeps only CI, deployment, integration, and the canonical tree-sync workflows', () => {
-    expect(fs.readdirSync(workflowDir).sort()).toEqual(['ci.yml', 'deploy-staging.yml', 'integration.yml', 'tree-sync.yml']);
+  it('keeps the canonical CI, deployment, integration, tree-sync, and System workflows', () => {
+    expect(fs.readdirSync(workflowDir).sort()).toEqual([
+      'ci.yml',
+      'deploy-staging.yml',
+      'integration.yml',
+      'system-workflows.yml',
+      'tree-sync.yml'
+    ]);
+  });
+
+  it('probes uptime and invokes the signed worker every five minutes', () => {
+    expect(systemWorkflows).toContain("cron: '*/5 * * * *'");
+    expect(systemWorkflows).toContain('NOTEBOOKS_UPDATE_URL');
+    expect(systemWorkflows).toContain('NOTEBOOKS_UPDATE_SECRET');
+    expect(systemWorkflows).toContain('/api/health');
+    expect(systemWorkflows).toContain('/api/system-workflows');
+    expect(systemWorkflows).toContain('X-Notebooks-Signature');
+    expect(systemWorkflows).toContain('actions/cache/restore@v4');
+    expect(systemWorkflows).toContain('actions/cache/save@v4');
+    expect(systemWorkflows).toContain('.system-uptime-state.json');
   });
 
   it('generates files.json and sends one signed runtime content update', () => {

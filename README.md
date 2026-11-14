@@ -16,7 +16,7 @@ The repository is licensed under the **GNU General Public License, version 3 or 
 
 ## What the application does
 
-NoteBooks provides a public landing page, stream workspaces, a Markdown reader with browser-native read-aloud, raw source delivery, repository tree navigation, authenticated community features, Issues proposals, administrative review, theme and reading preferences, anonymous upload staging, and GitHub-backed publication workflows.
+NoteBooks provides a public landing page, stream workspaces, a Markdown reader with browser-native read-aloud, raw source delivery, repository tree navigation, authenticated community features, Issues proposals, a public System timeline with uptime history, administrative review, theme and reading preferences, anonymous upload staging, and GitHub-backed publication workflows.
 
 The core content rule is simple: **GitHub repositories are the source of curriculum files; generated manifests make discovery fast and resilient; `raw.ts` remains the canonical file-byte delivery path.** The application does not silently turn Community or Issues into content streams, and it does not introduce lazy subtree loading. Stream artifacts are generated eagerly at build/startup and are available as runtime or static fallbacks.
 
@@ -26,6 +26,7 @@ The core content rule is simple: **GitHub repositories are the source of curricu
 | Science, Commerce, Humanities | Eager repository workspaces and expandable file trees | `public/html/streams.html`, `public/js/stream-runtime.js`, `public/json/*-tree.json` |
 | Community | Channels, posts, profiles, moderation, and GitHub Discussion integration | `src/api/community.ts`, `src/api/community-channels.ts`, `src/api/community-profile.ts` |
 | Issues | Source-linked change proposals, evidence lines, review, and PR lifecycle | `src/api/issues.ts`, `src/api/issue-review.ts`, `src/api/pr-review.ts` |
+| System | Public metadata-only event timeline, uptime history, and retryable GitHub publishing worker | `src/api/system-events.ts`, `src/api/system-workflows.ts`, `src/lib/system-events.ts` |
 | Settings | Personal dashboard space, themes, light/dark mode, and reading controls | `public/html/settings.html`, `public/js/theme.js`, `public/js/reading-preferences.js` |
 | Admin | Moderation, upload review, role management, and GitHub controls | `public/html/admin.html`, `public/js/admin-dashboard.js` |
 
@@ -158,7 +159,9 @@ Uploaded images can be normalized through the explicit upload-dialog Biology or 
 
 A public stream request follows this path: the server selects repository entries from the generated registry, tries the repository’s `files.json` or Pages manifest, falls back to the GitHub tree API when needed, filters supported content, and returns an eager tree. The browser renders the tree and opens files through the raw delivery path. Generated artifacts and the service worker provide resilience when remote discovery is unavailable.
 
-An authenticated Issue proposal carries the source repository, branch, path, raw URL, selected start/end lines, source text, commit or snapshot metadata, and the user’s explanation. The server validates the request, stores the proposal and review state in PostgreSQL when available, and an authorized reviewer can create or accept the corresponding GitHub PR through the configured GitHub integration. Community posts use a separate moderation and Discussion flow.
+An authenticated Issue proposal carries the source repository, branch, path, raw URL, selected start/end lines, source text, commit or snapshot metadata, and the user’s explanation. The server validates the request, stores the proposal and a durable publication job in PostgreSQL, and the worker creates the corresponding GitHub Issue with retry and duplicate protection. An authorized reviewer can then create or accept the corresponding GitHub PR through the configured GitHub integration. Community posts are published to GitHub Discussions only after moderation approval; the same worker retries failed deliveries.
+
+The public `/system` page lists repository, file, folder, Issue, publication, and uptime events. Its feed intentionally excludes account identifiers and message bodies. Folder events are inferred from tracked file paths because Git manifests do not represent empty directories. The default-branch GitHub Actions workflow runs every five minutes, probes `/api/health`, records uptime, processes publication jobs, and monitors Issues repository changes.
 
 Uploaded binary files do not enter PostgreSQL. Admin uploads can commit to the configured GitHub repository; anonymous uploads are staged privately in Vercel Blob and recorded in the review-list metadata until an administrator approves or rejects them. The image conversion endpoint is protected by authentication plus TOTP enrollment and is rate-limited.
 
@@ -167,6 +170,7 @@ Uploaded binary files do not enter PostgreSQL. Admin uploads can commit to the c
 | State | Production location | Local fallback |
 | --- | --- | --- |
 | Users, roles, sessions, themes, Community, Issues, review lifecycle | PostgreSQL/Supabase | Safe volatile fallback for development/tests where explicitly supported. |
+| System timeline, workflow outbox, issue cursors, uptime checks | PostgreSQL/Supabase | Not available without the database foundation. |
 | Shared stream cache | Optional KV REST backend plus process cache | Process cache and eager rebuild. |
 | Staged binary bytes | Private Vercel Blob | Blob operations fail clearly when the token is absent. |
 | Curriculum content | GitHub repositories and Pages manifests | Generated JSON and local `files.json` snapshots. |
@@ -206,13 +210,14 @@ The application reads environment variables by capability. Do not commit `.env` 
 | `GITHUB_COMMUNITY_REPO`, `GITHUB_ISSUES_REPO` | Community and Issues repository targets; registry entries remain preferred where configured. |
 | `WEBHOOK_SECRET` or `GITHUB_WEBHOOK_SECRET` | HMAC verification for legacy refresh webhook requests. |
 | `NOTEBOOKS_UPDATE_SECRET` | Required HMAC secret for repository and registry update workflows. |
+| `NOTEBOOKS_UPDATE_URL` | GitHub Actions destination; the System scheduler derives the production origin from the configured content-update webhook URL. |
 | `RESEND_API_KEY` | Password-reset email delivery. |
 | `RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY` | reCAPTCHA-protected authentication forms. |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth capability, if enabled. |
 
 ### Optional operational variables
 
-`KV_REST_API_URL` and `KV_REST_API_TOKEN` configure Upstash Redis. They are required for accepting and serving runtime registry/content updates; caching-only paths may still operate without Redis. `NOTEBOOKS_DOCUMENTS_REPO`, `NOTEBOOKS_DOCUMENTS_BRANCH`, and `NOTEBOOKS_DOCUMENTS_REGISTRY_URL` optionally override the canonical registry source (defaults to `fsr-official/NoteBooks-Documents`, `main`, and its `GITHUB-REPOSITORIES.md`). `USE_SESSION_COOKIE` and `COOKIE_SECURE` control cookie behavior; production cookies should be secure. `ENFORCE_CSRF` enables the configured write-request CSRF checks. `ENABLE_WRITE_LOGS` enables additional write logging. `MAX_OPEN_PRS_PER_ACCOUNT` limits open PRs per account. `DB_POOL_MAX`, `DB_CONNECTION_TIMEOUT_MS`, `DB_IDLE_TIMEOUT_MS`, `DB_STATEMENT_TIMEOUT_MS`, `DB_SSL`, and `DB_SSL_REJECT_UNAUTHORIZED` tune PostgreSQL connectivity. `REPO_REGISTRY_PATH`, `SUBJECT_REPOS`, `MOUNT_PREFIX`, `APP_BASE_PATH`, `WORKSPACE`, `COMMUNITY_CONTENT_PATH`, `GITPAGE_URL`, and `GITHUB_REPO_BASE` are compatibility or deployment-specific overrides.
+`KV_REST_API_URL` and `KV_REST_API_TOKEN` configure Upstash Redis. They are required for accepting and serving runtime registry/content updates; caching-only paths may still operate without Redis. `NOTEBOOKS_DOCUMENTS_REPO`, `NOTEBOOKS_DOCUMENTS_BRANCH`, and `NOTEBOOKS_DOCUMENTS_REGISTRY_URL` optionally override the canonical registry source (defaults to `fsr-official/NoteBooks-Documents`, `main`, and its `GITHUB-REPOSITORIES.md`). The scheduled System workflow carries a small degraded/down state in the GitHub Actions cache so it can report outage intervals after the application recovers; it does not require repository-variable write access. `USE_SESSION_COOKIE` and `COOKIE_SECURE` control cookie behavior; production cookies should be secure. `ENFORCE_CSRF` enables the configured write-request CSRF checks. `ENABLE_WRITE_LOGS` enables additional write logging. `MAX_OPEN_PRS_PER_ACCOUNT` limits open PRs per account. `DB_POOL_MAX`, `DB_CONNECTION_TIMEOUT_MS`, `DB_IDLE_TIMEOUT_MS`, `DB_STATEMENT_TIMEOUT_MS`, `DB_SSL`, and `DB_SSL_REJECT_UNAUTHORIZED` tune PostgreSQL connectivity. `REPO_REGISTRY_PATH`, `SUBJECT_REPOS`, `MOUNT_PREFIX`, `APP_BASE_PATH`, `WORKSPACE`, `COMMUNITY_CONTENT_PATH`, `GITPAGE_URL`, and `GITHUB_REPO_BASE` are compatibility or deployment-specific overrides.
 
 ## Local development and release commands
 

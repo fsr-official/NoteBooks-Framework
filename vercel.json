@@ -29,6 +29,8 @@
     { "source": "/community/", "destination": "/public/html/portal" },
     { "source": "/issues", "destination": "/public/html/portal" },
     { "source": "/issues/", "destination": "/public/html/portal" },
+    { "source": "/system", "destination": "/public/html/portal" },
+    { "source": "/system/", "destination": "/public/html/portal" },
     { "source": "/volunteers", "destination": "/public/html/portal" },
     { "source": "/volunteers/", "destination": "/public/html/portal" },
     { "source": "/accounts", "destination": "/public/html/portal" },

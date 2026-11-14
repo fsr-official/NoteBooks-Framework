@@ -34,6 +34,8 @@ describe('Vercel clean URL routing', () => {
     expect(routes.get('/settings/')).toBe('/public/html/settings');
     expect(routes.get('/science')).toBe('/public/html/streams');
     expect(routes.get('/community')).toBe('/public/html/portal');
+    expect(routes.get('/system')).toBe('/public/html/portal');
+    expect(routes.get('/system/')).toBe('/public/html/portal');
 
     for (const destination of routes.values()) {
       expect(destination).not.toMatch(/\.html$/);

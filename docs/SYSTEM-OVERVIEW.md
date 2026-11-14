@@ -20,11 +20,15 @@ NoteBooks is a repository-backed learning platform that presents curriculum mate
 5. Repository workflows POST signed commit notifications. The app fetches the configured registry or `files.json` at an immutable commit SHA, diffs Git blob SHAs, updates the shared catalog, and invalidates only affected stream trees.
 6. Clients poll the catalog without navigating away. An open changed file remains unchanged until the reader explicitly applies the new revision.
 7. Community, issues, and admin pages use dedicated endpoints instead of being mixed into the content tree flow.
+8. The public `/system` page reads metadata-only events and uptime history from PostgreSQL. Signed scheduled workflow requests update uptime, publish approved Community posts and queued Issue proposals through an idempotent retryable outbox, and poll the Issues repository.
 
 ## Invariants
 
 - Stream artifacts are generated during build as bootstrap/offline fallbacks.
 - The runtime Redis registry and catalog are authoritative after activation; update notifications never write generated files or trigger application deployments.
 - Content updates require a signed workflow POST, registered repo/branch validation, and valid per-file blob SHAs.
+- System workflow requests use the same HMAC secret but a separate endpoint. Public events never include account identifiers or message bodies.
+- System publication jobs are persisted before delivery; GitHub writes happen in the worker and are retried with bounded backoff.
+- The default-branch uptime workflow runs every five minutes. It records outage start times across endpoint failures and reports the interval after the application recovers.
 - No-change commits advance the processed SHA without invalidating content caches or notifying readers.
 - The Developers stream is pinned to this repository itself and is not treated like a remote GitHub subject repository.
