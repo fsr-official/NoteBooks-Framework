@@ -207,7 +207,7 @@ export async function generateJsonFiles(options: GenerateJsonFilesOptions = {}) 
   }
 
   const localDevelopersInstance = await loadLocalDeveloperTree(cwd);
-  if (localDevelopersInstance && !instances.some((instance) => normalizeStream(instance.stream) === 'developers')) {
+  if (localDevelopersInstance && !instances.some((instance) => instance.repo === localDevelopersInstance.repo)) {
     instances.push(localDevelopersInstance);
   }
 

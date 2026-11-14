@@ -5,12 +5,14 @@ export interface RepoRegistryEntry {
   stream?: string;
   repo: string;
   branch?: string;
+  commitSha?: string;
   root?: string;
   enabled?: boolean;
   priority?: number;
   pages?: boolean | string;
   empty?: boolean | string;
   lfs?: boolean | string;
+  fallback?: string;
 }
 
 export interface GithubRepositoriesArtifact {
@@ -48,6 +50,7 @@ export function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntry[]
       const pagesText = valueOf(cells, 'pages');
       const emptyText = valueOf(cells, 'empty');
       const lfsText = valueOf(cells, 'lfs');
+      const fallbackText = valueOf(cells, 'fallback');
       return {
         name: valueOf(cells, 'name'),
         stream: valueOf(cells, 'stream').toLowerCase() || undefined,
@@ -58,7 +61,8 @@ export function parseRepoRegistryMarkdown(markdown: string): RepoRegistryEntry[]
         priority: Number(priorityText),
         pages: pagesText ? pagesText.toLowerCase() === 'true' : false,
         empty: emptyText ? emptyText.toLowerCase() === 'true' : false,
-        lfs: lfsText ? lfsText.toLowerCase() === 'true' : false
+        lfs: lfsText ? lfsText.toLowerCase() === 'true' : false,
+        ...(fallbackText ? { fallback: fallbackText.toLowerCase() } : {})
       } satisfies RepoRegistryEntry;
     })
     .filter((entry) => !Number.isNaN(entry.priority));

@@ -1,3 +1,5 @@
+import { Redis } from '@upstash/redis';
+
 export type SharedCacheClient = {
   get: (key: string) => Promise<unknown>;
   set: (key: string, value: string, options?: { ex?: number; nx?: boolean }) => Promise<unknown>;
@@ -11,19 +13,30 @@ async function createClient(): Promise<SharedCacheClient | null> {
   const token = String(process.env.KV_REST_API_TOKEN || '').trim();
   if (!url || !token) return null;
 
-  try {
-    const module = await import('@upstash/redis');
-    const factory = (module as { createClient?: (config: { url: string; token: string }) => SharedCacheClient }).createClient;
-    return factory ? factory({ url, token }) : null;
-  } catch (error) {
-    console.warn('[shared-cache] Redis client unavailable:', error instanceof Error ? error.message : error);
-    return null;
-  }
+  const redis = new Redis({ url, token });
+  return {
+    get: (key) => redis.get(key),
+    set: (key, value, options) => {
+      if (options?.ex !== undefined && options.nx) {
+        return redis.set(key, value, { ex: options.ex, nx: true });
+      }
+      if (options?.ex !== undefined) return redis.set(key, value, { ex: options.ex });
+      if (options?.nx) return redis.set(key, value, { nx: true });
+      return redis.set(key, value);
+    },
+    del: (key) => redis.del(key)
+  };
 }
 
 export async function getSharedCacheClient(): Promise<SharedCacheClient | null> {
   if (!clientPromise) clientPromise = createClient();
   return clientPromise;
+}
+
+async function requireSharedCacheClient(): Promise<SharedCacheClient> {
+  const client = await getSharedCacheClient();
+  if (!client) throw new Error('Upstash Redis is not configured or unavailable');
+  return client;
 }
 
 export async function sharedGetJson<T>(key: string): Promise<T | null> {
@@ -41,6 +54,13 @@ export async function sharedGetJson<T>(key: string): Promise<T | null> {
   }
 }
 
+export async function sharedGetJsonRequired<T>(key: string): Promise<T | null> {
+  const client = await requireSharedCacheClient();
+  const value = await client.get(key);
+  if (value == null) return null;
+  return typeof value === 'string' ? JSON.parse(value) as T : value as T;
+}
+
 export async function sharedSetJson(key: string, value: unknown, ttlSeconds: number): Promise<void> {
   const client = await getSharedCacheClient();
   if (!client) return;
@@ -50,6 +70,11 @@ export async function sharedSetJson(key: string, value: unknown, ttlSeconds: num
   } catch (error) {
     console.warn('[shared-cache] Redis SET failed:', error instanceof Error ? error.message : error);
   }
+}
+
+export async function sharedSetJsonRequired(key: string, value: unknown): Promise<void> {
+  const client = await requireSharedCacheClient();
+  await client.set(key, JSON.stringify(value));
 }
 
 export async function sharedTryAcquire(key: string, owner: string, ttlSeconds: number): Promise<boolean> {
@@ -64,6 +89,12 @@ export async function sharedTryAcquire(key: string, owner: string, ttlSeconds: n
   }
 }
 
+export async function sharedTryAcquireRequired(key: string, owner: string, ttlSeconds: number): Promise<boolean> {
+  const client = await requireSharedCacheClient();
+  const result = await client.set(key, owner, { ex: ttlSeconds, nx: true });
+  return result === 'OK' || result === true;
+}
+
 export async function sharedRelease(key: string, owner: string): Promise<void> {
   const client = await getSharedCacheClient();
   if (!client) return;
@@ -75,6 +106,11 @@ export async function sharedRelease(key: string, owner: string): Promise<void> {
   }
 }
 
+export async function sharedReleaseRequired(key: string, owner: string): Promise<void> {
+  const client = await requireSharedCacheClient();
+  if (await client.get(key) === owner) await client.del(key);
+}
+
 export async function sharedDelete(key: string): Promise<void> {
   const client = await getSharedCacheClient();
   if (!client) return;
@@ -84,6 +120,11 @@ export async function sharedDelete(key: string): Promise<void> {
   } catch (error) {
     console.warn('[shared-cache] Redis DEL failed:', error instanceof Error ? error.message : error);
   }
+}
+
+export async function sharedDeleteRequired(key: string): Promise<void> {
+  const client = await requireSharedCacheClient();
+  await client.del(key);
 }
 
 export function resetSharedCacheClientForTests(): void {

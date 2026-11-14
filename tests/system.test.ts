@@ -9,6 +9,7 @@ describe('runtime stream system API', () => {
     process.env.JWT_SECRET = 'test-secret';
     process.env.WEBHOOK_SECRET = 'webhook-secret';
     delete process.env.SUBJECT_REPOS;
+    delete process.env.DATABASE_URL;
     await invalidateStreamTree();
   });
 
@@ -47,6 +48,17 @@ describe('runtime stream system API', () => {
     expect(response.headers['cache-control']).toContain('s-maxage=300');
   });
 
+  it('serves the public System portal and keeps the event feed read-only', async () => {
+    const app = createApp();
+    const page = await request(app).get('/system');
+    const history = await request(app).get('/api/system-events');
+
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('data-nav="system"');
+    expect(history.status).toBe(503);
+    expect(history.body).toEqual({ error: 'System history is unavailable until the database is configured' });
+  });
+
   it('reuses the canonical generated artifact for repeated GET requests', async () => {
     const calls = stubManifestFetch();
     const app = createApp();
@@ -70,6 +82,25 @@ describe('runtime stream system API', () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({ error: 'Invalid refresh signature' });
+  });
+
+  it('lets the signed System worker reach HMAC validation when production CSRF is enabled', async () => {
+    const previousVercel = process.env.VERCEL;
+    process.env.VERCEL = '1';
+    try {
+      const app = createApp();
+      const response = await request(app)
+        .post('/api/system-workflows')
+        .set('Content-Type', 'application/json')
+        .set('X-Notebooks-Signature', 'sha256=invalid')
+        .send({ uptime: { status: 'up', checkedAt: new Date().toISOString() } });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Invalid workflow signature' });
+    } finally {
+      if (previousVercel === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = previousVercel;
+    }
   });
 
   it('accepts a signed refresh request and rebuilds the stream cache', async () => {

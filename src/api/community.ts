@@ -4,7 +4,7 @@ import path from 'path';
 import { isConfigured as isDbConfigured, query as dbQuery } from '../lib/db.js';
 import { getUser } from './auth.js';
 import { validateBlocks, sanitizeBlocks } from '../lib/ai-markdown.js';
-import { getOctokit, getRepoConfig, getStreamRepo, getSubjectRepo } from './_shared.js';
+import { getRepoConfig, getStreamRepo, getSubjectRepo } from './_shared.js';
 
 const inMemoryPosts: Array<any> = [];
 
@@ -65,33 +65,12 @@ export async function createPost(req: Request, res: Response) {
     const sanitized = sanitizeBlocks(content || '');
     const finalBody = sanitized.sanitized || content;
 
-    // Optionally create a GitHub Discussion when repo & token configured
-    let discussionId: string | null = null;
-    try {
-      const communityTarget = await getStreamRepo('community');
-      const communityRepo = communityTarget ? `${communityTarget.owner}/${communityTarget.repo}` : '';
-      if (communityRepo && (process.env.GITHUB_TOKEN || process.env.GITHUB_PAT)) {
-        const repoCfg = communityRepo.split('/');
-        if (repoCfg.length === 2) {
-          const octokit = await getOctokit({ allowUnauthenticated: false });
-          const [owner, repo] = repoCfg;
-          const discussionBody = subject ? `[${subject}]\n\n${finalBody}` : finalBody;
-          const discussion = await (octokit as any).rest.discussions.create({ owner, repo, title, body: discussionBody, category_name: 'Community' as any }).catch(() => null);
-          if (discussion && discussion.data && discussion.data.html_url) {
-            discussionId = String(discussion.data.id || discussion.data.node_id || discussion.data.html_url);
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[community] GitHub discussion creation failed, continuing with local persistence', err);
-    }
-
     if (isDbConfigured()) {
-      const r = await dbQuery('INSERT INTO community_posts(author_email, title, body, github_discussion_id, subject) VALUES($1,$2,$3,$4,$5) RETURNING id, author_email, title, body, status, github_discussion_id, subject, created_at', [email, title, finalBody, discussionId, subject || null]);
+      const r = await dbQuery('INSERT INTO community_posts(author_email, title, body, subject) VALUES($1,$2,$3,$4) RETURNING id, author_email, title, body, status, github_discussion_id, subject, created_at', [email, title, finalBody, subject || null]);
       return res.status(201).json({ post: r.rows[0] });
     }
 
-    const post = { id: inMemoryPosts.length + 1, author_email: email, title, body: finalBody, status: 'pending', github_discussion_id: discussionId, subject: subject || null, created_at: new Date().toISOString() };
+    const post = { id: inMemoryPosts.length + 1, author_email: email, title, body: finalBody, status: 'pending', github_discussion_id: null, subject: subject || null, created_at: new Date().toISOString() };
     inMemoryPosts.push(post);
     return res.status(201).json({ post });
   } catch (err) {
@@ -116,107 +95,92 @@ export async function approvePost(req: Request, res: Response) {
     const post = await findPostById(id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
-    // create discussion if not present and GitHub configured
-    let discussionId = post.github_discussion_id || null;
     let prInfo: any = null;
     let merged = false;
+    if (process.env.GITHUB_APP_AUTO_PR === 'true') {
       try {
-        const communityTarget = await getStreamRepo('community');
-        const communityRepo = communityTarget ? `${communityTarget.owner}/${communityTarget.repo}` : '';
-        if (!discussionId && communityRepo) {
-          const repoCfg = communityRepo.split('/');
-          if (repoCfg.length === 2) {
-            const [owner, repo] = repoCfg;
-            try {
-              const gh = await import('../lib/github-app.js');
-              const discussionBody = post.subject ? `[${post.subject}]\n\n${post.body}` : post.body;
-              const discussion = await gh.createDiscussionForRepo(owner, repo, post.title, discussionBody, 'Community');
-              if (discussion) discussionId = String(discussion.id || discussion.node_id || discussion.html_url);
-            } catch (err) {
-              console.warn('[community] GitHub App discussion creation failed during approval', err);
-            }
+        let owner: string | undefined;
+        let repo: string | undefined;
+        if (post.subject) {
+          const subjRepo = await getSubjectRepo(post.subject);
+          if (subjRepo) {
+            owner = subjRepo.owner;
+            repo = subjRepo.repo;
           }
         }
-      // Optionally create a PR for the approved content using the GitHub App
-      // Enable by setting GITHUB_APP_AUTO_PR=true and GITHUB_ISSUES_REPO=owner/repo
-        if (process.env.GITHUB_APP_AUTO_PR === 'true') {
-          // For content PRs, prefer subject-specific content repo if present
-          let owner: string | undefined;
-          let repo: string | undefined;
-          if (post.subject) {
-            const subjRepo = await import('./_shared.js').then((m) => m.getSubjectRepo(post.subject)).catch(() => null);
-            if (subjRepo) {
-              owner = subjRepo.owner;
-              repo = subjRepo.repo;
-            }
+        if (!owner || !repo) {
+          const repoCfg = await getRepoConfig();
+          if (repoCfg) {
+            owner = repoCfg.owner;
+            repo = repoCfg.repo;
           }
-          if (!owner || !repo) {
-            const repoCfg = await getRepoConfig();
-            if (repoCfg) {
-              owner = repoCfg.owner;
-              repo = repoCfg.repo;
-            }
-          }
-          if (owner && repo) {
+        }
+        if (owner && repo) {
+          const gh = await import('../lib/github-app.js');
+          const baseBranch = process.env.GITHUB_REPO_BASE || 'main';
+          const branchName = `community/post-${id}-${Date.now()}`;
+          const filePath = process.env.COMMUNITY_CONTENT_PATH || `community/posts/post-${id}.md`;
+          const contentBase64 = Buffer.from(`# ${post.title}\n\n${post.body}\n`).toString('base64');
+          const commitMessage = `Add community post: ${post.title}`;
+          const prTitle = `Community post: ${post.title}`;
+          const prBody = 'This PR adds a community post submitted through NoteBooks.';
+          prInfo = await gh.createPrFromContent(owner, repo, baseBranch, branchName, filePath, contentBase64, commitMessage, prTitle, prBody);
           try {
-            const gh = await import('../lib/github-app.js');
-            const baseBranch = process.env.GITHUB_REPO_BASE || 'main';
-            const branchName = `community/post-${id}-${Date.now()}`;
-            const filePath = process.env.COMMUNITY_CONTENT_PATH || `community/posts/post-${id}.md`;
-            const contentBase64 = Buffer.from(`# ${post.title}\n\n${post.body}\n`).toString('base64');
-            const commitMessage = `Add community post: ${post.title}`;
-            const prTitle = `Community post: ${post.title}`;
-            const prBody = `This PR adds a community post submitted by ${post.author_email || 'a contributor'}.`;
-            const pr = await gh.createPrFromContent(owner, repo, baseBranch, branchName, filePath, contentBase64, commitMessage, prTitle, prBody).catch(() => null);
-            if (pr) {
-              prInfo = pr;
-              try {
-                const logDir = path.join(process.cwd(), 'logs');
-                if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-                fs.appendFileSync(path.join(logDir, 'admin-actions.log'), JSON.stringify({ at: new Date().toISOString(), action: 'create-pr', owner, repo, pr: pr.html_url || pr.url || pr.number }) + '\n');
-              } catch (e) {
-                // ignore logging errors
+            const logDir = path.join(process.cwd(), 'logs');
+            if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+            fs.appendFileSync(path.join(logDir, 'admin-actions.log'), JSON.stringify({ at: new Date().toISOString(), action: 'create-pr', owner, repo, pr: prInfo.html_url || prInfo.url || prInfo.number }) + '\n');
+          } catch (error) {
+            console.error('[community] PR action log write failed', error);
+          }
+          if (process.env.GITHUB_APP_AUTO_MERGE === 'true') {
+            try {
+              const mergeMethod = (process.env.GITHUB_APP_AUTO_MERGE_METHOD as any) || 'merge';
+              const prNumber = Number(prInfo.number || prInfo.id || 0);
+              if (prNumber) {
+                const mergeRes = await gh.mergePr(owner, repo, prNumber, mergeMethod);
+                if (mergeRes) merged = true;
               }
-              // Optionally auto-merge if configured
-              if (process.env.GITHUB_APP_AUTO_MERGE === 'true') {
-                try {
-                  const mergeMethod = (process.env.GITHUB_APP_AUTO_MERGE_METHOD as any) || 'merge';
-                  const prNumber = Number((pr as any).number || (pr as any).id || 0);
-                  if (prNumber) {
-                    const mergeRes = await gh.mergePr(owner, repo, prNumber, mergeMethod).catch(() => null);
-                    if (mergeRes) merged = true;
-                  }
-                } catch (err) {
-                  console.warn('[community] auto-merge failed', err);
-                }
-              }
+            } catch (error) {
+              console.error('[community] auto-merge failed', error);
             }
-          } catch (err) {
-            console.warn('[community] create PR via GitHub App failed during approval', err);
           }
         }
+      } catch (error) {
+        console.error('[community] create PR via GitHub App failed during approval', error);
       }
-    } catch (err) {
-      console.warn('[community] GitHub discussion creation failed during approval', err);
     }
 
     if (isDbConfigured()) {
-      // Persist PR metadata when available; use NULLs when not set
+      const communityTarget = await getStreamRepo('community');
+      if (!communityTarget) return res.status(503).json({ error: 'Community repository is not configured' });
       const prNumber = prInfo && (prInfo.number || prInfo.id) ? Number(prInfo.number || prInfo.id) : null;
       const prUrl = prInfo && (prInfo.html_url || prInfo.url) ? (prInfo.html_url || prInfo.url) : null;
       const prBranch = prInfo && prInfo.head && prInfo.head.ref ? prInfo.head.ref : (prInfo && prInfo.head_ref) || null;
-      const prMergedAt = merged ? 'now()' : null;
       const r = await dbQuery(
-        `UPDATE community_posts SET status = $1, github_discussion_id = $2, pr_number = $3, pr_url = $4, pr_branch = $5, pr_merged = $6, pr_merged_at = COALESCE($7::timestamptz, pr_merged_at) WHERE id = $8 RETURNING id, author_email, title, body, status, github_discussion_id, pr_number, pr_url, pr_branch, pr_merged, pr_merged_at, created_at`,
-        ['approved', discussionId, prNumber, prUrl, prBranch, merged, prMergedAt, id]
+        `WITH approved AS (
+           UPDATE community_posts
+           SET status = 'approved', pr_number = $1, pr_url = $2, pr_branch = $3,
+               pr_merged = $4, pr_merged_at = CASE WHEN $4 THEN now() ELSE pr_merged_at END
+           WHERE id = $5
+           RETURNING id, author_email, title, body, status, github_discussion_id,
+                     pr_number, pr_url, pr_branch, pr_merged, pr_merged_at, created_at
+         ),
+         queued AS (
+           INSERT INTO system_workflow_jobs(job_type, source_id, target_repository, dedupe_key)
+           SELECT 'community_post', approved.id, $6, 'community-post:' || approved.id::text
+           FROM approved
+           ON CONFLICT (job_type, source_id) DO NOTHING
+         )
+         SELECT * FROM approved`,
+        [prNumber, prUrl, prBranch, merged, id, `${communityTarget.owner}/${communityTarget.repo}`]
       );
-      const out = { post: r.rows[0] as any, pr: prInfo, merged };
+      const out = { post: r.rows[0] as any, pr: prInfo, merged, delivery: { status: 'queued' } };
       return res.status(200).json(out);
     }
 
     const idx = inMemoryPosts.findIndex((p) => p.id === id);
     inMemoryPosts[idx].status = 'approved';
-    inMemoryPosts[idx].github_discussion_id = discussionId;
+    inMemoryPosts[idx].github_discussion_id = null;
     inMemoryPosts[idx].pr = prInfo;
     inMemoryPosts[idx].merged = merged;
     inMemoryPosts[idx].pr_number = prInfo && (prInfo.number || prInfo.id) ? Number(prInfo.number || prInfo.id) : null;

@@ -159,31 +159,32 @@ export async function createProposal(req: Request, res: Response): Promise<void>
 
   try {
     const evidenceMeta = evidence && sourceParts ? await validateSourceEvidence(sourceParts, sourceBranch, sourcePath, evidence, String(req.body?.sourceCommit || '')) : null;
-    const octokit = await getOctokit({ allowUnauthenticated: false });
-    const issueBody = [
-      `noteBooksSourceRepository: ${sourceRepository}`,
-      `noteBooksSourceBranch: ${sourceBranch}`,
-      `noteBooksSourcePath: ${sourcePath}`,
-      evidence ? `noteBooksSourceLines: ${evidence.startLine}-${evidence.endLine}` : '',
-      evidenceMeta?.commit ? `noteBooksSourceCommit: ${evidenceMeta.commit}` : '',
-      evidenceMeta?.snippetHash ? `noteBooksSourceSnippetHash: ${evidenceMeta.snippetHash}` : '',
-      stream ? `noteBooksStream: ${stream}` : '',
-      '',
-      evidence ? `Selected source:\n${evidence.text}\n` : '',
-      body,
-    ].filter(Boolean).join('\n');
-    const issue = await octokit.issues.create({ owner: targetIssuesRepo.owner, repo: targetIssuesRepo.repo, title, body: issueBody });
     const inserted = await dbQuery(
-      `INSERT INTO issue_proposals(author_user_id, author_email, title, body, stream, source_repository, source_branch, source_path, source_start_line, source_end_line, source_text, source_commit, source_snippet_hash, source_snapshot_text, source_snapshot_captured_at, note_books_issue_number, note_books_issue_url, status)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, now(), $15, $16, 'submitted')
-       RETURNING *`,
-      [userId, email, title, body, stream, sourceRepository, sourceBranch, sourcePath, evidence?.startLine || null, evidence?.endLine || null, evidence?.text || null, evidenceMeta?.commit || null, evidenceMeta?.snippetHash || null, evidence?.text || null, issue.data.number, issue.data.html_url],
+      `WITH proposal AS (
+         INSERT INTO issue_proposals(
+           author_user_id, author_email, title, body, stream, source_repository,
+           source_branch, source_path, source_start_line, source_end_line,
+           source_text, source_commit, source_snippet_hash, source_snapshot_text,
+           source_snapshot_captured_at, status, publication_state
+         )
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,now(),'submitted','queued')
+         RETURNING *
+       ),
+       queued AS (
+         INSERT INTO system_workflow_jobs(job_type, source_id, target_repository, dedupe_key)
+         SELECT 'issue_proposal', proposal.id, $15, 'issue-proposal:' || proposal.id::text
+         FROM proposal
+         ON CONFLICT (job_type, source_id) DO NOTHING
+       )
+       SELECT * FROM proposal`,
+      [
+        userId, email, title, body, stream, sourceRepository, sourceBranch, sourcePath,
+        evidence?.startLine || null, evidence?.endLine || null, evidence?.text || null,
+        evidenceMeta?.commit || null, evidenceMeta?.snippetHash || null, evidence?.text || null,
+        `${targetIssuesRepo.owner}/${targetIssuesRepo.repo}`
+      ],
     );
-    const proposal = inserted.rows?.[0];
-    if (proposal?.id) {
-      await octokit.issues.update({ owner: targetIssuesRepo.owner, repo: targetIssuesRepo.repo, issue_number: issue.data.number, body: `${issueBody}\n\nnoteBooksProposalId: ${proposal.id}` });
-    }
-    res.status(201).json({ proposal, issue: issue.data });
+    res.status(201).json({ proposal: inserted.rows?.[0], delivery: { status: 'queued' } });
   } catch (error: any) {
     console.error('[issues] proposal creation failed', error);
     res.status(502).json({ error: 'Could not create the NoteBooks-Issues record' });

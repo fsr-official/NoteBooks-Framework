@@ -5,12 +5,14 @@ export interface JsonFetchRegistryEntry {
   stream?: string;
   repo: string;
   branch?: string;
+  commitSha?: string;
   root?: string;
   enabled?: boolean;
   priority?: number;
   pages?: boolean | string;
   empty?: boolean | string;
   lfs?: boolean | string;
+  fallback?: string;
 }
 
 export interface JsonFetchNode {
@@ -31,10 +33,11 @@ export interface RepositoryManifestInstance {
   stream: string;
   repo: string;
   branch: string;
+  commitSha?: string;
   root: string;
   name: string;
   manifestUrl: string;
-  source: 'raw' | 'pages';
+  source: 'raw' | 'pages' | 'github-tree';
   files: JsonFetchNode[];
   tree: JsonFetchNode;
 }
@@ -64,7 +67,7 @@ export function repositoryName(repo: string): string {
 }
 
 export function buildRawFilesJsonUrl(entry: JsonFetchRegistryEntry): string {
-  const branch = entry.branch || DEFAULT_BRANCH;
+  const branch = entry.commitSha || entry.branch || DEFAULT_BRANCH;
   const root = normalizePath(entry.root || '');
   const suffix = root ? `${root}/files.json` : 'files.json';
   return `https://raw.githubusercontent.com/${entry.repo}/${encodeURIComponent(branch)}/${suffix}`;
@@ -74,13 +77,14 @@ export function buildRawFileUrl(repo: string, branch: string, filePath: string):
   return `https://raw.githubusercontent.com/${repo}/${encodeURIComponent(branch || DEFAULT_BRANCH)}/${normalizePath(filePath)}`;
 }
 
-export function buildMediaFileUrl(repo: string, branch: string, filePath: string): string {
+export function buildMediaFileUrl(repo: string, ref: string, filePath: string, commitSha?: string): string {
   const normalized = normalizePath(filePath);
   const encodedPath = normalized
     .split('/')
     .map((segment) => encodeURIComponent(segment))
     .join('/');
-  return `https://media.githubusercontent.com/media/${repo}/refs/heads/${encodeURIComponent(branch || DEFAULT_BRANCH)}/${encodedPath}`;
+  const mediaRef = commitSha || `refs/heads/${encodeURIComponent(ref || DEFAULT_BRANCH)}`;
+  return `https://media.githubusercontent.com/media/${repo}/${mediaRef}/${encodedPath}`;
 }
 
 function buildPagesFilesJsonUrl(entry: JsonFetchRegistryEntry): string {
@@ -118,6 +122,7 @@ function annotateFile(node: any, entry: JsonFetchRegistryEntry, stream: string, 
   if (!rawPath) return null;
   const branch = entry.branch || DEFAULT_BRANCH;
   const useMediaUrl = entry.lfs === true || String(entry.lfs || '').toLowerCase() === 'true';
+  const rawRef = entry.commitSha || branch;
   const result: JsonFetchNode = {
     ...node,
     type: 'file',
@@ -127,7 +132,10 @@ function annotateFile(node: any, entry: JsonFetchRegistryEntry, stream: string, 
     repo: entry.repo,
     branch,
     stream,
-    raw: useMediaUrl ? buildMediaFileUrl(entry.repo, branch, rawPath) : buildRawFileUrl(entry.repo, branch, rawPath)
+    raw: useMediaUrl
+      ? buildMediaFileUrl(entry.repo, branch, rawPath, entry.commitSha)
+      : buildRawFileUrl(entry.repo, rawRef, rawPath),
+    ...(entry.commitSha ? { commitSha: entry.commitSha } : {})
   };
   if (typeof node?.size === 'number') result.size = node.size;
   delete result.children;
@@ -254,6 +262,51 @@ async function fetchJson(url: string): Promise<unknown> {
   }
 }
 
+async function fetchGithubTreeManifest(entry: JsonFetchRegistryEntry, stream: string): Promise<RepositoryManifestInstance> {
+  const ref = entry.commitSha || entry.branch || DEFAULT_BRANCH;
+  const url = `https://api.github.com/repos/${entry.repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'NoteBooks-json-fetch'
+    };
+    const token = String(process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || '').trim();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(url, { signal: controller.signal, headers });
+    if (!response.ok) throw new Error(`GitHub tree request failed with ${response.status} ${response.statusText}`);
+    const payload = await response.json() as { tree?: Array<{ path?: string; type?: string; sha?: string; size?: number }>; truncated?: boolean };
+    if (payload.truncated) throw new Error(`GitHub returned a truncated tree for ${entry.repo}@${ref}`);
+    if (!Array.isArray(payload.tree)) throw new Error(`GitHub returned an invalid tree for ${entry.repo}@${ref}`);
+
+    const files = payload.tree
+      .filter((node) => node.type === 'blob' && node.path)
+      .map((node) => ({
+        type: 'file',
+        path: node.path,
+        name: basename(String(node.path)),
+        sha: node.sha,
+        ...(typeof node.size === 'number' ? { size: node.size } : {})
+      }));
+    const normalized = normalizeManifest(files, entry, stream);
+    return {
+      stream,
+      repo: entry.repo,
+      branch: entry.branch || DEFAULT_BRANCH,
+      ...(entry.commitSha ? { commitSha: entry.commitSha } : {}),
+      root: normalizePath(entry.root || ''),
+      name: String(entry.name || repositoryName(entry.repo)),
+      manifestUrl: url,
+      source: 'github-tree',
+      files: normalized.files,
+      tree: normalized.tree
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Promise<RepositoryManifestInstance> {
   const stream = normalizeStream(entry.stream || entry.name || entry.repo);
   const branch = entry.branch || DEFAULT_BRANCH;
@@ -267,6 +320,7 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
       stream,
       repo: entry.repo,
       branch,
+      ...(entry.commitSha ? { commitSha: entry.commitSha } : {}),
       root: normalizePath(entry.root || ''),
       name: String(entry.name || repositoryName(entry.repo)),
       manifestUrl: rawUrl,
@@ -276,7 +330,9 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
     };
   }
   const attempts: Array<{ url: string; source: 'raw' | 'pages' }> = [{ url: rawUrl, source: 'raw' }];
-  if (pagesEnabled && resolvePagesBaseUrl(entry)) attempts.push({ url: buildPagesFilesJsonUrl(normalizedEntry), source: 'pages' });
+  if (!entry.commitSha && pagesEnabled && resolvePagesBaseUrl(entry)) {
+    attempts.push({ url: buildPagesFilesJsonUrl(normalizedEntry), source: 'pages' });
+  }
 
   let lastError: unknown = null;
   for (const attempt of attempts) {
@@ -287,6 +343,7 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
         stream,
         repo: entry.repo,
         branch,
+        ...(entry.commitSha ? { commitSha: entry.commitSha } : {}),
         root: normalizePath(entry.root || ''),
         name: String(entry.name || repositoryName(entry.repo)),
         manifestUrl: attempt.url,
@@ -294,6 +351,14 @@ export async function fetchRepositoryManifest(entry: JsonFetchRegistryEntry): Pr
         files: normalized.files,
         tree: normalized.tree
       };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (String(entry.fallback || '').toLowerCase() === 'github-tree') {
+    try {
+      return await fetchGithubTreeManifest(normalizedEntry, stream);
     } catch (error) {
       lastError = error;
     }

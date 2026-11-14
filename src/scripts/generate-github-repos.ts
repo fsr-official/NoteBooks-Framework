@@ -5,6 +5,7 @@ import { buildGithubRepositoriesArtifact } from '../lib/github-repositories.js';
 export interface GenerateGithubRepositoriesOptions {
   cwd?: string;
   sourceFile?: string;
+  sourceUrl?: string;
   outputFile?: string;
 }
 
@@ -17,9 +18,50 @@ async function writeJsonAtomically(filePath: string, value: unknown): Promise<vo
 
 export async function generateGithubRepositories(options: GenerateGithubRepositoriesOptions = {}) {
   const cwd = path.resolve(options.cwd || process.cwd());
-  const sourcePath = path.resolve(cwd, options.sourceFile || 'GITHUB-REPOSITORIES.md');
   const outputPath = path.resolve(cwd, options.outputFile || 'public/json/github-repos.json');
-  const markdown = await fs.readFile(sourcePath, 'utf8');
+  let sourcePath = '';
+  let markdown = '';
+
+  if (options.sourceFile || process.env.REPO_REGISTRY_PATH) {
+    sourcePath = path.resolve(cwd, options.sourceFile || process.env.REPO_REGISTRY_PATH || 'GITHUB-REPOSITORIES.md');
+    markdown = await fs.readFile(sourcePath, 'utf8');
+  } else {
+    const localRegistryCandidates = [
+      path.resolve(cwd, 'GITHUB-REPOSITORIES.md'),
+      path.resolve(cwd, '..', 'NoteBooks-Documents', 'GITHUB-REPOSITORIES.md')
+    ];
+    let localSourceFound = false;
+    for (const candidate of localRegistryCandidates) {
+      try {
+        markdown = await fs.readFile(candidate, 'utf8');
+        sourcePath = candidate;
+        localSourceFound = true;
+        break;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error;
+      }
+    }
+    if (!localSourceFound) {
+      const repo = String(process.env.NOTEBOOKS_DOCUMENTS_REPO || 'fsr-official/NoteBooks-Documents');
+      const branch = String(process.env.NOTEBOOKS_DOCUMENTS_BRANCH || 'main');
+      const sourceUrl = options.sourceUrl || process.env.NOTEBOOKS_DOCUMENTS_REGISTRY_URL ||
+        `https://raw.githubusercontent.com/${repo}/${encodeURIComponent(branch)}/GITHUB-REPOSITORIES.md`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      try {
+        const response = await fetch(sourceUrl, {
+          signal: controller.signal,
+          headers: { Accept: 'text/plain', 'User-Agent': 'NoteBooks-registry-generator' }
+        });
+        if (!response.ok) throw new Error(`Registry fetch failed with ${response.status} ${response.statusText}`);
+        markdown = await response.text();
+        sourcePath = sourceUrl;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+  }
+
   const artifact = buildGithubRepositoriesArtifact(markdown);
 
   if (artifact.entries.length === 0) {

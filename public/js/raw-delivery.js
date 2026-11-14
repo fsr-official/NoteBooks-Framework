@@ -22,12 +22,22 @@
       const branch = options.branch || options.appConfig?.GITHUB_BRANCH || 'main';
       const sourcePath = sourcePathForRepository(path, options.repoPath, options.repo);
       const rawGithub = options.precomputedRaw || `https://raw.githubusercontent.com/${options.repo}/${branch}/${sourcePath}`;
-      const mediaGithub = options.precomputedMedia || `https://media.githubusercontent.com/media/${options.repo}/refs/heads/${branch}/${sourcePath.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`;
+      const mediaBase = options.precomputedMedia || `https://media.githubusercontent.com/media/${options.repo}/refs/heads/${branch}/${sourcePath.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`;
+      const mediaGithub = options.commitSha && !mediaBase.includes('?')
+        ? `${mediaBase}?sha=${encodeURIComponent(options.commitSha)}`
+        : mediaBase;
       const jsdelivr = `https://cdn.jsdelivr.net/gh/${options.repo}@${branch}/${sourcePath}`;
       const apiRaw = `${origin}/api/raw?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(options.repo)}&branch=${encodeURIComponent(branch)}&raw=${encodeURIComponent(rawGithub)}`;
       const apiMedia = `${origin}/api/media?path=${encodeURIComponent(sourcePath)}&repo=${encodeURIComponent(options.repo)}&branch=${encodeURIComponent(branch)}&media=${encodeURIComponent(mediaGithub)}`;
       const pages = options.pagesBase ? [`${String(options.pagesBase).replace(/\/$/, '')}/${sourcePath}`] : [];
       const isMedia = /\.(pdf|png|jpe?g|gif|bmp|webp|svg|mp3|wav|ogg|flac|mp4|webm|docx?|xlsx?|pptx?)$/i.test(sourcePath);
+      if (options.commitSha) {
+        const pinnedRaw = options.precomputedRaw || rawGithub;
+        const isPinnedMedia = pinnedRaw.startsWith('https://media.githubusercontent.com/');
+        return isPinnedMedia
+          ? [pinnedRaw, mediaGithub, apiRaw, apiMedia, rawGithub]
+          : [pinnedRaw, rawGithub, mediaGithub, apiRaw, apiMedia];
+      }
       // Binary assets are served faster and with the correct content type by the
       // media route. Keep the raw route first for text so markdown/code remains
       // cheap and predictable.
