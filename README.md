@@ -44,7 +44,7 @@ pnpm dev
 
 The initial health endpoint is `GET /api/health`. Supabase's local project configuration is in `supabase/config.toml`, and schema changes belong in `supabase/migrations/`. Copy the variable names from `.env.example` into your local environment file and supply local Supabase credentials there. The service-role key is server-only and must never be exposed to browser code or committed.
 
-Run `pnpm lint`, `pnpm typecheck`, and `pnpm build` to validate the backend.
+Run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` to validate the backend. GitHub Actions runs all four checks for pull requests and pushes to `main`.
 
 The schema and repository-import migrations are applied to the configured remote Supabase project. That project was intentionally reset first; it now contains 11 repository anchors and 839 file rows. Auth users, Storage buckets, and account profiles remain empty. The local Supabase container could not be started in this environment, so local database application remains unverified.
 
