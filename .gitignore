@@ -1,13 +1,14 @@
-tmp/**/*
-.venv/**/*
-node_modules/**/*
-src/*.js
-src/**/*.js
-dist/**/*
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+
 .env*
-community.zip
-dist/**/*
-archive/**/*
-# Local Vercel project state
+!.env.example
+
 .vercel/
-scripts/*
+
+supabase/.branches/
+supabase/.temp/
