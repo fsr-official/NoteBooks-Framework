@@ -151,6 +151,8 @@ window.initializeMarkdownRenderer = function () {
             return '#' + encodeURIComponent(target) + (anchor ? '%23' + encodeURIComponent(anchor) : '');
         },
         resolveEmbed: function (fileName) {
+            if (typeof window.__notebooksResolveEmbed === 'function')
+                return window.__notebooksResolveEmbed(fileName);
             /* Resolve embed path relative to the currently-rendering note's directory */
             var base = window._currentNotePath || '';
             if (!base)
@@ -188,7 +190,7 @@ window.initializeMarkdownRenderer = function () {
     }
     /* Initialise Mermaid (startOnLoad:false — we call mermaid.run() manually) */
     if (typeof mermaid !== 'undefined') {
-        var mermaidMode = document.documentElement && document.documentElement.dataset.themeMode;
+        var mermaidMode = document.documentElement && (document.documentElement.dataset.mode || document.documentElement.dataset.themeMode);
         var mermaidTheme = mermaidMode === 'light' ? 'default' : 'dark';
         mermaid.initialize({ startOnLoad: false, theme: mermaidTheme, securityLevel: 'strict' });
     }

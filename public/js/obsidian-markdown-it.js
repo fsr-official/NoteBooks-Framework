@@ -627,7 +627,7 @@
                 var pg = anchor ? '#page=' + encodeURIComponent(anchor) : '';
                 // If the source is absolute or remote, route through the same-origin proxy
                 var resolvedSrc = src;
-                if (/^https?:\/\//i.test(src) || src.startsWith('/')) {
+                if (/^https?:\/\//i.test(src) || (src.startsWith('/') && !src.startsWith('/api/'))) {
                     resolvedSrc = '/api/raw?path=' + encodeURIComponent(src);
                 }
                 var safeResolved = esc(resolvedSrc);

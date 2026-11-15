@@ -1,15 +1,17 @@
 {
-  "name": "NoteBooks-Framework",
-  "short_name": "NB-FW",
+  "name": "NoteBooks",
+  "short_name": "NoteBooks",
+  "description": "Browse a growing library of clear, structured learning resources.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#0b1118",
+  "theme_color": "#0b1118",
   "icons": [
     {
-      "src": "/public/favicon-128.png",
-      "sizes": "128x128",
-      "type": "image/png"
+      "src": "/favicon.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

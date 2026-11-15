@@ -1,314 +1,87 @@
-# NoteBooks Framework 
+# NoteBooks Framework
 
-NoteBooks Framework is the framework-light educational knowledge platform used to organize, read, discuss, review, and publish curriculum-aligned study material. The current application serves Science, Commerce, and Humanities as **streams**. Community and Issues are registry-driven workspaces, not additional content-tree streams.
+NoteBooks Framework is the Next.js and Supabase implementation of the NoteBooks study library. It is now the canonical application in this repository, replacing the earlier static framework while retaining the existing repository content conventions.
 
-> **Release position:** the source is maintained as a v1.0.0 candidate, but production release should wait for the explicit release gates in this document. In particular, the production Supabase project currently reports disabled Row Level Security on several application tables, and the currently linked Vercel project points to a different repository and Next.js project. Those are deployment-configuration blockers, not reasons to hide the findings.
+## Initial direction
 
-## Source project and collaboration acknowledgement
+NoteBooks Framework v2 will retain the existing GitHub file-system conventions and API routes. The existing `GITHUB-REPOSITORIES.md` registry and `files.json`-based build sequence are considered outdated for larger systems and are planned to be replaced.
 
-The foundational project direction and parts of the early application structure were taken from [Pratyush-Chanda/Ada](https://github.com/Pratyush-Chanda/Ada). NoteBooks also acknowledges the help and collaboration of **Pratyush Chanda** within the NoteBooks Project. The current repository has since been reorganized around its own Express, static-browser, registry, raw-delivery, community, Issues, authentication, and persistence boundaries; attribution to Ada does not mean that the current repository is an unchanged copy or that Ada is responsible for NoteBooks behavior.
+The proposed workflow begins with an admin dashboard. Anyone can register with a chosen account ID, email, and password; Supabase Auth handles passwords, and all accounts have a role with only one designated admin. Repository information will be managed in Supabase, including the responsible account ID, repository names, latest commit SHAs, and last-updated dates. Issues and Community repositories are out of scope for now; if they are added later, they should be stored only in Supabase.
 
-The project is maintained within the FSR/NoteBooks initiative. External visual assets are credited independently in [`public/assets/diagrams/starter/ATTRIBUTIONS.md`](public/assets/diagrams/starter/ATTRIBUTIONS.md), including the required CC BY-SA 3.0 attribution for the biological-cell and fractional-distillation assets.
+The database-backed build and update flow is planned to:
 
-## License and copyleft notices
+1. Populate a repository file tree from each repository's `files.json`, storing each file's name, relative path, and file SHA.
+2. Organize records conceptually as `root -> class/stream -> repo -> files`.
+3. On updates, add newly discovered files and compare SHAs for existing files, writing the new SHA when a file changes.
+4. Generate the public JSON tree artifacts from the database rather than directly from repository manifests.
+5. Make the JSON artifacts reproducible so they can be deleted and regenerated from the authoritative database records.
 
-The repository is licensed under the **GNU General Public License, version 3 or any later version (GPL-3.0-or-later)**; the complete text is [`LICENSE`](LICENSE). File-level Ada provenance, the layered frontend notice, the original NoteBooks backend notice, and the boundary for third-party materials are recorded in [`COPYLEFT-NOTICES.md`](COPYLEFT-NOTICES.md). The notice index does not replace upstream licenses for dependencies, CDN-delivered libraries, or separately credited visual assets.
+The repository/file catalog will use one shared table rather than creating a table per repository. It will have a repository anchor row and one linked row per file, with alphabetically ordered fields and stable IDs. The account/role profile is separate from the catalog and Supabase Auth remains the credential store. A proposed schema and repository-list file format are documented in [DATABASE.md](DATABASE.md).
 
-## What the application does
+A separate shared repository-list configuration file will specify which repositories and branches to pull. It will follow the role of `GITHUB-REPOSITORIES.md` in NoteBooks-Documents, be editable through the admin dashboard, and be read-only when available on the website. See [DATABASE.md](DATABASE.md) for the proposed filename and format.
 
-NoteBooks provides a public landing page, stream workspaces, a Markdown reader with browser-native read-aloud, raw source delivery, repository tree navigation, authenticated community features, Issues proposals, a public System timeline with uptime history, administrative review, theme and reading preferences, anonymous upload staging, and GitHub-backed publication workflows.
+The database-generated public indexes contain five section trees and a repository registry:
 
-The core content rule is simple: **GitHub repositories are the source of curriculum files; generated manifests make discovery fast and resilient; `raw.ts` remains the canonical file-byte delivery path.** The application does not silently turn Community or Issues into content streams, and it does not introduce lazy subtree loading. Stream artifacts are generated eagerly at build/startup and are available as runtime or static fallbacks.
+- `lowersecondary-tree.json` (Class 9 and Class 10)
+- `science-tree.json`
+- `commerce-tree.json`
+- `humanities-tree.json`
+- `developer-tree.json`
+- `github_repositories.json`
 
-| Surface | Purpose | Canonical implementation |
-| --- | --- | --- |
-| Home | Public landing page using local manifests and project documentation | `index.html`, `public/js/landing-docs.js`, `public/json/files.json` |
-| Science, Commerce, Humanities | Eager repository workspaces and expandable file trees | `public/html/streams.html`, `public/js/stream-runtime.js`, `public/json/*-tree.json` |
-| Community | Channels, posts, profiles, moderation, and GitHub Discussion integration | `src/api/community.ts`, `src/api/community-channels.ts`, `src/api/community-profile.ts` |
-| Issues | Source-linked change proposals, evidence lines, review, and PR lifecycle | `src/api/issues.ts`, `src/api/issue-review.ts`, `src/api/pr-review.ts` |
-| System | Public metadata-only event timeline, uptime history, and retryable GitHub publishing worker | `src/api/system-events.ts`, `src/api/system-workflows.ts`, `src/lib/system-events.ts` |
-| Settings | Personal dashboard space, themes, light/dark mode, and reading controls | `public/html/settings.html`, `public/js/theme.js`, `public/js/reading-preferences.js` |
-| Admin | Moderation, upload review, role management, and GitHub controls | `public/html/admin.html`, `public/js/admin-dashboard.js` |
+Keyed JSON is also generated as JSONL for streaming/export. Indexes are held in Redis and served from `/api/public/json/` routes with CDN-cacheable response headers, rather than written into the deployment filesystem. This lets browser clients fetch a section's keyed path/SHA mapping without loading all database rows. The existing raw and media API paths will continue to be built and served the same way.
 
-## Architecture at a glance
+See [DATABASE.md](DATABASE.md) for the shared-table schema, admin and repository-list handling, and GitHub commit detection. Signed GitHub Actions updates are the primary signal, with scheduled commit-SHA reconciliation planned as a recovery path.
 
-NoteBooks is a Node.js/TypeScript Express application with a static vanilla-JavaScript browser client. It is not a React application. The same Express composition is used for a local Node process and the Vercel catch-all adapter.
+## Backend development
 
-```text
-Browser shells and static assets
-        │
-        ├── app.js / stream-runtime.js / raw-delivery.js / theme.js
-        ├── markdown.js / md-init.js / obsidian-markdown-it.js
-        └── service-worker.js
-        │
-        ▼
-Express application
-        │
-        ├── registry and system tree APIs
-        ├── raw file delivery and local-file safeguards
-        ├── auth, sessions, TOTP, permissions, and CSRF checks
-        ├── Community, Issues, review, and GitHub operations
-        └── Blob upload staging and image-to-SVG normalization
-        │
-        ├── PostgreSQL/Supabase for durable application state
-        ├── optional KV/cache for shared tree caching
-        ├── Vercel Blob for private staged binary files
-        └── GitHub repositories, Pages, Discussions, and pull requests
+The backend uses Next.js App Router route handlers with TypeScript. Use pnpm for dependency management and scripts:
+
+```sh
+pnpm install
+pnpm dev
 ```
 
-### Request entrypoints
-
-| Runtime | Entry point | Responsibility |
-| --- | --- | --- |
-| Local development/start | `src/server/server.ts` | Loads/generated artifacts, creates Express, serves static files, and listens on `PORT` (default `4000`). |
-| Vercel | `api/[...all].ts` | Creates the same application as a serverless handler. Route shims exist for selected deployment paths. |
-| Build | `package.json` `build` script | Cleans stale generated JavaScript, runs `fmtree.py`, writes version and registry artifacts, fetches/generates stream trees, then compiles client and server TypeScript. |
-
-### Repository registry and eager trees
-
-The canonical human-maintained registry is [`NoteBooks-Documents/GITHUB-REPOSITORIES.md`](../NoteBooks-Documents/GITHUB-REPOSITORIES.md). The build fetches it to create a bootstrap `public/json/github-repos.json` artifact. Local server startup regenerates the registry and stream artifacts before listening; when both repositories are checked out side-by-side, it uses that local Documents registry, otherwise it fetches the canonical GitHub copy. Production build does this before deployment. NoteBooks-Documents is also indexed in the Developers workspace through the GitHub tree API because that repository does not publish `files.json`. At runtime, a signed update from the documents repository activates registry changes in Upstash Redis without rebuilding or restarting the app.
-
-Content repositories use the reusable workflow in NoteBooks-Documents to generate `files.json` with Git blob SHAs and POST their commit SHA. The app reads that exact manifest, diffs per-file SHAs, and publishes changed content through the runtime catalog. Clients refresh the tree in place; an open changed file stays put until the reader chooses to update it. Generated JSON remains a bootstrap/offline fallback and is not rewritten by update events. Commerce is intentionally represented as an empty configured repository when its upstream content root is empty or unavailable, rather than receiving stale Science or Humanities content.
-
-### Raw delivery dominance
-
-A file click is handled by the browser preview flow and ultimately resolves through `src/api/raw.ts` or an equivalent canonical raw URL. `raw.ts` validates the selected repository/path, constrains local file resolution to the project root, sets an appropriate content type, and provides the same-origin boundary needed for previews. Other preview helpers exist for compatibility, but they do not replace raw delivery as the primary source path.
-
-## Project structure and file responsibilities
-
-| Path | Responsibility |
-| --- | --- |
-| `index.html` | Main public shell, navigation, upload overlay, and shared client script loading. |
-| `public/html/streams.html` | Eager stream workspace shell with tree rail and reader area. |
-| `public/html/settings.html` | Settings and personal-space surface for themes and reading controls. |
-| `public/html/admin.html` / `public/html/portal.html` | Administrative and workspace portal shells. |
-| `public/js/app.js` | Main browser controller: routing transitions, tree navigation, search, previews, raw/source controls, Issues evidence, and shared UI state. |
-| `public/js/stream-runtime.js` | Stream-specific shell initialization and eager artifact selection. |
-| `public/js/raw-delivery.js` | Raw/source delivery helpers and line-numbered raw view integration. |
-| `public/js/upload.js` | Admin GitHub upload, anonymous Blob staging, review metadata, approval, re-upload, and optional diagram conversion. |
-| `public/js/markdown.js` | Two-phase Markdown rendering entry point and post-render feature initialization. |
-| `public/js/read-aloud.js` | Browser-native speech, Greek/math pronunciation, word highlighting, pace/voice controls, and keyboard/touch navigation. |
-| `public/js/md-init.js` | Markdown-it setup, safe figure fences, specialized-fence delegation, and Mermaid initialization. |
-| `public/js/obsidian-markdown-it.js` | Wikilinks, embeds, callouts, tasks, tags, math, Mermaid/TikZ/Desmos fence support, and heading anchors. |
-| `public/js/theme.js` | Built-in/custom theme catalog, paired light/dark modes, persistence, and CSS token application. |
-| `public/js/reading-preferences.js` | Session-backed reader font scale, width, line spacing, code wrapping, and reduced-motion preferences. |
-| `public/css/style.css` | Global tokens, reader typography, note-oriented headings, figures, callouts, raw view, and dialogs. |
-| `public/css/tree.css` | Text-first accessible tree rows, focus/current states, indentation, and navigation affordances. |
-| `service-worker.js` | Application shell cache, offline fallback, stream raw routing, network-first manifests, and cache invalidation. |
-| `src/server/server.ts` | Express middleware, CSP/COOP/COEP headers, static serving, body parsing, and application composition. |
-| `src/server/api-routes.ts` | Authoritative API route registration and middleware ordering. |
-| `src/api/system.ts` | Registry-selected stream discovery, remote `files.json` loading, Git tree fallback, caching, and refresh. |
-| `src/api/content-updates.ts` / `src/lib/runtime-catalog.ts` | Signed workflow ingestion, Upstash-backed active registry/catalog, per-file SHA diffing, and client update feed. |
-| `src/api/repo-registry.ts` | Registry reads and combined repository/local tree composition. |
-| `src/api/raw.ts` | Canonical raw file delivery and path/repository validation. |
-| `src/api/auth.ts` / `src/api/oauth.ts` / `src/api/totp.ts` | Email/password identity, OAuth linking, JWT/session behavior, password reset, and TOTP enrollment/verification. |
-| `src/lib/permissions.ts` | Bearer authentication, role checks, and TOTP-enrolled write protection. |
-| `src/lib/browser-session.ts` / `src/api/session.ts` | Opaque `nb_sid` browser sessions, durable preference persistence, and safe volatile fallback. |
-| `src/api/community*.ts` | Community feed, channels, profile presence, moderation, and reports. |
-| `src/api/issues.ts` / `src/api/issue-review.ts` / `src/api/pr-review.ts` | Source-linked proposals, review records, approvals, and GitHub PR lifecycle. |
-| `src/api/blob.ts` / `src/lib/image-to-svg.ts` | Protected Blob operations and validated biology/chemistry image normalization. |
-| `src/db/migrations/*.sql` | Ordered PostgreSQL schema changes for identity, sessions, themes, Community, Issues, and review state. |
-| `fmtree.py` / `src/scripts/generate-*.ts` | Local manifest, central registry, GitHub tree fallback, version, and eager stream artifact generation. |
-
-## Markdown renderer
-
-The renderer is intentionally a two-phase system. `markdownToHTML()` converts Markdown to HTML synchronously, while `initMarkdownFeatures(container)` activates optional MathJax, TikZJax, Mermaid, Desmos, and Highlight.js behavior after the HTML is inserted. If a vendor is unavailable, the reader keeps an explicit fallback instead of failing silently.
-
-Markdown previews offer an opt-in Read Aloud control using the device's speech synthesis voices. It reads rendered note text rather than Markdown syntax, announces Greek letters and common math notation, highlights the active word, and supports word-by-word arrow-key or touch-button navigation. Voice and pace are adjustable; playback does not start automatically.
-
-### Supported features
-
-| Feature | Syntax or behavior | Notes |
-| --- | --- | --- |
-| Markdown core | CommonMark-style headings, lists, links, tables, code, blockquotes | `markdown-it` is configured with linkification and typographic helpers. |
-| Obsidian links | `[[Page]]`, aliases, heading anchors | Resolved through the current note path and application routes. |
-| Embeds | `![[image.svg]]`, sizing variants, audio/video/PDF/note embeds | Relative paths use `window._currentNotePath`. |
-| Callouts | `> [!NOTE]`, `> [!TIP]+`, `> [!WARNING]-` | Foldable and accessible callout controls. |
-| Math | `$...$`, `$$...$$`, `\(...\)`, `\[...\]` | MathJax renders scientific notation and display equations. |
-| Mermaid | ` ```mermaid` | Client-side diagram rendering with selected theme mode and strict security. |
-| TikZ | ` ```tikz` | TikZJax path with COOP/COEP support and graceful loading state. |
-| Graphing | ` ```desmos`, ` ```desmos3d` | Interactive 2D/3D graphing paths with option parsing. |
-| Code | Language-labelled fenced blocks | Highlight.js is loaded on demand; reader controls can wrap long lines. |
-| Biology figures | ` ```bio` or ` ```biology` | Safe static figure with `src`, `alt`, `caption`, and `source` keys. |
-| Chemistry figures | ` ```chem-setup` or ` ```chemistry` | Same accessible figure contract, with chemistry-specific class metadata. |
-| Tasks, tags, highlights | Obsidian-style task states, `#tags`, `==highlight==` | Rendered with accessible labels and application styling. |
-| Source evidence | Reader raw view and selection-to-suggest workflow | Source line numbers and file metadata can be carried into an Issues proposal. |
-
-### Biology and chemistry figure convention
-
-Authors should prefer reviewed static assets for recurring scientific structures. A figure fence avoids arbitrary inline HTML while still supporting approachable captions:
-
-````markdown
-```bio
-src: /assets/diagrams/starter/biological-cell.svg
-alt: Labeled cross-section of a biological cell
-caption: Major cell structures and their relative locations.
-source: /assets/diagrams/starter/ATTRIBUTIONS.md
-```
-
-```chem-setup
-src: /assets/diagrams/starter/simple-distillation-apparatus.svg
-alt: Simple distillation apparatus
-caption: Flask, condenser, receiver, and heat source.
-```
-````
-
-Uploaded images can be normalized through the explicit upload-dialog Biology or Chemistry choice. Native SVGs are sanitized and reported as `mode: vector`. Raster uploads are decoded, near-white pixels are made transparent, and the PNG is placed inside an accessible SVG container reported as `mode: embedded-raster`. This is **not** true vector tracing. A future Potrace/OpenCV worker may add a separately reported vector-trace mode after human-review and provenance checks.
-
-## Backend and data flow
-
-A public stream request follows this path: the server selects repository entries from the generated registry, tries the repository’s `files.json` or Pages manifest, falls back to the GitHub tree API when needed, filters supported content, and returns an eager tree. The browser renders the tree and opens files through the raw delivery path. Generated artifacts and the service worker provide resilience when remote discovery is unavailable.
+The initial health endpoint is `GET /api/health`. Supabase's local project configuration is in `supabase/config.toml`, and schema changes belong in `supabase/migrations/`. Copy the variable names from `.env.example` into your local environment file and supply local Supabase credentials there. The service-role key is server-only and must never be exposed to browser code or committed.
 
-An authenticated Issue proposal carries the source repository, branch, path, raw URL, selected start/end lines, source text, commit or snapshot metadata, and the user’s explanation. The server validates the request, stores the proposal and a durable publication job in PostgreSQL, and the worker creates the corresponding GitHub Issue with retry and duplicate protection. An authorized reviewer can then create or accept the corresponding GitHub PR through the configured GitHub integration. Community posts are published to GitHub Discussions only after moderation approval; the same worker retries failed deliveries.
+Run `pnpm lint`, `pnpm typecheck`, and `pnpm build` to validate the backend.
 
-The public `/system` page lists repository, file, folder, Issue, publication, and uptime events. Its feed intentionally excludes account identifiers and message bodies. Folder events are inferred from tracked file paths because Git manifests do not represent empty directories. The default-branch GitHub Actions workflow runs every five minutes, probes `/api/health`, records uptime, processes publication jobs, and monitors Issues repository changes.
+The schema and repository-import migrations are applied to the configured remote Supabase project. That project was intentionally reset first; it now contains 11 repository anchors and 839 file rows. Auth users, Storage buckets, and account profiles remain empty. The local Supabase container could not be started in this environment, so local database application remains unverified.
 
-Uploaded binary files do not enter PostgreSQL. Admin uploads can commit to the configured GitHub repository; anonymous uploads are staged privately in Vercel Blob and recorded in the review-list metadata until an administrator approves or rejects them. The image conversion endpoint is protected by authentication plus TOTP enrollment and is rate-limited.
+## Accounts and authentication
 
-### Persistence tiers
+The website provides `/register`, `/login`, and `/account`, with account links in the main navigation. People can register and sign in with email/password, or use GitHub OAuth. GitHub linking is optional: signed-in users can connect it later from `/account`, while email/password remains available. OAuth-only users receive a generated `user-…` account ID; email registration asks for a unique account ID.
 
-| State | Production location | Local fallback |
-| --- | --- | --- |
-| Users, roles, sessions, themes, Community, Issues, review lifecycle | PostgreSQL/Supabase | Safe volatile fallback for development/tests where explicitly supported. |
-| System timeline, workflow outbox, issue cursors, uptime checks | PostgreSQL/Supabase | Not available without the database foundation. |
-| Shared stream cache | Optional KV REST backend plus process cache | Process cache and eager rebuild. |
-| Staged binary bytes | Private Vercel Blob | Blob operations fail clearly when the token is absent. |
-| Curriculum content | GitHub repositories and Pages manifests | Generated JSON and local `files.json` snapshots. |
-| Browser preferences | Opaque `nb_sid` session plus local browser state | Volatile session state when no database exists. |
+Apply `supabase/migrations/20261115003000_allow_oauth_account_creation.sql` before accepting GitHub signups. It lets the auth trigger assign a safe generated account ID when the OAuth provider supplies no NoteBooks account metadata. The local Supabase configuration enables manual identity linking and allows localhost callback URLs.
 
-## Vercel observability
+For hosted Supabase, enable the GitHub provider in **Authentication → Providers**, set its Client ID and Client Secret as Supabase secrets, and add `https://<project-ref>.supabase.co/auth/v1/callback` to the GitHub OAuth app's callback URLs. Add `https://<your-site>/auth/callback` to Supabase's allowed redirect URLs and enable manual identity linking in the Auth provider settings. Never expose the GitHub Client Secret to the browser or commit it.
 
-The browser client uses the official [`@vercel/analytics`](https://vercel.com/docs/analytics/package) `inject()` API and [`@vercel/speed-insights`](https://vercel.com/docs/speed-insights/package) `injectSpeedInsights()` API. This is the supported browser-level approach for this Express plus static vanilla-JavaScript application; the Next.js `<Analytics />` and `<SpeedInsights />` components are intentionally not used. A small browser bundle is emitted as `public/client/observability.js` and loaded by every HTML shell, including the landing page, stream workspace, settings/personal space, portal pages, and admin surfaces.
+The Supabase OAuth Server consent path is `/oauth/consent`. It authenticates users first, then uses Supabase's OAuth Server SDK methods to show the requesting client's name, requested scopes, and redirect destination before approving or denying the request. Set the same path under **Authentication → OAuth Server → Authorization Path**. Ensure the Site URL has no trailing slash so the preview URL is `https://<your-site>/oauth/consent`, not a double-slash URL. For local Supabase, OAuth Server is enabled in `supabase/config.toml`; dynamic client registration remains disabled unless you explicitly enable it.
 
-The module uses development mode on local hosts and production mode on deployed hosts. It removes query strings and fragments from telemetry URLs before sending them, prevents duplicate initialization, and does not define custom events. Vercel Web Analytics and Speed Insights must be enabled for the correct Vercel project in the dashboard; no new application environment variable is required. After deployment, visit the site and navigate between at least two pages, then allow time for the Vercel dashboards to receive data. Content blockers, browser privacy settings, or a deployment linked to a different project can prevent data from appearing.
+Repository import is available through `pnpm repos:sync` (read-only preview) and `pnpm repos:sync:apply` (write). Use `pnpm exec tsx scripts/import-repositories.ts --repo owner/repository` to preview one configured repository, or add `--apply` to sync just that repository and rebuild its section index. Rebuild all six public indexes from the current database without fetching repositories again using `pnpm indexes:rebuild`, and verify their Redis contents with `pnpm redis:verify`. Both database and Redis server credentials must be configured. See [DATABASE.md](DATABASE.md) and [Redis operations](redis/README.md) for details.
 
-The service worker cache is bumped whenever the observability asset is introduced, and `public/client/observability.js` is included in the app-shell precache list. The package metadata and upstream licenses are tracked separately from the NoteBooks copyleft notices.
+After applying `supabase/migrations/20261114120000_merge_class_libraries.sql`, run `pnpm indexes:rebuild` to publish the combined Lower Secondary index from the migrated catalog.
 
-## Environment variables
+## Content API
 
-The application reads environment variables by capability. Do not commit `.env` files, secret values, raw tokens, private keys, passwords, or session tokens. Names below are the names consumed by the current source; `UPSTASH_REDIS_REST_*` is not the active name for the KV adapter.
+The `/api/v1/keys` endpoints issue account-owned API keys after Supabase Auth signup; `GET /api/v1/files` uses those keys to download catalogued Markdown with per-key rate limiting and SHA-verified Redis caching. See [API documentation](api/README.md) and the [OpenAPI contract](api/openapi.yaml). Apply the new API-key migration before enabling these endpoints.
 
-### Required for a real production release
+## Browser experience
 
-| Variable | Purpose |
-| --- | --- |
-| `JWT_SECRET` | Signs authentication tokens and OAuth state. Use a long random secret. |
-| `DATABASE_URL` | PostgreSQL/Supabase connection string for durable identity, sessions, themes, Community, Issues, and review state. |
-| `GITHUB_TOKEN` or `GITHUB_PAT` | Server-side GitHub reads/writes where a token is required. Prefer the least-privileged token that supports the configured repositories. |
-| `GITHUB_REPO` or registry entries in `GITHUB-REPOSITORIES.md` | Default GitHub target; the registry is authoritative for stream repositories. |
-| `GITHUB_BRANCH` | Default branch when a registry entry does not specify one. |
-| `BLOB_READ_WRITE_TOKEN` | Required for private Vercel Blob upload, fetch, and delete operations. |
-| `APP_URL` | Public canonical origin used in reset links and OAuth callback construction when applicable. |
+The Next.js frontend provides a responsive home page and five indexed libraries (`/lowersecondary`, `/science`, `/commerce`, `/humanities`, and `/developers`). Class 9 and Class 10 share the Lower Secondary index; the old `/classnine` and `/classten` routes remain aliases. The library browser follows the indexed repository and relative folder hierarchy, with repository selection, folder breadcrumbs, and file type badges (`CN`, `GL`, and `NT` for CNOTES, GLOSSARY, and NOTES). Search preserves that folder structure, and selected files link to their source on GitHub. Double-click a file to open the reading view; image, audio, video, and PDF files also open in the viewer.
 
-### Required for specific production capabilities
+Each browser gets a random client session ID and a stable, session-derived display name shown in the left rail. The ID, selected theme and colors, and last selected file are stored locally in that browser and restored on later visits. This is a local preference identifier, not an authenticated account or security credential. Theme presets and light/dark mode are available on the home page and in the navigation.
 
-| Variable | Capability |
-| --- | --- |
-| `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET` | GitHub OAuth linking and user-authorized GitHub flows. |
-| `GITHUB_OAUTH_REDIRECT_URI` | Optional explicit OAuth callback; otherwise derived from the request origin. |
-| `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID` | GitHub App operations, Discussion/PR automation, and installation-scoped writes. |
-| `GITHUB_COMMUNITY_REPO`, `GITHUB_ISSUES_REPO` | Community and Issues repository targets; registry entries remain preferred where configured. |
-| `WEBHOOK_SECRET` or `GITHUB_WEBHOOK_SECRET` | HMAC verification for legacy refresh webhook requests. |
-| `NOTEBOOKS_UPDATE_SECRET` | Required HMAC secret for repository and registry update workflows. |
-| `NOTEBOOKS_UPDATE_URL` | GitHub Actions destination; the System scheduler derives the production origin from the configured content-update webhook URL. |
-| `RESEND_API_KEY` | Password-reset email delivery. |
-| `RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY` | reCAPTCHA-protected authentication forms. |
-| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth capability, if enabled. |
+The reader shell is Next.js, while the existing browser-side renderer converts Markdown and initializes DOM-based features: MathJax, Mermaid, TikZJax, syntax highlighting, Desmos graphing/3D, Obsidian callouts, embeds, frontmatter, and Markdown-it extensions. The runtime and expensive diagram libraries load lazily. The reading view includes raw Markdown, a heading outline, speech controls, reader styling, and same-origin media delivery. `GET /api/raw` and `GET /api/media` (also available at the legacy `.js` aliases) resolve only catalogued repository paths through the public Redis indexes and verify fetched Git blob SHAs. PDFs use a lazily loaded PDF.js reader with page navigation, zoom, virtualized lazy thumbnails, selectable text, document search, and download controls. The page spread defaults to two pages on desktop and one on mobile, with an explicit layout toggle; left/right arrow keys animate backward and forward navigation. Normal, browser-window, and browser-fullscreen display modes are available. The PDF.js worker, CMaps, and standard fonts are served locally from `public/js`. PDF responses support `HEAD` and byte ranges, and Git LFS media ranges are forwarded upstream. Rendered HTML is sanitized with DOMPurify before being mounted.
 
-### Optional operational variables
+The production app registers a v2 service worker for static assets and previously visited public pages. It deliberately bypasses API, authentication, Next.js runtime, and byte-range requests; offline mode is best-effort and does not make the live catalog or reader APIs available without a connection. The app icon is based on the original project's favicon. The renderer bundle is GPL-3.0-or-later; see [LICENSE](LICENSE). PDF.js is distributed under Apache-2.0; see [public/js/pdfjs-LICENSE](public/js/pdfjs-LICENSE). In Next.js, files in `public/js`, `public/bin`, and `public/fonts` are served from `/js`, `/bin`, and `/fonts` respectively.
 
-`KV_REST_API_URL` and `KV_REST_API_TOKEN` configure Upstash Redis. They are required for accepting and serving runtime registry/content updates; caching-only paths may still operate without Redis. `NOTEBOOKS_DOCUMENTS_REPO`, `NOTEBOOKS_DOCUMENTS_BRANCH`, and `NOTEBOOKS_DOCUMENTS_REGISTRY_URL` optionally override the canonical registry source (defaults to `fsr-official/NoteBooks-Documents`, `main`, and its `GITHUB-REPOSITORIES.md`). The scheduled System workflow carries a small degraded/down state in the GitHub Actions cache so it can report outage intervals after the application recovers; it does not require repository-variable write access. `USE_SESSION_COOKIE` and `COOKIE_SECURE` control cookie behavior; production cookies should be secure. `ENFORCE_CSRF` enables the configured write-request CSRF checks. `ENABLE_WRITE_LOGS` enables additional write logging. `MAX_OPEN_PRS_PER_ACCOUNT` limits open PRs per account. `DB_POOL_MAX`, `DB_CONNECTION_TIMEOUT_MS`, `DB_IDLE_TIMEOUT_MS`, `DB_STATEMENT_TIMEOUT_MS`, `DB_SSL`, and `DB_SSL_REJECT_UNAUTHORIZED` tune PostgreSQL connectivity. `REPO_REGISTRY_PATH`, `SUBJECT_REPOS`, `MOUNT_PREFIX`, `APP_BASE_PATH`, `WORKSPACE`, `COMMUNITY_CONTENT_PATH`, `GITPAGE_URL`, and `GITHUB_REPO_BASE` are compatibility or deployment-specific overrides.
+## Repository update workflows
 
-## Local development and release commands
+`share/` is a portable bundle for the content repositories; these templates are not workflows for the v2 backend repo. Copy `share/fmtree.py` to the content repository root as `fmtree.py`, and copy `share/.github/workflows/fmupdate.yaml` plus `fmwebhook.yaml` into that repository's `.github/workflows/` directory. GitHub only discovers workflows in `.github/workflows/`. `fmupdate.yaml` regenerates `files.json` on pushes, then calls `fmwebhook.yaml`, which notifies `POST /api/webhooks/repository-update`. The endpoint verifies an HMAC signature, refreshes the matching enabled repository from GitHub, and selectively rebuilds its section's public indexes in Redis.
 
-Use Node.js 22 or a current supported Node.js release, Python 3 for `fmtree.py`, and npm. The build and test scripts intentionally run without a database by using safe fallbacks; database integration tests require an explicit `RUN_DB_INTEGRATION_TESTS=true` opt-in together with `DATABASE_URL`.
+Configure `WEBSITE_URL` as the full webhook endpoint URL and `WEBHOOK_SECRET` as GitHub Actions secrets in each content repository. The website must use the same `WEBHOOK_SECRET` in its server environment. Keep the secret out of source control; `.env.example` contains only a placeholder. If called from another workflow, grant `contents: write` so `fmupdate.yaml` can commit the regenerated manifest.
 
-```bash
-npm ci
-npm run typecheck
-npm test
-npm run build
-npm start
-```
+## Project status
 
-For local database validation:
-
-```bash
-RUN_DB_INTEGRATION_TESTS=true DATABASE_URL='postgres://…' npm test -- --run tests/database.integration.test.ts
-```
-
-For dependency inspection:
-
-```bash
-npm run deps:check
-npm audit --omit=dev --audit-level=high
-```
-
-The build generates `version.json`, `public/json/github-repos.json`, `public/json/repo-registry.json`, and the eager stream tree artifacts. Do not hand-edit those generated files as a substitute for changing the registry or generator.
-
-## v1.0.0 production release gates
-
-Assistant release helper
-------------------------
-
-A helper script is included to assist the repository maintainer (or an authorized assistant)
-to stage, commit, push, create a PR to `main`, and attempt to merge it. This script is
-intentionally manual and will not run automatically when editing files.
-
-Run it from the repository root:
-
-```bash
-./scripts/assistant_release.sh "Release v1.5.0"
-```
-
-Notes:
-- The script requires the GitHub CLI (`gh`) to create and merge pull requests. Authenticate
-        `gh` with `gh auth login` before running.
-- The script will attempt to merge the PR automatically; if it lacks permissions or the
-        repository requires reviews, the merge step will fail and you should merge manually.
-- This helper is provided for convenience. The assistant will not run it without your
-        explicit instruction.
-
-Automated local merge helper
-----------------------------
-
-If you prefer a simple local merge flow (commit on `whoami`, merge into `main`, push),
-use the included script:
-
-```bash
-./scripts/commit_and_merge.sh "Release v1.5.0"
-```
-
-This script will:
-- Checkout `whoami` (if not current)
-- Stage and commit changes with the provided message
-- Push `whoami` to `origin`
-- Checkout `main` and attempt a fast-forward merge from `whoami`
-- If fast-forward is not possible, perform a non-fast merge; aborts on conflicts
-- Push `main` to `origin` and return to `whoami`
-
-Notes:
-- If your repository enforces protected-branch rules (required reviews, status checks), pushing
-        directly to `main` may be rejected — use the PR-based flow instead (`scripts/assistant_release.sh`).
-- The script is intended for maintainers with push permissions to `main`.
-
-
-A release candidate is not production-ready merely because TypeScript and unit tests pass. Before tagging or switching production traffic, complete the following checks:
-
-1. Confirm that the Vercel project is linked to `fsr-official/NoteBooks-Framework`, uses the intended Node/Express build configuration, and deploys the `whoami` preview successfully before promoting the chosen commit.
-2. Configure the production variables listed above in Vercel without printing values in logs. Verify that secrets are present by exercising health/auth capability checks, not by echoing them.
-3. Apply and verify the local migration set against a disposable PostgreSQL instance, then reconcile production Supabase migration history with the repository. Do not enable RLS blindly: each table needs intentional policies for the server’s access pattern before RLS is enabled.
-4. Complete OAuth linking and TOTP enrollment for the initial administrator, then test protected GitHub, Blob, Community, Issues, and review actions with a staging repository or reversible test data.
-5. Verify the Home → stream → Home route transition, Settings theme/read controls, raw view with line numbers, source selection to Issue proposal, anonymous upload review, and native SVG rejection in a production-shaped preview.
-6. Run `npm test`, `npm run typecheck`, `npm run build`, `npm audit --omit=dev --audit-level=high`, HTTP smoke checks, and a browser accessibility/performance pass. Record the commit SHA and deployment URL in the release notes.
-7. Only after the above passes, tag `v1.0.0` and promote the verified commit. Keep the `whoami` branch as the staging line until production approval is explicit.
-
-## Documentation map
-
-[`docs/phase1/REAL-ARCHITECTURE.md`](docs/phase1/REAL-ARCHITECTURE.md) contains the detailed current architecture map. [`docs/MARKDOWN-RENDERER.md`](docs/MARKDOWN-RENDERER.md) documents renderer behavior and future extensions. [`docs/phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md`](docs/phase2-3/DIAGRAM-ASSET-AND-RENDERER-PLAN.md) records the image conversion contract and future true-vectorization plan. [`docs/phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md`](docs/phase2-3/ENVIRONMENT-AND-REMAINING-GAPS.md) records deployment gaps and security follow-up work.
-
-## License and acknowledgements
-
-NoteBooks Framework is maintained as part of the FSR/NoteBooks initiative. Review the repository’s license files and individual asset attribution manifests before redistributing content. The project thanks the maintainers of Markdown-it, MathJax, TikZJax, Mermaid, Highlight.js, Desmos, Sharp, Vercel, Supabase, GitHub, and the open-source authors listed in the asset manifest.
-
-The project specifically acknowledges the Ada source project and **Pratyush Chanda** for the source foundation and help provided within the NoteBooks Project.
+The Next.js TypeScript backend foundation, initial repository importer, signed GitHub-to-QStash update path, selective public-index generator, account API routes, email/password and GitHub sign-in UI, browser library, Markdown/media reading view, and initial PWA assets are in place for the initial rollout. Configure and verify the deployment environment, Supabase Auth and migrations, Redis, and webhook secrets before opening the service to users. The admin dashboard and repository-list editing flow, scheduled SHA reconciliation, end-to-end remote webhook verification, and further backup/recovery hardening remain on the implementation plan in [PLAN.md](PLAN.md).

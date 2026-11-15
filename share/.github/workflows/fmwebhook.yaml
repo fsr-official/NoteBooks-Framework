@@ -1,0 +1,54 @@
+name: Notify NoteBooks repository update
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: GitHub owner/repository identifier
+        required: true
+        type: string
+      branch:
+        description: Updated repository branch
+        required: true
+        type: string
+    secrets:
+      WEBSITE_URL:
+        description: Full NoteBooks repository-update webhook URL
+        required: true
+      WEBHOOK_SECRET:
+        description: Shared HMAC secret configured on the NoteBooks website
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send signed repository update request
+        env:
+          WEBSITE_URL: ${{ secrets.WEBSITE_URL }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          REPOSITORY: ${{ inputs.repository }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+          test -n "$WEBSITE_URL"
+          test -n "$WEBHOOK_SECRET"
+          request_body="$(node -e 'process.stdout.write(JSON.stringify({repository: process.env.REPOSITORY, branch: process.env.BRANCH}))')"
+          signature="$(printf '%s' "$request_body" | node -e '
+            const crypto = require("node:crypto");
+            let body = "";
+            process.stdin.setEncoding("utf8");
+            process.stdin.on("data", (chunk) => body += chunk);
+            process.stdin.on("end", () => {
+              const digest = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET).update(body, "utf8").digest("hex");
+              process.stdout.write(`sha256=${digest}`);
+            });
+          ')"
+          curl --fail-with-body --retry 3 --retry-all-errors --max-time 30 \
+            --request POST "$WEBSITE_URL" \
+            --header "Content-Type: application/json" \
+            --header "X-NoteBooks-Signature: $signature" \
+            --data-binary "$request_body"

@@ -32,13 +32,14 @@
   const scripts = {
     mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js',
     mermaid: 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js',
-    tikz: '/public/bin/tikzjax/output/tikzjax.js',
+    tikz: '/bin/tikzjax/output/tikzjax.js',
     desmos: '/api/desmos.js',
+    desmos3d: '/api/desmos3d.js',
     highlight: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js'
   };
 
   const styles = {
-    tikzFonts: '/public/bin/tikzjax/css/fonts.css',
+    tikzFonts: '/bin/tikzjax/css/fonts.css',
     highlightLight: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css',
     highlightDark: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github-dark.min.css'
   };
@@ -74,7 +75,11 @@
       script.src = src;
       script.async = true;
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load Markdown vendor: ${name}`));
+      script.onerror = () => {
+        script.remove();
+        scriptPromises.delete(name);
+        reject(new Error(`Failed to load Markdown vendor: ${name}`));
+      };
       document.head.appendChild(script);
     });
     scriptPromises.set(name, promise);
@@ -97,7 +102,11 @@
       link.dataset.notebooksVendor = name;
       link.href = href;
       link.onload = () => resolve();
-      link.onerror = () => reject(new Error(`Failed to load Markdown vendor stylesheet: ${name}`));
+      link.onerror = () => {
+        link.remove();
+        stylePromises.delete(name);
+        reject(new Error(`Failed to load Markdown vendor stylesheet: ${name}`));
+      };
       document.head.appendChild(link);
     });
     stylePromises.set(name, promise);
@@ -114,16 +123,15 @@
     if (has(target, '.math[data-math]')) jobs.push(loadScript('mathjax'));
     if (has(target, '.obsidian-mermaid')) jobs.push(loadScript('mermaid'));
     if (has(target, '.tikz-wrapper')) jobs.push(loadStyle('tikzFonts'), loadScript('tikz'));
-    if (has(target, '.desmos-block, .desmos3d-block')) jobs.push(loadScript('desmos'));
+    if (has(target, '.desmos-block')) jobs.push(loadScript('desmos'));
+    if (has(target, '.desmos3d-block')) jobs.push(loadScript('desmos3d'));
     if (has(target, 'pre code')) {
-      jobs.push(loadStyle('highlightLight'), loadStyle('highlightDark'), loadScript('highlight'));
+      const mode = global.document?.documentElement?.dataset?.mode || global.document?.documentElement?.dataset?.themeMode;
+      jobs.push(loadStyle(mode === 'light' ? 'highlightLight' : 'highlightDark'), loadScript('highlight'));
     }
-    const results = await Promise.allSettled(jobs);
-    results.forEach((result) => {
-      if (result.status === 'rejected') console.warn('[markdown-vendors]', result.reason);
-    });
+    await Promise.all(jobs);
     if (has(target, '.obsidian-mermaid') && typeof global.mermaid !== 'undefined' && typeof global.mermaid.initialize === 'function') {
-      const mode = global.document?.documentElement?.dataset?.themeMode;
+      const mode = global.document?.documentElement?.dataset?.mode || global.document?.documentElement?.dataset?.themeMode;
       global.mermaid.initialize({ startOnLoad: false, theme: mode === 'light' ? 'default' : 'dark', securityLevel: 'strict' });
     }
   }

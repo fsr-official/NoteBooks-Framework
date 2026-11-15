@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: NoteBooks Content API
+  version: 1.0.0
+  description: Account API-key management and rate-limited Markdown file downloads.
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: notebooks.example
+security: []
+paths:
+  /keys:
+    get:
+      operationId: listApiKeys
+      summary: List API keys for the authenticated account
+      security:
+        - supabaseBearer: []
+      responses:
+        "200":
+          description: Key metadata. Secret values are never returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [keys]
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ApiKeyMetadata"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createApiKey
+      summary: Create an API key for an existing account
+      security:
+        - supabaseBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+      responses:
+        "201":
+          description: Key secret, returned once at creation.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name, apiKey, warning]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  apiKey:
+                    type: string
+                    description: Store securely. This value cannot be retrieved again.
+                  warning:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Account already has five active keys.
+        "503":
+          description: Account or database service unavailable.
+  /keys/{id}:
+    delete:
+      operationId: revokeApiKey
+      summary: Revoke an API key owned by the authenticated account
+      security:
+        - supabaseBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Key revoked.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Active key was not found for this account.
+  /files:
+    get:
+      operationId: downloadMarkdownFile
+      summary: Download a Markdown file from an enabled repository
+      security:
+        - apiKeyBearer: []
+      parameters:
+        - name: owner
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: query
+          required: true
+          description: Repository-relative .md, .markdown, or .mdx path.
+          schema:
+            type: string
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+          description: File SHA ETag from a previous response.
+      responses:
+        "200":
+          description: Markdown file content (maximum 2 MiB).
+          headers:
+            ETag:
+              schema:
+                type: string
+            X-File-SHA:
+              schema:
+                type: string
+                pattern: "^[a-f0-9]{40}$"
+            RateLimit-Limit:
+              schema:
+                type: integer
+            RateLimit-Remaining:
+              schema:
+                type: integer
+          content:
+            text/markdown:
+              schema:
+                type: string
+        "304":
+          description: File SHA matches If-None-Match.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: File is not in the active repository catalog.
+        "413":
+          description: File is larger than 2 MiB.
+        "429":
+          description: API-key rate limit exceeded.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+            RateLimit-Limit:
+              schema:
+                type: integer
+            RateLimit-Remaining:
+              schema:
+                type: integer
+        "503":
+          description: Supabase, Redis, or GitHub unavailable.
+components:
+  securitySchemes:
+    supabaseBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: NoteBooks API key (nbv2_)
+  schemas:
+    ApiKeyMetadata:
+      type: object
+      required: [id, name, key_prefix, created_at, expires_at, last_used_at, revoked_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        key_prefix:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+        last_used_at:
+          type: [string, "null"]
+          format: date-time
+        revoked_at:
+          type: [string, "null"]
+          format: date-time
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token.
