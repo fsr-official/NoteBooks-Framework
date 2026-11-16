@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { processRepositoryUpdate } from "../../../../../workflow/repository-update";
 import { verifyQstashRequest } from "@/lib/qstash";
+import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
 
 interface RepositoryUpdateJob {
   repository: string;
   branch: string;
+  requestedBy?: string;
 }
 
 function isRepositoryUpdateJob(value: unknown): value is RepositoryUpdateJob {
@@ -17,10 +19,12 @@ function isRepositoryUpdateJob(value: unknown): value is RepositoryUpdateJob {
     && job.repository.length <= 200
     && typeof job.branch === "string"
     && job.branch.trim().length > 0
-    && job.branch.length <= 200;
+    && job.branch.length <= 200
+    && (job.requestedBy === undefined
+      || (typeof job.requestedBy === "string" && /^[a-z0-9][a-z0-9_-]{2,31}$/.test(job.requestedBy)));
 }
 
-export async function POST(request: Request) {
+async function postRepositoryWorker(request: Request) {
   const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
   const nextSigningKey = process.env.QSTASH_NEXT_SIGNING_KEY;
   if (!currentSigningKey || !nextSigningKey || !process.env.APP_BASE_URL) {
@@ -61,3 +65,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Repository update processing failed" }, { status: 500 });
   }
 }
+
+export const POST = withApiTelemetry(
+  "/api/workflows/repository-update",
+  "POST",
+  postRepositoryWorker,
+);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPublicIndexName } from "@/lib/public-indexes";
 import { readPublicIndex } from "@/lib/public-index-cache";
+import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -8,11 +9,12 @@ interface RouteContext {
   params: Promise<{ filename: string }>;
 }
 
-export async function GET(request: Request, context: RouteContext) {
+async function getPublicIndex(request: Request, context: RouteContext) {
   const { filename } = await context.params;
   if (filename === "classnine-tree.json" || filename === "classten-tree.json") {
     return NextResponse.redirect(new URL("/api/public/json/lowersecondary-tree.json", request.url), 308);
   }
+
   const index = getPublicIndexName(filename);
   if (!index) {
     return NextResponse.json({ error: "Public index not found" }, { status: 404 });
@@ -40,3 +42,5 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Unable to retrieve public index" }, { status: 503 });
   }
 }
+
+export const GET = withApiTelemetry("/api/public/json/:filename", "GET", getPublicIndex);

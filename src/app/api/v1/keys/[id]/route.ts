@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedAccount } from "@/lib/authenticated-account";
 import { isValidApiKeyId } from "@/lib/api-key";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-export async function DELETE(request: Request, context: RouteContext) {
+async function deleteKey(request: Request, context: RouteContext) {
   let account;
   try {
     account = await getAuthenticatedAccount(request);
@@ -17,6 +18,7 @@ export async function DELETE(request: Request, context: RouteContext) {
     console.error("API key account authentication failed", error);
     return NextResponse.json({ error: "Unable to verify application account" }, { status: 503 });
   }
+
   if (!account) {
     return NextResponse.json(
       { error: "A valid Supabase access token is required" },
@@ -49,3 +51,5 @@ export async function DELETE(request: Request, context: RouteContext) {
     { headers: { "Cache-Control": "no-store" } },
   );
 }
+
+export const DELETE = withApiTelemetry("/api/v1/keys/:id", "DELETE", deleteKey);

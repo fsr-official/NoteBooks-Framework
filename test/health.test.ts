@@ -3,7 +3,7 @@ import { GET } from "../src/app/api/health/route";
 
 describe("GET /api/health", () => {
   it("returns an uncached healthy service response", async () => {
-    const response = GET();
+    const response = await GET();
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");

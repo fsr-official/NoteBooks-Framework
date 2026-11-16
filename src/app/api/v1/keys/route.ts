@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedAccount } from "@/lib/authenticated-account";
 import { generateApiKey, hashApiKey } from "@/lib/api-key";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ async function authenticatedAccount(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+async function getKeys(request: Request) {
   const { account, response } = await authenticatedAccount(request);
   if (response) return response;
   if (!account) return jsonError("Account authentication failed", 401);
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
   );
 }
 
-export async function POST(request: Request) {
+async function postKey(request: Request) {
   const { account, response } = await authenticatedAccount(request);
   if (response) return response;
   if (!account) return jsonError("Account authentication failed", 401);
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
   } catch {
     return jsonError("Request body must be valid JSON", 400);
   }
+
   if (!payload || typeof payload !== "object" || typeof (payload as Record<string, unknown>).name !== "string") {
     return jsonError("A key name is required", 400);
   }
@@ -98,3 +100,6 @@ export async function POST(request: Request) {
     { status: 201, headers: { "Cache-Control": "no-store" } },
   );
 }
+
+export const GET = withApiTelemetry("/api/v1/keys", "GET", getKeys);
+export const POST = withApiTelemetry("/api/v1/keys", "POST", postKey);

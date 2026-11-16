@@ -6,7 +6,7 @@ NoteBooks Framework is the Next.js and Supabase implementation of the NoteBooks 
 
 NoteBooks Framework v2 will retain the existing GitHub file-system conventions and API routes. The existing `GITHUB-REPOSITORIES.md` registry and `files.json`-based build sequence are considered outdated for larger systems and are planned to be replaced.
 
-The proposed workflow begins with an admin dashboard. Anyone can register with a chosen account ID, email, and password; Supabase Auth handles passwords, and all accounts have a role with only one designated admin. Repository information will be managed in Supabase, including the responsible account ID, repository names, latest commit SHAs, and last-updated dates. Issues and Community repositories are out of scope for now; if they are added later, they should be stored only in Supabase.
+The application uses a protected admin dashboard to manage a Supabase-backed repository catalog. Supabase Auth handles account credentials, and the database permits only one designated admin. Repository records include their responsible account ID, latest commit SHA, and check/update timestamps. Issues and Community repositories are out of scope for now; if they are added later, they should be stored only in Supabase.
 
 The database-backed build and update flow is planned to:
 
@@ -50,7 +50,7 @@ The schema and repository-import migrations are applied to the configured remote
 
 ## Accounts and authentication
 
-The website provides `/register`, `/login`, and `/account`, with account links in the main navigation. People can register and sign in with email/password, or use GitHub OAuth. GitHub linking is optional: signed-in users can connect it later from `/account`, while email/password remains available. OAuth-only users receive a generated `user-…` account ID; email registration asks for a unique account ID.
+The website provides `/register`, `/login`, and `/account`, with account links in the main navigation. People can register and sign in with email/password, or use GitHub OAuth. GitHub linking is optional: signed-in users can connect it later from `/account`, while email/password remains available. OAuth signups are guided to choose a unique username after authorization; they can optionally set an email/password credential or continue using GitHub only.
 
 Apply `supabase/migrations/20261115003000_allow_oauth_account_creation.sql` before accepting GitHub signups. It lets the auth trigger assign a safe generated account ID when the OAuth provider supplies no NoteBooks account metadata. The local Supabase configuration enables manual identity linking and allows localhost callback URLs.
 
@@ -61,6 +61,22 @@ The Supabase OAuth Server consent path is `/oauth/consent`. It authenticates use
 Repository import is available through `pnpm repos:sync` (read-only preview) and `pnpm repos:sync:apply` (write). Use `pnpm exec tsx scripts/import-repositories.ts --repo owner/repository` to preview one configured repository, or add `--apply` to sync just that repository and rebuild its section index. Rebuild all six public indexes from the current database without fetching repositories again using `pnpm indexes:rebuild`, and verify their Redis contents with `pnpm redis:verify`. Both database and Redis server credentials must be configured. See [DATABASE.md](DATABASE.md) and [Redis operations](redis/README.md) for details.
 
 After applying `supabase/migrations/20261114120000_merge_class_libraries.sql`, run `pnpm indexes:rebuild` to publish the combined Lower Secondary index from the migrated catalog.
+
+## Admin dashboard
+
+The private operations console is available at `/admin`. It can add, edit, disable, archive/restore, and assign repository records; queue a check of one or all enabled repositories; rebuild the public indexes; and inspect catalog health, recent API traffic/error/latency and library page-view metrics, configured service dependencies, recent repository check outcomes, and admin actions. Repository checks are queued through QStash and run by the signed worker; a queued response means work was accepted, not that it has completed.
+
+To establish the first administrator:
+
+1. Apply `supabase/migrations/20261116100000_admin_dashboard.sql` after the existing migrations.
+2. Configure the production environment from `.env.example`, including `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `QSTASH_TOKEN`, both QStash signing keys, `GITHUB_TOKEN`, and `APP_BASE_URL`.
+3. Generate a strong, one-time `ADMIN_BOOTSTRAP_TOKEN` (at least 32 random bytes) and set it only as a server environment variable. Do not commit it or put it in a public/client variable.
+4. Register or sign in with the account you want to make the administrator, then open `/admin` and submit the bootstrap token.
+5. Remove `ADMIN_BOOTSTRAP_TOKEN` from the deployment environment after the claim succeeds, then redeploy.
+
+The bootstrap endpoint promotes only the signed-in account and only while no administrator exists. A database uniqueness constraint also enforces the single-admin rule. The account itself must be created through Supabase Auth; the application does not create or expose an administrator password.
+
+API metrics and public-library page views are aggregated into one-minute buckets and begin accumulating after the admin dashboard migration is applied. They contain route counts and durations only—not query strings, request bodies, authorization headers, IP addresses, visitor IDs, or response contents. Repository check history records outcome, duration, changed commit, and file count without persisting raw upstream error text. The activity panel is an application audit trail, not a copy of Vercel's runtime logs; use the linked Vercel dashboard for detailed deployment/runtime logs. GitHub and QStash health indicators report whether their server credentials are configured, not whether those upstream services are currently reachable.
 
 ## Content API
 
@@ -84,4 +100,4 @@ Configure `WEBSITE_URL` as the full webhook endpoint URL and `WEBHOOK_SECRET` as
 
 ## Project status
 
-The Next.js TypeScript backend foundation, initial repository importer, signed GitHub-to-QStash update path, selective public-index generator, account API routes, email/password and GitHub sign-in UI, browser library, Markdown/media reading view, and initial PWA assets are in place for the initial rollout. Configure and verify the deployment environment, Supabase Auth and migrations, Redis, and webhook secrets before opening the service to users. The admin dashboard and repository-list editing flow, scheduled SHA reconciliation, end-to-end remote webhook verification, and further backup/recovery hardening remain on the implementation plan in [PLAN.md](PLAN.md).
+The Next.js TypeScript backend, repository importer, signed GitHub-to-QStash update path, selective public-index generator, account API routes, email/password and GitHub sign-in UI, browser library, Markdown/media reading view, PWA assets, and initial admin operations console are in place. Configure and verify the deployment environment, Supabase Auth and migrations, Redis, and webhook secrets before opening the service to users. Editing the shared `GITHUB-REPOSITORIES.md` configuration through the dashboard, scheduled SHA reconciliation, end-to-end remote webhook verification, and further backup/recovery hardening remain on the implementation plan in [PLAN.md](PLAN.md).

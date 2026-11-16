@@ -39,6 +39,19 @@ function CallbackContent() {
           if (!data.session) throw new Error("This sign-in link is invalid or has expired.");
         }
         const nextPath = safeNextPath(searchParams.get("next"));
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!userData.user) throw new Error("Unable to verify the signed-in account.");
+        const { data: account, error: accountError } = await supabase
+          .from("accounts")
+          .select("account_id")
+          .eq("auth_user_id", userData.user.id)
+          .single();
+        if (accountError) throw accountError;
+        if (/^user-[a-f0-9]{12}$/.test(account.account_id)) {
+          router.replace(`/account/setup?next=${encodeURIComponent(nextPath)}`);
+          return;
+        }
         const linked = nextPath.startsWith("/account") && searchParams.get("next")?.includes("linked=github");
         router.replace(linked ? "/account?linked=github" : nextPath);
       } catch (authError) {

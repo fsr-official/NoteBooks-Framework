@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
+function getHealth() {
   return NextResponse.json(
     {
       service: "notebooks-framework-v2",
@@ -15,3 +16,5 @@ export function GET() {
     },
   );
 }
+
+export const GET = withApiTelemetry("/api/health", "GET", getHealth);
