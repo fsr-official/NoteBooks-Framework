@@ -15,3 +15,5 @@ This file is the v2 import registry. Community and Issues repositories are inten
 | MATHEMATICS-RD-SHARMA | SCIENCE | fsr-science/MATHS-RD-SHARMA | main |  | true | 11 | false | false | false |  |
 | PHYSICS-HC-VERMA-I | SCIENCE | fsr-science/PHYSICS-HC-VERMA-I | main |  | true | 12 | false | false | false |  |
 | PHYSICS-HC-VERMA-II | SCIENCE | fsr-science/PHYSICS-HC-VERMA-II | main |  | true | 13 | false | false | false |  |
+| NoteBooks-Class-10 | CLASSTEN | ubsr-official/notebooks | main |  | true | 14 | false | false | false |  |
+| SUPPLEMENTARY-PDF | SCIENCE | fsr-science/SUPPLEMENTARY-PDF | main |  | true | 15 | false | false | false |  |
