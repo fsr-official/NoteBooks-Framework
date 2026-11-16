@@ -38,6 +38,7 @@ function AuthContent({ mode }: AccountAuthProps) {
   const [user, setUser] = useState<User | null>(null);
   const [identities, setIdentities] = useState<UserIdentity[]>([]);
   const [accountLabel, setAccountLabel] = useState("");
+  const [authLoading, setAuthLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -84,6 +85,9 @@ function AuthContent({ mode }: AccountAuthProps) {
       .catch((authError: unknown) => {
         if (!active) return;
         setError(authError instanceof Error ? authError.message : "Unable to check your sign-in status.");
+      })
+      .finally(() => {
+        if (active) setAuthLoading(false);
       });
     return () => { active = false; };
   }, [mode]);
@@ -161,6 +165,13 @@ function AuthContent({ mode }: AccountAuthProps) {
   }
 
   if (mode === "account") {
+    if (authLoading) {
+      return (
+        <AuthShell eyebrow="YOUR ACCOUNT" title="Checking your sign-in." description="Please wait while we verify your account session.">
+          <span className="loading-spinner" />
+        </AuthShell>
+      );
+    }
     if (!user) {
       return (
         <AuthShell eyebrow="YOUR ACCOUNT" title="Sign in to manage linking." description="GitHub linking is optional and can be added after you sign in.">
