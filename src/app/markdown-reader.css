@@ -139,7 +139,7 @@
 
 .reader-overlay { --font-sans: "Inter", "DM Sans", sans-serif; --font-mono: "JetBrains Mono", "DM Mono", monospace; position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; min-width: 0; background: var(--page); color: var(--text); }
 .reader-toolbar { min-height: 68px; display: flex; align-items: center; gap: 20px; padding: 10px clamp(14px, 3vw, 36px); border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--page) 92%, transparent); }
-.reader-action { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: color-mix(in srgb, var(--surface) 72%, var(--page)); color: var(--text); font: 550 11px/1 var(--font-sans); text-decoration: none; white-space: nowrap; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.reader-action { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: color-mix(in srgb, var(--surface) 72%, var(--page)); color: var(--text); font: 550 13px/1 var(--font-sans); text-decoration: none; white-space: nowrap; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease; }
 .reader-action:hover:not(:disabled) { transform: translateY(-1px); border-color: color-mix(in srgb, var(--accent) 42%, var(--border)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); color: var(--accent); }
 .reader-action:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent); outline-offset: 2px; }
 .reader-action.is-active { border-color: color-mix(in srgb, var(--accent) 34%, var(--border)); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent); }
@@ -147,7 +147,7 @@
 .reader-close { color: var(--accent); }
 .reader-title { display: grid; gap: 4px; min-width: 0; flex: 1; }
 .reader-title strong { overflow: hidden; color: var(--text); font: 600 13px Manrope, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
-.reader-title span { overflow: hidden; color: var(--muted); font: 9px "DM Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
+.reader-title span { overflow: hidden; color: var(--muted); font: 11px "DM Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
 .reader-actions { display: flex; align-items: center; gap: 7px; }
 .reader-layout { position: relative; display: flex; min-height: 0; flex: 1; }
 .reader-main { position: relative; min-width: 0; flex: 1; overflow: auto; padding: clamp(26px, 5vw, 62px) clamp(18px, 5vw, 70px) 90px; scroll-behavior: smooth; }
@@ -156,11 +156,11 @@
 .reader-error { display: grid; gap: 10px; }
 .reader-error strong { color: var(--text); }
 .reader-error .reader-action { width: max-content; }
-.reader-raw { width: min(100%, 1000px); margin: 0 auto; padding: 24px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: 12px/1.75 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.reader-raw { width: min(100%, 1000px); margin: 0 auto; padding: 24px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: 14px/1.75 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .reader-raw code { font: inherit; }
 .reader-outline { width: min(300px, 28vw); flex: 0 0 auto; overflow: auto; padding: 28px 16px; border-left: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 72%, var(--page)); }
-.reader-outline-heading { margin: 0 8px 13px; color: var(--muted); font: 9px "DM Mono", monospace; letter-spacing: .12em; }
-.reader-outline-item { width: 100%; display: block; padding: 7px 8px 7px calc(8px + var(--outline-depth, 0) * 12px); border: 0; border-radius: 6px; background: transparent; color: var(--muted); text-align: left; font-size: 11px; line-height: 1.45; cursor: pointer; }
+.reader-outline-heading { margin: 0 8px 13px; color: var(--muted); font: 11px "DM Mono", monospace; letter-spacing: .12em; }
+.reader-outline-item { width: 100%; display: block; padding: 7px 8px 7px calc(8px + var(--outline-depth, 0) * 12px); border: 0; border-radius: 6px; background: transparent; color: var(--muted); text-align: left; font-size: 13px; line-height: 1.45; cursor: pointer; }
 .reader-outline-item:hover { background: var(--soft); color: var(--accent); }
 .reader-media-image { display: block; max-width: min(100%, 1100px); max-height: calc(100vh - 180px); margin: 0 auto; object-fit: contain; border-radius: 10px; }
 .reader-media-audio, .reader-media-video { display: block; width: min(100%, 960px); max-height: calc(100vh - 160px); margin: 5vh auto; }
@@ -173,26 +173,26 @@
 .pdf-control-group .reader-action:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 .pdf-control-group .reader-action.is-active { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
 .pdf-icon-action { width: 34px; min-width: 34px; padding: 0; font-size: 15px; }
-.pdf-page-mode .reader-action, .pdf-reader-mode .reader-action { padding-inline: 9px; font-size: 10px; }
+.pdf-page-mode .reader-action, .pdf-reader-mode .reader-action { padding-inline: 9px; font-size: 12px; }
 .pdf-download-action { min-height: 38px; border-color: color-mix(in srgb, var(--accent) 28%, var(--border)); }
-.pdf-mode-error { flex: 1 0 100%; color: #e58b8b; font-size: 11px; }
+.pdf-mode-error { flex: 1 0 100%; color: #e58b8b; font-size: 13px; }
 .pdf-mode-cancel { border-color: color-mix(in srgb, var(--accent) 38%, var(--border)); }
 .pdf-mode-cancel > span { font-size: 16px; line-height: .8; }
 .pdf-mode-cancel.is-floating { position: absolute; z-index: 4; top: 14px; right: 16px; min-height: 42px; padding-inline: 16px; border-color: #ffffff42; background: #101914eF; color: #fff; box-shadow: 0 8px 28px #00000055; }
 .pdf-mode-cancel.is-floating:hover:not(:disabled) { border-color: #fff; background: #24352e; color: #fff; }
-.pdf-page-control { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font: 10px "DM Mono", monospace; }
+.pdf-page-control { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font: 12px "DM Mono", monospace; }
 .pdf-page-control input { width: 46px; height: 30px; border: 1px solid transparent; border-radius: 7px; outline: none; background: transparent; color: var(--text); text-align: center; font: inherit; }
 .pdf-page-control input:focus { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: var(--surface); }
-.pdf-zoom-value { min-width: 35px; color: var(--muted); text-align: center; font: 10px "DM Mono", monospace; }
+.pdf-zoom-value { min-width: 35px; color: var(--muted); text-align: center; font: 12px "DM Mono", monospace; }
 .pdf-search { display: flex; align-items: center; gap: 5px; }
-.pdf-search input { width: min(180px, 20vw); height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; outline: none; background: color-mix(in srgb, var(--page) 62%, var(--surface)); color: var(--text); font: 11px var(--font-sans); transition: border-color .18s ease, box-shadow .18s ease; }
+.pdf-search input { width: min(180px, 20vw); height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; outline: none; background: color-mix(in srgb, var(--page) 62%, var(--surface)); color: var(--text); font: 13px var(--font-sans); transition: border-color .18s ease, box-shadow .18s ease; }
 .pdf-search input:focus { border-color: var(--accent); }
-.pdf-search-status { max-width: 125px; overflow: hidden; color: var(--muted); font: 9px "DM Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
-.pdf-document-name { max-width: 180px; overflow: hidden; color: var(--text); font: 600 11px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
+.pdf-search-status { max-width: 125px; overflow: hidden; color: var(--muted); font: 11px "DM Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
+.pdf-document-name { max-width: 180px; overflow: hidden; color: var(--text); font: 600 13px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
 .pdf-search-nav { display: flex; gap: 4px; }
 .pdf-reader-body { display: flex; height: 0; min-height: 0; flex: 1 1 0; overflow: hidden; background: color-mix(in srgb, var(--page) 75%, var(--surface)); }
 .pdf-thumbnails { display: flex; width: 135px; min-height: 0; flex: 0 0 135px; flex-direction: column; gap: 0; overflow: auto; padding: 10px 8px; border-right: 1px solid var(--border); }
-.pdf-thumbnail { display: grid; height: 128px; flex: 0 0 128px; justify-items: center; gap: 5px; margin-bottom: 8px; padding: 6px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--muted); font: 9px "DM Mono", monospace; cursor: pointer; }
+.pdf-thumbnail { display: grid; height: 128px; flex: 0 0 128px; justify-items: center; gap: 5px; margin-bottom: 8px; padding: 6px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--muted); font: 11px "DM Mono", monospace; cursor: pointer; }
 .pdf-thumbnail:hover, .pdf-thumbnail.is-active { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); color: var(--accent); background: var(--surface); }
 .pdf-thumbnail-sheet { display: grid; width: 100%; min-height: 100px; place-items: center; overflow: hidden; border: 1px solid var(--border); background: #fff; box-shadow: 0 2px 6px #00000012; }
 .pdf-thumbnail-sheet canvas { display: block; max-width: 100%; height: auto; }
@@ -223,7 +223,7 @@
   .reader-toolbar { flex-wrap: wrap; gap: 8px; padding: 9px 12px; }
   .reader-title { order: 2; flex: 1 1 100%; padding: 0 2px 3px; }
   .reader-actions { margin-left: auto; }
-  .reader-action { min-height: 34px; padding-inline: 9px; font-size: 10px; }
+  .reader-action { min-height: 34px; padding-inline: 9px; font-size: 12px; }
   .reader-close span { display: none; }
   .reader-main { padding: 25px 14px 60px; }
   .reader-outline { position: absolute; z-index: 2; top: 0; right: 0; bottom: 0; width: min(310px, 82vw); box-shadow: var(--shadow); }
@@ -232,7 +232,7 @@
   .pdf-toolbar-start, .pdf-toolbar-end { width: 100%; justify-content: flex-start; gap: 5px; }
   .pdf-toolbar-end { flex-wrap: wrap; }
   .pdf-control-group { gap: 1px; }
-  .pdf-control-group .reader-action { min-height: 30px; padding-inline: 7px; font-size: 9px; }
+  .pdf-control-group .reader-action { min-height: 30px; padding-inline: 7px; font-size: 11px; }
   .pdf-toolbar-start .pdf-control-group { flex: 0 0 auto; }
   .pdf-search { flex: 1 1 160px; }
   .pdf-search input { width: 100%; min-width: 0; }

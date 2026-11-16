@@ -124,6 +124,10 @@ function AuthContent({ mode }: AccountAuthProps) {
           },
         });
         if (signUpError) throw signUpError;
+        if (data.user && data.user.identities?.length === 0) {
+          setError("We couldn’t request a new confirmation code. This email may already have an account—try signing in instead.");
+          return;
+        }
         if (data.session) {
           router.replace(nextPath);
           return;

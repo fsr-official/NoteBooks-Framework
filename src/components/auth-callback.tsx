@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 function safeNextPath(value: string | null): string {
@@ -12,18 +12,21 @@ function safeNextPath(value: string | null): string {
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const callbackStarted = useRef(false);
   const [error, setError] = useState("");
+  const providerError = searchParams.get("error_description") || searchParams.get("error");
+  const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type");
+  const nextPath = safeNextPath(searchParams.get("next"));
 
   useEffect(() => {
-    const providerError = searchParams.get("error_description") || searchParams.get("error");
-    if (providerError) return;
+    if (providerError || callbackStarted.current) return;
+    callbackStarted.current = true;
 
     void (async () => {
       try {
         const supabase = getSupabaseBrowserClient();
-        const code = searchParams.get("code");
-        const tokenHash = searchParams.get("token_hash");
-        const type = searchParams.get("type");
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) throw exchangeError;
@@ -38,7 +41,9 @@ function CallbackContent() {
           if (sessionError) throw sessionError;
           if (!data.session) throw new Error("This sign-in link is invalid or has expired.");
         }
-        const nextPath = safeNextPath(searchParams.get("next"));
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!sessionData.session) throw new Error("Supabase completed the callback without creating a browser session.");
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!userData.user) throw new Error("Unable to verify the signed-in account.");
@@ -58,8 +63,7 @@ function CallbackContent() {
         setError(authError instanceof Error ? authError.message : "Unable to complete sign-in.");
       }
     })();
-  }, [router, searchParams]);
-  const providerError = searchParams.get("error_description") || searchParams.get("error");
+  }, [code, nextPath, providerError, router, searchParams, tokenHash, type]);
   const displayError = error || providerError || "";
 
   return (
