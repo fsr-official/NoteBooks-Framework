@@ -12,5 +12,5 @@ export default async function StreamPage({ params }: StreamPageProps) {
   const normalized = stream.toLowerCase();
   if (!STREAMS.has(normalized)) notFound();
   if (normalized === "classnine" || normalized === "classten") redirect("/lowersecondary");
-  return <NotebookWorkspace initialStream={normalized} />;
+  return <NotebookWorkspace key={normalized} initialStream={normalized} />;
 }
