@@ -35,6 +35,8 @@ function AuthContent({ mode }: AccountAuthProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [accountId, setAccountId] = useState("");
+  const [signupOtp, setSignupOtp] = useState("");
+  const [pendingSignupOtp, setPendingSignupOtp] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [identities, setIdentities] = useState<UserIdentity[]>([]);
   const [accountLabel, setAccountLabel] = useState("");
@@ -103,6 +105,16 @@ function AuthContent({ mode }: AccountAuthProps) {
     try {
       const supabase = getSupabaseBrowserClient();
       if (mode === "register") {
+        if (pendingSignupOtp) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            email: email.trim(),
+            token: signupOtp.trim(),
+            type: "signup",
+          });
+          if (verifyError) throw verifyError;
+          router.replace(nextPath);
+          return;
+        }
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -116,7 +128,8 @@ function AuthContent({ mode }: AccountAuthProps) {
           router.replace(nextPath);
           return;
         }
-        setMessage("Check your email to confirm your account, then sign in.");
+        setPendingSignupOtp(true);
+        setMessage(`We sent a six-digit confirmation code to ${email.trim()}. Look for “Confirm your NoteBooks account,” then enter the code below.`);
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
@@ -127,6 +140,25 @@ function AuthContent({ mode }: AccountAuthProps) {
       }
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "Unable to complete the request.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendSignupOtp() {
+    setBusy(true);
+    setMessage("");
+    setError("");
+    try {
+      const { error: resendError } = await getSupabaseBrowserClient().auth.resend({
+        type: "signup",
+        email: email.trim(),
+        options: { emailRedirectTo: callbackUrl(nextPath) },
+      });
+      if (resendError) throw resendError;
+      setMessage(`A new six-digit confirmation code was sent to ${email.trim()}. Look for “Confirm your NoteBooks account.”`);
+    } catch (authError) {
+      setError(authError instanceof Error ? authError.message : "Unable to resend the confirmation code.");
     } finally {
       setBusy(false);
     }
@@ -207,46 +239,82 @@ function AuthContent({ mode }: AccountAuthProps) {
   return (
     <AuthShell
       eyebrow={registering ? "JOIN NOTEBOOKS" : "WELCOME BACK"}
-      title={registering ? "Create your account." : "Sign in to your study space."}
-      description={registering ? "Create an account with email and password. Linking GitHub is optional." : "Continue with your email, password, or GitHub."}
+      title={pendingSignupOtp ? "Check your email." : registering ? "Create your account." : "Sign in to your study space."}
+      description={pendingSignupOtp
+        ? `Enter the confirmation code sent to ${email}.`
+        : registering
+          ? "Create an account with email and password. Linking GitHub is optional."
+          : "Continue with your email, password, or GitHub."}
     >
-      <button className="auth-github" type="button" disabled={busy} onClick={() => void signInWithGitHub(false)}>
-        <span className="auth-provider-mark"><GitHubMark /></span>
-        Continue with GitHub
-      </button>
-      <div className="auth-divider"><span>OR WITH EMAIL</span></div>
-      <form className="auth-form" onSubmit={(event) => void submit(event)}>
-        {registering && (
-          <label>
-            Account ID
-            <input
-              autoComplete="username"
-              minLength={3}
-              maxLength={32}
-              pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{2,31}"
-              required
-              value={accountId}
-              onChange={(event) => setAccountId(event.target.value)}
-              placeholder="e.g. alex_studies"
-            />
-            <small>3–32 characters; letters, numbers, underscores, and hyphens.</small>
-          </label>
-        )}
-        <label>
-          Email
-          <input autoComplete="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />
-        </label>
-        <label>
-          Password
-          <input autoComplete={registering ? "new-password" : "current-password"} minLength={registering ? 8 : undefined} type="password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder={registering ? "At least 8 characters" : "Your password"} />
-        </label>
-        <button className="auth-submit" type="submit" disabled={busy}>{busy ? "Please wait…" : registering ? "Create account" : "Sign in"}</button>
-      </form>
+      {pendingSignupOtp ? (
+        <>
+          <form className="auth-form" onSubmit={(event) => void submit(event)}>
+            <label>
+              Confirmation code
+              <input
+                autoComplete="one-time-code"
+                autoFocus
+                inputMode="numeric"
+                maxLength={6}
+                minLength={6}
+                pattern="[0-9]{6}"
+                required
+                value={signupOtp}
+                onChange={(event) => setSignupOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="6-digit code"
+              />
+              <small>Can’t find the email? Check your Spam or Junk folder.</small>
+            </label>
+            <button className="auth-submit" type="submit" disabled={busy}>{busy ? "Verifying…" : "Verify email"}</button>
+          </form>
+          <div className="account-auth-actions">
+            <button className="auth-secondary" type="button" disabled={busy} onClick={() => void resendSignupOtp()}>Resend code</button>
+            <button className="auth-secondary" type="button" disabled={busy} onClick={() => { setPendingSignupOtp(false); setSignupOtp(""); setMessage(""); setError(""); }}>Change email</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <button className="auth-github" type="button" disabled={busy} onClick={() => void signInWithGitHub(false)}>
+            <span className="auth-provider-mark"><GitHubMark /></span>
+            Continue with GitHub
+          </button>
+          <div className="auth-divider"><span>OR WITH EMAIL</span></div>
+          <form className="auth-form" onSubmit={(event) => void submit(event)}>
+            {registering && (
+              <label>
+                Account ID
+                <input
+                  autoComplete="username"
+                  minLength={3}
+                  maxLength={32}
+                  pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{2,31}"
+                  required
+                  value={accountId}
+                  onChange={(event) => setAccountId(event.target.value)}
+                  placeholder="e.g. alex_studies"
+                />
+                <small>3–32 characters; letters, numbers, underscores, and hyphens.</small>
+              </label>
+            )}
+            <label>
+              Email
+              <input autoComplete="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />
+            </label>
+            <label>
+              Password
+              <input autoComplete={registering ? "new-password" : "current-password"} minLength={registering ? 8 : undefined} type="password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder={registering ? "At least 8 characters" : "Your password"} />
+            </label>
+            <button className="auth-submit" type="submit" disabled={busy}>{busy ? "Please wait…" : registering ? "Create account" : "Sign in"}</button>
+          </form>
+        </>
+      )}
       <AuthFeedback message={message || queryMessage} error={error || queryError} />
-      <p className="auth-switch">
-        {registering ? "Already have an account?" : "New to NoteBooks?"}{" "}
-        <Link href={`${registering ? "/login" : "/register"}${nextQuery}`}>{registering ? "Sign in" : "Create an account"}</Link>
-      </p>
+      {!pendingSignupOtp && (
+        <p className="auth-switch">
+          {registering ? "Already have an account?" : "New to NoteBooks?"}{" "}
+          <Link href={`${registering ? "/login" : "/register"}${nextQuery}`}>{registering ? "Sign in" : "Create an account"}</Link>
+        </p>
+      )}
     </AuthShell>
   );
 }

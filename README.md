@@ -56,6 +56,36 @@ Apply `supabase/migrations/20261115003000_allow_oauth_account_creation.sql` befo
 
 For hosted Supabase, enable the GitHub provider in **Authentication → Providers**, set its Client ID and Client Secret as Supabase secrets, and add `https://<project-ref>.supabase.co/auth/v1/callback` to the GitHub OAuth app's callback URLs. Add `https://<your-site>/auth/callback` to Supabase's allowed redirect URLs and enable manual identity linking in the Auth provider settings. Never expose the GitHub Client Secret to the browser or commit it.
 
+### Signup and Auth email delivery
+
+Email/password signup sends a confirmation message to the address entered in `/register` when email confirmation is enabled. Users enter the six-digit code in the registration page; the app verifies it through Supabase Auth. Supabase's built-in SMTP is for development only: it can deliver only to project-team addresses and is limited to 2 messages per hour. For production delivery to arbitrary users, configure a custom SMTP provider. No application-level mail API key or Vercel variable is needed; Supabase Auth sends these messages.
+
+Recommended setup with Resend when you have a verified sending domain:
+
+1. Add a sending domain or subdomain you control in Resend, publish its requested DNS records, and wait until Resend marks it verified. Choose a sender address on that verified domain, such as `no-reply@mail.example.com`.
+2. Create a Resend API key with permission to send from that domain. Keep it private; do not commit it, put it in `.env.production`, or send it in chat.
+3. In the Supabase project, open **Authentication → Email → SMTP Settings**, enable custom SMTP, and set:
+   - Host: `smtp.resend.com`
+   - Port: `465`
+   - Username: `resend`
+   - Password: the Resend API key
+   - Sender email: the address on your verified domain
+   - Sender name: `NoteBooks`
+4. On the Supabase **Authentication → Emails → Templates → Confirm signup** page, set the subject to `Confirm your NoteBooks account` and the body to:
+   ```html
+   <h2>Confirm your NoteBooks account</h2>
+   <p>Enter this six-digit code to verify your email address:</p>
+   <p style="font-size: 24px; font-weight: 700; letter-spacing: 0.2em;">{{ .Token }}</p>
+   <p>If you did not create a NoteBooks account, you can ignore this email.</p>
+   ```
+   The same template is kept locally in [supabase/templates/confirmation.html](supabase/templates/confirmation.html).
+5. In **Authentication → Providers → Email**, make sure email signup is enabled and **Confirm email** is enabled. Save the settings.
+6. Register with an inbox you can access. Confirm the email arrives, enter its six-digit code in the registration form, and verify that the account is signed in. Use Supabase Auth logs and Resend email logs to diagnose delivery failures.
+
+Do not enable email auto-confirmation as a workaround for missing email delivery. Local Supabase email is captured by its local email testing server rather than sent to a real inbox. `supabase/config.toml` enables local email confirmation and loads the checked-in OTP template; hosted project settings must be configured separately in the Supabase dashboard.
+
+For low-volume testing without a domain, Gmail SMTP may be used instead. Enable 2-Step Verification on the Gmail account and create a Google App Password. In Supabase SMTP Settings, use `smtp.gmail.com`, port `465` (SSL) or `587` (STARTTLS), the full Gmail address as the SMTP username, and the App Password as the SMTP password. Set the sender email to that same Gmail address. This is a small-project/testing option and remains subject to Gmail sending limits; never use the regular Google account password.
+
 The Supabase OAuth Server consent path is `/oauth/consent`. It authenticates users first, then uses Supabase's OAuth Server SDK methods to show the requesting client's name, requested scopes, and redirect destination before approving or denying the request. Set the same path under **Authentication → OAuth Server → Authorization Path**. Ensure the Site URL has no trailing slash so the preview URL is `https://<your-site>/oauth/consent`, not a double-slash URL. For local Supabase, OAuth Server is enabled in `supabase/config.toml`; dynamic client registration remains disabled unless you explicitly enable it.
 
 Repository import is available through `pnpm repos:sync` (read-only preview) and `pnpm repos:sync:apply` (write). Use `pnpm exec tsx scripts/import-repositories.ts --repo owner/repository` to preview one configured repository, or add `--apply` to sync just that repository and rebuild its section index. Rebuild all six public indexes from the current database without fetching repositories again using `pnpm indexes:rebuild`, and verify their Redis contents with `pnpm redis:verify`. Both database and Redis server credentials must be configured. See [DATABASE.md](DATABASE.md) and [Redis operations](redis/README.md) for details.
