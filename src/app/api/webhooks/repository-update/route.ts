@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { enqueueRepositoryUpdate } from "@/lib/qstash";
 import { verifyWebhookSignature } from "@/lib/webhook-signature";
+import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ function isUpdateRequest(value: unknown): value is UpdateRequest {
     && request.branch.length <= 200;
 }
 
-export async function POST(request: Request) {
+async function postRepositoryUpdate(request: Request) {
   const secret = process.env.WEBHOOK_SECRET;
   if (!secret) {
     return NextResponse.json({ error: "Webhook is not configured" }, { status: 503 });
@@ -59,3 +60,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Repository update could not be queued" }, { status: 503 });
   }
 }
+
+export const POST = withApiTelemetry(
+  "/api/webhooks/repository-update",
+  "POST",
+  postRepositoryUpdate,
+);

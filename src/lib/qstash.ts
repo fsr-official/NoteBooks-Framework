@@ -8,6 +8,7 @@ export const REPOSITORY_UPDATE_WORKER_PATH = "/api/workflows/repository-update";
 export interface RepositoryUpdateJob {
   repository: string;
   branch: string;
+  requestedBy?: string;
 }
 
 function requiredEnv(name: string): string {

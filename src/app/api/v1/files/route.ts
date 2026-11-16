@@ -5,6 +5,7 @@ import { cacheFileContent, getCachedFileContent } from "@/lib/file-content-cache
 import { FileDownloadError, fetchVerifiedMarkdownFile, normalizeMarkdownPath } from "@/lib/file-download";
 import { getRedisClient } from "@/lib/public-index-cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ function requiredSingleQueryValue(url: URL, name: string): string | null {
   return values.length === 1 && values[0].trim() ? values[0] : null;
 }
 
-export async function GET(request: Request) {
+async function getFile(request: Request) {
   const url = new URL(request.url);
   const owner = requiredSingleQueryValue(url, "owner")?.trim() ?? null;
   const repository = requiredSingleQueryValue(url, "repo")?.trim() ?? null;
@@ -197,3 +198,5 @@ export async function GET(request: Request) {
     },
   });
 }
+
+export const GET = withApiTelemetry("/api/v1/files", "GET", getFile);

@@ -261,6 +261,18 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   }, [session]);
 
   useEffect(() => {
+    const route = stream === "home" ? "/" : stream === "developer" ? "/developers" : `/${stream}`;
+    void fetch("/api/telemetry/page-view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ route }),
+      keepalive: true,
+    }).catch((error: unknown) => {
+      console.warn("Unable to record page view", error);
+    });
+  }, [stream]);
+
+  useEffect(() => {
     if (session) applyTheme(session.preferences);
   }, [session]);
 
@@ -430,6 +442,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
             </Link>
           ))}
           <Link className="nav-link auth-nav-link" href="/account">Account</Link>
+          <Link className="nav-link auth-nav-link" href="/admin">Admin</Link>
           <Link className="nav-link auth-nav-join" href="/register">Join</Link>
         </nav>
         <button

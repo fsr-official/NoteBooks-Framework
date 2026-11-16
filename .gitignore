@@ -12,3 +12,5 @@ coverage/
 
 supabase/.branches/
 supabase/.temp/
+
+tmp/

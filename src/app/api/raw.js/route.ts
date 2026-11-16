@@ -1,9 +1,13 @@
 import { servePublicContent } from "@/lib/public-content-route";
+import { withApiTelemetry } from "@/lib/api-telemetry";
 
-export async function GET(request: Request) {
+async function getRawAlias(request: Request) {
   return servePublicContent(request, "markdown");
 }
 
-export async function HEAD(request: Request) {
+async function headRawAlias(request: Request) {
   return servePublicContent(request, "markdown");
 }
+
+export const GET = withApiTelemetry("/api/raw.js", "GET", getRawAlias);
+export const HEAD = withApiTelemetry("/api/raw.js", "HEAD", headRawAlias);

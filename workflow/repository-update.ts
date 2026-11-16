@@ -13,6 +13,7 @@ import {
 export interface RepositoryUpdateJob {
   repository: string;
   branch: string;
+  requestedBy?: string;
 }
 
 interface RepositoryDatabaseEntry {
@@ -57,7 +58,7 @@ function isRepositoryEntry(value: unknown): value is RepositoryDatabaseEntry {
     && typeof entry.root === "string";
 }
 
-export async function processRepositoryUpdate(job: RepositoryUpdateJob): Promise<RepositoryUpdateResult> {
+async function processRepositoryUpdateUnchecked(job: RepositoryUpdateJob): Promise<RepositoryUpdateResult> {
   const [owner, name] = job.repository.split("/");
   const supabase = createSupabaseAdminClient();
   const { data: storedEntry, error: lookupError } = await supabase
@@ -105,6 +106,16 @@ export async function processRepositoryUpdate(job: RepositoryUpdateJob): Promise
     if (syncError) throw new Error(`Repository catalog sync failed: ${syncError.message}`);
   }
 
+  const { error: checkedAtError } = await supabase
+    .from("repository_entries")
+    .update({ last_checked_at: new Date().toISOString() })
+    .eq("record_type", "repository")
+    .eq("repo_owner", owner)
+    .eq("repo_name", name)
+    .eq("enabled", true)
+    .is("archived_at", null);
+  if (checkedAtError) throw new Error(`Repository check timestamp update failed: ${checkedAtError.message}`);
+
   const rebuiltIndexes = await rebuildPublicIndexes(
     createPublicIndexDatabase(supabase),
     getPublicIndexStore(),
@@ -118,4 +129,52 @@ export async function processRepositoryUpdate(job: RepositoryUpdateJob): Promise
     fileCount: syncPayload.files.length,
     rebuiltIndexes,
   };
+}
+
+export async function processRepositoryUpdate(job: RepositoryUpdateJob): Promise<RepositoryUpdateResult> {
+  const [owner, name] = job.repository.split("/");
+  const supabase = createSupabaseAdminClient();
+  const startedAt = Date.now();
+  const { data: run, error: insertError } = await supabase
+    .from("repository_sync_runs")
+    .insert({
+      branch: job.branch,
+      repo_name: name,
+      repo_owner: owner,
+      requested_by: job.requestedBy ?? null,
+      status: "running",
+    })
+    .select("id")
+    .single();
+  if (insertError || !run || typeof run.id !== "number") {
+    throw new Error(`Unable to record repository sync run: ${insertError?.message ?? "invalid run record"}`);
+  }
+
+  try {
+    const result = await processRepositoryUpdateUnchecked(job);
+    const { error: updateError } = await supabase
+      .from("repository_sync_runs")
+      .update({
+        commit_sha: result.commitSha ?? null,
+        completed_at: new Date().toISOString(),
+        duration_ms: Math.max(0, Date.now() - startedAt),
+        file_count: result.fileCount ?? null,
+        status: result.status,
+      })
+      .eq("id", run.id);
+    if (updateError) throw new Error(`Unable to record repository sync result: ${updateError.message}`);
+    return result;
+  } catch (error) {
+    const { error: updateError } = await supabase
+      .from("repository_sync_runs")
+      .update({
+        completed_at: new Date().toISOString(),
+        duration_ms: Math.max(0, Date.now() - startedAt),
+        error_code: "sync_failed",
+        status: "failed",
+      })
+      .eq("id", run.id);
+    if (updateError) console.error("Unable to record failed repository sync run", updateError);
+    throw error;
+  }
 }

@@ -1,6 +1,6 @@
 # Database and repository update design
 
-This document records the current Supabase schema and repository import behavior. The four initial catalog migrations and the additive API-key migration have been applied to the configured remote project; local Supabase remains unverified.
+This document records the current Supabase schema and repository import behavior. The initial catalog migrations and API-key migration have been applied to the configured remote project. The admin dashboard migration is new and still needs to be applied; local Supabase remains unverified.
 
 ## Accounts and authentication
 
@@ -8,7 +8,13 @@ Anyone may sign up with a unique account ID, email, and password. The account ID
 
 Supabase Auth stores credentials in its managed `auth.users` table. The application adds a `public.accounts` table for account IDs and roles, and one shared `public.repository_entries` table for both repository metadata and file records. The accounts table is separate because login identities and repository records have different lifecycles and security rules.
 
-Every new account receives the `user` role. Only the single designated account may have the `admin` role; a partial unique index enforces at most one admin. Users cannot assign or change their own roles. The first admin is promoted through a trusted, server-side/SQL operator action after the account signs up. A trigger creates the account row from the Supabase Auth signup metadata and always assigns `user`.
+Every new account receives the `user` role. Only the single designated account may have the `admin` role; a partial unique index enforces at most one admin. Users cannot assign or change their own roles. The first admin signs in after account registration and claims the role through `/admin` using a one-time server-only `ADMIN_BOOTSTRAP_TOKEN`; remove the token from the deployment environment after the claim. A trigger creates the account row from the Supabase Auth signup metadata and always assigns `user`.
+
+### Admin operations migration
+
+Apply [`20261116100000_admin_dashboard.sql`](supabase/migrations/20261116100000_admin_dashboard.sql) after the existing migrations before using the operations console. It adds `last_checked_at`, permits null `account_id` values for automated repository imports while retaining optional account assignment, adds aggregate API/page-view metrics, bounded sync-run and audit history, and a dashboard snapshot function. Metrics contain route/method counts and durations only; they do not capture request bodies, query strings, IP addresses, tokens, or response contents.
+
+The `/admin` console supports repository creation, editing, account assignment, disabling, and soft archive/restore. Changes rebuild the public indexes. Manual checks queue enabled repositories through QStash and are processed by the existing signed worker; queue acceptance does not mean the sync has already completed. Sync runs retain their status, duration, changed commit, file count, requesting admin, and a generic failure code, but not raw upstream error text. API traffic and public library page views aggregate in one-minute buckets. The activity panel is an application audit trail; detailed runtime logs remain available in the hosting provider's dashboard.
 
 The content API uses separate per-account API keys. Only a verified Supabase Auth user with an existing `public.accounts` profile may create a key. The server returns the random key once and stores only its SHA-256 hash and non-secret display prefix. Keys can be listed by metadata and revoked by the owning account; a database function enforces a maximum of five active keys per account. The application stores no password or recoverable API-key secret.
 
@@ -42,6 +48,7 @@ Use one shared PostgreSQL table named `public.repository_entries`. It contains o
 | `file_path` | `text`, nullable | File path relative to the repository root; populated on file rows. |
 | `file_sha` | `text`, nullable | Git blob SHA for the file; populated on file rows. |
 | `id` | `uuid` | Stable primary key for this entry; on file rows this is the unique file-record ID. |
+| `last_checked_at` | `timestamptz`, nullable | Time of the most recent successful upstream commit check; populated on repository anchors. |
 | `last_commit_sha` | `text`, nullable | Latest successfully synchronized commit SHA; populated on repository anchors. |
 | `last_updated_at` | `timestamptz`, nullable | Time the repository's latest state was successfully synchronized; populated on repository anchors. |
 | `lfs` | `boolean`, nullable | Whether the repository uses the media delivery path for LFS; populated on repository anchors. |
