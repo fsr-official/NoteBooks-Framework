@@ -114,6 +114,7 @@ describe("compileDesmos3D", () => {
       "  col latex=x_1 values=(1,2,3)",
       "  col latex=y_1 values=(4,5,6)",
       "  col latex=z_1 values=(7,8,9)",
+      "@after_table: z=x+y",
     ].join("\n"));
 
     expect(result.ok).toBe(true);
@@ -129,6 +130,7 @@ describe("compileDesmos3D", () => {
           { latex: "z_1", values: ["7", "8", "9"] },
         ],
       },
+      { id: "after_table", latex: "z=x+y" },
     ]);
   });
 

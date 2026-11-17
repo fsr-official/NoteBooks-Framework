@@ -440,20 +440,65 @@ function parseDirectiveArgs(
   col: number,
   diagnostics: DesmosDiagnostic[],
 ): Attribute[] {
-  const chunks = source.match(/"(?:\\.|[^"\\])*"|\([^)]*\)|\{[^}]*\}|\S+/g) ?? [];
+  const chunks: Array<{ value: string; index: number }> = [];
+  const closing: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
+  const stack: string[] = [];
+  let quoted = false;
+  let escaped = false;
+  let start = -1;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (quoted && character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      quoted = !quoted;
+      if (start < 0) start = index;
+      continue;
+    }
+    if (quoted) continue;
+    if (closing[character]) {
+      stack.push(closing[character]);
+      if (start < 0) start = index;
+      continue;
+    }
+    if (character === ")" || character === "]" || character === "}") {
+      if (stack.pop() !== character) {
+        diagnostics.push(diagnostic("error", "E_DIRECTIVE_SYNTAX", "Unbalanced brackets in directive arguments.", line, col + index));
+        return [];
+      }
+      continue;
+    }
+    if (/\s/.test(character) && stack.length === 0) {
+      if (start >= 0) chunks.push({ value: source.slice(start, index), index: start });
+      start = -1;
+    } else if (start < 0) start = index;
+  }
+  if (quoted || stack.length) {
+    diagnostics.push(diagnostic("error", "E_DIRECTIVE_SYNTAX", "Unbalanced quotes or brackets in directive arguments.", line, col + Math.max(start, 0)));
+    return [];
+  }
+  if (start >= 0) chunks.push({ value: source.slice(start), index: start });
+
   const attrs: Attribute[] = [];
-  for (const chunk of chunks) {
+  for (const { value: chunk, index } of chunks) {
+    const attributeCol = col + index;
     const split = chunk.indexOf("=");
     if (split < 0) {
-      attrs.push({ key: chunk, value: true, col });
+      attrs.push({ key: chunk, value: true, col: attributeCol });
       continue;
     }
     const key = chunk.slice(0, split);
     const rawValue = chunk.slice(split + 1);
     const value = unquote(rawValue);
     if (!key || !rawValue || value === null) {
-      diagnostics.push(diagnostic("error", "E_DIRECTIVE_SYNTAX", `Malformed directive argument '${chunk}'.`, line, col));
-    } else attrs.push({ key, value, col });
+      diagnostics.push(diagnostic("error", "E_DIRECTIVE_SYNTAX", `Malformed directive argument '${chunk}'.`, line, attributeCol));
+    } else attrs.push({ key, value, col: attributeCol });
   }
   return attrs;
 }
@@ -666,7 +711,12 @@ export function compileDesmos2D(source: string): Desmos2DCompileResult {
       const tableTrimmed = tableSourceLine.trim();
       if (!tableTrimmed) continue;
       if (tableTrimmed.startsWith("//")) continue;
-      if (!/^\s+/.test(tableSourceLine) || !tableTrimmed.startsWith("col ")) {
+      if (!/^\s+/.test(tableSourceLine)) {
+        table = null;
+        index -= 1;
+        continue;
+      }
+      if (!tableTrimmed.startsWith("col ")) {
         diagnostics.push(diagnostic("error", "E_TABLE_SYNTAX", "Table columns must be indented 'col' lines.", lineNumber, 1, { id: table.id }));
         table = null;
         index -= 1;

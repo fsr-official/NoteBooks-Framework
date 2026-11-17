@@ -38,7 +38,7 @@ describe("compileDesmos2D", () => {
   it("compiles presets, tables, notes, settings, options, and view bounds", () => {
     const result = compileDesmos2D([
       "%options lockViewport keypad=false",
-      "%settings xAxisArrowMode=both xAxisLabel=\"time\" degreeMode=true",
+      "%settings xAxisArrowMode=both xAxisLabel=\"time axis\" degreeMode=true",
       "%view x=(-2,12) y=(-3,8)",
       "%preset curve color=green lineWidth=2",
       "  // explicit table columns follow",
@@ -47,6 +47,7 @@ describe("compileDesmos2D", () => {
       "%table samples",
       "  col latex=x values=(1,2,3) points lines",
       "  col latex=y values=(1,4,9) color=red",
+      "@after_table: y=x",
     ].join("\n"));
 
     expect(result.ok).toBe(true);
@@ -54,7 +55,7 @@ describe("compileDesmos2D", () => {
     expect(result.output.options).toEqual({ lockViewport: true, keypad: false });
     expect(result.output.settings).toEqual({
       xAxisArrowMode: "BOTH",
-      xAxisLabel: "time",
+      xAxisLabel: "time axis",
       degreeMode: true,
     });
     expect(result.output.bounds).toEqual({ left: -2, right: 12, bottom: -3, top: 8 });
@@ -69,6 +70,7 @@ describe("compileDesmos2D", () => {
           { latex: "y", values: ["1", "4", "9"], color: "#c74440" },
         ],
       },
+      { id: "after_table", latex: "y=x" },
     ]);
   });
 

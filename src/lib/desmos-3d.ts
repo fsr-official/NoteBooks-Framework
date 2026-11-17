@@ -653,7 +653,12 @@ export function compileDesmos3D(source: string): Desmos3DCompileResult {
     if (table) {
       if (!trimmed) continue;
       if (trimmed.startsWith("//")) continue;
-      if (!/^\s/.test(rawLine) || !trimmed.startsWith("col ")) {
+      if (!/^\s/.test(rawLine)) {
+        table = null;
+        index -= 1;
+        continue;
+      }
+      if (!trimmed.startsWith("col ")) {
         diagnostics.push(issue("error", "E_TABLE_SYNTAX", "Table columns must be indented 'col' lines.", line, 1, { id: table.id }));
         table = null;
         index -= 1;
