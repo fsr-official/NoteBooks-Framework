@@ -4,7 +4,7 @@ This document records the current Supabase schema and repository import behavior
 
 ## Accounts and authentication
 
-Anyone may sign up with a unique account ID, email, and password. The account ID is the person's chosen login ID; email and password are handled by Supabase Auth. Passwords must never be stored in application tables or in plaintext. For ID/password sign-in, a server-side Next.js route resolves the account ID to its Supabase Auth user and signs in with the supplied password. Keep the Supabase service-role key server-only.
+Anyone may sign up with a permanent unique User ID, an editable User Name, and email/password or GitHub OAuth. Supabase Auth owns credentials; passwords must never be stored in application tables or in plaintext. The User ID is immutable after initial OAuth setup; the User Name is not unique and is never used for account binding. Keep the Supabase service-role key server-only.
 
 Supabase Auth stores credentials in its managed `auth.users` table. The application adds a `public.accounts` table for account IDs and roles, and one shared `public.repository_entries` table for both repository metadata and file records. The accounts table is separate because login identities and repository records have different lifecycles and security rules.
 
@@ -20,15 +20,22 @@ The content API uses separate per-account API keys. Only a verified Supabase Aut
 
 The additive API-key and file-lookup functions are defined in [`20261114184000_api_key_access.sql`](supabase/migrations/20261114184000_api_key_access.sql). This migration is applied remotely. File download lookup is service-role-only and returns only enabled, non-archived repository metadata for an exact catalogued file path.
 
+Apply [`20261117090000_account_identity_and_sessions.sql`](supabase/migrations/20261117090000_account_identity_and_sessions.sql) before using the updated GitHub OAuth callback. It stores the verified GitHub provider ID and username, adds server-only browser-session bindings, and makes a chosen User ID immutable after OAuth setup. GitHub’s username is a suggestion only; users may choose another available User ID before completing setup.
+
 The profile table has these alphabetically ordered columns:
 
 | Column | Proposed type | Purpose |
 | --- | --- | --- |
-| `account_id` | `text` | Unique, lowercase chosen login ID; 3-32 letters, digits, underscores, or hyphens, beginning with a letter or digit. |
+| `account_id` | `text` | Permanent unique User ID after setup; 3-32 lowercase letters, digits, underscores, or hyphens, beginning with a letter or digit. |
 | `auth_user_id` | `uuid` | Primary key and foreign key to `auth.users.id`; deleting the Auth user cascades to this profile. |
 | `created_at` | `timestamptz` | Profile creation time. |
+| `github_user_id` | `text`, nullable | Stable GitHub provider ID returned by Supabase Auth; unique when present. |
+| `github_username` | `text`, nullable | GitHub username captured from the verified provider identity; not used for account binding. |
 | `role` | `text` | `user` by default, or `admin`; a partial unique index permits at most one admin. |
 | `updated_at` | `timestamptz` | Automatically maintained profile update time. |
+| `user_name` | `text` | Editable display name, 1-40 characters, not unique and not used for account binding. |
+
+`public.account_sessions` privately maps the browser’s UUID session ID to the verified Supabase Auth user. Only server-side service-role routes can read or write these bindings; the browser’s local signed-in display is informational and is never used to authorize API access.
 
 ## Shared repository and file table
 

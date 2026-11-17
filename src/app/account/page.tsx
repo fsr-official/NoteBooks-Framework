@@ -1,5 +1,5 @@
-import { AccountPage } from "@/components/account-auth";
+import { NotebookWorkspace } from "@/components/notebook-workspace";
 
 export default function Page() {
-  return <AccountPage />;
+  return <NotebookWorkspace key="account" initialStream="account" />;
 }
