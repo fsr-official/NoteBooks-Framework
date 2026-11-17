@@ -39,7 +39,7 @@
   };
 
   const styles = {
-    tikzFonts: '/bin/tikzjax/css/fonts.css',
+    tikzFonts: '/bin/tikzjax/output/fonts.css',
     highlightLight: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css',
     highlightDark: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github-dark.min.css'
   };

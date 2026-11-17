@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./notebooks.css";
+import "./reader-redesign.css";
+import "katex/dist/katex.min.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { ThemeBootstrap } from "@/components/theme-bootstrap";
 
 export const metadata: Metadata = {
   title: "NoteBooks — A calmer place to study",
@@ -16,6 +19,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
+        <ThemeBootstrap />
         {children}
         <ServiceWorkerRegistration />
       </body>

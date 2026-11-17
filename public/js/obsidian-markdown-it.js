@@ -1152,8 +1152,26 @@
     /* Call after inserting rendered HTML into the DOM.                          */
     /* Requires mermaid.min.js to be loaded (mermaid CDN).                      */
     /* ── Pan/zoom engine for Mermaid diagrams ───────────────────────────────── */
+    var MIN_MINDMAP_LABEL_PX = 16;
+    function _mindmapReadableScale(svg, svgW, svgH) {
+        var viewBox = svg.viewBox && svg.viewBox.baseVal;
+        if (!viewBox || !viewBox.width || !viewBox.height)
+            return 1;
+        var svgUnitScale = Math.min(svgW / viewBox.width, svgH / viewBox.height);
+        var labels = svg.querySelectorAll('foreignObject p, text');
+        var smallestFont = Infinity;
+        for (var i = 0; i < labels.length; i++) {
+            var fontSize = parseFloat(window.getComputedStyle(labels[i]).fontSize);
+            if (fontSize > 0)
+                smallestFont = Math.min(smallestFont, fontSize);
+        }
+        if (!isFinite(smallestFont))
+            smallestFont = MIN_MINDMAP_LABEL_PX;
+        return MIN_MINDMAP_LABEL_PX / (smallestFont * svgUnitScale);
+    }
     function _mermaidPanZoom(wrap, canvas, svg, isMindmap) {
         var scale = 1, tx = 0, ty = 0;
+        var viewMode = 'fit';
         var dragging = false, startX, startY, startTx, startTy;
         var lastTouchDist = null;
         var DRAG_RESISTANCE = 0.75; /* 0-1: lower = more resistance */
@@ -1166,14 +1184,13 @@
             var ox = cx - rect.left, oy = cy - rect.top;
             var ns = clamp(scale * factor, 0.08, 12);
             var r = ns / scale;
-            var svgW = parseFloat(svg.getAttribute('width')) || 600;
-            var svgH = parseFloat(svg.getAttribute('height')) || 400;
             /* Adjust center of zoom to be viewport-center relative */
             var centerX = wrap.clientWidth / 2;
             var centerY = wrap.clientHeight / 2;
             tx = (1 - r) * (ox - centerX) + r * tx;
             ty = (1 - r) * (oy - centerY) + r * ty;
             scale = ns;
+            viewMode = null;
             applyTransform();
         }
         /* Wheel zoom */
@@ -1190,6 +1207,7 @@
             startY = e.clientY;
             startTx = tx;
             startTy = ty;
+            viewMode = null;
             canvas.classList.add('is-dragging');
             e.preventDefault();
         });
@@ -1214,6 +1232,7 @@
                 startY = e.touches[0].clientY;
                 startTx = tx;
                 startTy = ty;
+                viewMode = null;
             }
             else if (e.touches.length === 2) {
                 dragging = false;
@@ -1246,13 +1265,13 @@
                 zoomAt(1.35, cx, cy);
             if (action === 'zout')
                 zoomAt(1 / 1.35, cx, cy);
-            if (action === 'fit')
+            if (action === 'fit' || action === 'fill') {
+                viewMode = action;
                 fitToView();
+            }
             if (action === 'reset') {
-                scale = 1;
-                tx = 0;
-                ty = 0;
-                applyTransform();
+                viewMode = 'fit';
+                fitToView();
             }
         }
         wrap.querySelectorAll('.mermaid-tb-btn[data-a]').forEach(function (btn) {
@@ -1293,13 +1312,32 @@
                 return;
             }
             var pad = 48;
-            var ns = Math.min((wrapW - pad) / svgW, (wrapH - pad) / svgH, 1.8);
-            ns = Math.max(ns, 0.08);
+            var isTallDiagram = svgH / svgW > 2.2;
+            var widthScale = (wrapW - pad) / svgW;
+            var heightScale = (wrapH - pad) / svgH;
+            var ns;
+            if (isMindmap) {
+                var readableScale = _mindmapReadableScale(svg, svgW, svgH);
+                ns = viewMode === 'fill' ? readableScale * 1.35 : readableScale;
+                var mindmapHeight = Math.max(180, Math.ceil(svgH * ns) + pad);
+                if (wrap.style.height !== mindmapHeight + 'px')
+                    wrap.style.height = mindmapHeight + 'px';
+            }
+            else {
+                ns = Math.min(widthScale, isTallDiagram ? 1.8 : heightScale, 1.8);
+                ns = Math.max(ns, 0.08);
+            }
             scale = ns;
             tx = -(svgW * scale) / 2;
-            ty = -(svgH * scale) / 2;
+            ty = isTallDiagram && !isMindmap && viewMode !== 'fill'
+                ? -wrapH / 2 + pad
+                : -(svgH * scale) / 2;
             applyTransform();
         }
+        var resizeObserver = new ResizeObserver(function () {
+            if (viewMode) requestAnimationFrame(fitToView);
+        });
+        resizeObserver.observe(wrap);
         requestAnimationFrame(fitToView); // kick it off (retry loop handles the rest)
     }
     function _sizeMermaidSVG(svg) {
@@ -1333,8 +1371,8 @@
         if (!svg || el.querySelector('.mermaid-viewer-wrap'))
             return;
         _sizeMermaidSVG(svg);
-        /* Detect mindmap: look for rotate transforms which are unique to mindmaps */
-        var isMindmap = false;
+        /* Mermaid mindmaps have a dedicated SVG class; retain transform detection for older output. */
+        var isMindmap = el.getAttribute('data-diagram-type') === 'mindmap' || svg.classList.contains('mindmapDiagram');
         var groups = svg.querySelectorAll('g');
         for (var g = 0; g < groups.length && !isMindmap; g++) {
             var transform = groups[g].getAttribute('transform') || '';
@@ -1353,16 +1391,28 @@
         }
         if (!svgH)
             svgH = svg.getBoundingClientRect().height || 0;
-        var viewH = Math.min(Math.max(svgH + 80, isMindmap ? 400 : 260), window.innerHeight * 0.78);
+        var viewH;
+        if (isMindmap) {
+            var initialWidth = parseFloat(svg.getAttribute('width')) || 1;
+            var initialHeight = parseFloat(svg.getAttribute('height')) || 1;
+            var initialScale = _mindmapReadableScale(svg, initialWidth, initialHeight);
+            viewH = Math.max(180, Math.ceil(svgH * initialScale) + 48);
+        }
+        else {
+            var maxViewH = Math.min(window.innerHeight * 0.65, 560);
+            viewH = Math.min(Math.max(Math.min(svgH, 480) + 80, 260), maxViewH);
+        }
         var wrap = document.createElement('div');
         wrap.className = 'mermaid-viewer-wrap' + (isMindmap ? ' mermaid-mindmap' : '');
         wrap.style.height = viewH + 'px';
         var toolbar = document.createElement('div');
         toolbar.className = 'mermaid-toolbar';
+        var viewAction = isMindmap ? 'fill' : 'fit';
+        var viewTitle = isMindmap ? 'Fill to view' : 'Fit to view';
         toolbar.innerHTML =
             '<button class="mermaid-tb-btn" data-a="zin"  title="Zoom in">+</button>' +
                 '<button class="mermaid-tb-btn" data-a="zout" title="Zoom out">−</button>' +
-                '<button class="mermaid-tb-btn" data-a="fit"  title="Fit to view" style="font-size:12px">⊡</button>' +
+                '<button class="mermaid-tb-btn" data-a="' + viewAction + '" title="' + viewTitle + '" style="font-size:12px">⊡</button>' +
                 '<button class="mermaid-tb-btn" data-a="reset" title="Reset" style="font-size:11px">↺</button>';
         var canvas = document.createElement('div');
         canvas.className = 'mermaid-canvas' + (isMindmap ? ' mermaid-canvas-centered' : '');
@@ -1380,15 +1430,15 @@
     }
     function initMermaid(root) {
         if (typeof mermaid === 'undefined')
-            return;
+            return Promise.resolve();
         var els = Array.from((root || document).querySelectorAll('.obsidian-mermaid:not([data-mermaid-processed])'));
         if (!els.length)
-            return;
+            return Promise.resolve();
         els.forEach(function (el) { el.setAttribute('data-mermaid-processed', 'true'); });
         try {
             if (typeof mermaid.run === 'function') {
                 /* Mermaid v10+: run() returns a Promise */
-                mermaid.run({ nodes: els }).then(function () {
+                return mermaid.run({ nodes: els }).then(function () {
                     els.forEach(_wrapMermaidDiagram);
                 }).catch(function (e) {
                     console.warn('[obsidian-markdown-it] Mermaid render error:', e);
@@ -1415,6 +1465,7 @@
         catch (e) {
             console.warn('[obsidian-markdown-it] Mermaid render error:', e);
         }
+        return Promise.resolve();
     }
     function initDesmos(root) {
         if (!window.Desmos || typeof window.Desmos.GraphingCalculator !== 'function')
@@ -1959,7 +2010,6 @@
             if (viewportW < 600) {
                 baseW = Math.min(maxW, viewportW - 30);
             }
-            baseW *= 0.3; /* Adjust overall size (0.3 is a good balance for most cases) */
             var baseH = Math.round(baseW / ratio);
             /* Write explicit pixel width/height so fitToView can read them with
                getAttribute — same pattern Mermaid uses, avoids CSS sizing conflicts */
@@ -2228,14 +2278,19 @@
             var body = bodyLines.join('\n').trimRight();
             if (body.indexOf('\\end{document}') === -1)
                 body += '\n\\end{document}';
-            return { preamble: preamble.join('') + '\\begin{document}', body: body };
+            var preambleText = preamble.join('');
+            // TikZJax omits the typewriter italic font, so use its bundled Roman italic face.
+            preambleText += '\\DeclareFontShape{OT1}{cmtt}{m}{it}{<->ssub*cmr/m/it}{}';
+            return { preamble: preambleText + '\\begin{document}', body: body };
         }
         var el = root || document;
         el.querySelectorAll('.tikz-source:not([data-tikz-rendered])').forEach(function (div) {
             div.setAttribute('data-tikz-rendered', 'true');
             var wrapper = div.closest('.tikz-wrapper') || div.parentNode;
             var rawSource = div.textContent;
-            var parsed = extractPreamble(rawSource);
+            // Render middle dots through the math-symbol font instead of the missing text glyph.
+            var tikzSource = rawSource.replace(/\u00b7/g, '\\ensuremath{\\cdot}');
+            var parsed = extractPreamble(tikzSource);
             var s = document.createElement('script');
             s.type = 'text/tikz';
             s.setAttribute('data-add-to-preamble', parsed.preamble);
