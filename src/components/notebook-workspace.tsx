@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
 import { MarkdownReader } from "@/components/markdown-reader";
@@ -11,24 +12,11 @@ import {
   CLIENT_SESSION_CHANGE_EVENT,
   type AuthenticatedClientIdentity,
 } from "@/lib/client-session";
+import { COLOR_TOKENS, isThemePreset, type ThemePreset } from "@/lib/theme-tokens";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type LibraryId = "lowersecondary" | "science" | "commerce" | "humanities" | "developer";
 type StreamRoute = "lowersecondary" | "science" | "commerce" | "humanities" | "developers";
-type ThemePreset =
-  | "midnight" | "paper" | "forest" | "violet"
-  | "navy-silver" | "forest-cream" | "charcoal-gold" | "plum-blush" | "teal-sand" | "maroon-ivory"
-  | "midnight-aurora" | "sunset" | "ocean" | "meadow" | "royal" | "espresso";
-type ColorTokens = {
-  background: string;
-  surface: string;
-  main: string;
-  accent: string;
-  partner: string;
-  highlight: string;
-  text: string;
-  muted: string;
-};
 type ThemeGroup = { label: string; presets: ThemePreset[] };
 type FileFilter = "all" | "markdown" | "pdf" | "other";
 type FileSort = "recommended" | "name-asc" | "name-desc";
@@ -93,71 +81,6 @@ const STORAGE_KEY = "notebooks:v2:client-session";
 const FILE_HISTORY_LIMIT = 100;
 const sessionListeners = new Set<() => void>();
 let memorySession: string | null = null;
-const MONOTONE_TOKENS: Record<Extract<ThemePreset, "midnight" | "paper" | "forest" | "violet">, Record<"light" | "dark", ColorTokens>> = {
-  midnight: {
-    dark: { background: "#0b1118", surface: "#121c26", main: "#76e0bd", accent: "#76e0bd", partner: "#9bb9b0", highlight: "#d8fff1", text: "#e7f2ef", muted: "#a7bbb6" },
-    light: { background: "#f3f7f5", surface: "#ffffff", main: "#087f5b", accent: "#087f5b", partner: "#466e60", highlight: "#1d5948", text: "#182b26", muted: "#52675f" },
-  },
-  paper: {
-    dark: { background: "#191714", surface: "#24211c", main: "#f2bd78", accent: "#f2bd78", partner: "#ceb997", highlight: "#ffe2b4", text: "#f5eee2", muted: "#c5b9a7" },
-    light: { background: "#fbf7ef", surface: "#fffdf8", main: "#a65c16", accent: "#a65c16", partner: "#725b3c", highlight: "#75400e", text: "#2b251e", muted: "#6d6252" },
-  },
-  forest: {
-    dark: { background: "#0c1713", surface: "#13231b", main: "#a8d875", accent: "#a8d875", partner: "#bfdba5", highlight: "#e0ffc0", text: "#eaf3e4", muted: "#b2c2aa" },
-    light: { background: "#f2f7ee", surface: "#ffffff", main: "#4b7f2a", accent: "#4b7f2a", partner: "#526a43", highlight: "#315b1b", text: "#1d2b19", muted: "#5e7055" },
-  },
-  violet: {
-    dark: { background: "#12111d", surface: "#1c1a2a", main: "#c5a4ff", accent: "#c5a4ff", partner: "#d6c3f4", highlight: "#efdbff", text: "#f1edfc", muted: "#bbb3cb" },
-    light: { background: "#f7f4fc", surface: "#ffffff", main: "#7046b5", accent: "#7046b5", partner: "#65548a", highlight: "#4e2c89", text: "#29233a", muted: "#655d77" },
-  },
-};
-
-function makePaletteTokens(
-  main: string,
-  partner: string,
-  highlight: string,
-  darkBackground: string,
-  lightBackground: string,
-): Record<"light" | "dark", ColorTokens> {
-  return {
-    dark: {
-      background: darkBackground,
-      surface: `color-mix(in srgb, ${darkBackground} 80%, white)`,
-      main,
-      accent: highlight,
-      partner,
-      highlight,
-      text: "#f5f7fb",
-      muted: "#b5becb",
-    },
-    light: {
-      background: lightBackground,
-      surface: "#ffffff",
-      main,
-      accent: main,
-      partner,
-      highlight,
-      text: "#1c2430",
-      muted: "#566170",
-    },
-  };
-}
-
-const COLOR_TOKENS: Record<ThemePreset, Record<"light" | "dark", ColorTokens>> = {
-  ...MONOTONE_TOKENS,
-  "navy-silver": makePaletteTokens("#1E3A8A", "#CBD5E1", "#93C5FD", "#0c1428", "#f3f6fb"),
-  "forest-cream": makePaletteTokens("#166534", "#FEF3C7", "#A3E635", "#0b1c13", "#f4f7ed"),
-  "charcoal-gold": makePaletteTokens("#27272A", "#F59E0B", "#FCD34D", "#111113", "#f5f5f5"),
-  "plum-blush": makePaletteTokens("#6B21A8", "#FBCFE8", "#E9A8FF", "#1a1025", "#faf4fb"),
-  "teal-sand": makePaletteTokens("#0F766E", "#E7D5B5", "#7DD3C7", "#0b1b1a", "#f4f7f5"),
-  "maroon-ivory": makePaletteTokens("#7F1D1D", "#FAF5E9", "#FCA5A5", "#211112", "#faf7f0"),
-  "midnight-aurora": makePaletteTokens("#4338CA", "#2DD4BF", "#F472B6", "#10102b", "#f4f3fc"),
-  sunset: makePaletteTokens("#EA580C", "#E11D48", "#7C3AED", "#24110f", "#fff5f1"),
-  ocean: makePaletteTokens("#0C4A6E", "#22D3EE", "#FB7185", "#081c2a", "#eff9fc"),
-  meadow: makePaletteTokens("#15803D", "#BEF264", "#38BDF8", "#0c2118", "#f3f9ef"),
-  royal: makePaletteTokens("#5B21B6", "#FBBF24", "#E2E8F0", "#19102b", "#f7f4fc"),
-  espresso: makePaletteTokens("#78350F", "#FEF3C7", "#EA580C", "#21140e", "#fbf6ed"),
-};
 
 const THEME_GROUPS: ThemeGroup[] = [
   { label: "Monotone", presets: ["midnight", "paper", "forest", "violet"] },
@@ -262,10 +185,6 @@ function libraryIdFromRoute(value: string): LibraryId | null {
   return isLibraryId(value) ? value : null;
 }
 
-function isThemePreset(value: unknown): value is ThemePreset {
-  return typeof value === "string" && Object.hasOwn(COLOR_TOKENS, value);
-}
-
 function isFileLookup(value: unknown): value is FileLookup {
   if (!value || typeof value !== "object") return false;
   const file = value as Partial<FileLookup>;
@@ -276,6 +195,20 @@ function isFileLookup(value: unknown): value is FileLookup {
     && typeof file.repository === "string"
     && typeof file.repositoryId === "string"
     && typeof file.root === "string";
+}
+
+function markdownReaderHref(file: FileLookup, returnTo: string): string | null {
+  if (!/\.(?:md|markdown|mdx)$/i.test(file.filePath)) return null;
+  const [owner, repository, ...extra] = file.repository.split("/");
+  if (!owner || !repository || extra.length > 0) return null;
+  const params = new URLSearchParams({
+    owner,
+    repo: repository,
+    path: file.filePath,
+    branch: file.branch,
+    returnTo,
+  });
+  return `/read?${params.toString()}`;
 }
 
 function parseSession(serialized: string | null): ClientSession | null {
@@ -349,6 +282,7 @@ function streamTitle(stream: string): string {
 }
 
 export function NotebookWorkspace({ initialStream }: { initialStream: string }) {
+  const router = useRouter();
   const stream: LibraryId | "home" | "account" = initialStream === "account"
     ? "account"
     : libraryIdFromRoute(initialStream) ?? "home";
@@ -562,16 +496,26 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const openFile = useCallback((key: string, file: FileLookup) => {
     selectFile(key, file);
     if (isLibraryId(stream)) recordOpenedFile(key, file, stream);
+    const readerHref = markdownReaderHref(file, `/${stream === "developer" ? "developers" : stream}`);
+    if (readerHref) {
+      router.push(readerHref);
+      return;
+    }
     setReaderFile(file);
-  }, [recordOpenedFile, selectFile, stream]);
+  }, [recordOpenedFile, router, selectFile, stream]);
 
   const openHistoryFile = useCallback((item: FileHistoryEntry) => {
     const directory = item.file.filePath.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
     setExplorerLocation({ stream: item.stream, repository: item.file.repository, directory });
     setActiveFile({ key: item.key, file: item.file, stream: item.stream });
     recordOpenedFile(item.key, item.file, item.stream);
+    const readerHref = markdownReaderHref(item.file, `/${item.stream === "developer" ? "developers" : item.stream}`);
+    if (readerHref) {
+      router.push(readerHref);
+      return;
+    }
     setReaderFile(item.file);
-  }, [recordOpenedFile]);
+  }, [recordOpenedFile, router]);
   const closeReader = useCallback(() => setReaderFile(null), []);
 
   const visibleFiles = useMemo(() => {
@@ -844,6 +788,20 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                 <span className="anonymous-badge"><i /> {session?.identity ? "SIGNED IN" : "ANONYMOUS"}</span>
               </header>
 
+              <section className="account-upgrade" aria-labelledby="account-upgrade-title">
+                <div><span className="eyebrow">{session?.identity ? "ACCOUNT" : "MORE FOR YOU"}</span><h2 id="account-upgrade-title">{session?.identity ? "Your account is ready." : "Take your study space with you."}</h2><p>{session?.identity
+                  ? `Your permanent User ID is ${session.identity.userId}. Your recent history currently stays on this device.`
+                  : "Create an account to establish a persistent identity and access account-based features. Your recent history currently stays on this device."}</p></div>
+                <div className="account-upgrade-actions">
+                  {session?.identity
+                    ? <Link className="primary-button" href="/account/settings">Account settings <span>→</span></Link>
+                    : <>
+                      <Link className="primary-button" href="/register">Create an account <span>↗</span></Link>
+                      <Link className="account-login-link" href="/login">Already have an account? Sign in</Link>
+                    </>}
+                </div>
+              </section>
+
               <section className="account-identity" aria-label="Account identifiers">
                 <div className="account-identity-card">
                   <span className="account-field-label">USER NAME</span>
@@ -864,6 +822,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                 </div>
               </section>
 
+              <div className="account-history-grid">
               <section className="account-history-section" aria-labelledby="recent-history-title">
                 <div className="account-section-heading">
                   <div><span className="eyebrow">YOUR READING</span><h2 id="recent-history-title">Recent history</h2></div>
@@ -900,20 +859,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                   <p className="account-empty-history">Open a few files and your most-read resources will show up here.</p>
                 )}
               </section>
-
-              <section className="account-upgrade" aria-labelledby="account-upgrade-title">
-                <div><span className="eyebrow">{session?.identity ? "ACCOUNT" : "MORE FOR YOU"}</span><h2 id="account-upgrade-title">{session?.identity ? "Your account is ready." : "Take your study space with you."}</h2><p>{session?.identity
-                  ? `Your permanent User ID is ${session.identity.userId}. Your recent history currently stays on this device.`
-                  : "Create an account to establish a persistent identity and access account-based features. Your recent history currently stays on this device."}</p></div>
-                <div className="account-upgrade-actions">
-                  {session?.identity
-                    ? <Link className="primary-button" href="/account/settings">Account settings <span>→</span></Link>
-                    : <>
-                      <Link className="primary-button" href="/register">Create an account <span>↗</span></Link>
-                      <Link className="account-login-link" href="/login">Already have an account? Sign in</Link>
-                    </>}
-                </div>
-              </section>
+              </div>
             </div>
           ) : (
             <div className="library-view">

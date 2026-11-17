@@ -77,6 +77,7 @@ export async function servePublicContent(request: Request, kind: ContentKind): P
       "X-Content-Type-Options": "nosniff",
       "X-File-SHA": file.fileSha,
       "X-Repository": `${file.owner}/${file.repository}`,
+      "X-Repository-Branch": file.branch,
     });
     if (contentType === "image/svg+xml") {
       headers.set("Content-Security-Policy", "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'");
