@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export interface AuthenticatedAccount {
   accountId: string;
+  userName: string;
   role: "admin" | "user";
   user: User;
 }
@@ -20,12 +21,13 @@ export async function getAuthenticatedAccount(request: Request): Promise<Authent
 
   const { data: account, error: accountError } = await supabase
     .from("accounts")
-    .select("account_id, role")
+    .select("account_id, role, user_name")
     .eq("auth_user_id", userData.user.id)
     .maybeSingle();
   if (accountError) throw new Error(`Unable to verify application account: ${accountError.message}`);
   if (!account || typeof account.account_id !== "string"
+      || typeof account.user_name !== "string"
       || (account.role !== "admin" && account.role !== "user")) return null;
 
-  return { accountId: account.account_id, role: account.role, user: userData.user };
+  return { accountId: account.account_id, userName: account.user_name, role: account.role, user: userData.user };
 }

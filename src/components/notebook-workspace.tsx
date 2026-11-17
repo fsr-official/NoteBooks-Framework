@@ -4,6 +4,14 @@ import Link from "next/link";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
 import { MarkdownReader } from "@/components/markdown-reader";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  bindAuthenticatedClientSession,
+  clearAuthenticatedClientIdentity,
+  CLIENT_SESSION_CHANGE_EVENT,
+  type AuthenticatedClientIdentity,
+} from "@/lib/client-session";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type LibraryId = "lowersecondary" | "science" | "commerce" | "humanities" | "developer";
 type StreamRoute = "lowersecondary" | "science" | "commerce" | "humanities" | "developers";
@@ -53,7 +61,16 @@ interface IndexResponse<T> {
   entries: Record<string, T>;
 }
 
+interface FileHistoryEntry {
+  file: FileLookup;
+  key: string;
+  lastOpenedAt: string;
+  openCount: number;
+  stream: LibraryId;
+}
+
 interface Preferences {
+  fileHistory: FileHistoryEntry[];
   preset: ThemePreset;
   mode: "light" | "dark";
   customAccent: string;
@@ -62,6 +79,7 @@ interface Preferences {
 
 interface ClientSession {
   id: string;
+  identity?: AuthenticatedClientIdentity | null;
   preferences: Preferences;
 }
 
@@ -72,6 +90,7 @@ interface ExplorerLocation {
 }
 
 const STORAGE_KEY = "notebooks:v2:client-session";
+const FILE_HISTORY_LIMIT = 100;
 const sessionListeners = new Set<() => void>();
 let memorySession: string | null = null;
 const MONOTONE_TOKENS: Record<Extract<ThemePreset, "midnight" | "paper" | "forest" | "violet">, Record<"light" | "dark", ColorTokens>> = {
@@ -165,13 +184,14 @@ const STREAMS: Array<{ id: LibraryId; route: StreamRoute; title: string; eyebrow
 const LANDING_STREAMS = STREAMS.filter((item) => item.id !== "developer");
 const NAV_STREAMS = STREAMS.filter((item) => item.id !== "developer");
 const EMPTY_PREFERENCES: Preferences = {
+  fileHistory: [],
   preset: "midnight",
   mode: "dark",
   customAccent: "",
   customBackground: "",
 };
-const USERNAME_ADJECTIVES = ["Curious", "Quiet", "Bright", "Clever", "Kind", "Merry", "Calm", "Keen"];
-const USERNAME_NOUNS = ["Otter", "Finch", "Fox", "Koala", "Robin", "Panda", "Badger", "Orca"];
+const USER_NAME_ADJECTIVES = ["Curious", "Quiet", "Bright", "Clever", "Kind", "Merry", "Calm", "Keen"];
+const USER_NAME_NOUNS = ["Otter", "Finch", "Fox", "Koala", "Robin", "Panda", "Badger", "Orca"];
 
 function createSessionId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -185,19 +205,25 @@ function createSessionId(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-function sessionUsername(sessionId: string): string {
+function sessionUserName(sessionId: string): string {
   const seed = sessionId.replace(/-/g, "");
   const first = Number.parseInt(seed.slice(0, 8), 16) || 0;
   const second = Number.parseInt(seed.slice(8, 16), 16) || 0;
-  return `${USERNAME_ADJECTIVES[first % USERNAME_ADJECTIVES.length]} ${USERNAME_NOUNS[second % USERNAME_NOUNS.length]}`;
+  return `${USER_NAME_ADJECTIVES[first % USER_NAME_ADJECTIVES.length]} ${USER_NAME_NOUNS[second % USER_NAME_NOUNS.length]}`;
 }
 
 function subscribeToSession(listener: () => void): () => void {
   sessionListeners.add(listener);
-  if (typeof window !== "undefined") window.addEventListener("storage", listener);
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", listener);
+    window.addEventListener(CLIENT_SESSION_CHANGE_EVENT, listener);
+  }
   return () => {
     sessionListeners.delete(listener);
-    if (typeof window !== "undefined") window.removeEventListener("storage", listener);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("storage", listener);
+      window.removeEventListener(CLIENT_SESSION_CHANGE_EVENT, listener);
+    }
   };
 }
 
@@ -221,6 +247,7 @@ function saveSession(session: ClientSession): void {
   } catch {
     // Keep preferences available in memory when browser storage is disabled.
   }
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(CLIENT_SESSION_CHANGE_EVENT));
   sessionListeners.forEach((listener) => listener());
 }
 
@@ -239,6 +266,18 @@ function isThemePreset(value: unknown): value is ThemePreset {
   return typeof value === "string" && Object.hasOwn(COLOR_TOKENS, value);
 }
 
+function isFileLookup(value: unknown): value is FileLookup {
+  if (!value || typeof value !== "object") return false;
+  const file = value as Partial<FileLookup>;
+  return typeof file.branch === "string"
+    && typeof file.fileName === "string"
+    && typeof file.filePath === "string"
+    && typeof file.fileSha === "string"
+    && typeof file.repository === "string"
+    && typeof file.repositoryId === "string"
+    && typeof file.root === "string";
+}
+
 function parseSession(serialized: string | null): ClientSession | null {
   if (!serialized) return null;
   try {
@@ -253,13 +292,33 @@ function parseSession(serialized: string | null): ClientSession | null {
       || candidate.preferences === null
     ) return null;
 
-    const saved = candidate.preferences as Partial<Preferences> & { lastWork?: unknown };
+    const saved = candidate.preferences as Partial<Preferences> & { fileHistory?: unknown; lastWork?: unknown };
+    const savedIdentity = "identity" in candidate ? candidate.identity : null;
+    const identity = savedIdentity && typeof savedIdentity === "object"
+      && "authUserId" in savedIdentity && typeof savedIdentity.authUserId === "string"
+      && "userId" in savedIdentity && typeof savedIdentity.userId === "string"
+      ? savedIdentity as AuthenticatedClientIdentity
+      : null;
+    const fileHistory = Array.isArray(saved.fileHistory)
+      ? saved.fileHistory.filter((item): item is FileHistoryEntry => (
+        Boolean(item)
+        && typeof item === "object"
+        && isLibraryId((item as FileHistoryEntry).stream)
+        && typeof (item as FileHistoryEntry).key === "string"
+        && isFileLookup((item as FileHistoryEntry).file)
+        && typeof (item as FileHistoryEntry).lastOpenedAt === "string"
+        && Number.isInteger((item as FileHistoryEntry).openCount)
+        && (item as FileHistoryEntry).openCount > 0
+      )).slice(0, FILE_HISTORY_LIMIT)
+      : [];
     Reflect.deleteProperty(saved, "lastWork");
     return {
       id: candidate.id,
+      identity,
       preferences: {
         ...EMPTY_PREFERENCES,
         ...saved,
+        fileHistory,
         preset: isThemePreset(saved.preset) ? saved.preset : "midnight",
         mode: saved.mode === "light" ? "light" : "dark",
         customAccent: typeof saved.customAccent === "string" && /^#[\da-f]{6}$/i.test(saved.customAccent) ? saved.customAccent : "",
@@ -290,7 +349,9 @@ function streamTitle(stream: string): string {
 }
 
 export function NotebookWorkspace({ initialStream }: { initialStream: string }) {
-  const stream: LibraryId | "home" = libraryIdFromRoute(initialStream) ?? "home";
+  const stream: LibraryId | "home" | "account" = initialStream === "account"
+    ? "account"
+    : libraryIdFromRoute(initialStream) ?? "home";
   const sessionSnapshot = useSyncExternalStore(subscribeToSession, getSessionSnapshot, getServerSessionSnapshot);
   const session = useMemo(() => parseSession(sessionSnapshot), [sessionSnapshot]);
   const [files, setFiles] = useState<Record<string, FileLookup>>({});
@@ -303,6 +364,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const [explorerLocation, setExplorerLocation] = useState<ExplorerLocation | null>(null);
   const [indexState, setIndexState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [indexError, setIndexError] = useState("");
+  const [authBindingError, setAuthBindingError] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const indexCache = useRef(new Map<LibraryId, Record<string, FileLookup>>());
   const repoCache = useRef<Record<string, RepositoryLookup> | null>(null);
@@ -312,6 +374,64 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
       saveSession({ id: createSessionId(), preferences: EMPTY_PREFERENCES });
     }
   }, [session]);
+
+  useEffect(() => {
+    let active = true;
+    let bindingInProgress = false;
+    let supabase: SupabaseClient;
+    try {
+      supabase = getSupabaseBrowserClient();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Authentication is not configured.";
+      console.error("Supabase authentication is unavailable", error);
+      window.setTimeout(() => {
+        if (active) setAuthBindingError(message);
+      }, 0);
+      return () => { active = false; };
+    }
+    const bindSession = async (accessToken: string, authUserId: string) => {
+      const current = parseSession(getSessionSnapshot());
+      if (current?.identity?.authUserId === authUserId || bindingInProgress) return;
+      bindingInProgress = true;
+      try {
+        await bindAuthenticatedClientSession(accessToken);
+        if (active) setAuthBindingError("");
+      } catch (error) {
+        if (active) {
+          clearAuthenticatedClientIdentity();
+          setAuthBindingError(error instanceof Error ? error.message : "Unable to link this browser session to your account.");
+          console.error("Unable to bind the signed-in browser session", error);
+        }
+      } finally {
+        bindingInProgress = false;
+      }
+    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, authSession) => {
+      if (!authSession) {
+        clearAuthenticatedClientIdentity();
+        setAuthBindingError("");
+        return;
+      }
+      void bindSession(authSession.access_token, authSession.user.id);
+    });
+    void supabase.auth.getSession()
+      .then(({ data, error }) => {
+        if (error) throw error;
+        if (data.session) return bindSession(data.session.access_token, data.session.user.id);
+        clearAuthenticatedClientIdentity();
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setAuthBindingError(error instanceof Error ? error.message : "Unable to check your sign-in status.");
+          console.error("Unable to check the signed-in browser session", error);
+        }
+      });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const route = stream === "home" ? "/" : stream === "developer" ? "/developers" : `/${stream}`;
@@ -408,7 +528,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   }, []);
 
   useEffect(() => {
-    if (stream === "home") {
+    if (stream === "home" || stream === "account") {
       return;
     }
     const controller = new AbortController();
@@ -420,6 +540,17 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
     if (session) saveSession({ ...session, preferences: { ...session.preferences, ...update } });
   }, [session]);
 
+  const recordOpenedFile = useCallback((key: string, file: FileLookup, fileStream: LibraryId) => {
+    const existing = session?.preferences.fileHistory ?? [];
+    const openedAt = new Date().toISOString();
+    const previous = existing.find((item) => item.key === key && item.stream === fileStream);
+    const fileHistory: FileHistoryEntry[] = [
+      { file, key, lastOpenedAt: openedAt, openCount: (previous?.openCount ?? 0) + 1, stream: fileStream },
+      ...existing.filter((item) => item.key !== key || item.stream !== fileStream),
+    ].slice(0, FILE_HISTORY_LIMIT);
+    updatePreferences({ fileHistory });
+  }, [session, updatePreferences]);
+
   const selectFile = useCallback((key: string, file: FileLookup) => {
     if (!isLibraryId(stream)) return;
     const filePath = file.filePath.replace(/\\/g, "/");
@@ -430,8 +561,17 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
 
   const openFile = useCallback((key: string, file: FileLookup) => {
     selectFile(key, file);
+    if (isLibraryId(stream)) recordOpenedFile(key, file, stream);
     setReaderFile(file);
-  }, [selectFile]);
+  }, [recordOpenedFile, selectFile, stream]);
+
+  const openHistoryFile = useCallback((item: FileHistoryEntry) => {
+    const directory = item.file.filePath.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
+    setExplorerLocation({ stream: item.stream, repository: item.file.repository, directory });
+    setActiveFile({ key: item.key, file: item.file, stream: item.stream });
+    recordOpenedFile(item.key, item.file, item.stream);
+    setReaderFile(item.file);
+  }, [recordOpenedFile]);
   const closeReader = useCallback(() => setReaderFile(null), []);
 
   const visibleFiles = useMemo(() => {
@@ -484,6 +624,11 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   }, [files, repositories]);
 
   const activeTheme = session?.preferences ?? EMPTY_PREFERENCES;
+  const fileHistory = activeTheme.fileHistory;
+  const frequentFiles = useMemo(
+    () => [...fileHistory].sort((left, right) => right.openCount - left.openCount || right.lastOpenedAt.localeCompare(left.lastOpenedAt)).slice(0, 5),
+    [fileHistory],
+  );
   const currentExplorer = explorerLocation?.stream === stream ? explorerLocation : null;
   const selectedRepository = currentExplorer?.repository ?? null;
   const currentDirectory = currentExplorer?.directory ?? "";
@@ -547,22 +692,27 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
               <span>{item.title}</span>
             </Link>
           ))}
-          <Link className="nav-link auth-nav-link" href="/account">Account</Link>
+          <Link className={`nav-link auth-nav-link ${stream === "account" ? "active" : ""}`} href="/account">Account</Link>
           <Link className="nav-link auth-nav-join" href="/register">Join</Link>
         </nav>
       </header>
 
-      <div className="workspace-layout">
+      <div className={`workspace-layout ${stream === "home" ? "home-layout" : ""}`}>
         <aside className="side-rail">
           <div className="session-profile">
             <div className="session-avatar" aria-hidden="true">
-              {session ? sessionUsername(session.id).slice(0, 1) : "?"}
+              {session?.identity?.userId.slice(0, 1) ?? (session ? sessionUserName(session.id).slice(0, 1) : "?")}
             </div>
-            <span className="session-profile-label">YOUR SESSION</span>
-            <strong>{session ? sessionUsername(session.id) : "Your study space"}</strong>
+            <span className="session-profile-label">USER NAME</span>
+            <strong>{session?.identity?.userName ?? (session ? sessionUserName(session.id) : "Your study space")}</strong>
+            {session?.identity && <>
+              <span className="session-id-label">USER ID</span>
+              <code className="session-id">{session.identity.userId}</code>
+            </>}
             <span className="session-id-label">SESSION ID</span>
             <code className="session-id">{session?.id ?? "Creating session…"}</code>
-            <p>Your themes and reading place stay in this browser.</p>
+            <p>{session?.identity ? "You are signed in. Your study session and theme stay in this browser." : "Your anonymous study session and theme stay in this browser."}</p>
+            {authBindingError && <p className="auth-feedback auth-error" role="alert">{authBindingError}</p>}
           </div>
           <section className="sidebar-theme" aria-label="Theme settings">
             <div className="sidebar-theme-heading">
@@ -664,7 +814,106 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                 ))}
               </section>
 
+              <section className="home-account-section" aria-labelledby="home-account-title">
+                <div>
+                  <span className="eyebrow"><span className="eyebrow-line" /> YOUR STUDY SPACE</span>
+                  <h2 id="home-account-title">Keep your learning close.</h2>
+                  <p>{session?.identity
+                    ? `You’re signed in with User ID ${session.identity.userId}. Your reading history stays on this device.`
+                    : "Your anonymous session keeps a local reading history. Create an account to establish a persistent identity and access account features."}</p>
+                </div>
+                <div className="home-account-actions">
+                  <Link className="account-dashboard-link" href="/account">View your account <span aria-hidden="true">→</span></Link>
+                  <Link className="account-signup-link" href={session?.identity ? "/account/settings" : "/register"}>
+                    {session?.identity ? "Account settings" : "Create an account"} <span aria-hidden="true">{session?.identity ? "→" : "↗"}</span>
+                  </Link>
+                </div>
+              </section>
               <footer className="home-footer"><span>NoteBooks <b>·</b> A shared shelf for curious minds.</span><span>SESSION {session?.id.slice(0, 8).toUpperCase() ?? "--------"}</span></footer>
+            </div>
+          ) : stream === "account" ? (
+            <div className="account-dashboard">
+              <header className="account-dashboard-heading">
+                <div>
+                  <span className="eyebrow"><Link href="/">HOME</Link> <b>/</b> ACCOUNT</span>
+                  <h1>Your study space</h1>
+                  <p>{session?.identity
+                    ? "Your account is signed in on this browser. Your reading history currently stays on this device."
+                    : "This anonymous study space lives in this browser. Sign in or create an account to access more features."}</p>
+                </div>
+                <span className="anonymous-badge"><i /> {session?.identity ? "SIGNED IN" : "ANONYMOUS"}</span>
+              </header>
+
+              <section className="account-identity" aria-label="Account identifiers">
+                <div className="account-identity-card">
+                  <span className="account-field-label">USER NAME</span>
+                  <strong>{session?.identity?.userName ?? (session ? sessionUserName(session.id) : "Creating your User Name…")}</strong>
+                  <small>{session?.identity ? "Your editable display name" : "Your anonymous, browser-local display name"}</small>
+                </div>
+                {session?.identity && (
+                  <div className="account-identity-card">
+                    <span className="account-field-label">USER ID</span>
+                    <strong>{session.identity.userId}</strong>
+                    <small>Your permanent account identifier</small>
+                  </div>
+                )}
+                <div className="account-identity-card">
+                  <span className="account-field-label">SESSION ID</span>
+                  <strong className="account-session-id">{session?.id ?? "Creating your Session ID…"}</strong>
+                  <small>Used to keep this browser’s preferences and history together</small>
+                </div>
+              </section>
+
+              <section className="account-history-section" aria-labelledby="recent-history-title">
+                <div className="account-section-heading">
+                  <div><span className="eyebrow">YOUR READING</span><h2 id="recent-history-title">Recent history</h2></div>
+                  {fileHistory.length > 0 && <button className="account-clear-button" type="button" onClick={() => updatePreferences({ fileHistory: [] })}>Clear history</button>}
+                </div>
+                {fileHistory.length > 0 ? (
+                  <div className="account-history-list">
+                    {fileHistory.slice(0, 10).map((item) => (
+                      <button className="account-history-row" key={`${item.stream}:${item.key}`} type="button" onClick={() => openHistoryFile(item)}>
+                        <span className="account-history-type">{getFileTypeBadge(item.file.fileName).label}</span>
+                        <span className="account-history-copy"><strong>{item.file.fileName}</strong><small>{streamTitle(item.stream)} · {item.file.repository} · Opened {new Date(item.lastOpenedAt).toLocaleString()}</small></span>
+                        <span className="file-open" aria-hidden="true">›</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="account-empty-history">Files you open will appear here. Your history stays on this device and can be cleared any time.</p>
+                )}
+              </section>
+
+              <section className="account-history-section" aria-labelledby="frequent-files-title">
+                <div className="account-section-heading"><div><span className="eyebrow">YOUR STUDY HABITS</span><h2 id="frequent-files-title">Most frequently opened</h2></div></div>
+                {frequentFiles.length > 0 ? (
+                  <div className="account-history-list">
+                    {frequentFiles.map((item) => (
+                      <button className="account-history-row" key={`${item.stream}:${item.key}`} type="button" onClick={() => openHistoryFile(item)}>
+                        <span className="account-history-type">{item.openCount}×</span>
+                        <span className="account-history-copy"><strong>{item.file.fileName}</strong><small>{streamTitle(item.stream)} · {item.file.repository}</small></span>
+                        <span className="file-open" aria-hidden="true">›</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="account-empty-history">Open a few files and your most-read resources will show up here.</p>
+                )}
+              </section>
+
+              <section className="account-upgrade" aria-labelledby="account-upgrade-title">
+                <div><span className="eyebrow">{session?.identity ? "ACCOUNT" : "MORE FOR YOU"}</span><h2 id="account-upgrade-title">{session?.identity ? "Your account is ready." : "Take your study space with you."}</h2><p>{session?.identity
+                  ? `Your permanent User ID is ${session.identity.userId}. Your recent history currently stays on this device.`
+                  : "Create an account to establish a persistent identity and access account-based features. Your recent history currently stays on this device."}</p></div>
+                <div className="account-upgrade-actions">
+                  {session?.identity
+                    ? <Link className="primary-button" href="/account/settings">Account settings <span>→</span></Link>
+                    : <>
+                      <Link className="primary-button" href="/register">Create an account <span>↗</span></Link>
+                      <Link className="account-login-link" href="/login">Already have an account? Sign in</Link>
+                    </>}
+                </div>
+              </section>
             </div>
           ) : (
             <div className="library-view">

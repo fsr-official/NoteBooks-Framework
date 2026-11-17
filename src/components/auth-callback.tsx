@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { bindAuthenticatedClientSession } from "@/lib/client-session";
 
 function safeNextPath(value: string | null): string {
   return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
@@ -30,7 +31,7 @@ function CallbackContent() {
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) throw exchangeError;
-        } else if (tokenHash && (type === "signup" || type === "email")) {
+        } else if (tokenHash && (type === "signup" || type === "email" || type === "email_change" || type === "recovery")) {
           const { error: verifyError } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type,
@@ -47,18 +48,15 @@ function CallbackContent() {
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!userData.user) throw new Error("Unable to verify the signed-in account.");
-        const { data: account, error: accountError } = await supabase
-          .from("accounts")
-          .select("account_id")
-          .eq("auth_user_id", userData.user.id)
-          .single();
-        if (accountError) throw accountError;
-        if (/^user-[a-f0-9]{12}$/.test(account.account_id)) {
-          router.replace(`/account/setup?next=${encodeURIComponent(nextPath)}`);
+        const boundAccount = await bindAuthenticatedClientSession(sessionData.session.access_token);
+        if (boundAccount.needsSetup) {
+          const setupParams = new URLSearchParams({ next: nextPath });
+          if (boundAccount.githubUsername) setupParams.set("suggested", boundAccount.githubUsername);
+          router.replace(`/account/setup?${setupParams.toString()}`);
           return;
         }
         const linked = nextPath.startsWith("/account") && searchParams.get("next")?.includes("linked=github");
-        router.replace(linked ? "/account?linked=github" : nextPath);
+        router.replace(linked ? "/account/settings?linked=github" : nextPath);
       } catch (authError) {
         setError(authError instanceof Error ? authError.message : "Unable to complete sign-in.");
       }

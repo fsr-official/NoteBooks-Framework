@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { updateAuthenticatedClientProfile } from "@/lib/client-session";
 
 function safeReturnPath(value: string | null): string {
   return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
@@ -17,7 +18,9 @@ function AccountSetupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeReturnPath(searchParams.get("next"));
+  const suggestedId = searchParams.get("suggested");
   const [accountId, setAccountId] = useState("");
+  const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -43,7 +46,7 @@ function AccountSetupContent() {
         }
         const { data: account, error: accountError } = await supabase
           .from("accounts")
-          .select("account_id")
+          .select("account_id, user_name")
           .eq("auth_user_id", userData.user.id)
           .single();
         if (accountError) throw accountError;
@@ -52,7 +55,21 @@ function AccountSetupContent() {
           router.replace(nextPath);
           return;
         }
-        setAccountId(account.account_id);
+        const githubIdentity = userData.user.identities?.find((identity) => identity.provider === "github");
+        const githubIdentityData = githubIdentity?.identity_data ?? {};
+        const githubUsername = typeof githubIdentityData.user_name === "string"
+          ? githubIdentityData.user_name
+          : typeof githubIdentityData.login === "string"
+            ? githubIdentityData.login
+            : "";
+        const normalizedSuggestion = (suggestedId || githubUsername).trim().toLowerCase();
+        setAccountId(
+          isGeneratedAccountId(account.account_id)
+            && /^[a-z0-9][a-z0-9_-]{2,31}$/.test(normalizedSuggestion)
+            ? normalizedSuggestion
+            : account.account_id,
+        );
+        setUserName(isGeneratedAccountId(account.account_id) ? githubUsername || account.user_name : account.user_name);
       } catch (setupError) {
         if (active) {
           setError(setupError instanceof Error ? setupError.message : "Unable to load your account.");
@@ -62,7 +79,7 @@ function AccountSetupContent() {
       }
     })();
     return () => { active = false; };
-  }, [nextPath, router]);
+  }, [nextPath, router, suggestedId]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -81,16 +98,17 @@ function AccountSetupContent() {
           authorization: `Bearer ${sessionData.session.access_token}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ accountId }),
+        body: JSON.stringify({ accountId, userName }),
       });
-      const result = await response.json() as { accountId?: string; error?: string };
-      if (!response.ok) throw new Error(result.error || "Unable to save your username.");
+      const result = await response.json() as { accountId?: string; userName?: string; error?: string };
+      if (!response.ok) throw new Error(result.error || "Unable to save your User ID.");
+      if (result.accountId && result.userName) updateAuthenticatedClientProfile(result.accountId, result.userName);
 
       if (password) {
         const { error: passwordError } = await supabase.auth.updateUser({ password });
         if (passwordError) {
           setAccountId(result.accountId ?? accountId);
-          throw new Error(`Username saved, but the password could not be set: ${passwordError.message}`);
+          throw new Error(`Account details saved, but the password could not be set: ${passwordError.message}`);
         }
       }
       router.replace(nextPath);
@@ -108,25 +126,37 @@ function AccountSetupContent() {
           <span className="brand-mark">n</span><span>NoteBooks</span>
         </Link>
         <span className="eyebrow"><span className="eyebrow-line" /> FINISH YOUR ACCOUNT</span>
-        <h1>Choose your username.</h1>
-        <p className="auth-description">Your GitHub sign-in is ready. Set a username for your NoteBooks account, and optionally add a password for email sign-in.</p>
+        <h1>Choose your User ID.</h1>
+        <p className="auth-description">Your GitHub identity is linked. Choose a permanent User ID and display name, and optionally add a password for email sign-in.</p>
         {loading ? (
           <p className="auth-description" role="status">Loading your account…</p>
         ) : (
           <form className="auth-form" onSubmit={(event) => void submit(event)}>
             <label>
-              Username
+              User ID
               <input
                 autoComplete="username"
                 minLength={3}
                 maxLength={32}
-                pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{2,31}"
+                pattern="[a-zA-Z0-9](?:[a-zA-Z0-9_]|-){2,31}"
                 required
                 value={accountId}
                 onChange={(event) => setAccountId(event.target.value)}
                 placeholder="e.g. alex_studies"
               />
               <small>3–32 characters; letters, numbers, underscores, and hyphens.</small>
+            </label>
+            <label>
+              User Name
+              <input
+                autoComplete="nickname"
+                maxLength={40}
+                required
+                value={userName}
+                onChange={(event) => setUserName(event.target.value)}
+                placeholder="Your display name"
+              />
+              <small>Editable later and not required to be unique.</small>
             </label>
             <label>
               Password <span className="auth-optional">(optional)</span>

@@ -7,7 +7,8 @@ This plan records the current direction and will be expanded as requirements are
 - Develop NoteBooks Framework v2 as a separate project inspired by NoteBooks-Framework.
 - Keep the existing GitHub file-system conventions and API routes, including the raw and media paths.
 - Replace the existing `GITHUB-REPOSITORIES.md` and `files.json` build sequence, which is not intended to scale to larger systems.
-- Allow public account signup with a chosen account ID, email, and password; use Supabase Auth for credentials.
+- Give each account a permanent unique User ID and a separate editable, non-unique User Name; use Supabase Auth for credentials.
+- On GitHub OAuth, save the stable provider ID, suggest the GitHub username during account setup, and bind the browser session to the verified Auth user.
 - Give each account a role, default new accounts to `user`, and enforce a single designated `admin`.
 - Use Supabase to store repositories, responsible account IDs, latest commit SHAs, and last-updated dates.
 - Exclude Issues and Community repositories from the current scope; they should only be stored in Supabase if added in a later phase.
@@ -19,7 +20,7 @@ This plan records the current direction and will be expanded as requirements are
 - Create a shared repository-list configuration file specifying which repositories and branches to pull. It will be editable in the admin dashboard and read-only when available on the website, following the role of `GITHUB-REPOSITORIES.md` in NoteBooks-Documents.
 - Generate five section indexes (including one combined Lower Secondary group) and one `github_repositories` index from database state; publish keyed JSON and JSONL for each logical index.
 - Serve the generated indexes through cacheable Next.js routes backed by Redis rather than writing to the deployment filesystem.
-- Add a responsive non-rendering browser interface for all six indexes, with local theme preferences and last-file restoration tied to a random browser session ID.
+- Add a responsive non-rendering browser interface for all six indexes, with local theme preferences and file history tied to a random browser session ID. Opening a stream starts at its repository list; history is opened only when explicitly selected.
 
 ## Database-first implementation plan
 
@@ -35,12 +36,12 @@ Build and validate the database in small, reviewable migrations before expanding
 8. **Add synchronization after the schema is stable — signed fast path implemented.** Generate manifest SHAs with `share/fmtree.py`; call the signed repository-update endpoint from GitHub Actions; add scheduled/manual SHA reconciliation as the fallback. Verify retries are idempotent and cache failures can be retried.
 9. **Add account API keys and Markdown downloads — implementation and migration complete.** Create account-owned, hash-only API keys; rate-limit downloads per key; resolve catalog files, fetch pinned content, verify Git blob SHAs, and cache content by SHA. Exercise the full flow with a signed-in account.
 10. **Add the admin UI and production hardening — initial admin console implemented.** The private `/admin` console supports one-time admin bootstrap, repository CRUD/archive/restore and account assignment, manual QStash checks, index rebuild, privacy-preserving API/page metrics, service health, bounded sync-run history, and an admin audit trail. Apply the admin migration and configure production secrets; shared `GITHUB-REPOSITORIES.md` editing, scheduled SHA reconciliation, remote webhook verification, backups, and migration rollback/recovery remain.
-11. **Build the browser library — in place.** Home and five library routes consume public indexes, expose search and source links, and save themes plus last-work in a browser-local session.
+11. **Build the browser library — in place.** Home and five library routes consume public indexes, expose search and source links, and save themes plus clearable recent/frequent file history in a browser-local session. Stream navigation always starts at the repository list.
 12. **Integrate the Markdown reader — initial integration complete.** Double-click opens a reader overlay. Next.js owns fetching, the reader controls, outline, raw-source toggle, speech, and themes; the legacy browser renderer still handles Markdown-it/Obsidian syntax, MathJax, Mermaid, TikZJax, Desmos, and highlighting through lazy-loaded CDN/runtime scripts. The public raw/media routes resolve through Redis indexes, validate catalog membership, and verify Git blob SHAs; media also resolves verified Git LFS objects. DOMPurify sanitizes generated HTML before insertion. Continue validating diagrams/embeds with representative repositories, then gradually migrate self-contained renderer utilities into typed modules.
 
 ## Current decisions and open questions
 
-- **Decided:** use Supabase Auth for email/password credentials, with a chosen account ID as the human-facing login ID.
+- **Decided:** use Supabase Auth for credentials, with a permanent User ID and separate editable User Name.
 - **Decided:** ordinary signups get a user role; only one account is the admin.
 - **Decided:** use one shared repository/file catalog table, not a database table per repository. It will have one repository anchor row plus one linked row per file; this preserves empty repositories and stores file SHAs as queryable rows.
 - **Decided:** `account_id` on a repository anchor means the app account responsible for that repository; GitHub ownership is tracked separately by `repo_owner`.
@@ -53,5 +54,6 @@ Build and validate the database in small, reviewable migrations before expanding
 - **Completed:** added per-repository FIFO QStash delivery for GitHub updates. Each repository's jobs serialize while different repositories may process concurrently; the QStash worker verifies signed deliveries and retries processing failures.
 - **Completed:** added account-owned API-key issuance/list/revocation routes and a rate-limited Markdown download endpoint with commit-pinned SHA verification and Redis caching. The additive API-key migration is applied to the configured Supabase project.
 - **Completed:** added the responsive browser library with Lower Secondary (Class 9 and Class 10), Science, Commerce, Humanities, and Developers. A random browser session ID scopes local theme and last-work preferences; it does not authenticate the user.
+- **Implemented, migration pending:** added GitHub identity capture, verified browser-session binding, OAuth User ID/User Name setup, immutable User IDs after setup, and editable User Names. Apply [`20261117090000_account_identity_and_sessions.sql`](supabase/migrations/20261117090000_account_identity_and_sessions.sql) to the configured Supabase project before deploying these changes.
 
 See [DATABASE.md](DATABASE.md) for the working schema proposal and the commit-update workflow. Revise that proposal as each decision is confirmed, then implement the matching migration.

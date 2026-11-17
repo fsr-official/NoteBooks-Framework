@@ -20,8 +20,10 @@
     "repos:sync:apply": "tsx scripts/import-repositories.ts --apply"
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.6.3",
     "@supabase/supabase-js": "^2.119.0",
     "@upstash/qstash": "^2.12.2",
+    "@upstash/ratelimit": "^2.2.1",
     "@upstash/redis": "^1.41.0",
     "dompurify": "^3.4.17",
     "next": "16.4.6",

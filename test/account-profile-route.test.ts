@@ -32,9 +32,9 @@ describe("POST /api/account/profile", () => {
       user: { id: "auth-user-id" },
     });
     update.mockReturnValue({ eq });
-    eq.mockReturnValue({ select });
+    eq.mockImplementation(() => ({ eq, select }));
     select.mockReturnValue({ maybeSingle });
-    maybeSingle.mockResolvedValue({ data: { account_id: "alex_studies" }, error: null });
+    maybeSingle.mockResolvedValue({ data: { account_id: "alex_studies", user_name: "Alex" }, error: null });
     from.mockReturnValue({ update });
     createSupabaseAdminClient.mockReturnValue({ from });
   });
@@ -47,10 +47,11 @@ describe("POST /api/account/profile", () => {
     const response = await POST(makeRequest({ accountId: "Alex_Studies" }));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ accountId: "alex_studies" });
+    await expect(response.json()).resolves.toEqual({ accountId: "alex_studies", userName: "Alex" });
     expect(from).toHaveBeenCalledWith("accounts");
     expect(update).toHaveBeenCalledWith({ account_id: "alex_studies" });
     expect(eq).toHaveBeenCalledWith("auth_user_id", "auth-user-id");
+    expect(eq).toHaveBeenCalledWith("account_id", "user-0123456789ab");
   });
 
   it("rejects unauthenticated requests and invalid usernames", async () => {
@@ -66,6 +67,36 @@ describe("POST /api/account/profile", () => {
     const response = await POST(makeRequest({ accountId: "alex_studies" }));
 
     expect(response.status).toBe(409);
-    await expect(response.json()).resolves.toEqual({ error: "That username is already taken" });
+    await expect(response.json()).resolves.toEqual({ error: "That User ID is already taken" });
+  });
+
+  it("does not allow changing a User ID after setup", async () => {
+    getAuthenticatedAccount.mockResolvedValue({
+      accountId: "alex_studies",
+      role: "user",
+      user: { id: "auth-user-id" },
+    });
+
+    const response = await POST(makeRequest({ accountId: "alex_new" }));
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "Your User ID is permanent and cannot be changed after account setup",
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("allows signed-in users to edit their non-unique User Name", async () => {
+    getAuthenticatedAccount.mockResolvedValue({
+      accountId: "alex_studies",
+      role: "user",
+      user: { id: "auth-user-id" },
+    });
+
+    const response = await POST(makeRequest({ userName: "Alex Study" }));
+
+    expect(response.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ user_name: "Alex Study" });
+    await expect(response.json()).resolves.toMatchObject({ accountId: "alex_studies", userName: "Alex" });
   });
 });
