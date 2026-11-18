@@ -231,6 +231,27 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .auth-account-summary { display: grid; grid-template-columns: 1fr; gap: 6px; }
 .auth-account-summary span { margin-top: 13px; color: var(--muted); font: 10px "DM Mono", monospace; letter-spacing: .12em; }
 .auth-account-summary strong { font-size: 13px; overflow-wrap: anywhere; }
+.account-ai-usage { margin: 22px 0; padding: 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--soft); }
+.account-ai-usage h2 { margin: 0 0 12px; font-size: 13px; }
+.account-ai-usage p { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
+.account-ai-usage-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.account-ai-usage-grid > div { display: grid; gap: 5px; }
+.account-ai-usage-grid span,
+.account-ai-usage-grid small { color: var(--muted); font-size: 10px; }
+.account-ai-usage-grid strong { font-size: 12px; }
+.account-ai-history-controls { margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); }
+.account-ai-history-controls > p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.account-ai-history-controls button { margin-top: 9px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: transparent; font-family: inherit; font-size: 11px; cursor: pointer; }
+.account-ai-history-controls button:hover { border-color: var(--accent); color: var(--accent); }
+.ai-policy-page { width: min(760px, calc(100% - 32px)); min-height: 100dvh; margin: 0 auto; padding: clamp(24px, 6vw, 64px) 0; color: var(--text); }
+.ai-policy-page h1 { margin: 10px 0 18px; font-size: clamp(30px, 5vw, 46px); letter-spacing: -.04em; }
+.ai-policy-page h2 { margin: 30px 0 8px; font-size: 17px; }
+.ai-policy-page p,
+.ai-policy-page li { color: var(--muted); font-size: 14px; line-height: 1.8; }
+.ai-policy-page ul { padding-left: 22px; }
+.ai-policy-page a { color: var(--accent); text-underline-offset: 3px; }
+.ai-policy-back { font-size: 12px; }
+.ai-policy-eyebrow { margin-top: 52px; color: var(--accent) !important; font: 600 10px "DM Mono", monospace !important; letter-spacing: .16em; }
 .auth-provider-status { margin-top: 23px; padding: 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--soft); }
 .auth-provider-status > span:nth-child(2) { min-width: 0; display: grid; gap: 4px; }
 .auth-provider-status strong { font-size: 12px; }
@@ -740,4 +761,16 @@ body { font-family: Inter, "DM Sans", sans-serif; }
   .library-controls select { width: 100%; max-width: none; }
   .library-toolbar .index-status { margin-left: 0; }
   .top-nav { min-width: 0; }
+}
+@keyframes stream-page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.library-view .library-heading { animation: stream-page-enter .4s ease-out both; }
+.library-view .library-toolbar { animation: stream-page-enter .42s ease-out .06s both; }
+.library-view .library-content { animation: stream-page-enter .45s ease-out .12s both; }
+@media (prefers-reduced-motion: reduce) {
+  .library-view .library-heading,
+  .library-view .library-toolbar,
+  .library-view .library-content { animation: none; }
 }

@@ -5,7 +5,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { NoteSearchBlock, NoteSection } from "@/lib/markdown/renderer";
 import { compileDesmos2D } from "@/lib/desmos-2d";
 import { compileDesmos3D } from "@/lib/desmos-3d";
+import { formatDesmosDiagnostic } from "@/lib/desmos-source";
+import { AI_TIERS, isAiTier, type AiTier } from "@/lib/ai-tiers";
+import { renderChatMarkdown } from "@/lib/markdown/chat";
 import { createWildcardMatcher } from "@/lib/markdown/search";
+import { getRelevantNoteContext } from "@/lib/reader-ai-context";
+import { READER_CHAT_STORAGE_PREFIX } from "@/lib/reader-chat-storage";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type ReaderFile = {
   owner: string;
@@ -36,6 +42,7 @@ type ReaderWindow = Window & {
 };
 
 type DesmosCalculator = {
+  expressionAnalysis?: Record<string, { isError?: boolean; errorMessage?: string }>;
   updateSettings?: (settings: Record<string, string | boolean>) => void;
   setExpressions?: (expressions: unknown[]) => void;
   setMathBounds?: (bounds: Record<string, number>) => void;
@@ -44,6 +51,94 @@ type DesmosCalculator = {
 };
 
 type SectionPosition = { section: NoteSection; parent: NoteSection | null };
+type ReaderChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  tier?: AiTier;
+  model?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+};
+
+const CHAT_CONSENT_KEY = "notebooks:ai-chat:consent:v1";
+const AI_TIER_PREFERENCE_KEY = "notebooks:reader:ai-tier:v1";
+const CHAT_WELCOME_LINES = [
+  "Hi, I’m your NoteBooks study companion. Ask me to explain an idea or connect it to this note.",
+  "Welcome! I’m ready to help you explore this note, one question at a time.",
+  "Let’s make this topic clearer. What would you like to understand first?",
+] as const;
+
+function getChatStorageKey(file: ReaderFile): string {
+  return `${READER_CHAT_STORAGE_PREFIX}${file.owner}/${file.repository}/${file.path}`;
+}
+
+function getChatWelcomeLine(storageKey: string): string {
+  const hash = Array.from(storageKey).reduce((total, character) => total + character.charCodeAt(0), 0);
+  return CHAT_WELCOME_LINES[hash % CHAT_WELCOME_LINES.length];
+}
+
+function readChatMessages(storageKey: string): ReaderChatMessage[] {
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (!stored) return [];
+    const value: unknown = JSON.parse(stored);
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is ReaderChatMessage => (
+      Boolean(item)
+      && typeof item === "object"
+      && typeof item.id === "string"
+      && (item.role === "user" || item.role === "assistant")
+      && typeof item.content === "string"
+      && item.content.length <= 8000
+      && (item.tier === undefined || isAiTier(item.tier))
+      && (item.model === undefined
+        || (typeof item.model === "string" && /^[A-Za-z0-9._/-]{1,100}$/.test(item.model)))
+      && (item.promptTokens === undefined
+        || (typeof item.promptTokens === "number" && Number.isSafeInteger(item.promptTokens) && item.promptTokens >= 0))
+      && (item.completionTokens === undefined
+        || (typeof item.completionTokens === "number" && Number.isSafeInteger(item.completionTokens) && item.completionTokens >= 0))
+    )).slice(-30);
+  } catch (error) {
+    console.error("Could not read the saved reader chat", error);
+    return [];
+  }
+}
+
+function lockDesmosExpressions<T extends object>(expressions: T[]): Array<T & { readonly: true }> {
+  return expressions.map((expression) => ({ ...expression, readonly: true }));
+}
+
+async function getDesmosExpressionErrors(
+  calculator: DesmosCalculator,
+  expressions: Array<{ id: string; type?: string }>,
+  isActive: () => boolean,
+): Promise<string[]> {
+  const ids = expressions
+    .filter((expression) => expression.type !== "text" && expression.type !== "table")
+    .map((expression) => expression.id);
+  if (!ids.length) return [];
+  if (!("expressionAnalysis" in calculator)) return [];
+
+  const deadline = Date.now() + 2500;
+  let analysis = calculator.expressionAnalysis;
+  while (
+    (!analysis || !ids.every((id) => Object.hasOwn(analysis ?? {}, id)))
+    && Date.now() < deadline
+  ) {
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+    if (!isActive()) return [];
+    analysis = calculator.expressionAnalysis;
+  }
+  const resolvedAnalysis = analysis;
+  if (!isActive() || !resolvedAnalysis) return [];
+  return ids.flatMap((id) => {
+    const result = resolvedAnalysis[id];
+    return result?.isError
+      ? [`${id}: ${result.errorMessage || "Desmos reports that this expression is invalid."}`]
+      : [];
+  });
+}
 
 const scriptLoads = new Map<string, Promise<void>>();
 const READER_PREFERENCE_EVENT = "notebooks:reader-preference-change";
@@ -113,6 +208,15 @@ function readOutlineOpen(): boolean {
 
 function readSearchMode(): "outline" | "notes" {
   return readReaderPreference("notebooks:reader:search-mode") === "notes" ? "notes" : "outline";
+}
+
+function readAiTier(): AiTier {
+  const tier = readReaderPreference(AI_TIER_PREFERENCE_KEY);
+  return isAiTier(tier) ? tier : "low";
+}
+
+function getDefaultAiTier(): AiTier {
+  return "low";
 }
 
 function readFontScale(key: string): number {
@@ -342,12 +446,30 @@ export function NextMarkdownReader({
     readSearchMode,
     getDefaultSearchMode,
   );
+  const aiTier = useSyncExternalStore(
+    subscribeToReaderPreferences,
+    readAiTier,
+    getDefaultAiTier,
+  );
   const [query, setQuery] = useState("");
   const [messageDraft, setMessageDraft] = useState("");
   const [chatNotice, setChatNotice] = useState("");
+  const [chatMessages, setChatMessages] = useState<ReaderChatMessage[]>([]);
+  const [chatLoadedKey, setChatLoadedKey] = useState("");
+  const [chatPending, setChatPending] = useState(false);
+  const [selectedChatText, setSelectedChatText] = useState("");
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [chatActionsOpen, setChatActionsOpen] = useState(false);
+  const [chatPoliciesAccepted, setChatPoliciesAccepted] = useState(false);
+  const [usagePolicyChecked, setUsagePolicyChecked] = useState(false);
+  const [privacyPolicyChecked, setPrivacyPolicyChecked] = useState(false);
+  const [welcomeText, setWelcomeText] = useState("");
+  const [requestsRemaining, setRequestsRemaining] = useState<number | null>(null);
+  const visitorIdRef = useRef("");
   const [aiNotice, setAiNotice] = useState("");
   const [currentSearchMatchId, setCurrentSearchMatchId] = useState<string | null>(null);
   const fontPreferenceKey = `notebooks:reader-font:${file.owner}/${file.repository}/${file.path}`;
+  const chatStorageKey = getChatStorageKey(file);
   const fontScale = useSyncExternalStore(
     subscribeToReaderPreferences,
     () => readFontScale(fontPreferenceKey),
@@ -364,11 +486,171 @@ export function NextMarkdownReader({
     writeReaderPreference("notebooks:reader:search-mode", mode);
   }, []);
 
+  useEffect(() => {
+    setChatMessages(readChatMessages(chatStorageKey));
+    setChatLoadedKey(chatStorageKey);
+    setSelectedChatText("");
+  }, [chatStorageKey]);
+
+  useEffect(() => {
+    try {
+      setChatPoliciesAccepted(localStorage.getItem(CHAT_CONSENT_KEY) === "accepted");
+    } catch (error) {
+      console.error("Could not read the AI chat policy acceptance", error);
+    }
+  }, []);
+
+  const chatWelcomeLine = getChatWelcomeLine(chatStorageKey);
+  useEffect(() => {
+    setWelcomeText("");
+    if (chatLoadedKey !== chatStorageKey || chatMessages.length > 0) return;
+    let position = 0;
+    const timer = window.setInterval(() => {
+      position = Math.min(position + 2, chatWelcomeLine.length);
+      setWelcomeText(chatWelcomeLine.slice(0, position));
+      if (position === chatWelcomeLine.length) window.clearInterval(timer);
+    }, 24);
+    return () => window.clearInterval(timer);
+  }, [chatLoadedKey, chatMessages.length, chatStorageKey, chatWelcomeLine]);
+
+  useEffect(() => {
+    if (!contentElement) return;
+    const updateSelection = () => {
+      const selection = window.getSelection();
+      const anchor = selection?.anchorNode;
+      const focus = selection?.focusNode;
+      if (!selection || selection.isCollapsed
+          || !anchor || !focus
+          || !contentElement.contains(anchor)
+          || !contentElement.contains(focus)) {
+        return;
+      }
+      const text = selection.toString().trim();
+      if (text) setSelectedChatText(text.slice(0, 8000));
+    };
+    document.addEventListener("selectionchange", updateSelection);
+    return () => document.removeEventListener("selectionchange", updateSelection);
+  }, [contentElement]);
+
+  useEffect(() => {
+    if (chatLoadedKey !== chatStorageKey) return;
+    try {
+      if (chatMessages.length === 0) localStorage.removeItem(chatStorageKey);
+      else localStorage.setItem(chatStorageKey, JSON.stringify(chatMessages.slice(-30)));
+    } catch (error) {
+      console.error("Could not save the reader chat locally", error);
+    }
+  }, [chatLoadedKey, chatMessages, chatStorageKey]);
+
   const flattened = useMemo(() => flattenTree(tree), [tree]);
   const activeSection = findSection(tree, activeSectionId);
   const currentRoot = rootSection(tree, activeSection);
   const rootIndex = currentRoot ? tree.findIndex((section) => section.id === currentRoot.id) : 0;
   const matcher = useMemo(() => createWildcardMatcher(query.trim()), [query]);
+  async function sendChatMessage(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const message = messageDraft.trim();
+    if (!message || chatPending) return;
+    if (!chatPoliciesAccepted) {
+      setChatNotice("Accept the AI usage and privacy policies before chatting.");
+      return;
+    }
+
+    setChatPending(true);
+    setChatNotice("");
+    const userMessage: ReaderChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: message,
+    };
+    const priorMessages = chatMessages.slice(-6).map(({ role, content }) => ({
+      role,
+      content: content.slice(0, 2000),
+    }));
+    setChatMessages((current) => [...current, userMessage].slice(-30));
+    setMessageDraft("");
+    try {
+      let visitorId = visitorIdRef.current;
+      try {
+        visitorId = localStorage.getItem("notebooks:ai-chat:visitor-id") ?? visitorId;
+      } catch (error) {
+        console.error("Could not read the AI chat visitor ID", error);
+      }
+      if (!/^[0-9a-f-]{36}$/i.test(visitorId)) {
+        visitorId = crypto.randomUUID();
+      }
+      visitorIdRef.current = visitorId;
+      try {
+        localStorage.setItem("notebooks:ai-chat:visitor-id", visitorId);
+      } catch (error) {
+        console.error("Could not save the AI chat visitor ID", error);
+      }
+
+      const { data: sessionData, error: sessionError } = await getSupabaseBrowserClient().auth.getSession();
+      if (sessionError) throw sessionError;
+      if (aiTier !== "low" && !sessionData.session) {
+        throw new Error("Sign in to use Medium, High, or Extra AI effort. Low is available without an account.");
+      }
+      const context = getRelevantNoteContext(message, searchIndex, tree, activeSectionId, selectedChatText);
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: {
+          ...(sessionData.session
+            ? { authorization: `Bearer ${sessionData.session.access_token}` }
+            : {}),
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          context,
+          history: priorMessages,
+          tier: aiTier,
+          message,
+          noteTitle: `${file.fileName} (${file.repository}/${file.path})`,
+          visitorId,
+          webSearch: webSearchEnabled,
+        }),
+      });
+      const result = await response.json() as {
+        answer?: string;
+        model?: string;
+        tier?: string;
+        usage?: { promptTokens?: number; completionTokens?: number; requestsRemaining?: number };
+        error?: string;
+      };
+      const answer = typeof result.answer === "string" ? result.answer : "";
+      const model = typeof result.model === "string" ? result.model : "";
+      if (!response.ok || !answer || !/^[A-Za-z0-9._/-]{1,100}$/.test(model)) {
+        throw new Error(result.error || "The AI service could not answer this question.");
+      }
+      setChatMessages((current) => [...current, {
+        id: crypto.randomUUID(),
+        role: "assistant" as const,
+        content: answer,
+        tier: isAiTier(result.tier) ? result.tier : aiTier,
+        model,
+        promptTokens: result.usage?.promptTokens,
+        completionTokens: result.usage?.completionTokens,
+      }].slice(-30));
+      if (typeof result.usage?.requestsRemaining === "number") {
+        setRequestsRemaining(result.usage.requestsRemaining);
+      }
+      setSelectedChatText("");
+    } catch (error) {
+      setChatNotice(error instanceof Error ? error.message : "The AI service could not answer this question.");
+    } finally {
+      setChatPending(false);
+    }
+  }
+  function acceptChatPolicies() {
+    if (!usagePolicyChecked || !privacyPolicyChecked) return;
+    try {
+      localStorage.setItem(CHAT_CONSENT_KEY, "accepted");
+    } catch (error) {
+      console.error("Could not save the AI chat policy acceptance", error);
+      setChatNotice("Policy acceptance could not be saved in this browser. You can continue for this visit.");
+    }
+    setChatPoliciesAccepted(true);
+  }
   const matches = useMemo(() => {
     if (!matcher) return [];
     if (searchMode === "outline") {
@@ -505,21 +787,48 @@ export function NextMarkdownReader({
     }
     let active = true;
     const calculators = new Map<HTMLElement, { destroy?: () => void }>();
-    const setBlockError = (block: HTMLElement, title: string, details: string[]) => {
-      const panel = document.createElement("div");
-      panel.className = "desmos-error";
-      panel.setAttribute("role", "alert");
+    const createBlockErrorPanel = (title: string, details: string[]) => {
+      const stage = document.createElement("div");
+      stage.className = "desmos-error-stage";
+      const overlay = document.createElement("div");
+      overlay.className = "desmos-error";
+      overlay.setAttribute("role", "alert");
+      const card = document.createElement("div");
+      card.className = "desmos-error-card";
+      const icon = document.createElement("span");
+      icon.className = "desmos-error-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "!";
       const heading = document.createElement("strong");
       heading.textContent = title;
-      panel.append(heading);
-      const list = document.createElement("ul");
-      details.forEach((detail) => {
-        const item = document.createElement("li");
-        item.textContent = detail;
-        list.append(item);
-      });
-      panel.append(list);
-      block.replaceChildren(panel);
+      const message = document.createElement("p");
+      message.textContent = "This graph could not be rendered.";
+      card.append(icon, heading, message);
+      if (details.length) {
+        const disclosure = document.createElement("details");
+        disclosure.className = "desmos-error-details";
+        const summary = document.createElement("summary");
+        summary.textContent = "Show details";
+        const list = document.createElement("ul");
+        details.forEach((detail) => {
+          const item = document.createElement("li");
+          item.textContent = detail;
+          list.append(item);
+        });
+        disclosure.append(summary, list);
+        card.append(disclosure);
+      }
+      overlay.append(card);
+      stage.append(overlay);
+      return stage;
+    };
+    const setBlockError = (block: HTMLElement, title: string, details: string[]) => {
+      block.classList.add("has-desmos-error");
+      block.replaceChildren(createBlockErrorPanel(title, details));
+    };
+    const appendBlockError = (block: HTMLElement, title: string, details: string[]) => {
+      block.classList.add("has-desmos-error");
+      block.append(createBlockErrorPanel(title, details));
     };
     diagramInitializationRef.current = (async () => {
       try {
@@ -537,16 +846,13 @@ export function NextMarkdownReader({
           runtime.obsidianInitTikz?.(root);
         }
         if (desmosBlocks.length) {
-          const compiledBlocks = desmosBlocks.map((block) => ({
-            block,
-            result: compileDesmos2D(block.querySelector("pre.desmos-source")?.textContent ?? ""),
-          }));
-          compiledBlocks.forEach(({ block, result }) => {
+          const compiledBlocks = desmosBlocks.map((block) => {
+            const source = block.querySelector("pre.desmos-source")?.textContent ?? "";
+            return { block, source, result: compileDesmos2D(source) };
+          });
+          compiledBlocks.forEach(({ block, source, result }) => {
             if (result.ok) return;
-            console.error("Desmos block compilation failed", result.diagnostics);
-            setBlockError(block, "This Desmos block has errors.", result.diagnostics.map((entry) =>
-              `Line ${entry.line}:${entry.col} ${entry.code}: ${entry.message}`,
-            ));
+            setBlockError(block, "Malformed graph", result.diagnostics.map((entry) => formatDesmosDiagnostic(source, entry)));
           });
           const runnableBlocks = compiledBlocks.filter(({ result }) => result.ok);
           if (runnableBlocks.length) {
@@ -585,13 +891,22 @@ export function NextMarkdownReader({
                 }
                 try {
                   if (entry.result.output.settings && typeof updateSettings === "function") updateSettings.call(calculator, entry.result.output.settings);
-                  setExpressions.call(calculator, entry.result.output.expressions);
+                  setExpressions.call(calculator, lockDesmosExpressions(entry.result.output.expressions));
                   if (entry.result.output.bounds && typeof setMathBounds === "function") setMathBounds.call(calculator, entry.result.output.bounds);
+                  calculators.set(block, calculator);
+                  const expressionErrors = await getDesmosExpressionErrors(
+                    calculator,
+                    entry.result.output.expressions,
+                    () => active,
+                  );
+                  if (expressionErrors.length) {
+                    appendBlockError(block, "Malformed graph", expressionErrors);
+                  }
                 } catch (error) {
+                  calculators.delete(block);
                   calculator.destroy?.();
                   throw error;
                 }
-                calculators.set(block, calculator);
               } catch (error) {
                 console.error("Desmos block initialization failed", error);
                 setBlockError(block, "This Desmos graph could not be initialized.", [
@@ -602,16 +917,13 @@ export function NextMarkdownReader({
           }
         }
         if (desmos3DBlocks.length) {
-          const compiledBlocks = desmos3DBlocks.map((block) => ({
-            block,
-            result: compileDesmos3D(block.querySelector("pre.desmos-source")?.textContent ?? ""),
-          }));
-          compiledBlocks.forEach(({ block, result }) => {
+          const compiledBlocks = desmos3DBlocks.map((block) => {
+            const source = block.querySelector("pre.desmos-source")?.textContent ?? "";
+            return { block, source, result: compileDesmos3D(source) };
+          });
+          compiledBlocks.forEach(({ block, source, result }) => {
             if (result.ok) return;
-            console.error("Desmos 3D block compilation failed", result.diagnostics);
-            setBlockError(block, "This Desmos 3D block has errors.", result.diagnostics.map((entry) =>
-              `Line ${entry.line}:${entry.col} ${entry.code}: ${entry.message}`,
-            ));
+            setBlockError(block, "Malformed 3D graph", result.diagnostics.map((entry) => formatDesmosDiagnostic(source, entry)));
           });
           const runnableBlocks = compiledBlocks.filter(({ result }) => result.ok);
           if (runnableBlocks.length) {
@@ -669,11 +981,20 @@ export function NextMarkdownReader({
                   continue;
                 }
                 if (result.output.settings && typeof updateSettings === "function") updateSettings.call(calculator, result.output.settings);
-                setExpressions.call(calculator, result.output.expressions);
+                setExpressions.call(calculator, lockDesmosExpressions(result.output.expressions));
                 if (result.output.bounds && typeof setMathBounds === "function") setMathBounds.call(calculator, result.output.bounds);
                 if (result.output.camera && typeof setCamera === "function") setCamera.call(calculator, result.output.camera);
                 calculators.set(block, calculator);
+                const expressionErrors = await getDesmosExpressionErrors(
+                  calculator,
+                  result.output.expressions,
+                  () => active,
+                );
+                if (expressionErrors.length) {
+                  appendBlockError(block, "Malformed 3D graph", expressionErrors);
+                }
               } catch (error) {
+                if (calculator) calculators.delete(block);
                 calculator?.destroy?.();
                 console.error("Desmos 3D block initialization failed", error);
                 setBlockError(block, "This Desmos 3D graph could not be initialized.", [
@@ -898,30 +1219,235 @@ export function NextMarkdownReader({
         </button>
         <aside className={`next-reader-ai${isChatExpanded ? " chat-expanded" : ""}`} aria-label="Chat">
           <div className="ai-panel-content">
-            <header className="reader-chat-header"><h2>Chat</h2></header>
+            <header className="reader-chat-header">
+              <span className="reader-chat-brand-mark" aria-hidden="true">n</span>
+              <div>
+                <h2>NoteBooks AI Assistant</h2>
+                <p>Study companion · grounded in this note</p>
+              </div>
+            </header>
             <div className="reader-chat-messages" role="log" aria-live="polite">
-              <p className="reader-chat-empty">Ask a question about this note.</p>
+              {!chatPoliciesAccepted && (
+                <section className="reader-chat-consent" aria-labelledby="reader-chat-consent-title">
+                  <span className="reader-chat-consent-mark" aria-hidden="true">n</span>
+                  <h3 id="reader-chat-consent-title">A quick note before we begin</h3>
+                  <p>Your question, recent chat messages, and relevant note excerpts will be sent to Groq to generate an answer. Chat history stays in this browser.</p>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={usagePolicyChecked}
+                      onChange={(event) => setUsagePolicyChecked(event.target.checked)}
+                    />
+                    I agree to the                     <Link href="/ai-usage-policy" target="_blank" rel="noreferrer">AI Usage Policy</Link>.
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={privacyPolicyChecked}
+                      onChange={(event) => setPrivacyPolicyChecked(event.target.checked)}
+                    />
+                    I agree to the                     <Link href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</Link>.
+                  </label>
+                  <button
+                    type="button"
+                    onClick={acceptChatPolicies}
+                    disabled={!usagePolicyChecked || !privacyPolicyChecked}
+                  >
+                    Agree and continue
+                  </button>
+                </section>
+              )}
+              {chatMessages.length === 0 && (
+                <div className="reader-chat-welcome">
+                  <span className="reader-chat-avatar" aria-hidden="true">n</span>
+                  <div>
+                    <strong>NoteBooks AI</strong>
+                    <p>{welcomeText}<span className="reader-chat-caret" aria-hidden="true">▋</span></p>
+                  </div>
+                  <div className="reader-chat-starters" aria-label="Conversation starters">
+                    {[
+                      "Explain the key idea",
+                      "Give me a quick summary",
+                      "Quiz me on this note",
+                    ].map((starter) => (
+                      <button
+                        key={starter}
+                        type="button"
+                        onClick={() => setMessageDraft(starter)}
+                      >
+                        {starter}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {chatMessages.map((chatMessage) => (
+                <article className={`reader-chat-message is-${chatMessage.role}`} key={chatMessage.id}>
+                  <strong>
+                    {chatMessage.role === "assistant" && <span className="reader-chat-avatar is-small" aria-hidden="true">n</span>}
+                    {chatMessage.role === "user" ? "You" : "NoteBooks AI"}
+                  </strong>
+                  <div
+                    className="reader-chat-markdown"
+                    dangerouslySetInnerHTML={{ __html: renderChatMarkdown(chatMessage.content) }}
+                  />
+                  {chatMessage.role === "assistant" && (
+                    <small className="reader-chat-message-meta">
+                      <span>
+                        {chatMessage.tier ? `${AI_TIERS[chatMessage.tier].label} · ` : ""}
+                        {chatMessage.model ? `Model: ${chatMessage.model}` : "Model info unavailable for this saved reply"}
+                      </span>
+                      {chatMessage.promptTokens !== undefined && chatMessage.completionTokens !== undefined
+                        && <span>{(chatMessage.promptTokens + chatMessage.completionTokens).toLocaleString()} tokens</span>}
+                    </small>
+                  )}
+                </article>
+              ))}
+              {chatPending && (
+                <div className="reader-chat-pending" role="status">
+                  <span className="reader-chat-avatar is-typing" aria-hidden="true">n</span>
+                  <span>NoteBooks AI is reading and writing</span>
+                  <span className="reader-chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>
+                </div>
+              )}
+              {requestsRemaining !== null && requestsRemaining <= 3 && (
+                <p className="reader-chat-usage-warning" role="status">
+                  {requestsRemaining === 0
+                    ? "You’re at the limit for your current AI chat allowance."
+                    : `You have ${requestsRemaining} AI chat ${requestsRemaining === 1 ? "request" : "requests"} left in your current allowance.`}
+                </p>
+              )}
             </div>
             <form
               className="reader-chat-composer"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!messageDraft.trim()) return;
-                setChatNotice("Chat isn’t connected yet. Your message wasn’t sent.");
-              }}
+              onSubmit={(event) => void sendChatMessage(event)}
             >
-              <label className="reader-chat-label" htmlFor="reader-chat-message">Message</label>
-              <textarea
-                id="reader-chat-message"
-                value={messageDraft}
-                onChange={(event) => {
-                  setMessageDraft(event.target.value);
-                  setChatNotice("");
-                }}
-                placeholder="Type a message..."
-                rows={3}
-              />
-              <button type="submit" disabled={!messageDraft.trim()}>Send</button>
+              <div className="reader-chat-tier-control">
+                <label htmlFor="reader-chat-tier">AI effort</label>
+                <select
+                  id="reader-chat-tier"
+                  aria-label="AI effort and token ceiling"
+                  value={aiTier}
+                  onChange={(event) => {
+                    if (isAiTier(event.target.value)) {
+                      writeReaderPreference(AI_TIER_PREFERENCE_KEY, event.target.value);
+                    }
+                  }}
+                  disabled={chatPending}
+                >
+                  {Object.entries(AI_TIERS).map(([tier, option]) => (
+                    <option key={tier} value={tier}>{option.label}</option>
+                  ))}
+                </select>
+                <p>
+                  Up to {AI_TIERS[aiTier].maxOutputTokens.toLocaleString()} answer tokens;
+                  input is fitted to about {AI_TIERS[aiTier].maxInputTokens.toLocaleString()} tokens.
+                  {aiTier !== "low" && " Sign-in required."}
+                </p>
+              </div>
+              {selectedChatText && (
+                <p className="reader-chat-selection">
+                  <span><b>#Selected-Text</b> · {selectedChatText.length.toLocaleString()} characters</span>
+                  <button type="button" onClick={() => setSelectedChatText("")} aria-label="Remove selected text">×</button>
+                </p>
+              )}
+              <div className="reader-chat-input-shell">
+                <textarea
+                  id="reader-chat-message"
+                  aria-label="Message"
+                  value={messageDraft}
+                  onChange={(event) => {
+                    setMessageDraft(event.target.value);
+                    setChatNotice("");
+                  }}
+                  placeholder="Ask anything about this note…"
+                  rows={4}
+                  maxLength={4000}
+                  disabled={chatPending}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      event.currentTarget.form?.requestSubmit();
+                    }
+                  }}
+                />
+                <div className="reader-chat-input-actions">
+                  <span className="reader-chat-shortcut">Enter to send · Shift + Enter for a new line</span>
+                  <button
+                    type="submit"
+                    className="reader-chat-send-button"
+                    aria-label={chatPending ? "Sending message" : "Send message"}
+                    disabled={!messageDraft.trim() || chatPending || !chatPoliciesAccepted}
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                      <path d="M4.5 12 20 4l-4.1 16-3.1-6.2L4.5 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                      <path d="m12.8 13.8 7.2-9.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                  <div className="reader-chat-action-wrap">
+                    <button
+                      type="button"
+                      className="reader-chat-add-button"
+                      aria-label="More chat actions"
+                      aria-haspopup="menu"
+                      aria-expanded={chatActionsOpen}
+                      onClick={() => setChatActionsOpen((open) => !open)}
+                      disabled={chatPending}
+                    >
+                      +
+                    </button>
+                    {chatActionsOpen && (
+                      <div className="reader-chat-action-menu" role="menu">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            if (!selectedChatText) setChatNotice("Select text in the note to attach it.");
+                            else setChatNotice("");
+                            setChatActionsOpen(false);
+                          }}
+                        >
+                          {selectedChatText ? "Selected text attached" : "Attach selected text"}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setMessageDraft(`Explain this section: ${activeSection?.title ?? file.fileName}`);
+                            setChatActionsOpen(false);
+                          }}
+                        >
+                          Explain this section
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setMessageDraft(`Summarize this section: ${activeSection?.title ?? file.fileName}`);
+                            setChatActionsOpen(false);
+                          }}
+                        >
+                          Summarize this section
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitemcheckbox"
+                          aria-checked={webSearchEnabled}
+                          onClick={() => {
+                            setWebSearchEnabled((enabled) => !enabled);
+                            setChatActionsOpen(false);
+                          }}
+                        >
+                          {webSearchEnabled ? "✓ Web search on" : "Search the web"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="reader-chat-disclaimer">
+                AI can make mistakes. Check important information against the note and trusted sources.
+              </p>
               {chatNotice && <p className="reader-chat-notice" role="status">{chatNotice}</p>}
             </form>
           </div>

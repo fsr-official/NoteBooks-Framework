@@ -517,6 +517,11 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
     setReaderFile(item.file);
   }, [recordOpenedFile, router]);
   const closeReader = useCallback(() => setReaderFile(null), []);
+  const prefetchFile = useCallback((file: FileLookup) => {
+    const returnTo = `/${stream === "developer" ? "developers" : stream}`;
+    const readerHref = markdownReaderHref(file, returnTo);
+    if (readerHref) router.prefetch(readerHref);
+  }, [router, stream]);
 
   const visibleFiles = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -1048,7 +1053,15 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                         <div><dt>Branch</dt><dd>{selectedFile.file.branch}</dd></div>
                         <div><dt>File SHA</dt><dd><code>{selectedFile.file.fileSha.slice(0, 12)}…</code></dd></div>
                       </dl>
-                      <button className="primary-button detail-open" onClick={() => openFile(selectedFile.key, selectedFile.file)} type="button">Open file <span>↗</span></button>
+                      <button
+                        className="primary-button detail-open"
+                        onClick={() => openFile(selectedFile.key, selectedFile.file)}
+                        onMouseEnter={() => prefetchFile(selectedFile.file)}
+                        onFocus={() => prefetchFile(selectedFile.file)}
+                        type="button"
+                      >
+                        Open file <span>↗</span>
+                      </button>
                       <a className="primary-button detail-source" href={`https://github.com/${selectedFile.file.repository}/blob/${selectedFile.file.branch.split("/").map(encodeURIComponent).join("/")}/${selectedFile.file.filePath.split("/").map(encodeURIComponent).join("/")}`} target="_blank" rel="noreferrer">Open source on GitHub <span>↗</span></a>
                       <p className="detail-note">Your reading place is saved to this browser session.</p>
                     </aside>

@@ -370,8 +370,14 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
 
       <div className="reader-layout">
         <main className="reader-main" aria-live="polite">
-          {state === "loading" && <div className="reader-message">Opening note…</div>}
-          {state === "rendering" && <div className="reader-message">Preparing diagrams and math…</div>}
+          {(state === "loading" || state === "rendering") && (
+            <div className="reader-loading-overlay" role="status" aria-live="polite" aria-busy="true">
+              <span className="reader-loading-mark" aria-hidden="true">n</span>
+              <span className="reader-loading-spinner" aria-hidden="true" />
+              <strong>Rendering your file</strong>
+              <span>{state === "loading" ? "Opening the file…" : "Preparing diagrams and math…"}</span>
+            </div>
+          )}
           {state === "error" && (
             <div className="reader-message reader-error" role="alert">
               <strong>Could not open this note</strong>
@@ -382,7 +388,14 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
           {state === "ready" && previewKind === "image" && <Image className="reader-media-image" src={mediaUrl} width={1200} height={900} unoptimized alt={file.fileName} />}
           {state === "ready" && previewKind === "audio" && <audio className="reader-media-audio" src={mediaUrl} controls />}
           {state === "ready" && previewKind === "video" && <video className="reader-media-video" src={mediaUrl} controls />}
-          {state === "ready" && previewKind === "pdf" && <PdfReader src={mediaUrl} fileName={file.fileName} />}
+          {state === "ready" && previewKind === "pdf" && (
+            <PdfReader
+              key={file.repository + "/" + file.filePath}
+              src={mediaUrl}
+              fileName={file.fileName}
+              fileKey={`${file.repository}/${file.filePath}`}
+            />
+          )}
           {state === "ready" && previewKind === "download" && <a className="reader-media-download" href={mediaUrl}>Download {file.fileName}</a>}
           {showRaw && state === "ready" && markdownFile ? (
             <pre className="reader-raw"><code>{source}</code></pre>

@@ -1,3 +1,5 @@
+import { isLegacyDesmosJsonLine } from "@/lib/desmos-source";
+
 export type Desmos3DDiagnostic = {
   phase: "compile";
   severity: "error" | "warning";
@@ -43,7 +45,7 @@ const RESERVED_PREFIX = "auto_";
 const COLORS: Record<string, string> = {
   red: "#c74440",
   blue: "#2d70b3",
-  green: "#348543",
+  green: "#388c46",
   purple: "#6042a6",
   orange: "#fa7e19",
   black: "#000000",
@@ -63,8 +65,12 @@ const OPTIONS = new Set([
   "administerSecretFolders", "authorFeatures",
 ]);
 const SETTINGS = new Set([
-  "showGrid", "showXAxis", "showYAxis", "showZAxis", "showPlane", "xAxisLabel",
-  "yAxisLabel", "zAxisLabel", "degreeMode", "axisArrowMode",
+  "showGrid", "showXAxis", "showYAxis", "xAxisLabel",
+  "yAxisLabel", "degreeMode", "axisArrowMode",
+]);
+const UNSUPPORTED_3D_SETTINGS = new Set(["showZAxis", "showPlane", "zAxisLabel"]);
+const UNSUPPORTED_3D_ATTRIBUTES = new Set([
+  "domain", "xDomain", "yDomain", "zDomain", "surface", "mesh", "arrowSize",
 ]);
 const ALIASES: Record<string, string> = { colour: "color", drag: "dragMode", inv: "hidden" };
 const ATTRIBUTES = new Set([
@@ -304,8 +310,7 @@ function applyAttributes(
   id: string,
   diagnostics: Desmos3DDiagnostic[],
   vector: boolean,
-): { domains: Record<string, { min: string; max: string }>; zDrag: boolean } {
-  const domains: Record<string, { min: string; max: string }> = {};
+): { zDrag: boolean } {
   const parameterDomains: Record<string, { min: string; max: string }> = {};
   let zDrag = false;
   const seen = new Set<string>();
@@ -319,6 +324,17 @@ function applyAttributes(
     seen.add(key);
     if (key === "use" || key === "folder") {
       if (key === "folder") diagnostics.push(issue("error", "E_UNSUPPORTED_DIRECTIVE", "'folder=' is not accepted until 3D folder serialization is verified.", line, col, { id, field: "folder" }));
+      continue;
+    }
+    if (UNSUPPORTED_3D_ATTRIBUTES.has(key)) {
+      diagnostics.push(issue(
+        "error",
+        "E_UNSUPPORTED_ATTR",
+        `'${key}' is not sent by the 3D compiler because this API build does not preserve or support it.`,
+        line,
+        col,
+        { id, field: key },
+      ));
       continue;
     }
     if (key === "polarDomain" || key === "labelOrientation") {
@@ -354,14 +370,9 @@ function applyAttributes(
       if (values) target.sliderBounds = { min: values[0], max: values[1], ...(values[2] ? { step: values[2] } : {}) };
       continue;
     }
-    if (key === "domain" || key === "parametricDomain") {
+    if (key === "parametricDomain") {
       const values = tuple(value, 2, line, col, key, diagnostics);
       if (values) target[key] = { min: values[0], max: values[1] };
-      continue;
-    }
-    if (["xDomain", "yDomain", "zDomain"].includes(key)) {
-      const values = tuple(value, 2, line, col, key, diagnostics);
-      if (values) domains[key[0]] = { min: values[0], max: values[1] };
       continue;
     }
     if (key === "uDomain" || key === "vDomain") {
@@ -396,11 +407,10 @@ function applyAttributes(
       } else target.surfaceStyle = value.toLowerCase();
       continue;
     }
-    if (key === "lineWidth" || key === "pointSize" || key === "arrowSize") {
+    if (key === "lineWidth" || key === "pointSize") {
       const result = numericValue(attribute, diagnostics, 0);
       if (result !== undefined && result > 0) target[key] = result;
       else if (result === 0) diagnostics.push(issue("error", "E_BAD_RANGE", `'${key}' must be greater than zero.`, line, col, { id, field: key }));
-      if (key === "arrowSize" && !vector) diagnostics.push(issue("warning", "W_ARROW_TARGET", "'arrowSize' is intended for vector expressions.", line, col, { id, field: key }));
       continue;
     }
     if (key === "mesh") {
@@ -422,16 +432,18 @@ function applyAttributes(
     }
     diagnostics.push(issue("error", "E_UNKNOWN_ATTR", `Unsupported attribute '${key}'.`, line, col, { id, field: key }));
   }
-  if (domains.x || domains.y || domains.z) target.domain = domains;
   const hasU = Boolean(parameterDomains.u);
   const hasV = Boolean(parameterDomains.v);
   if (hasU !== hasV) diagnostics.push(issue("error", "E_DOMAIN_PAIR", "uDomain and vDomain must be provided together.", attributes[0]?.line ?? 1, attributes[0]?.col ?? 1, { id }));
-  if (hasU && hasV) target.parametricDomain = { u: parameterDomains.u, v: parameterDomains.v };
+  if (hasU && hasV) {
+    target.parametricDomain3Du = parameterDomains.u;
+    target.parametricDomain3Dv = parameterDomains.v;
+  }
   if (target.showLabel === true && !target.label) target.label = id;
   if (target.hidden === true && target.showLabel === true) {
     diagnostics.push(issue("warning", "W_HIDDEN_LABEL", "A hidden expression cannot show its label.", attributes[0]?.line ?? 1, 1, { id }));
   }
-  return { domains, zDrag };
+  return { zDrag };
 }
 
 function validId(id: string, line: number, col: number, diagnostics: Desmos3DDiagnostic[]): boolean {
@@ -521,6 +533,17 @@ function graphAttrs(
   const allowed = kind === "options" ? OPTIONS : SETTINGS;
   for (const attribute of attributes) {
     const { key, value, line, col } = attribute;
+    if (kind === "settings" && UNSUPPORTED_3D_SETTINGS.has(key)) {
+      diagnostics.push(issue(
+        "error",
+        "E_UNSUPPORTED_SETTING",
+        `'${key}' is ignored by the tested Desmos 3D API build.`,
+        line,
+        col,
+        { field: key },
+      ));
+      continue;
+    }
     if (!allowed.has(key)) {
       diagnostics.push(issue("error", "E_UNKNOWN_ATTR", `Unknown ${kind} key '${key}'.`, line, col, { field: key }));
       continue;
@@ -530,7 +553,7 @@ function graphAttrs(
       continue;
     }
     seen.add(key);
-    if (kind === "options" || ["showGrid", "showXAxis", "showYAxis", "showZAxis", "showPlane", "degreeMode"].includes(key)) {
+    if (kind === "options" || ["showGrid", "showXAxis", "showYAxis", "degreeMode"].includes(key)) {
       const result = booleanValue(attribute, diagnostics);
       if (result !== undefined) output[key] = result;
     } else if (key === "axisArrowMode") {
@@ -691,6 +714,16 @@ export function compileDesmos3D(source: string): Desmos3DCompileResult {
     }
 
     if (!trimmed || trimmed.startsWith("//")) continue;
+    if (isLegacyDesmosJsonLine(rawLine)) {
+      diagnostics.push(issue(
+        "error",
+        "E_LEGACY_JSON",
+        "This block uses Desmos API JSON/state syntax. Use the Desmos 3D DSL instead, for example '@surface: z=x+y'.",
+        line,
+        rawLine.search(/\S/) + 1,
+      ));
+      continue;
+    }
     if (pending) {
       if (trimmed.startsWith("%") || trimmed.startsWith("@")) {
         diagnostics.push(issue("error", "E_HEADER_LATEX", `Expression '${pending.id}' is missing its LaTeX body.`, pending.line, 1, { id: pending.id }));
@@ -712,7 +745,7 @@ export function compileDesmos3D(source: string): Desmos3DCompileResult {
     }
     if (!clean.startsWith("%")) {
       autoId += 1;
-      addExpression(`auto_${autoId}`, clean, [], line);
+      addExpression(`expr_${autoId}`, clean, [], line);
       continue;
     }
 

@@ -24,6 +24,33 @@ interface IndexDocument {
   entries: Record<string, unknown>;
 }
 
+const PUBLIC_INDEX_CACHE_TTL_MS = 15_000;
+const publicIndexCache = new Map<PublicIndexName, { document: IndexDocument; expiresAt: number }>();
+const pendingIndexReads = new Map<PublicIndexName, Promise<IndexDocument>>();
+
+async function readParsedPublicIndex(name: PublicIndexName, label: string): Promise<IndexDocument> {
+  const cached = publicIndexCache.get(name);
+  if (cached && cached.expiresAt > Date.now()) return cached.document;
+
+  const pending = pendingIndexReads.get(name);
+  if (pending) return pending;
+
+  const request = (async () => {
+    try {
+      const document = parseIndex(await readPublicIndex(name, "json"), label);
+      publicIndexCache.set(name, {
+        document,
+        expiresAt: Date.now() + PUBLIC_INDEX_CACHE_TTL_MS,
+      });
+      return document;
+    } finally {
+      pendingIndexReads.delete(name);
+    }
+  })();
+  pendingIndexReads.set(name, request);
+  return request;
+}
+
 const MEDIA_TYPES: Record<string, string> = {
   bmp: "image/bmp",
   doc: "application/msword",
@@ -75,7 +102,7 @@ export async function getCatalogFile(
   repository: string,
   path: string,
 ): Promise<CatalogFile | null> {
-  const repositoryIndex = parseIndex(await readPublicIndex("github_repositories", "json"), "repository");
+  const repositoryIndex = await readParsedPublicIndex("github_repositories", "repository");
   const repositoryRow = asRecord(repositoryIndex.entries[`${owner}/${repository}`]);
   if (
     !repositoryRow
@@ -87,7 +114,7 @@ export async function getCatalogFile(
 
   const group = repositoryRow.classOrStream as TreeGroup;
   const treeName = `${group}-tree` as PublicIndexName;
-  const treeIndex = parseIndex(await readPublicIndex(treeName, "json"), `${group} file tree`);
+  const treeIndex = await readParsedPublicIndex(treeName, `${group} file tree`);
   const fileRow = asRecord(treeIndex.entries[`${owner}/${repository}/${path}`]);
   if (
     !fileRow
