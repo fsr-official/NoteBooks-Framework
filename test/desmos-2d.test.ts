@@ -60,7 +60,7 @@ describe("compileDesmos2D", () => {
     });
     expect(result.output.bounds).toEqual({ left: -2, right: 12, bottom: -3, top: 8 });
     expect(result.output.expressions).toEqual([
-      { id: "curve", latex: "y=x^2", color: "#348543", lineWidth: 2, lineStyle: "DOTTED" },
+      { id: "curve", latex: "y=x^2", color: "#388c46", lineWidth: 2, lineStyle: "DOTTED" },
       { id: "explanation", type: "text", text: "Table values are measured in metres." },
       {
         id: "samples",
@@ -113,6 +113,21 @@ describe("compileDesmos2D", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.output.expressions[0]).toMatchObject({ id: "f", latex: "y=x" });
+  });
+
+  it("rejects legacy JSON-shaped calculator state instead of sending it as equations", () => {
+    const result = compileDesmos2D([
+      "expressions: [",
+      '  { id: "curve", type: "expression", latex: "y=x" }',
+      "]",
+    ].join("\n"));
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "E_LEGACY_JSON", line: 1 }),
+      expect.objectContaining({ code: "E_LEGACY_JSON", line: 2 }),
+    ]));
   });
 
   it("validates preset declarations even when no expression uses them", () => {

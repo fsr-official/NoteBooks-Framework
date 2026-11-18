@@ -4,6 +4,7 @@ import "./reader-redesign.css";
 import "katex/dist/katex.min.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { ThemeBootstrap } from "@/components/theme-bootstrap";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "NoteBooks — A calmer place to study",
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ThemeBootstrap />
         {children}
         <ServiceWorkerRegistration />
+        {process.env.VERCEL === "1" && <SpeedInsights />}
       </body>
     </html>
   );

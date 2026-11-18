@@ -27,7 +27,7 @@ declare module "markdown-it-texmath" {
   import type { KatexOptions } from "katex";
   const plugin: MarkdownIt.PluginWithOptions<{
     engine?: typeof import("katex");
-    delimiters?: string;
+    delimiters?: string | string[];
     katexOptions?: KatexOptions;
   }>;
   export default plugin;

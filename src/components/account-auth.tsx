@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import type { User, UserIdentity } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { clearReaderChatHistory } from "@/lib/reader-chat-storage";
 import { AuthCaptcha } from "@/components/auth-captcha";
 import { getAuthCaptchaToken } from "@/lib/auth-captcha";
 import {
@@ -76,6 +77,15 @@ function safeReturnPath(value: string | null): string {
   return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
 }
 
+type AiUsageSummary = {
+  month_requests: number;
+  month_prompt_tokens: number;
+  month_completion_tokens: number;
+  all_time_requests: number;
+  all_time_prompt_tokens: number;
+  all_time_completion_tokens: number;
+};
+
 function AuthContent({ mode }: AccountAuthProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -94,6 +104,10 @@ function AuthContent({ mode }: AccountAuthProps) {
   const [identities, setIdentities] = useState<UserIdentity[]>([]);
   const [accountLabel, setAccountLabel] = useState("");
   const [accountUserName, setAccountUserName] = useState("");
+  const [aiUsage, setAiUsage] = useState<AiUsageSummary | null>(null);
+  const [aiUsageUserId, setAiUsageUserId] = useState("");
+  const [aiUsageError, setAiUsageError] = useState("");
+  const [chatHistoryNotice, setChatHistoryNotice] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -123,6 +137,19 @@ function AuthContent({ mode }: AccountAuthProps) {
     const result = await response.json() as { error?: string };
     if (!response.ok) {
       throw new Error(result.error || "Authentication is temporarily unavailable.");
+    }
+  }
+
+  function clearSavedChatHistory() {
+    if (!window.confirm("Clear all saved NoteBooks AI chat history from this browser? This cannot be undone.")) return;
+    try {
+      const count = clearReaderChatHistory();
+      setChatHistoryNotice(count
+        ? `Cleared ${count} saved ${count === 1 ? "chat" : "chats"} from this browser.`
+        : "There are no saved AI chats in this browser.");
+    } catch (clearError) {
+      console.error("Could not clear saved reader chat history", clearError);
+      setChatHistoryNotice("Saved chat history could not be cleared. Check your browser storage settings.");
     }
   }
 
@@ -173,6 +200,46 @@ function AuthContent({ mode }: AccountAuthProps) {
       });
     return () => { active = false; };
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "account" || !user) return;
+    let active = true;
+    void (async () => {
+      const { data: sessionData, error: sessionError } = await getSupabaseBrowserClient().auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!sessionData.session) throw new Error("Your session expired. Sign in again to view usage.");
+      const response = await fetch("/api/account/ai-usage", {
+        headers: { authorization: `Bearer ${sessionData.session.access_token}` },
+        cache: "no-store",
+      });
+      const result = await response.json() as AiUsageSummary | { error?: string };
+      if (!response.ok) {
+        const message = "error" in result ? result.error : undefined;
+        throw new Error(message || "AI usage is unavailable.");
+      }
+      const summary = result as AiUsageSummary;
+      const counts = [
+        summary.month_requests,
+        summary.month_prompt_tokens,
+        summary.month_completion_tokens,
+        summary.all_time_requests,
+        summary.all_time_prompt_tokens,
+        summary.all_time_completion_tokens,
+      ];
+      if (counts.some((count) => !Number.isSafeInteger(count) || count < 0)) {
+        throw new Error("AI usage returned an invalid summary.");
+      }
+      if (active) {
+        setAiUsage(summary);
+        setAiUsageUserId(user.id);
+        setAiUsageError("");
+      }
+    })()
+      .catch((usageError: unknown) => {
+        if (active) setAiUsageError(usageError instanceof Error ? usageError.message : "AI usage is unavailable.");
+      })
+    return () => { active = false; };
+  }, [mode, user]);
 
   const queryMessage = searchParams.get("linked") === "github" ? "GitHub is linked to your account." : "";
   const queryError = searchParams.get("error") ?? "";
@@ -299,23 +366,26 @@ function AuthContent({ mode }: AccountAuthProps) {
     setError("");
     try {
       const captchaToken = authCaptchaToken();
-      const supabase = getSupabaseBrowserClient();
-      if (captchaToken) {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        if (!sessionData.session) throw new Error("Your session expired. Sign in again to continue.");
-        const response = await fetch("/api/account/email", {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${sessionData.session.access_token}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ captchaToken }),
-        });
-        const result = await response.json() as { verified?: boolean; error?: string };
-        if (!response.ok) throw new Error(result.error || "Unable to change your email address.");
-        if (result.verified !== true) throw new Error("Security verification failed. Please complete the check again.");
+      if (!captchaToken) {
+        throw new Error("Complete the security check before continuing.");
       }
+
+      const supabase = getSupabaseBrowserClient();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!sessionData.session) throw new Error("Your session expired. Sign in again to continue.");
+      const response = await fetch("/api/account/email", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${sessionData.session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ captchaToken }),
+      });
+      const result = await response.json() as { verified?: boolean; error?: string };
+      if (!response.ok) throw new Error(result.error || "Unable to change your email address.");
+      if (result.verified !== true) throw new Error("Security verification failed. Please complete the check again.");
+
       const { error: emailError } = await supabase.auth.updateUser(
         { email: newEmail.trim() },
         { emailRedirectTo: callbackUrl("/account/settings") },
@@ -408,6 +478,32 @@ function AuthContent({ mode }: AccountAuthProps) {
           <span>EMAIL</span><strong>{user.email}</strong>
           <span>USER ID</span><strong>{accountLabel || "Loading…"}</strong>
         </div>
+        <section className="account-ai-usage" aria-labelledby="account-ai-usage-title">
+          <h2 id="account-ai-usage-title">AI chat usage</h2>
+          {aiUsageUserId !== user.id && !aiUsageError && <p>Loading usage…</p>}
+          {aiUsageError && <p role="alert">{aiUsageError}</p>}
+          {aiUsage && aiUsageUserId === user.id && (
+            <div className="account-ai-usage-grid">
+              <div>
+                <span>This month</span>
+                <strong>{aiUsage.month_requests.toLocaleString()} requests</strong>
+                <small>{(aiUsage.month_prompt_tokens + aiUsage.month_completion_tokens).toLocaleString()} tokens</small>
+              </div>
+              <div>
+                <span>All time</span>
+                <strong>{aiUsage.all_time_requests.toLocaleString()} requests</strong>
+                <small>{(aiUsage.all_time_prompt_tokens + aiUsage.all_time_completion_tokens).toLocaleString()} tokens</small>
+              </div>
+            </div>
+          )}
+          <div className="account-ai-history-controls">
+            <p>Chat history is stored in this browser, not in your account.</p>
+            <button type="button" onClick={clearSavedChatHistory}>
+              Clear saved AI chats
+            </button>
+            {chatHistoryNotice && <p role="status">{chatHistoryNotice}</p>}
+          </div>
+        </section>
         <form className="auth-form" onSubmit={(event) => void saveUserName(event, {
           accountLabel,
           accountUserName,

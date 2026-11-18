@@ -1,4 +1,7 @@
+import { isLegacyDesmosJsonLine } from "@/lib/desmos-source";
+
 export type DesmosPhase = "compile";
+
 export type DesmosSeverity = "error" | "warning";
 
 export type DesmosDiagnostic = {
@@ -79,7 +82,7 @@ const RESERVED_ID_PREFIX = "auto_";
 const COLOR_NAMES: Record<string, string> = {
   red: "#c74440",
   blue: "#2d70b3",
-  green: "#348543",
+  green: "#388c46",
   purple: "#6042a6",
   orange: "#fa7e19",
   black: "#000000",
@@ -750,6 +753,16 @@ export function compileDesmos2D(source: string): Desmos2DCompileResult {
       continue;
     }
     if (!trimmed || trimmed.startsWith("//")) continue;
+    if (isLegacyDesmosJsonLine(sourceLine)) {
+      diagnostics.push(diagnostic(
+        "error",
+        "E_LEGACY_JSON",
+        "This block uses Desmos API JSON/state syntax. Use the Desmos DSL instead, for example '@curve: y=x'.",
+        lineNumber,
+        sourceLine.search(/\S/) + 1,
+      ));
+      continue;
+    }
     if (pendingHeader && trimmed) {
       if (trimmed.startsWith("%") || trimmed.startsWith("@")) {
         diagnostics.push(diagnostic("error", "E_HEADER_LATEX", `Expression '${pendingHeader.id}' is missing its LaTeX body.`, pendingHeader.line, pendingHeader.col, { id: pendingHeader.id }));

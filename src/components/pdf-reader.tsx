@@ -3,12 +3,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import { alignPdfPage, getLastPdfSpreadStart, type PdfPageMode } from "@/lib/pdf-page-navigation";
+import { resolvePdfPageMode } from "@/lib/pdf-page-mode";
+import { PdfAiAssistant } from "@/components/pdf-ai-assistant";
 
 type PdfJs = typeof import("pdfjs-dist");
 type PdfMatch = { page: number; text: string };
 type ReaderMode = "normal" | "fullwindow" | "fullscreen";
 const THUMBNAIL_ROW_HEIGHT = 136;
 const THUMBNAIL_WINDOW_SIZE = 14;
+const PDF_PAGE_MODE_STORAGE_PREFIX = "notebooks:pdf-page-mode:v1:";
+
+function readPreferredPageMode(fileKey: string): PdfPageMode {
+  try {
+    const saved = localStorage.getItem(`${PDF_PAGE_MODE_STORAGE_PREFIX}${fileKey}`);
+    if (saved === "single" || saved === "dual") return saved;
+  } catch (error) {
+    console.error("Could not read the saved PDF page layout", error);
+  }
+  return window.matchMedia("(max-width: 760px)").matches ? "single" : "dual";
+}
 
 function isCancellation(error: unknown): boolean {
   return error instanceof Error && error.name === "RenderingCancelledException";
@@ -179,7 +192,7 @@ function PdfPageView({
   );
 }
 
-export default function PdfReader({ src, fileName }: { src: string; fileName: string }) {
+export default function PdfReader({ src, fileName, fileKey }: { src: string; fileName: string; fileKey: string }) {
   const [pdfjs, setPdfjs] = useState<PdfJs | null>(null);
   const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
   const [error, setError] = useState("");
@@ -187,7 +200,7 @@ export default function PdfReader({ src, fileName }: { src: string; fileName: st
   const [zoom, setZoom] = useState(100);
   const [availableWidth, setAvailableWidth] = useState(900);
   const [pageMode, setPageMode] = useState<PdfPageMode>(() => (
-    typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches ? "single" : "dual"
+    typeof window !== "undefined" ? resolvePdfPageMode(readPreferredPageMode(fileKey), window.innerWidth) : "single"
   ));
   const [readerMode, setReaderMode] = useState<ReaderMode>("normal");
   const [pageDirection, setPageDirection] = useState<"next" | "previous">("next");
@@ -203,6 +216,9 @@ export default function PdfReader({ src, fileName }: { src: string; fileName: st
   const thumbnailListRef = useRef<HTMLElement>(null);
   const [thumbnailStart, setThumbnailStart] = useState(0);
   const searchIdRef = useRef(0);
+  const preferredPageModeRef = useRef<PdfPageMode>(
+    typeof window !== "undefined" ? readPreferredPageMode(fileKey) : "single",
+  );
 
   useEffect(() => {
     let active = true;
@@ -245,13 +261,13 @@ export default function PdfReader({ src, fileName }: { src: string; fileName: st
 
   useEffect(() => {
     const updatePageMode = () => {
-      const nextMode: PdfPageMode = window.innerWidth <= 760 ? "single" : "dual";
+      const nextMode = resolvePdfPageMode(preferredPageModeRef.current, window.innerWidth);
       setPageMode(nextMode);
-      setPageNumber((current) => alignPdfPage(current, current, nextMode));
+      setPageNumber((current) => alignPdfPage(current, document?.numPages ?? current, nextMode));
     };
     window.addEventListener("resize", updatePageMode);
     return () => window.removeEventListener("resize", updatePageMode);
-  }, []);
+  }, [document]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -332,9 +348,16 @@ export default function PdfReader({ src, fileName }: { src: string; fileName: st
   }, [readerMode]);
 
   const setPagesMode = useCallback((nextMode: PdfPageMode) => {
-    setPageMode(nextMode);
-    if (document) setPageNumber((current) => alignPdfPage(current, document.numPages, nextMode));
-  }, [document]);
+    preferredPageModeRef.current = nextMode;
+    try {
+      localStorage.setItem(`${PDF_PAGE_MODE_STORAGE_PREFIX}${fileKey}`, nextMode);
+    } catch (error) {
+      console.error("Could not save the PDF page layout", error);
+    }
+    const resolvedMode = resolvePdfPageMode(nextMode, window.innerWidth);
+    setPageMode(resolvedMode);
+    if (document) setPageNumber((current) => alignPdfPage(current, document.numPages, resolvedMode));
+  }, [document, fileKey]);
 
   useEffect(() => {
     if (thumbnailListRef.current) {
@@ -543,7 +566,7 @@ export default function PdfReader({ src, fileName }: { src: string; fileName: st
               <div aria-hidden="true" style={{ height: (document.numPages - thumbnailEnd) * THUMBNAIL_ROW_HEIGHT, flex: "0 0 auto" }} />
             </aside>
           )}
-          <div className="pdf-page-viewport" ref={pageContainerRef} tabIndex={0} aria-label="PDF page canvas">
+          <div id="pdf-page-viewport" className="pdf-page-viewport" ref={pageContainerRef} tabIndex={0} aria-label="PDF page canvas">
             {document && pdfjs ? (
               <div key={pageNumber} className="pdf-page-spread" data-direction={pageDirection}>
                 <PdfPageView
@@ -577,6 +600,13 @@ export default function PdfReader({ src, fileName }: { src: string; fileName: st
           </div>
         </div>
       )}
+      <PdfAiAssistant
+        document={document}
+        fileName={fileName}
+        fileKey={fileKey}
+        pageMode={pageMode}
+        pageNumber={pageNumber}
+      />
     </section>
   );
 }
