@@ -220,6 +220,64 @@
             }
         });
     }
+    /* ── Rule: subscript  A_z / B_{xy} ─────────────────────────────────────── */
+    function ruleSubscript(md) {
+        md.core.ruler.push('obs_subscript', function (state) {
+            var i, bt, j, child, text, match, lastIndex, prefix, base, rawSub, subText, htmlToken;
+            for (i = 0; i < state.tokens.length; i++) {
+                bt = state.tokens[i];
+                if (bt.type !== 'inline' || !bt.children)
+                    continue;
+                var out = [];
+                for (j = 0; j < bt.children.length; j++) {
+                    child = bt.children[j];
+                    if (child.type !== 'text') {
+                        out.push(child);
+                        continue;
+                    }
+                    text = child.content || '';
+                    if (!text || text.indexOf('_') === -1) {
+                        out.push(child);
+                        continue;
+                    }
+                    lastIndex = 0;
+                    var found = false;
+                    var re = /([A-Za-z0-9]+)_((?:\{[^}]+\})|[A-Za-z0-9])/g;
+                    while ((match = re.exec(text)) !== null) {
+                        found = true;
+                        prefix = text.slice(lastIndex, match.index);
+                        if (prefix) {
+                            var textToken = new state.Token('text', '', 0);
+                            textToken.content = prefix;
+                            out.push(textToken);
+                        }
+                        base = match[1];
+                        rawSub = match[2];
+                        if (rawSub.charAt(0) === '{' && rawSub.charAt(rawSub.length - 1) === '}') {
+                            subText = rawSub.slice(1, -1);
+                        }
+                        else {
+                            subText = rawSub;
+                        }
+                        htmlToken = new state.Token('html_inline', '', 0);
+                        htmlToken.content = base + '<sub>' + esc(subText) + '</sub>';
+                        out.push(htmlToken);
+                        lastIndex = re.lastIndex;
+                    }
+                    if (!found) {
+                        out.push(child);
+                        continue;
+                    }
+                    if (lastIndex < text.length) {
+                        var tailToken = new state.Token('text', '', 0);
+                        tailToken.content = text.slice(lastIndex);
+                        out.push(tailToken);
+                    }
+                }
+                bt.children = out;
+            }
+        });
+    }
     /* ── Rule: tags  #tag  #nested/tag ─────────────────────────────────────── */
     function ruleTags(md, opts) {
         md.core.ruler.push('obs_tags', function (state) {
@@ -569,7 +627,7 @@
                 var pg = anchor ? '#page=' + encodeURIComponent(anchor) : '';
                 // If the source is absolute or remote, route through the same-origin proxy
                 var resolvedSrc = src;
-                if (/^https?:\/\//i.test(src) || src.startsWith('/')) {
+                if (/^https?:\/\//i.test(src) || (src.startsWith('/') && !src.startsWith('/api/'))) {
                     resolvedSrc = '/api/raw?path=' + encodeURIComponent(src);
                 }
                 var safeResolved = esc(resolvedSrc);
@@ -799,12 +857,122 @@
                 if (kv.length === 2)
                     opts[kv[0]] = kv[1];
             });
+
+            /* Helper: parse a single line into a Desmos expression object.
+               Supported formats:
+                 1) JSON object literal (starts with '{') -> parsed as expression
+                 2) LaTeX string with optional trailing metadata in braces:
+                      y = x^2 { color=#c74440 linewidth=3 hidden=true }
+               Recognized metadata keys: id, type, color, lineStyle, lineWidth,
+               hidden, secret, readonly, sliderBounds (JSON array), parametricDomain (JSON or key=val pairs)
+            */
+            function parseLine(line, idx) {
+                var txt = line.trim();
+                if (!txt) return null;
+                // JSON object line
+                if (txt.charAt(0) === '{') {
+                    try {
+                        var obj = JSON.parse(txt);
+                        if (!obj.id) obj.id = 'expr-' + idx;
+                        return obj;
+                    }
+                    catch (e) {
+                        // Try a forgiving repair: escape backslashes (useful for LaTeX in JSON strings)
+                        try {
+                            var repaired = txt.replace(/\\(?!\\)/g, '\\\\');
+                            var obj2 = JSON.parse(repaired);
+                            if (!obj2.id) obj2.id = 'expr-' + idx;
+                            return obj2;
+                        }
+                        catch (e2) {
+                            // As a last-resort, try to extract common fields via tolerant regex
+                            try {
+                                var mLatex = txt.match(/"latex"\s*:\s*"((?:\\.|[^"\\])*)"/);
+                                var mColor = txt.match(/"color"\s*:\s*"([^"\\]*)"/);
+                                var obj3 = {};
+                                if (mLatex) obj3.latex = mLatex[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                                if (mColor) obj3.color = mColor[1];
+                                if (Object.keys(obj3).length) { obj3.id = 'expr-' + idx; return obj3; }
+                            } catch (e3) { /* ignore */ }
+                            console.warn('[obsidian-markdown-it] desmos: JSON parse failed for line', txt, e);
+                        }
+                    }
+                }
+
+                // Trailing metadata in braces
+                var metaMatch = txt.match(/\s*\{([\s\S]*)\}\s*$/);
+                var meta = {};
+                if (metaMatch) {
+                    var metaRaw = metaMatch[1].trim();
+                    // remove the trailing {...} from txt to get the latex
+                    txt = txt.slice(0, metaMatch.index).trim();
+                    // split by whitespace or commas, support key=value pairs
+                    // Tokenize metaRaw while respecting {...} and [...] JSON-like values
+                    var i = 0;
+                    while (i < metaRaw.length) {
+                        // skip whitespace and commas
+                        while (i < metaRaw.length && /[\s,]/.test(metaRaw.charAt(i))) i++;
+                        if (i >= metaRaw.length) break;
+                        // read key or flag up to '=' or whitespace
+                        var start = i;
+                        while (i < metaRaw.length && !/[=\s]/.test(metaRaw.charAt(i))) i++;
+                        var key = metaRaw.slice(start, i).trim();
+                        // skip spaces
+                        while (i < metaRaw.length && /\s/.test(metaRaw.charAt(i))) i++;
+                        if (i < metaRaw.length && metaRaw.charAt(i) === '=') {
+                            i++; // skip '='
+                            while (i < metaRaw.length && /\s/.test(metaRaw.charAt(i))) i++;
+                            if (i >= metaRaw.length) { meta[key] = ''; break; }
+                            var ch = metaRaw.charAt(i);
+                            if (ch === '{' || ch === '[') {
+                                // read until matching brace
+                                var open = ch, close = (ch === '{') ? '}' : ']';
+                                var depth = 0, j = i;
+                                while (j < metaRaw.length) {
+                                    if (metaRaw.charAt(j) === open) depth++;
+                                    else if (metaRaw.charAt(j) === close) {
+                                        depth--;
+                                        if (depth === 0) { j++; break; }
+                                    }
+                                    j++;
+                                }
+                                var v = metaRaw.slice(i, j).trim();
+                                try { meta[key] = JSON.parse(v); } catch (e) { meta[key] = v; }
+                                i = j;
+                            } else {
+                                // read until whitespace or comma
+                                var j = i;
+                                while (j < metaRaw.length && !/[,\s]/.test(metaRaw.charAt(j))) j++;
+                                var v = metaRaw.slice(i, j).trim();
+                                if (v === 'true' || v === 'false') meta[key] = v === 'true';
+                                else if (!isNaN(Number(v))) meta[key] = Number(v);
+                                else meta[key] = v;
+                                i = j;
+                            }
+                        } else {
+                            // flag-style token
+                            if (key) meta[key] = true;
+                        }
+                    }
+                }
+
+                var expr = { id: meta.id || ('expr-' + idx), latex: txt };
+                // copy recognized meta into expr
+                ['type', 'color', 'lineStyle', 'lineWidth', 'hidden', 'secret', 'readonly', 'label'].forEach(function (k) {
+                    if (meta[k] !== undefined) expr[k] = meta[k];
+                });
+                if (meta.sliderBounds) expr.sliderBounds = meta.sliderBounds;
+                if (meta.parametricDomain) expr.parametricDomain = meta.parametricDomain;
+                return expr;
+            }
+
             /* Render desmos blocks as a div; obsidianInitDesmos() will process them */
             var expressions = token.content
                 .trim()
                 .split('\n')
-                .filter(function (line) { return line.trim() !== ''; })
-                .map(function (latex, i) { return { id: 'expr-' + i, latex: latex.trim() }; });
+                .map(function (l) { return l.replace(/\r$/, ''); })
+                .map(function (line, i) { return parseLine(line, i); })
+                .filter(function (e) { return e !== null; });
             var stateJson = JSON.stringify({ expressions: { list: expressions } });
             var uid = 'desmos-' + Math.random().toString(36).slice(2, 9);
             return '<div class="desmos-block" id="' + uid + '"'
@@ -838,11 +1006,60 @@
                 if (kv.length === 2)
                     opts[kv[0]] = kv[1];
             });
+            function parseLine3d(line, idx) {
+                // reuse 2D parser logic but use expr3d- ids by default
+                var txt = line.trim();
+                if (!txt) return null;
+                if (txt.charAt(0) === '{') {
+                    try { var obj = JSON.parse(txt); if (!obj.id) obj.id = 'expr3d-' + idx; return obj; }
+                        catch (e) {
+                            try {
+                                var repaired = txt.replace(/\\(?!\\)/g, '\\\\');
+                                var obj2 = JSON.parse(repaired);
+                                if (!obj2.id) obj2.id = 'expr3d-' + idx;
+                                return obj2;
+                            } catch (e2) {
+                                try {
+                                    var mLatex = txt.match(/"latex"\s*:\s*"((?:\\.|[^"\\])*)"/);
+                                    var mColor = txt.match(/"color"\s*:\s*"([^"\\]*)"/);
+                                    var obj3 = {};
+                                    if (mLatex) obj3.latex = mLatex[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                                    if (mColor) obj3.color = mColor[1];
+                                    if (Object.keys(obj3).length) { obj3.id = 'expr3d-' + idx; return obj3; }
+                                } catch (e3) { /* ignore */ }
+                                console.warn('[obsidian-markdown-it] desmos3d: JSON parse failed', e);
+                            }
+                        }
+                }
+                var metaMatch = txt.match(/\s*\{([\s\S]*)\}\s*$/);
+                var meta = {};
+                if (metaMatch) {
+                    var metaRaw = metaMatch[1].trim();
+                    txt = txt.slice(0, metaMatch.index).trim();
+                    metaRaw.split(/[,\n]+/).forEach(function (chunk) {
+                        var pair = String(chunk).trim(); if (!pair) return; var kv = pair.split(/\s+/).join(' ').split('=');
+                        if (kv.length === 2) {
+                            var k = kv[0].trim(); var v = kv[1].trim();
+                            if ((v.charAt(0) === '[' && v.charAt(v.length - 1) === ']') || (v.charAt(0) === '{' && v.charAt(v.length - 1) === '}')) {
+                                try { meta[k] = JSON.parse(v); } catch (e) { meta[k] = v; }
+                            } else if (v === 'true' || v === 'false') { meta[k] = v === 'true'; }
+                            else if (!isNaN(Number(v))) { meta[k] = Number(v); } else { meta[k] = v; }
+                        } else { var f = pair.trim(); if (f) meta[f] = true; }
+                    });
+                }
+                var expr = { id: meta.id || ('expr3d-' + idx), latex: txt };
+                ['type', 'color', 'lineStyle', 'lineWidth', 'hidden', 'secret', 'readonly', 'label'].forEach(function (k) { if (meta[k] !== undefined) expr[k] = meta[k]; });
+                if (meta.sliderBounds) expr.sliderBounds = meta.sliderBounds;
+                if (meta.parametricDomain) expr.parametricDomain = meta.parametricDomain;
+                return expr;
+            }
+
             var expressions = token.content
                 .trim()
                 .split('\n')
-                .filter(function (line) { return line.trim() !== ''; })
-                .map(function (latex, i) { return { id: 'expr3d-' + i, latex: latex.trim() }; });
+                .map(function (l) { return l.replace(/\r$/, ''); })
+                .map(function (line, i) { return parseLine3d(line, i); })
+                .filter(function (e) { return e !== null; });
             var stateJson = JSON.stringify({ expressions: { list: expressions } });
             var uid = 'desmos3d-' + Math.random().toString(36).slice(2, 9);
             return '<div class="desmos3d-block" id="' + uid + '"'
@@ -935,8 +1152,26 @@
     /* Call after inserting rendered HTML into the DOM.                          */
     /* Requires mermaid.min.js to be loaded (mermaid CDN).                      */
     /* ── Pan/zoom engine for Mermaid diagrams ───────────────────────────────── */
+    var MIN_MINDMAP_LABEL_PX = 16;
+    function _mindmapReadableScale(svg, svgW, svgH) {
+        var viewBox = svg.viewBox && svg.viewBox.baseVal;
+        if (!viewBox || !viewBox.width || !viewBox.height)
+            return 1;
+        var svgUnitScale = Math.min(svgW / viewBox.width, svgH / viewBox.height);
+        var labels = svg.querySelectorAll('foreignObject p, text');
+        var smallestFont = Infinity;
+        for (var i = 0; i < labels.length; i++) {
+            var fontSize = parseFloat(window.getComputedStyle(labels[i]).fontSize);
+            if (fontSize > 0)
+                smallestFont = Math.min(smallestFont, fontSize);
+        }
+        if (!isFinite(smallestFont))
+            smallestFont = MIN_MINDMAP_LABEL_PX;
+        return MIN_MINDMAP_LABEL_PX / (smallestFont * svgUnitScale);
+    }
     function _mermaidPanZoom(wrap, canvas, svg, isMindmap) {
         var scale = 1, tx = 0, ty = 0;
+        var viewMode = 'fit';
         var dragging = false, startX, startY, startTx, startTy;
         var lastTouchDist = null;
         var DRAG_RESISTANCE = 0.75; /* 0-1: lower = more resistance */
@@ -949,14 +1184,13 @@
             var ox = cx - rect.left, oy = cy - rect.top;
             var ns = clamp(scale * factor, 0.08, 12);
             var r = ns / scale;
-            var svgW = parseFloat(svg.getAttribute('width')) || 600;
-            var svgH = parseFloat(svg.getAttribute('height')) || 400;
             /* Adjust center of zoom to be viewport-center relative */
             var centerX = wrap.clientWidth / 2;
             var centerY = wrap.clientHeight / 2;
             tx = (1 - r) * (ox - centerX) + r * tx;
             ty = (1 - r) * (oy - centerY) + r * ty;
             scale = ns;
+            viewMode = null;
             applyTransform();
         }
         /* Wheel zoom */
@@ -973,6 +1207,7 @@
             startY = e.clientY;
             startTx = tx;
             startTy = ty;
+            viewMode = null;
             canvas.classList.add('is-dragging');
             e.preventDefault();
         });
@@ -997,6 +1232,7 @@
                 startY = e.touches[0].clientY;
                 startTx = tx;
                 startTy = ty;
+                viewMode = null;
             }
             else if (e.touches.length === 2) {
                 dragging = false;
@@ -1029,13 +1265,13 @@
                 zoomAt(1.35, cx, cy);
             if (action === 'zout')
                 zoomAt(1 / 1.35, cx, cy);
-            if (action === 'fit')
+            if (action === 'fit' || action === 'fill') {
+                viewMode = action;
                 fitToView();
+            }
             if (action === 'reset') {
-                scale = 1;
-                tx = 0;
-                ty = 0;
-                applyTransform();
+                viewMode = 'fit';
+                fitToView();
             }
         }
         wrap.querySelectorAll('.mermaid-tb-btn[data-a]').forEach(function (btn) {
@@ -1076,13 +1312,32 @@
                 return;
             }
             var pad = 48;
-            var ns = Math.min((wrapW - pad) / svgW, (wrapH - pad) / svgH, 1.8);
-            ns = Math.max(ns, 0.08);
+            var isTallDiagram = svgH / svgW > 2.2;
+            var widthScale = (wrapW - pad) / svgW;
+            var heightScale = (wrapH - pad) / svgH;
+            var ns;
+            if (isMindmap) {
+                var readableScale = _mindmapReadableScale(svg, svgW, svgH);
+                ns = viewMode === 'fill' ? readableScale * 1.35 : readableScale;
+                var mindmapHeight = Math.max(180, Math.ceil(svgH * ns) + pad);
+                if (wrap.style.height !== mindmapHeight + 'px')
+                    wrap.style.height = mindmapHeight + 'px';
+            }
+            else {
+                ns = Math.min(widthScale, isTallDiagram ? 1.8 : heightScale, 1.8);
+                ns = Math.max(ns, 0.08);
+            }
             scale = ns;
             tx = -(svgW * scale) / 2;
-            ty = -(svgH * scale) / 2;
+            ty = isTallDiagram && !isMindmap && viewMode !== 'fill'
+                ? -wrapH / 2 + pad
+                : -(svgH * scale) / 2;
             applyTransform();
         }
+        var resizeObserver = new ResizeObserver(function () {
+            if (viewMode) requestAnimationFrame(fitToView);
+        });
+        resizeObserver.observe(wrap);
         requestAnimationFrame(fitToView); // kick it off (retry loop handles the rest)
     }
     function _sizeMermaidSVG(svg) {
@@ -1116,8 +1371,8 @@
         if (!svg || el.querySelector('.mermaid-viewer-wrap'))
             return;
         _sizeMermaidSVG(svg);
-        /* Detect mindmap: look for rotate transforms which are unique to mindmaps */
-        var isMindmap = false;
+        /* Mermaid mindmaps have a dedicated SVG class; retain transform detection for older output. */
+        var isMindmap = el.getAttribute('data-diagram-type') === 'mindmap' || svg.classList.contains('mindmapDiagram');
         var groups = svg.querySelectorAll('g');
         for (var g = 0; g < groups.length && !isMindmap; g++) {
             var transform = groups[g].getAttribute('transform') || '';
@@ -1136,16 +1391,28 @@
         }
         if (!svgH)
             svgH = svg.getBoundingClientRect().height || 0;
-        var viewH = Math.min(Math.max(svgH + 80, isMindmap ? 400 : 260), window.innerHeight * 0.78);
+        var viewH;
+        if (isMindmap) {
+            var initialWidth = parseFloat(svg.getAttribute('width')) || 1;
+            var initialHeight = parseFloat(svg.getAttribute('height')) || 1;
+            var initialScale = _mindmapReadableScale(svg, initialWidth, initialHeight);
+            viewH = Math.max(180, Math.ceil(svgH * initialScale) + 48);
+        }
+        else {
+            var maxViewH = Math.min(window.innerHeight * 0.65, 560);
+            viewH = Math.min(Math.max(Math.min(svgH, 480) + 80, 260), maxViewH);
+        }
         var wrap = document.createElement('div');
         wrap.className = 'mermaid-viewer-wrap' + (isMindmap ? ' mermaid-mindmap' : '');
         wrap.style.height = viewH + 'px';
         var toolbar = document.createElement('div');
         toolbar.className = 'mermaid-toolbar';
+        var viewAction = isMindmap ? 'fill' : 'fit';
+        var viewTitle = isMindmap ? 'Fill to view' : 'Fit to view';
         toolbar.innerHTML =
             '<button class="mermaid-tb-btn" data-a="zin"  title="Zoom in">+</button>' +
                 '<button class="mermaid-tb-btn" data-a="zout" title="Zoom out">−</button>' +
-                '<button class="mermaid-tb-btn" data-a="fit"  title="Fit to view" style="font-size:12px">⊡</button>' +
+                '<button class="mermaid-tb-btn" data-a="' + viewAction + '" title="' + viewTitle + '" style="font-size:12px">⊡</button>' +
                 '<button class="mermaid-tb-btn" data-a="reset" title="Reset" style="font-size:11px">↺</button>';
         var canvas = document.createElement('div');
         canvas.className = 'mermaid-canvas' + (isMindmap ? ' mermaid-canvas-centered' : '');
@@ -1163,15 +1430,15 @@
     }
     function initMermaid(root) {
         if (typeof mermaid === 'undefined')
-            return;
+            return Promise.resolve();
         var els = Array.from((root || document).querySelectorAll('.obsidian-mermaid:not([data-mermaid-processed])'));
         if (!els.length)
-            return;
+            return Promise.resolve();
         els.forEach(function (el) { el.setAttribute('data-mermaid-processed', 'true'); });
         try {
             if (typeof mermaid.run === 'function') {
                 /* Mermaid v10+: run() returns a Promise */
-                mermaid.run({ nodes: els }).then(function () {
+                return mermaid.run({ nodes: els }).then(function () {
                     els.forEach(_wrapMermaidDiagram);
                 }).catch(function (e) {
                     console.warn('[obsidian-markdown-it] Mermaid render error:', e);
@@ -1198,6 +1465,7 @@
         catch (e) {
             console.warn('[obsidian-markdown-it] Mermaid render error:', e);
         }
+        return Promise.resolve();
     }
     function initDesmos(root) {
         if (!window.Desmos || typeof window.Desmos.GraphingCalculator !== 'function')
@@ -1632,7 +1900,8 @@
             resolveTransclusion: null, calloutIcons: {},
             enableMath: true, enableTags: true, enableComments: true, enableTikz: true,
             enableHighlight: true, enableStrikethrough: true,
-            enableTaskLists: true, enableMermaid: true, enableBlockIds: true
+            enableTaskLists: true, enableMermaid: true, enableBlockIds: true,
+            enableSubscript: true
         };
         if (options) {
             for (var k in options) {
@@ -1650,6 +1919,7 @@
             ruleMathInlineDisplay(md);
             ruleMathInline(md);
         }
+        ruleSubscript(md);
         if (opts.enableHighlight)
             ruleHighlight(md);
         if (opts.enableStrikethrough)
@@ -1740,7 +2010,6 @@
             if (viewportW < 600) {
                 baseW = Math.min(maxW, viewportW - 30);
             }
-            baseW *= 0.3; /* Adjust overall size (0.3 is a good balance for most cases) */
             var baseH = Math.round(baseW / ratio);
             /* Write explicit pixel width/height so fitToView can read them with
                getAttribute — same pattern Mermaid uses, avoids CSS sizing conflicts */
@@ -2009,14 +2278,19 @@
             var body = bodyLines.join('\n').trimRight();
             if (body.indexOf('\\end{document}') === -1)
                 body += '\n\\end{document}';
-            return { preamble: preamble.join('') + '\\begin{document}', body: body };
+            var preambleText = preamble.join('');
+            // TikZJax omits the typewriter italic font, so use its bundled Roman italic face.
+            preambleText += '\\DeclareFontShape{OT1}{cmtt}{m}{it}{<->ssub*cmr/m/it}{}';
+            return { preamble: preambleText + '\\begin{document}', body: body };
         }
         var el = root || document;
         el.querySelectorAll('.tikz-source:not([data-tikz-rendered])').forEach(function (div) {
             div.setAttribute('data-tikz-rendered', 'true');
             var wrapper = div.closest('.tikz-wrapper') || div.parentNode;
             var rawSource = div.textContent;
-            var parsed = extractPreamble(rawSource);
+            // Render middle dots through the math-symbol font instead of the missing text glyph.
+            var tikzSource = rawSource.replace(/\u00b7/g, '\\ensuremath{\\cdot}');
+            var parsed = extractPreamble(tikzSource);
             var s = document.createElement('script');
             s.type = 'text/tikz';
             s.setAttribute('data-add-to-preamble', parsed.preamble);

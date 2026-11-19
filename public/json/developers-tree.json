@@ -1,0 +1,813 @@
+{
+  "stream": "developers",
+  "root": {
+    "type": "folder",
+    "name": "NoteBooks-Developers",
+    "path": "NoteBooks-Developers",
+    "stream": "developers",
+    "children": [
+      {
+        "type": "folder",
+        "name": "NoteBooks-Documents",
+        "path": "NoteBooks-Documents",
+        "repo": "fsr-official/NoteBooks-Documents",
+        "branch": "main",
+        "stream": "developers",
+        "children": [
+          {
+            "type": "file",
+            "path": "GITHUB-REPOSITORIES.md",
+            "name": "GITHUB-REPOSITORIES.md",
+            "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
+            "size": 2305,
+            "repoPath": "GITHUB-REPOSITORIES.md",
+            "repo": "fsr-official/NoteBooks-Documents",
+            "branch": "main",
+            "stream": "developers",
+            "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/GITHUB-REPOSITORIES.md"
+          },
+          {
+            "type": "folder",
+            "name": "docs",
+            "path": "docs",
+            "repoPath": "docs",
+            "repo": "fsr-official/NoteBooks-Documents",
+            "branch": "main",
+            "stream": "developers",
+            "children": [
+              {
+                "type": "file",
+                "path": "docs/DEV-WORKSPACE.md",
+                "name": "DEV-WORKSPACE.md",
+                "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+                "size": 985,
+                "repoPath": "docs/DEV-WORKSPACE.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/DEV-WORKSPACE.md"
+              },
+              {
+                "type": "file",
+                "path": "docs/README.md",
+                "name": "README.md",
+                "sha": "4072df720211f9fbf263923586546e40d95409c7",
+                "size": 678,
+                "repoPath": "docs/README.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/README.md"
+              },
+              {
+                "type": "file",
+                "path": "docs/REPO-AND-FILES-JSON.md",
+                "name": "REPO-AND-FILES-JSON.md",
+                "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+                "size": 1259,
+                "repoPath": "docs/REPO-AND-FILES-JSON.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/REPO-AND-FILES-JSON.md"
+              },
+              {
+                "type": "file",
+                "path": "docs/STREAM-ARCHITECTURE.md",
+                "name": "STREAM-ARCHITECTURE.md",
+                "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+                "size": 1199,
+                "repoPath": "docs/STREAM-ARCHITECTURE.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/STREAM-ARCHITECTURE.md"
+              },
+              {
+                "type": "file",
+                "path": "docs/SYSTEM-OVERVIEW.md",
+                "name": "SYSTEM-OVERVIEW.md",
+                "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
+                "size": 1562,
+                "repoPath": "docs/SYSTEM-OVERVIEW.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/SYSTEM-OVERVIEW.md"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "folder",
+        "name": "NoteBooks-Framework",
+        "children": [
+          {
+            "type": "file",
+            "name": "COPYLEFT-NOTICES.md",
+            "path": "COPYLEFT-NOTICES.md",
+            "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "dist",
+            "children": [
+              {
+                "type": "folder",
+                "name": "server",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "client",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "lib",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "server",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "shims",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "folder",
+            "name": "docs",
+            "children": [
+              {
+                "type": "file",
+                "name": "DEV-WORKSPACE.md",
+                "path": "docs/DEV-WORKSPACE.md",
+                "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "README.md",
+                "path": "docs/README.md",
+                "sha": "4072df720211f9fbf263923586546e40d95409c7",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "REPO-AND-FILES-JSON.md",
+                "path": "docs/REPO-AND-FILES-JSON.md",
+                "sha": "6074363ae14587daad2250c9b10979a0da6b9804",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "STREAM-ARCHITECTURE.md",
+                "path": "docs/STREAM-ARCHITECTURE.md",
+                "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "SYSTEM-OVERVIEW.md",
+                "path": "docs/SYSTEM-OVERVIEW.md",
+                "sha": "29b90a8bb405435ec2225a5327a9a9e4d4a6e99a",
+                "mime": "text/markdown"
+              }
+            ]
+          },
+          {
+            "type": "folder",
+            "name": "logs",
+            "children": []
+          },
+          {
+            "type": "file",
+            "name": "README.md",
+            "path": "README.md",
+            "sha": "0c39c847e5a0c75c7d4bbfd8697d83be2fc3a20b",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "skill",
+            "children": [
+              {
+                "type": "file",
+                "name": "biology-generator.skill.md",
+                "path": "skill/biology-generator.skill.md",
+                "sha": "f15bdd783ec8ec42cd9fd8cfcb92492cb25d9ffc",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "chemistry-generator.skill.md",
+                "path": "skill/chemistry-generator.skill.md",
+                "sha": "eee702a2dfe6c4b9577737aa9da1265b9747732a",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "cs-generator.skill.md",
+                "path": "skill/cs-generator.skill.md",
+                "sha": "f602066945fca094287e5ac9b2e3f061a95ea57e",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "desmos-upgrade.skill.md",
+                "path": "skill/desmos-upgrade.skill.md",
+                "sha": "8ffa3823f848a7873e8a296889ac6698a07c4ba6",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "maths-generator.skill.md",
+                "path": "skill/maths-generator.skill.md",
+                "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "notes-generator.skill.md",
+                "path": "skill/notes-generator.skill.md",
+                "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "folder",
+                "name": "notes-triad",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "references",
+                    "children": [
+                      {
+                        "type": "file",
+                        "name": "cnotes-format.md",
+                        "path": "skill/notes-triad/references/cnotes-format.md",
+                        "sha": "e8f39ea109f377a95a1b415cf199a2add2e55ff1",
+                        "mime": "text/markdown"
+                      },
+                      {
+                        "type": "file",
+                        "name": "glossary-rules.md",
+                        "path": "skill/notes-triad/references/glossary-rules.md",
+                        "sha": "f9c1ffaa860337e138fb3b8859b723cb0b68f773",
+                        "mime": "text/markdown"
+                      },
+                      {
+                        "type": "file",
+                        "name": "notes-format.md",
+                        "path": "skill/notes-triad/references/notes-format.md",
+                        "sha": "9c2d8fc02af18e1eea88420bb86f0473dcb1e349",
+                        "mime": "text/markdown"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "file",
+                    "name": "SKILL.md",
+                    "path": "skill/notes-triad/SKILL.md",
+                    "sha": "643e131645c1b0e75646f53c6a6f5a63709a0b56",
+                    "mime": "text/markdown"
+                  }
+                ]
+              },
+              {
+                "type": "file",
+                "name": "physics-generator.skill.md",
+                "path": "skill/physics-generator.skill.md",
+                "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
+                "mime": "text/markdown"
+              }
+            ]
+          }
+        ],
+        "stream": "developers",
+        "repo": "local/NoteBooks-Framework",
+        "branch": "local",
+        "path": "NoteBooks-Framework"
+      }
+    ]
+  },
+  "repos": [
+    {
+      "stream": "developers",
+      "repo": "fsr-official/NoteBooks-Documents",
+      "branch": "main",
+      "root": "",
+      "name": "NoteBooks-Documents",
+      "manifestUrl": "https://api.github.com/repos/fsr-official/NoteBooks-Documents/git/trees/main?recursive=1",
+      "source": "github-tree",
+      "files": [
+        {
+          "type": "file",
+          "path": "GITHUB-REPOSITORIES.md",
+          "name": "GITHUB-REPOSITORIES.md",
+          "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
+          "size": 2305,
+          "repoPath": "GITHUB-REPOSITORIES.md",
+          "repo": "fsr-official/NoteBooks-Documents",
+          "branch": "main",
+          "stream": "developers",
+          "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/GITHUB-REPOSITORIES.md"
+        },
+        {
+          "type": "file",
+          "path": "docs/DEV-WORKSPACE.md",
+          "name": "DEV-WORKSPACE.md",
+          "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+          "size": 985,
+          "repoPath": "docs/DEV-WORKSPACE.md",
+          "repo": "fsr-official/NoteBooks-Documents",
+          "branch": "main",
+          "stream": "developers",
+          "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/DEV-WORKSPACE.md"
+        },
+        {
+          "type": "file",
+          "path": "docs/README.md",
+          "name": "README.md",
+          "sha": "4072df720211f9fbf263923586546e40d95409c7",
+          "size": 678,
+          "repoPath": "docs/README.md",
+          "repo": "fsr-official/NoteBooks-Documents",
+          "branch": "main",
+          "stream": "developers",
+          "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/README.md"
+        },
+        {
+          "type": "file",
+          "path": "docs/REPO-AND-FILES-JSON.md",
+          "name": "REPO-AND-FILES-JSON.md",
+          "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+          "size": 1259,
+          "repoPath": "docs/REPO-AND-FILES-JSON.md",
+          "repo": "fsr-official/NoteBooks-Documents",
+          "branch": "main",
+          "stream": "developers",
+          "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/REPO-AND-FILES-JSON.md"
+        },
+        {
+          "type": "file",
+          "path": "docs/STREAM-ARCHITECTURE.md",
+          "name": "STREAM-ARCHITECTURE.md",
+          "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+          "size": 1199,
+          "repoPath": "docs/STREAM-ARCHITECTURE.md",
+          "repo": "fsr-official/NoteBooks-Documents",
+          "branch": "main",
+          "stream": "developers",
+          "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/STREAM-ARCHITECTURE.md"
+        },
+        {
+          "type": "file",
+          "path": "docs/SYSTEM-OVERVIEW.md",
+          "name": "SYSTEM-OVERVIEW.md",
+          "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
+          "size": 1562,
+          "repoPath": "docs/SYSTEM-OVERVIEW.md",
+          "repo": "fsr-official/NoteBooks-Documents",
+          "branch": "main",
+          "stream": "developers",
+          "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/SYSTEM-OVERVIEW.md"
+        }
+      ],
+      "tree": {
+        "type": "folder",
+        "name": "NoteBooks-Documents",
+        "path": "NoteBooks-Documents",
+        "repo": "fsr-official/NoteBooks-Documents",
+        "branch": "main",
+        "stream": "developers",
+        "children": [
+          {
+            "type": "file",
+            "path": "GITHUB-REPOSITORIES.md",
+            "name": "GITHUB-REPOSITORIES.md",
+            "sha": "4b7ef4d2ec663f29433ac906512d24b6a85689d5",
+            "size": 2305,
+            "repoPath": "GITHUB-REPOSITORIES.md",
+            "repo": "fsr-official/NoteBooks-Documents",
+            "branch": "main",
+            "stream": "developers",
+            "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/GITHUB-REPOSITORIES.md"
+          },
+          {
+            "type": "folder",
+            "name": "docs",
+            "path": "docs",
+            "repoPath": "docs",
+            "repo": "fsr-official/NoteBooks-Documents",
+            "branch": "main",
+            "stream": "developers",
+            "children": [
+              {
+                "type": "file",
+                "path": "docs/DEV-WORKSPACE.md",
+                "name": "DEV-WORKSPACE.md",
+                "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+                "size": 985,
+                "repoPath": "docs/DEV-WORKSPACE.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/DEV-WORKSPACE.md"
+              },
+              {
+                "type": "file",
+                "path": "docs/README.md",
+                "name": "README.md",
+                "sha": "4072df720211f9fbf263923586546e40d95409c7",
+                "size": 678,
+                "repoPath": "docs/README.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/README.md"
+              },
+              {
+                "type": "file",
+                "path": "docs/REPO-AND-FILES-JSON.md",
+                "name": "REPO-AND-FILES-JSON.md",
+                "sha": "a1cc73c958aa7640083c3bdf89754c5f3ab5a6dd",
+                "size": 1259,
+                "repoPath": "docs/REPO-AND-FILES-JSON.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/REPO-AND-FILES-JSON.md"
+              },
+              {
+                "type": "file",
+                "path": "docs/STREAM-ARCHITECTURE.md",
+                "name": "STREAM-ARCHITECTURE.md",
+                "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+                "size": 1199,
+                "repoPath": "docs/STREAM-ARCHITECTURE.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/STREAM-ARCHITECTURE.md"
+              },
+              {
+                "type": "file",
+                "path": "docs/SYSTEM-OVERVIEW.md",
+                "name": "SYSTEM-OVERVIEW.md",
+                "sha": "ab33914698b5e5e865bf589b78352dbe10d4b7c6",
+                "size": 1562,
+                "repoPath": "docs/SYSTEM-OVERVIEW.md",
+                "repo": "fsr-official/NoteBooks-Documents",
+                "branch": "main",
+                "stream": "developers",
+                "raw": "https://raw.githubusercontent.com/fsr-official/NoteBooks-Documents/main/docs/SYSTEM-OVERVIEW.md"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stream": "developers",
+      "repo": "local/NoteBooks-Framework",
+      "branch": "local",
+      "root": "",
+      "name": "NoteBooks-Framework",
+      "manifestUrl": "/home/harshit9745/SFXFolder/NoteBooks-Project/NoteBooks-Framework/files.json",
+      "source": "raw",
+      "files": [
+        {
+          "type": "file",
+          "name": "COPYLEFT-NOTICES.md",
+          "path": "COPYLEFT-NOTICES.md",
+          "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "DEV-WORKSPACE.md",
+          "path": "docs/DEV-WORKSPACE.md",
+          "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "docs/README.md",
+          "sha": "4072df720211f9fbf263923586546e40d95409c7",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "REPO-AND-FILES-JSON.md",
+          "path": "docs/REPO-AND-FILES-JSON.md",
+          "sha": "6074363ae14587daad2250c9b10979a0da6b9804",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "STREAM-ARCHITECTURE.md",
+          "path": "docs/STREAM-ARCHITECTURE.md",
+          "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "SYSTEM-OVERVIEW.md",
+          "path": "docs/SYSTEM-OVERVIEW.md",
+          "sha": "29b90a8bb405435ec2225a5327a9a9e4d4a6e99a",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "README.md",
+          "path": "README.md",
+          "sha": "0c39c847e5a0c75c7d4bbfd8697d83be2fc3a20b",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "biology-generator.skill.md",
+          "path": "skill/biology-generator.skill.md",
+          "sha": "f15bdd783ec8ec42cd9fd8cfcb92492cb25d9ffc",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "chemistry-generator.skill.md",
+          "path": "skill/chemistry-generator.skill.md",
+          "sha": "eee702a2dfe6c4b9577737aa9da1265b9747732a",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "cs-generator.skill.md",
+          "path": "skill/cs-generator.skill.md",
+          "sha": "f602066945fca094287e5ac9b2e3f061a95ea57e",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "desmos-upgrade.skill.md",
+          "path": "skill/desmos-upgrade.skill.md",
+          "sha": "8ffa3823f848a7873e8a296889ac6698a07c4ba6",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "maths-generator.skill.md",
+          "path": "skill/maths-generator.skill.md",
+          "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "notes-generator.skill.md",
+          "path": "skill/notes-generator.skill.md",
+          "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "cnotes-format.md",
+          "path": "skill/notes-triad/references/cnotes-format.md",
+          "sha": "e8f39ea109f377a95a1b415cf199a2add2e55ff1",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "glossary-rules.md",
+          "path": "skill/notes-triad/references/glossary-rules.md",
+          "sha": "f9c1ffaa860337e138fb3b8859b723cb0b68f773",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "notes-format.md",
+          "path": "skill/notes-triad/references/notes-format.md",
+          "sha": "9c2d8fc02af18e1eea88420bb86f0473dcb1e349",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "SKILL.md",
+          "path": "skill/notes-triad/SKILL.md",
+          "sha": "643e131645c1b0e75646f53c6a6f5a63709a0b56",
+          "mime": "text/markdown"
+        },
+        {
+          "type": "file",
+          "name": "physics-generator.skill.md",
+          "path": "skill/physics-generator.skill.md",
+          "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
+          "mime": "text/markdown"
+        }
+      ],
+      "tree": {
+        "type": "folder",
+        "name": "NoteBooks-Framework",
+        "children": [
+          {
+            "type": "file",
+            "name": "COPYLEFT-NOTICES.md",
+            "path": "COPYLEFT-NOTICES.md",
+            "sha": "256ce3150fc94847abdcbaf3f2adeabb3c100e60",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "dist",
+            "children": [
+              {
+                "type": "folder",
+                "name": "server",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "client",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "lib",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "server",
+                    "children": []
+                  },
+                  {
+                    "type": "folder",
+                    "name": "shims",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "folder",
+            "name": "docs",
+            "children": [
+              {
+                "type": "file",
+                "name": "DEV-WORKSPACE.md",
+                "path": "docs/DEV-WORKSPACE.md",
+                "sha": "5132c918d81f1e1c58deb6b385e5b90fc8e6d602",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "README.md",
+                "path": "docs/README.md",
+                "sha": "4072df720211f9fbf263923586546e40d95409c7",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "REPO-AND-FILES-JSON.md",
+                "path": "docs/REPO-AND-FILES-JSON.md",
+                "sha": "6074363ae14587daad2250c9b10979a0da6b9804",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "STREAM-ARCHITECTURE.md",
+                "path": "docs/STREAM-ARCHITECTURE.md",
+                "sha": "3ae2b2cdf8aaae6de6bbb79fd0d104c77850651c",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "SYSTEM-OVERVIEW.md",
+                "path": "docs/SYSTEM-OVERVIEW.md",
+                "sha": "29b90a8bb405435ec2225a5327a9a9e4d4a6e99a",
+                "mime": "text/markdown"
+              }
+            ]
+          },
+          {
+            "type": "folder",
+            "name": "logs",
+            "children": []
+          },
+          {
+            "type": "file",
+            "name": "README.md",
+            "path": "README.md",
+            "sha": "0c39c847e5a0c75c7d4bbfd8697d83be2fc3a20b",
+            "mime": "text/markdown"
+          },
+          {
+            "type": "folder",
+            "name": "skill",
+            "children": [
+              {
+                "type": "file",
+                "name": "biology-generator.skill.md",
+                "path": "skill/biology-generator.skill.md",
+                "sha": "f15bdd783ec8ec42cd9fd8cfcb92492cb25d9ffc",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "chemistry-generator.skill.md",
+                "path": "skill/chemistry-generator.skill.md",
+                "sha": "eee702a2dfe6c4b9577737aa9da1265b9747732a",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "cs-generator.skill.md",
+                "path": "skill/cs-generator.skill.md",
+                "sha": "f602066945fca094287e5ac9b2e3f061a95ea57e",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "desmos-upgrade.skill.md",
+                "path": "skill/desmos-upgrade.skill.md",
+                "sha": "8ffa3823f848a7873e8a296889ac6698a07c4ba6",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "maths-generator.skill.md",
+                "path": "skill/maths-generator.skill.md",
+                "sha": "ddf5b2168db4418ccdec35deb417828c3341f8a4",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "file",
+                "name": "notes-generator.skill.md",
+                "path": "skill/notes-generator.skill.md",
+                "sha": "0dbd821b5cb3c359cb65838594b885f04ee393ec",
+                "mime": "text/markdown"
+              },
+              {
+                "type": "folder",
+                "name": "notes-triad",
+                "children": [
+                  {
+                    "type": "folder",
+                    "name": "references",
+                    "children": [
+                      {
+                        "type": "file",
+                        "name": "cnotes-format.md",
+                        "path": "skill/notes-triad/references/cnotes-format.md",
+                        "sha": "e8f39ea109f377a95a1b415cf199a2add2e55ff1",
+                        "mime": "text/markdown"
+                      },
+                      {
+                        "type": "file",
+                        "name": "glossary-rules.md",
+                        "path": "skill/notes-triad/references/glossary-rules.md",
+                        "sha": "f9c1ffaa860337e138fb3b8859b723cb0b68f773",
+                        "mime": "text/markdown"
+                      },
+                      {
+                        "type": "file",
+                        "name": "notes-format.md",
+                        "path": "skill/notes-triad/references/notes-format.md",
+                        "sha": "9c2d8fc02af18e1eea88420bb86f0473dcb1e349",
+                        "mime": "text/markdown"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "file",
+                    "name": "SKILL.md",
+                    "path": "skill/notes-triad/SKILL.md",
+                    "sha": "643e131645c1b0e75646f53c6a6f5a63709a0b56",
+                    "mime": "text/markdown"
+                  }
+                ]
+              },
+              {
+                "type": "file",
+                "name": "physics-generator.skill.md",
+                "path": "skill/physics-generator.skill.md",
+                "sha": "836d37b566d2f33d2b454343c9c8b0deb96710a2",
+                "mime": "text/markdown"
+              }
+            ]
+          }
+        ],
+        "stream": "developers",
+        "repo": "local/NoteBooks-Framework",
+        "branch": "local",
+        "path": "NoteBooks-Framework"
+      }
+    }
+  ]
+}

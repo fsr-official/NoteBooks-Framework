@@ -37,6 +37,13 @@
     if (sameOrigin && unsafe) await bootstrapCsrf();
     const send = () => {
       const headers = sameOrigin ? csrfHeaders(options.headers || {}) : new Headers(options.headers || {});
+      // Authenticated API routes use the JWT returned by /api/auth. Keep the
+      // token out of arbitrary cross-origin requests and preserve explicit
+      // Authorization headers supplied by callers.
+      if (sameOrigin && !headers.has('Authorization')) {
+        const token = window.ModernAuthInstance?.getToken?.();
+        if (token) headers.set('Authorization', `Bearer ${token}`);
+      }
       return fetch(url, {
         ...options,
         credentials: options.credentials || 'same-origin',

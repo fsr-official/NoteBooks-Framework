@@ -126,7 +126,24 @@ font-size: 11px;
 }
 .stream-tree-glyph {
 flex-shrink: 0;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+color: inherit;
 }
+.stream-tree-glyph svg {
+width: 14px;
+height: 14px;
+display: block;
+color: inherit;
+}
+.stream-tree-folder[data-folder-type="folder-physics"] { color: #ef4444; }
+.stream-tree-folder[data-folder-type="folder-chemistry"] { color: #22c55e; }
+.stream-tree-folder[data-folder-type="folder-biology"] { color: #8b5cf6; }
+.stream-tree-folder[data-folder-type="folder-maths"] { color: #3b82f6; }
+.stream-tree-folder[data-folder-type="folder-cs"] { color: #000000; }
+.stream-tree-folder[data-folder-type="folder-english"] { color: #f8fafc; }
+.stream-tree-folder[data-folder-type="folder-default"] { color: #fbbf24; }
 
 .stream-list {
 padding: 18px 22px;
@@ -172,4 +189,36 @@ font-weight: 600;
 .btn:hover {
 background: #0757ba;
 }
+
+/* The stream stylesheet loads after the main shell styles, so keep the pane
+   contract here as the final source of truth for the repository workspace. */
+@media (min-width: 981px) {
+  .stream-workspace-main > .app-shell {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+  }
+
+  .stream-workspace-main > .app-shell > #workspaceWindow {
+    order: 1 !important;
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .stream-workspace-main > .app-shell > #treeRail {
+    order: 2 !important;
+    flex: 0 0 330px;
+    width: 330px;
+    min-width: 330px;
+    transition: flex-basis 220ms ease, width 220ms ease, min-width 220ms ease;
+  }
+
+  .stream-workspace-main > .app-shell > #treeRail.tree-rail--collapsed {
+    flex-basis: 54px;
+    width: 54px;
+    min-width: 54px;
+  }
+}
+
 

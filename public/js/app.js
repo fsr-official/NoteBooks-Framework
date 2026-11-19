@@ -9,6 +9,7 @@ const previewContainer = document.getElementById("previewContainer");
 const mobilePreview = document.getElementById("mobilePreview");
 const mobilePreviewContent = document.getElementById("mobilePreviewContent");
 const mobilePreviewTitle = document.getElementById("mobilePreviewTitle");
+const mobilePreviewHeader = mobilePreview ? mobilePreview.querySelector(".header") : null;
 const taskbar = document.getElementById("taskbar");
 const statusEl = document.getElementById("status");
 function hideSplash() {
@@ -39,7 +40,8 @@ let treeCurrentLocation = null;
 let activeTreePath = '';
 let treeInteractionStarted = false;
 let pendingTreeFocusPath = null;
-const expandedTreePaths = new Set();
+  const expandedTreePaths = new Set();
+  const autoExpandedTreePaths = new Set();
 // Runtime config loaded from /api/config (populated from Vercel env vars).
 // Fallbacks keep the app functional when running outside Vercel (e.g. local dev).
 // Runtime configuration. Avoid hardcoded repo/page defaults; load per-stream trees at runtime.
@@ -169,6 +171,7 @@ const SUBJECT_PAGES = {
     science: { icon: '🧪', title: 'Science', description: 'Structured notes, experiments, and concept reviews.' },
     commerce: { icon: '💼', title: 'Commerce', description: 'Business, economics, and practical career knowledge.' },
     humanities: { icon: '📚', title: 'Humanities', description: 'History, civics, culture, and critical essays.' },
+    developers: { icon: '🛠️', title: 'Developers', description: 'Repository architecture, contributor documentation, and project mechanics.' },
     community: { icon: '💬', title: 'Community', description: 'Discuss concepts, share ideas, and collaborate.' },
     issues: { icon: '🛠️', title: 'Issues', description: 'Request changes, flag gaps, and improve the portal.' },
     accounts: { icon: '🔐', title: 'Accounts', description: 'Authentication, profiles, and access management.' },
@@ -188,7 +191,7 @@ let defaultLandingMarkup = null;
 function renderPublicPortal(subject) {
     const landing = document.getElementById('streamLanding');
     if (!landing || !subject) return;
-    const pages = {
+        const pages = {
         community: { kicker: 'Open discussion', title: 'A thoughtful place to ask, answer, and compare notes.', copy: 'Community conversations are grounded in the three stream libraries and surfaced from the existing GitHub-backed feed.', primary: 'Start a thread', links: [{ label: 'Latest discussions', href: '/community?sort=latest' }, { label: 'Trending now', href: '/community?sort=trending' }] },
         issues: { kicker: 'Improve the shelf', title: 'Spot a gap. Make a clear request. Help the library get better.', copy: 'Issues turn reader friction into visible, actionable work for the NoteBooks community.', primary: 'Submit an issue', links: [{ label: 'Latest issues', href: '/issues?sort=latest' }, { label: 'Active work', href: '/issues?status=open' }] },
         volunteers: { kicker: 'Contribute your craft', title: 'There is more than one way to leave the shelf better.', copy: 'Help with reference books, AI support, moderation, or coding. The page is public; applications continue through your account.', primary: 'Get started', links: [{ label: 'Reference books', href: '/accounts' }, { label: 'Moderation and coding', href: '/accounts' }] },
@@ -336,29 +339,61 @@ async function fetchConfig() {
 const EXCLUDED_ROOT_FILES = [
     "fmtree.py", "files.json", "index.html", "favicon.png", "tree.py", "autocommit.ps1"
 ];
+const FOLDER_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+  </svg>
+`;
+const OPEN_FOLDER_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h4.1a2.5 2.5 0 0 1 1.8.8l1.1 1.3a2.5 2.5 0 0 0 1.8.8h7.2A2.5 2.5 0 0 1 24 11.4v7.1A2.5 2.5 0 0 1 21.5 21H5.5A2.5 2.5 0 0 1 3 18.5z"/>
+    <path d="M3 11.5h18"/>
+  </svg>
+`;
 const FILE_ICONS = {
-    folder: "📁",
+    folder: FOLDER_ICON_SVG,
+
+    // Your notes-triad scheme
+    notes: "📔",
+    glossary: "📒",
+    cnotes: "📓",
+    readme: "📖",
+
+    // Docs / text
     md: "📝",
-    markdown: "��",
-    pdf: "📕",
+    markdown: "📝",
     txt: "📄",
-    json: "🔧",
-    js: "📜",
-    html: "🌐",
-    css: "🎨",
-    py: "🐍",
-    jpg: "🖼️",
-    jpeg: "🖼️",
-    png: "🖼️",
-    gif: "🖼️",
-    svg: "🖼️",
+    pdf: "📕",
     doc: "📘", docx: "📘",
     xls: "📗", xlsx: "📗",
     ppt: "📙", pptx: "📙",
+    csv: "📊",
+
+    // Code
+    js: "📜",
+    ts: "📜",
+    jsx: "⚛️",
+    tsx: "⚛️",
+    py: "🐍",
+    json: "🔧",
+    yaml: "🔧", yml: "🔧",
+    html: "🌐",
+    css: "🎨",
+    scss: "🎨",
+    sh: "💻",
+    c: "⚙️", cpp: "⚙️",
+    sql: "🗄️",
+
+    // Media
+    jpg: "🖼️", jpeg: "🖼️", png: "🖼️", gif: "🖼️", svg: "🖼️",
+    mp3: "🎵", wav: "🎵",
+    mp4: "🎬", mov: "🎬",
+    zip: "🗜️", rar: "🗜️", tar: "🗜️", gz: "🗜️",
+
     default: "📄"
 };
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js?v=20260828-sw-v43", { updateViaCache: "none" }).then(() => {
+    navigator.serviceWorker.register("/service-worker.js?v=20260930-cache-lifecycle", { updateViaCache: "none" }).then(() => {
         console.log("Service Worker registered");
     }).catch(err => {
         console.error("SW registration failed:", err);
@@ -388,6 +423,9 @@ function showStatus(message, isLoading = false) {
 let currentBuildTimestamp = 0;
 let latestKnownSignalId = '';
 const UPDATE_POLL_INTERVAL = 30_000;
+let contentCatalogVersion = null;
+let contentUpdatePollingStarted = false;
+let contentUpdatePollingTimer = null;
 const PRESERVED_LOCAL_STORAGE_KEYS = [
     'theme',
     'sidebarWidth',
@@ -395,6 +433,68 @@ const PRESERVED_LOCAL_STORAGE_KEYS = [
     'authToken',
     'lastViewedPath'
 ];
+
+function attachCacheLifecycleHooks(hooks = {}, target = window) {
+    const safeTarget = target || window;
+
+    const handleVisibilityChange = () => {
+        const visibilityState = safeTarget.document?.visibilityState;
+        if (visibilityState === 'hidden') {
+            if (hooks.onHidden) {
+                void Promise.resolve(hooks.onHidden());
+            }
+            return;
+        }
+
+        if (visibilityState === 'visible' && hooks.onVisible) {
+            void Promise.resolve(hooks.onVisible());
+        }
+    };
+
+    const handleBackgroundExit = () => {
+        if (hooks.onClosed) {
+            void Promise.resolve(hooks.onClosed());
+        }
+    };
+
+    safeTarget.addEventListener('visibilitychange', handleVisibilityChange);
+    safeTarget.addEventListener('pagehide', handleBackgroundExit);
+    safeTarget.addEventListener('beforeunload', handleBackgroundExit);
+    safeTarget.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+        safeTarget.removeEventListener('visibilitychange', handleVisibilityChange);
+        safeTarget.removeEventListener('pagehide', handleBackgroundExit);
+        safeTarget.removeEventListener('beforeunload', handleBackgroundExit);
+        safeTarget.removeEventListener('focus', handleVisibilityChange);
+    };
+}
+
+let cacheLifecycleCleanup = null;
+function registerCacheLifecycleHooks() {
+    if (cacheLifecycleCleanup || !window || !document) {
+        return;
+    }
+
+    cacheLifecycleCleanup = attachCacheLifecycleHooks({
+        onVisible: async () => {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+
+            await checkForAppUpdates();
+            if (typeof fetchTree === 'function') {
+                await fetchTree();
+            }
+        },
+        onHidden: async () => {
+            await clearAppCaches();
+        },
+        onClosed: async () => {
+            await clearAppCaches();
+        }
+    });
+}
 
 function notifyRefreshSignal(type, message) {
     if (type === 'directory') {
@@ -548,6 +648,194 @@ async function startUpdatePolling() {
     updatePollingStarted = true;
     await checkForAppUpdates();
     updatePollingTimer = window.setInterval(() => checkForAppUpdates(), UPDATE_POLL_INTERVAL);
+}
+
+function findRepositoryFileNode(root, repo, repoPath) {
+    const targetRepo = String(repo || '').toLowerCase();
+    const targetPath = String(repoPath || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+    let found = null;
+    const visit = (node) => {
+        if (!node || found) return;
+        if (node.type === 'file' &&
+            String(node.repo || '').toLowerCase() === targetRepo &&
+            String(node.repoPath || node.path || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/') === targetPath) {
+            found = node;
+            return;
+        }
+        if (Array.isArray(node.children)) node.children.forEach(visit);
+    };
+    visit(root);
+    return found;
+}
+
+function showFileUpdateNotice(win, node, contentContainer) {
+    if (!win || !node?.sha || node.sha === win._sha) return;
+    const body = contentContainer || document.getElementById(`${win.dataset.id}-body`);
+    if (!body) return;
+    let notice = body.querySelector('.content-update-notice');
+    if (!notice) {
+        notice = document.createElement('div');
+        notice.className = 'content-update-notice';
+        notice.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;background:#fff3cd;color:#594300;border-bottom:1px solid #e6d48a;font:13px system-ui;position:sticky;top:0;z-index:2';
+        body.insertBefore(notice, body.firstChild);
+    }
+    if (notice.dataset.sha === node.sha) return;
+    notice.dataset.sha = node.sha;
+    notice.replaceChildren();
+    const message = document.createElement('span');
+    message.textContent = 'This material has a newer version.';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = 'Update';
+    button.setAttribute('aria-label', `Update ${win._filename} to the latest version`);
+    button.addEventListener('click', async () => {
+        if (MarkdownEditor.hasUnsavedEdits(win._filePath)) {
+            showStatus('Save or discard your draft before updating this file.');
+            return;
+        }
+        const scrollTop = body.scrollTop;
+        const previousRevision = {
+            sha: win._sha,
+            commitSha: win._commitSha,
+            rawUrl: win._rawUrl,
+            originalContent: win._originalContent
+        };
+        const stagingContainer = document.createElement('div');
+        win._sha = node.sha || '';
+        win._commitSha = node.commitSha || '';
+        win._rawUrl = node.raw || '';
+        try {
+            const loaded = await fetchFileContent(
+                win._filePath,
+                win._filename,
+                stagingContainer,
+                win,
+                win._repo,
+                win._branch,
+                win._repoPath,
+                win._rawUrl
+            );
+            if (!loaded) {
+                Object.assign(win, {
+                    _sha: previousRevision.sha,
+                    _commitSha: previousRevision.commitSha,
+                    _rawUrl: previousRevision.rawUrl,
+                    _originalContent: previousRevision.originalContent
+                });
+                showStatus('Could not update this file. Please try again.');
+                return;
+            }
+            body.style.cssText = stagingContainer.style.cssText;
+            body.replaceChildren(...stagingContainer.childNodes);
+            body.scrollTop = scrollTop;
+        } catch (error) {
+            Object.assign(win, {
+                _sha: previousRevision.sha,
+                _commitSha: previousRevision.commitSha,
+                _rawUrl: previousRevision.rawUrl,
+                _originalContent: previousRevision.originalContent
+            });
+            console.error('[content-updates] failed to apply file revision:', error);
+            showStatus('Could not update this file. Please try again.');
+        }
+    });
+    notice.append(message, button);
+}
+
+function reconcileOpenFileRevisions(root) {
+    Object.values(windows).forEach((win) => {
+        if (!win?._repo || !win?._repoPath || win._isEditor) return;
+        const latest = findRepositoryFileNode(root, win._repo, win._repoPath);
+        if (latest) showFileUpdateNotice(win, latest);
+    });
+    if (mobilePreview?.style.display !== 'none' && mobilePreview?._repo && mobilePreview?._repoPath) {
+        const latest = findRepositoryFileNode(root, mobilePreview._repo, mobilePreview._repoPath);
+        if (latest) showFileUpdateNotice(mobilePreview, latest, mobilePreviewContent);
+    }
+}
+
+function rootForStreamManifest(manifest, stream) {
+    let root = manifest?.root || manifest?.repos?.[0]?.tree || null;
+    if (stream === 'developers' && root?.children?.length === 1) {
+        const repositoryFolder = root.children[0];
+        if (repositoryFolder?.type === 'folder' && repositoryFolder.children) {
+            root = { ...repositoryFolder, name: 'Developer documentation' };
+        }
+    }
+    return root;
+}
+
+async function refreshRuntimeStreamTree(version) {
+    const stream = getCurrentStreamRoute();
+    if (!NoteBooksStreamRuntime.streams.has(stream)) return;
+    const currentPath = getNodePath(currentNode);
+    const activePath = activeTreePath;
+    const expandedPaths = [...expandedTreePaths];
+    const scrollTop = listView?.scrollTop || 0;
+    NoteBooksStreamRuntime.reset();
+    const manifest = await NoteBooksStreamRuntime.loadStreamTree(version);
+    const nextRoot = rootForStreamManifest(manifest, stream);
+    if (!nextRoot) throw new Error(`No updated tree was returned for ${stream}`);
+
+    treeRoot = sanitizeTreeNodeNames(nextRoot);
+    fileIndex = buildFileIndex(treeRoot);
+    const validPaths = new Set(fileIndex.map((item) => getNodePath(item.node)));
+    expandedTreePaths.clear();
+    expandedPaths.forEach((value) => {
+        if (validPaths.has(value)) expandedTreePaths.add(value);
+    });
+    renderSidebarTree(treeRoot, searchQuery);
+    if (searchQuery) {
+        updateSearchResults(searchQuery);
+    } else {
+        const ancestors = currentPath ? findAncestors(treeRoot, currentPath) : null;
+        if (ancestors?.length) {
+            currentNode = ancestors[ancestors.length - 1];
+            pathHistory = ancestors.filter((node) => node.name !== 'root').slice(0, -1);
+        } else {
+            currentNode = treeRoot;
+            pathHistory = [];
+        }
+        renderFolder(currentNode);
+        updatePathNav();
+    }
+    setActiveTreePath(validPaths.has(activePath) ? activePath : '');
+    if (listView) listView.scrollTop = scrollTop;
+    reconcileOpenFileRevisions(treeRoot);
+}
+
+async function pollContentCatalog() {
+    const since = contentCatalogVersion ?? 0;
+    const response = await fetch(`/api/content-updates?since=${since}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Content catalog check failed: ${response.status}`);
+    const update = await response.json();
+    if (!Number.isInteger(update.version)) throw new Error('Content catalog returned an invalid version');
+    if (contentCatalogVersion === null) {
+        contentCatalogVersion = update.version;
+        return;
+    }
+    if (update.version === contentCatalogVersion) return;
+
+    const stream = getCurrentStreamRoute();
+    const shouldRefreshTree = update.reset ||
+        update.changes.some((change) => Array.isArray(change.streams) && change.streams.includes(stream));
+    if (shouldRefreshTree) await refreshRuntimeStreamTree(update.version);
+    contentCatalogVersion = update.version;
+}
+
+async function startContentCatalogPolling() {
+    if (contentUpdatePollingStarted) return;
+    contentUpdatePollingStarted = true;
+    try {
+        await pollContentCatalog();
+    } catch (error) {
+        contentUpdatePollingStarted = false;
+        console.warn('[content-updates] initial catalog check failed:', error);
+        return;
+    }
+    contentUpdatePollingTimer = window.setInterval(() => {
+        pollContentCatalog().catch((error) => console.warn('[content-updates] catalog check failed:', error));
+    }, UPDATE_POLL_INTERVAL);
 }
 
 async function refreshFromSignal(payload) {
@@ -745,6 +1033,7 @@ function renderSearchResults(results) {
     results.sort((a, b) => a.name.localeCompare(b.name));
     for (let i = 0; i < results.length; i++) {
         const itemData = results[i];
+        const displayName = normalizeDisplayName(itemData.name);
         const item = document.createElement('div');
         item.className = 'file-item';
         item._childData = itemData;
@@ -754,7 +1043,7 @@ function renderSearchResults(results) {
         item.innerHTML = `
       <div class="file-icon" data-type="${fileTypeClass}">${fileIcon}</div>
       <div class="file-name">
-        ${itemData.name}
+        ${displayName}
         ${subtitle}
       </div>
     `;
@@ -821,16 +1110,25 @@ function setActiveTreePath(path) {
     activeTreePath = String(path || '').replace(/^\/+|\/+$/g, '');
     if (activeTreePath)
         treeInteractionStarted = true;
+    autoExpandedTreePaths.clear();
+    if (!activeTreePath && treeRoot && Array.isArray(treeRoot.children)) {
+      treeRoot.children.forEach((child) => {
+        if (child && child.type === 'folder') {
+          autoExpandedTreePaths.add(getNodePath(child));
+        }
+      });
+    }
     if (activeTreePath && treeRoot) {
-        const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
-        activeAncestors.forEach((ancestor) => {
-            if (ancestor.type === 'folder' && getNodePath(ancestor) !== activeTreePath)
-                expandedTreePaths.add(getNodePath(ancestor));
-        });
+      const activeAncestors = findAncestors(treeRoot, activeTreePath) || [];
+      activeAncestors.forEach((ancestor) => {
+        const ancestorPath = getNodePath(ancestor);
+        if (ancestor.type === 'folder' && ancestorPath !== 'root')
+          autoExpandedTreePaths.add(ancestorPath);
+      });
     }
     if (treeCurrentLocation) {
         const activeNode = fileIndex.find((item) => getNodePath(item.node) === activeTreePath)?.node;
-        const label = activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root');
+        const label = normalizeDisplayName(activeNode?.name || (activeTreePath ? activeTreePath.split('/').pop() : 'workspace root'));
         const locationPath = activeTreePath || 'workspace root';
         treeCurrentLocation.textContent = `Current: ${label}`;
         treeCurrentLocation.title = locationPath;
@@ -864,11 +1162,7 @@ function createSidebarTreeItem(node, query) {
         return null;
     const matchesSelf = nodeMatchesQuery(node, query);
     const childItems = Array.isArray(node.children)
-        ? [...node.children].sort((a, b) => {
-            if (a.type !== b.type)
-                return a.type === 'folder' ? -1 : 1;
-            return String(a.name || '').localeCompare(String(b.name || ''));
-        })
+        ? [...node.children].sort(sortTreeEntries)
             .map((child) => createSidebarTreeItem(child, query))
             .filter(Boolean)
         : [];
@@ -883,7 +1177,7 @@ function createSidebarTreeItem(node, query) {
     const isActive = activeTreePath && nodePath === activeTreePath;
     const isAncestor = activeTreePath && findAncestors(treeRoot, activeTreePath)?.some((ancestor) => getNodePath(ancestor) === nodePath);
     const shouldExpandForSearch = Boolean(query && childItems.length);
-    const isExpanded = hasChildren && (shouldExpandForSearch || expandedTreePaths.has(nodePath));
+    const isExpanded = hasChildren && (shouldExpandForSearch || expandedTreePaths.has(nodePath) || autoExpandedTreePaths.has(nodePath));
     if (isActive)
         li.classList.add('current');
     if (isAncestor)
@@ -975,8 +1269,9 @@ function createSidebarTreeItem(node, query) {
     row.appendChild(toggle);
     const label = document.createElement('span');
     label.className = 'sidebar-tree-label';
-    label.textContent = node.name;
-    label.title = node.name;
+    const displayName = normalizeDisplayName(node.name);
+    label.textContent = displayName;
+    label.title = displayName;
     row.appendChild(label);
     li.appendChild(row);
     if (childItems.length > 0) {
@@ -1014,15 +1309,38 @@ function renderSidebarTree(root, query = '') {
     }
     const ul = document.createElement('ul');
     ul.className = 'sidebar-tree-root';
-    [...root.children].sort((a, b) => {
-        if (a.type !== b.type)
-            return a.type === 'folder' ? -1 : 1;
-        return String(a.name || '').localeCompare(String(b.name || ''));
-    }).forEach((child) => {
-        const childLi = createSidebarTreeItem(child, query);
-        if (childLi)
-            ul.appendChild(childLi);
-    });
+    const sortedChildren = [...root.children].sort(sortTreeEntries);
+    const pinnedChildren = sortedChildren.filter((child) => isPinnedDirectoryEntry(child?.name));
+    const regularChildren = sortedChildren.filter((child) => !isPinnedDirectoryEntry(child?.name));
+    const addChildren = (children) => {
+        children.forEach((child) => {
+            const childLi = createSidebarTreeItem(child, query);
+            if (childLi)
+                ul.appendChild(childLi);
+        });
+    };
+    if (pinnedChildren.length > 0) {
+        const pinnedHeader = document.createElement('li');
+        pinnedHeader.className = 'sidebar-tree-section sidebar-tree-section--pinned';
+        const pinnedLabel = document.createElement('div');
+        pinnedLabel.className = 'sidebar-tree-section-label';
+        pinnedLabel.textContent = 'NCERT';
+        pinnedHeader.appendChild(pinnedLabel);
+        ul.appendChild(pinnedHeader);
+        addChildren(pinnedChildren);
+    }
+    if (regularChildren.length > 0) {
+        if (pinnedChildren.length > 0 && regularChildren.length > 0) {
+            const divider = document.createElement('li');
+            divider.className = 'sidebar-tree-section sidebar-tree-section--divider';
+            const dividerLabel = document.createElement('div');
+            dividerLabel.className = 'sidebar-tree-section-label';
+            dividerLabel.textContent = 'Library';
+            divider.appendChild(dividerLabel);
+            ul.appendChild(divider);
+        }
+        addChildren(regularChildren);
+    }
     if (!ul.children.length) {
         sidebarTree.innerHTML = `<div class="sidebar-tree-empty">No matches found.</div>`;
         return;
@@ -1038,10 +1356,12 @@ function renderSidebarTree(root, query = '') {
 }
 function toggleSidebar() {
     const sidebar = document.getElementById('treeRail');
+    const shell = document.querySelector('.app-shell');
     const button = document.getElementById('sidebarCollapseBtn');
     if (!sidebar || !button)
         return;
     const collapsed = sidebar.classList.toggle('tree-rail--collapsed');
+    shell?.classList.toggle('app-shell--tree-collapsed', collapsed);
     button.setAttribute('aria-expanded', String(!collapsed));
     button.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} repository navigator`);
     button.title = `${collapsed ? 'Expand' : 'Collapse'} repository navigator`;
@@ -1064,6 +1384,15 @@ function toggleSidebar() {
                 // combined registry into another subject workspace. Phase-I payloads
                 // expose a stream root so all configured repositories remain visible.
                 tree = streamPayload.root || repoEntry?.tree || { type: 'folder', name: streamSlug, children: [] };
+                // Developers is a documentation workspace, not a repository browser.
+                // Remove the generated repository wrapper so the useful docs appear at
+                // the first level instead of behind “NoteBooks-Framework”.
+                if (streamSlug === 'developers' && tree?.children?.length === 1) {
+                    const repositoryFolder = tree.children[0];
+                    if (repositoryFolder?.type === 'folder' && repositoryFolder.children) {
+                        tree = { ...repositoryFolder, name: 'Developer documentation' };
+                    }
+                }
                 console.info('[tree] Reused stream-scoped', streamSlug, 'workspace manifest');
             }
         } catch (streamTreeError) {
@@ -1116,13 +1445,17 @@ function toggleSidebar() {
         // A full-document navigation owns route changes; ignore any result if the
         // current URL no longer matches the route that started this request.
         if (routeAtStart !== getCurrentStreamRoute()) return;
-        treeRoot = tree;
-        // Show the repository roots by default. This keeps the tree useful on first
-        // paint while leaving deeper folders explicitly expandable by the reader.
-        if (!treeInteractionStarted && !searchQuery && Array.isArray(treeRoot.children)) {
-            treeRoot.children
-                .filter((child) => child?.type === 'folder' && Array.isArray(child.children) && child.children.length > 0)
-                .forEach((child) => expandedTreePaths.add(getNodePath(child)));
+        treeRoot = sanitizeTreeNodeNames(tree);
+        // Keep the repository root expanded on first load so the workspace opens
+        // with the tree hierarchy visible, while still allowing a user to collapse it.
+        autoExpandedTreePaths.clear();
+        expandedTreePaths.clear();
+        if (treeRoot && Array.isArray(treeRoot.children)) {
+            for (const child of treeRoot.children) {
+                if (child && child.type === 'folder') {
+                    autoExpandedTreePaths.add(getNodePath(child));
+                }
+            }
         }
         fileIndex = buildFileIndex(treeRoot);
         currentNode = treeRoot;
@@ -1130,10 +1463,11 @@ function toggleSidebar() {
         const validPaths = new Set(fileIndex.map((item) => getNodePath(item.node)));
         [...expandedTreePaths].forEach((path) => { if (!validPaths.has(path)) expandedTreePaths.delete(path); });
         treeInteractionStarted = treeInteractionStarted || expandedTreePaths.size > 0;
+        // The navigator starts quiet: folders open only after the user enters them,
+        // expands them manually, or searches for a matching descendant.
+        expandedTreePaths.clear();
         setActiveTreePath('');
-        pathHistory = [];
-        renderSidebarTree(treeRoot, searchQuery);
-        if (searchQuery) {
+  if (searchQuery) {
             updateSearchResults(searchQuery);
         }
         else {
@@ -1169,15 +1503,74 @@ function toggleSidebar() {
         }
     }
 }
+function getFolderTypeKey(file) {
+    const label = String(file?.name || file?.path || '').toLowerCase();
+    if (label.includes('physics')) return 'physics';
+    if (label.includes('chemistry')) return 'chemistry';
+    if (label.includes('biology')) return 'biology';
+    if (label.includes('math') || label.includes('mathematics')) return 'maths';
+    if (label.includes('cs') || label.includes('computer science') || label.includes('computer-science')) return 'cs';
+    if (label.includes('english')) return 'english';
+    return 'default';
+}
+function isPinnedDirectoryEntry(name) {
+    return /^NCERT[-_]/i.test(String(name || ''));
+}
+function sortTreeEntries(a, b) {
+    const aPinned = isPinnedDirectoryEntry(a?.name);
+    const bPinned = isPinnedDirectoryEntry(b?.name);
+    if (aPinned !== bPinned)
+        return aPinned ? -1 : 1;
+    if (a.type !== b.type)
+        return a.type === 'folder' ? -1 : 1;
+    return String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' });
+}
+function normalizeDisplayName(name) {
+    const raw = String(name || '').trim();
+    if (!raw)
+        return '';
+    return raw.replace(/^(?:[\p{Extended_Pictographic}\uFE0F\u200D\s]+)(?=\S)/gu, '').trim();
+}
+function sanitizeTreeNodeNames(node) {
+    if (!node || typeof node !== 'object')
+        return node;
+    if (typeof node.name === 'string') {
+        node.name = normalizeDisplayName(node.name);
+    }
+    if (Array.isArray(node.children)) {
+        node.children.forEach((child) => sanitizeTreeNodeNames(child));
+    }
+    return node;
+}
 function getFileIcon(file) {
     if (file.type === "folder")
         return FILE_ICONS.folder;
+    const baseName = String(file.name || '').toUpperCase();
+    if (baseName === 'README.MD')
+        return FILE_ICONS.readme;
+    if (baseName.endsWith('-NOTES.MD') || baseName.endsWith('-NOTES.MARKDOWN'))
+        return FILE_ICONS.notes;
+    if (baseName.endsWith('-GLOSSARY.MD') || baseName.endsWith('-GLOSSARY.MARKDOWN'))
+        return FILE_ICONS.glossary;
+    if (baseName.endsWith('-CNOTES.MD') || baseName.endsWith('-CNOTES.MARKDOWN'))
+        return FILE_ICONS.cnotes;
     const ext = file.name.split('.').pop().toLowerCase();
     return FILE_ICONS[ext] || FILE_ICONS.default;
 }
 function getFileTypeClass(file) {
-    if (file.type === "folder")
-        return "folder";
+    if (file.type === "folder") {
+        const folderType = getFolderTypeKey(file);
+        return `folder folder-${folderType}`;
+    }
+    const baseName = String(file.name || '').toUpperCase();
+    if (baseName === 'README.MD')
+        return 'readme';
+    if (baseName.endsWith('NOTES.MD') || baseName.endsWith('NOTES.MARKDOWN'))
+        return 'notes';
+    if (baseName.endsWith('GLOSSARY.MD') || baseName.endsWith('GLOSSARY.MARKDOWN'))
+        return 'glossary';
+    if (baseName.endsWith('CNOTES.MD') || baseName.endsWith('CNOTES.MARKDOWN'))
+        return 'cnotes';
     const ext = file.name.split('.').pop().toLowerCase();
     if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext))
         return "image";
@@ -1195,15 +1588,11 @@ function renderFolder(node) {
             return false;
         return true;
     });
-    children.sort((a, b) => {
-        if (a.type === b.type)
-            return a.name.localeCompare(b.name);
-        return a.type === "folder" ? -1 : 1;
-    });
+    children.sort(sortTreeEntries);
     if (children.length === 0) {
         listView.innerHTML = `
       <div class="empty-state">
-        <div class="icon">📂</div>
+        <div class="icon">${OPEN_FOLDER_ICON_SVG}</div>
         <h3>This folder is empty</h3>
         <p>No files or folders to display</p>
       </div>
@@ -1212,6 +1601,7 @@ function renderFolder(node) {
     }
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
+        const displayName = normalizeDisplayName(child.name);
         const item = document.createElement("div");
         item.className = "file-item";
         item.setAttribute("data-index", i);
@@ -1220,7 +1610,7 @@ function renderFolder(node) {
         const fileTypeClass = getFileTypeClass(child);
         item.innerHTML = `
       <div class="file-icon" data-type="${fileTypeClass}">${fileIcon}</div>
-      <div class="file-name">${child.name}</div>
+      <div class="file-name">${displayName}</div>
       <div class="file-actions">
         ${child.type === "file" ? `
           <div class="file-action" onclick="previewFile(event, ${i})">👁️</div>
@@ -1388,6 +1778,7 @@ async function confirmDeleteFile() {
 function closeWindow(id) {
     const win = windows[id];
     if (win) {
+        window.NoteBooksReadAloud?.destroyIn(win);
         win.remove();
         delete windows[id];
         updateTaskbar();
@@ -1504,19 +1895,80 @@ function handleDownload() {
     }
     contextMenu.style.display = 'none';
 }
+let mobilePreviewScrollY = 0;
+let mobilePreviewHeaderVisible = true;
+let mobilePreviewTapTimer = null;
+
+function setMobilePreviewHeaderVisibility(visible) {
+    if (!mobilePreviewHeader) return;
+    mobilePreviewHeaderVisible = visible;
+    mobilePreviewHeader.classList.toggle('is-hidden', !visible);
+}
+
+function toggleMobilePreviewHeader() {
+    if (!mobilePreviewHeader) return;
+    setMobilePreviewHeaderVisibility(!mobilePreviewHeaderVisible);
+}
+
+function bindMobilePreviewScrollHide() {
+    if (!mobilePreviewContent || mobilePreviewContent.dataset.mobileScrollBound === 'true') return;
+
+    mobilePreviewContent.dataset.mobileScrollBound = 'true';
+    mobilePreviewContent.addEventListener('scroll', () => {
+        const nextScroll = mobilePreviewContent.scrollTop;
+        const delta = nextScroll - mobilePreviewScrollY;
+
+        if (Math.abs(delta) < 6) return;
+
+        if (delta > 0 && mobilePreviewHeaderVisible) {
+            setMobilePreviewHeaderVisibility(false);
+        }
+        else if (delta < 0 && !mobilePreviewHeaderVisible && nextScroll <= 24) {
+            setMobilePreviewHeaderVisibility(true);
+        }
+
+        mobilePreviewScrollY = nextScroll;
+    }, { passive: true });
+
+    mobilePreview.addEventListener('pointerdown', (event) => {
+        if (event.target.closest('.close')) return;
+        if (event.target.closest('.header')) return;
+        if (mobilePreviewTapTimer) {
+            clearTimeout(mobilePreviewTapTimer);
+        }
+        mobilePreviewTapTimer = setTimeout(() => {
+            toggleMobilePreviewHeader();
+            mobilePreviewTapTimer = null;
+        }, 60);
+    });
+}
+
 function openMobilePreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+    const fileNode = repo ? findRepositoryFileNode(treeRoot, repo, repoPath || path) : null;
+    precomputedRaw = precomputedRaw || fileNode?.raw || '';
     mobilePreviewTitle.textContent = filename;
     mobilePreview._filePath = path;
     mobilePreview._repo = repo;
     mobilePreview._branch = branch;
     mobilePreview._repoPath = repoPath || path;
     mobilePreview._filename = filename;
+    mobilePreview._sha = fileNode?.sha || '';
+    mobilePreview._commitSha = fileNode?.commitSha || '';
+    mobilePreview._rawUrl = precomputedRaw;
+    mobilePreviewContent.scrollTop = 0;
+    mobilePreviewScrollY = 0;
+    setMobilePreviewHeaderVisibility(true);
+    bindMobilePreviewScrollHide();
     fetchFileContent(path, filename, mobilePreviewContent, mobilePreview, repo, branch, repoPath, precomputedRaw);
     mobilePreview.style.display = "flex";
 }
 function closeMobilePreview() {
+    window.NoteBooksReadAloud?.destroyIn(mobilePreviewContent);
     mobilePreview.style.display = "none";
     mobilePreviewContent.innerHTML = "";
+    mobilePreviewContent.scrollTop = 0;
+    mobilePreviewScrollY = 0;
+    setMobilePreviewHeaderVisibility(true);
 }
 // ─── Split-view editor styles (injected once) ────────────────────────────────
 function injectSplitViewStyles() {
@@ -1707,8 +2159,12 @@ function openNewMarkdownEditor() {
     setTimeout(() => toggleFullscreen(id, true), 100);
 }
 
-function openPreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+function openPreview(path, filename, repo = '', branch = '', repoPath = '', precomputedRaw = '', sha = '', commitSha = '') {
     injectSplitViewStyles();
+    const fileNode = repo ? findRepositoryFileNode(treeRoot, repo, repoPath || path) : null;
+    precomputedRaw = precomputedRaw || fileNode?.raw || '';
+    sha = sha || fileNode?.sha || '';
+    commitSha = commitSha || fileNode?.commitSha || '';
     const id = 'preview-' + (++previewId);
     const win = document.createElement("div");
     win.className = "floating-window";
@@ -1720,12 +2176,8 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
     const isFullScreen = isMarkdown || ext === 'pdf' || ext === 'html' || ext === 'htm'
         || ext === 'doc' || ext === 'docx' || ext === 'xls' || ext === 'xlsx'
         || ext === 'ppt' || ext === 'pptx';
-    // Edit button — only for markdown files
-    const editBtnHTML = isMarkdown
-        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Edit existing Markdown file" aria-label="Edit existing Markdown file" onclick="toggleSplitEditor('${id}')">
-         <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Open editor</span><span class="sv-dot"></span>
-       </button>`
-        : '';
+    // Keep the split-view editor logic available, but do not attach a visible button yet.
+    const editBtnHTML = '';
     win.innerHTML = `
     <div class="title-bar" onmousedown="startDrag(event, '${id}')">
       <div class="title">${filename}</div>
@@ -1746,6 +2198,9 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
     win._branch = branch;
     win._repoPath = repoPath || path;
     win._filename = filename;
+    win._sha = sha;
+    win._commitSha = commitSha;
+    win._rawUrl = precomputedRaw;
     win._isMarkdown = isMarkdown;
     win._originalContent = null; // populated by fetchFileContent
     win._splitActive = false;
@@ -1758,6 +2213,8 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '', prec
 }
 // ─── fetchFileContent ─────────────────────────────────────────────────────────
 async function fetchFileContent(path, filename, container, winElement = null, repo = '', branch = '', repoPath = '', precomputedRaw = '') {
+    window.NoteBooksReadAloud?.destroyIn(container);
+    let loaded = true;
     const ext = (filename.includes('.') ? filename : path).split('.').pop().toLowerCase();
     container.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;"><span class="loader"></span> Loading...</div>';
     const delivery = window.NoteBooksRawDelivery;
@@ -1767,6 +2224,7 @@ async function fetchFileContent(path, filename, container, winElement = null, re
         branch,
         repoPath,
         precomputedRaw,
+        commitSha: winElement?._commitSha || '',
         origin: window.location.origin,
         appConfig,
         isGitHubPages: window.location.hostname.endsWith('github.io'),
@@ -1824,13 +2282,16 @@ async function fetchFileContent(path, filename, container, winElement = null, re
                 container.innerHTML = `<pre style="margin:0;white-space:pre-wrap;font-family:Consolas,monospace;font-size:13px;line-height:1.5">${escapeHTML(text)}</pre>`;
             }
             catch (error) {
+                loaded = false;
                 container.innerHTML = `<div class="error">Error loading file: ${error.message}</div>`;
             }
         }
     }
     catch (error) {
+        loaded = false;
         container.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     }
+    return loaded;
 }
 // ─── Markdown render helper ───────────────────────────────────────────────────
 function sourceLineFromNode(node) {
@@ -1901,60 +2362,51 @@ function openSuggestChangesComposer(win, sourceText, filePath, evidence) {
   dialog.querySelector('input')?.focus();
 }
 
-function renderRawMarkdown(text) {
-  const lines = String(text || '').split(/\r?\n/);
-  const renderedLines = lines.map((line, index) => `<span class="raw-source-line" data-source-line="${index + 1}"><span class="raw-line-number" aria-hidden="true">${index + 1}</span><span class="raw-line-text">${escapeHTML(line) || ' '}</span></span>`).join('');
-  return `<pre class="raw-markdown-line-view" data-raw-source="true"><code>${renderedLines}</code></pre>`;
-}
+  function renderRawMarkdown(text) {
+  const source = String(text || '');
+  let highlighted = escapeHTML(source);
+  if (window.hljs && typeof window.hljs.highlightAuto === 'function' && source) {
+  highlighted = window.hljs.highlightAuto(source, ['markdown', 'yaml', 'javascript', 'typescript', 'json', 'css', 'html']).value;
+  }
+    return `<pre class="raw-markdown-line-view raw-source-line" data-raw-source="true"><code class="language-markdown">${highlighted}</code></pre>`;
+  }
 
 function renderMarkdownIntoContainer(text, filePath, container) {
-  const win = container.closest('.floating-window');
+  window.NoteBooksReadAloud?.destroyIn(container);
+  container.style.cssText = 'display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0; overflow:hidden;';
   const toolbar = document.createElement('div');
   toolbar.className = 'markdown-mode-toolbar';
   toolbar.innerHTML = '<span class="markdown-mode-label">Document</span><button type="button" data-mode="preview" class="active">Reader</button><button type="button" data-mode="raw">Raw view</button>';
   const wrapper = document.createElement('div');
   wrapper.className = 'markdown-content';
   wrapper.dataset.sourceFile = filePath || '';
-  let lastEvidence = null;
+  wrapper.style.cssText = 'flex:1 1 auto; width:100%; min-height:0; overflow:auto;';
   wrapper.innerHTML = markdownToHTML(text, filePath);
   container.innerHTML = '';
   container.appendChild(toolbar);
   container.appendChild(wrapper);
+  let readAloud = window.NoteBooksReadAloud?.attach(toolbar, wrapper);
 
-  const suggestButton = document.createElement('button');
-  suggestButton.type = 'button';
-  suggestButton.dataset.mode = 'suggest';
-  suggestButton.textContent = 'Suggest changes';
-  suggestButton.className = 'markdown-suggest-button';
-  suggestButton.disabled = true;
-  suggestButton.title = 'Select source text first';
-  suggestButton.addEventListener('mousedown', (event) => event.preventDefault());
-  suggestButton.addEventListener('click', () => openSuggestChangesComposer(win, text, filePath, lastEvidence));
-  toolbar.appendChild(suggestButton);
-  wrapper.addEventListener('mouseup', () => {
-    const selection = window.getSelection();
-    if (!selection || !wrapper.contains(selection.anchorNode) || !wrapper.contains(selection.focusNode)) return;
-    lastEvidence = sourceRangeForSelection(selection, text);
-    suggestButton.disabled = !lastEvidence;
-    suggestButton.title = lastEvidence ? `Suggest changes for lines ${lastEvidence.startLine}–${lastEvidence.endLine}` : 'Select source text that maps to source lines';
-  });
 
   const setMode = (mode) => {
     toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((item) => item.classList.toggle('active', item.dataset.mode === mode));
     if (mode === 'raw') {
+      readAloud?.destroy();
+      readAloud = null;
       wrapper.classList.add('raw-markdown');
       wrapper.innerHTML = renderRawMarkdown(text);
       return;
     }
     wrapper.classList.remove('raw-markdown');
     wrapper.innerHTML = markdownToHTML(text, filePath);
-    setTimeout(() => initMarkdownFeatures(wrapper), 0);
+    readAloud = window.NoteBooksReadAloud?.attach(toolbar, wrapper);
+    void initMarkdownFeatures(wrapper);
   };
 
   toolbar.querySelectorAll('button[data-mode="preview"], button[data-mode="raw"]').forEach((button) => button.addEventListener('click', () => {
     setMode(button.dataset.mode || 'preview');
   }));
-  setTimeout(() => initMarkdownFeatures(wrapper), 0);
+  void initMarkdownFeatures(wrapper);
 }
 // ─── Split-view editor ────────────────────────────────────────────────────────
 /**
@@ -2146,15 +2598,14 @@ function openCommunity() {
 }
 async function bootNoteBooks() {
     const treeRail = document.getElementById('treeRail');
-    const treeRailToggle = document.getElementById('treeRailToggle');
-    treeRailToggle?.addEventListener('click', () => {
-        const collapsed = treeRail?.classList.toggle('is-collapsed') ?? false;
-        if (treeRailToggle) {
-            treeRailToggle.textContent = collapsed ? '›' : '‹';
-            treeRailToggle.setAttribute('aria-label', collapsed ? 'Expand repository tree' : 'Collapse repository tree');
-            treeRailToggle.title = collapsed ? 'Expand repository tree' : 'Collapse repository tree';
+    if (treeRail) {
+        treeRail.classList.remove('tree-rail--collapsed');
+        const collapseButton = document.getElementById('sidebarCollapseBtn');
+        if (collapseButton) {
+            collapseButton.textContent = '‹';
+            collapseButton.setAttribute('aria-expanded', 'true');
         }
-    });
+    }
     sidebarSearchInput = document.getElementById("sidebarSearch");
     sidebarTree = document.getElementById("sidebarTree");
     treeHoverDetails = document.getElementById("treeHoverDetails");
@@ -2193,8 +2644,10 @@ async function bootNoteBooks() {
   if (utilityTitle) utilityTitle.textContent = document.getElementById('workspaceHeader')?.textContent || 'NoteBooks';
   const activeRoute = getCurrentStreamRoute();
     const shouldLoadWorkspace = NoteBooksStreamRuntime.streams.has(activeRoute);
+  registerCacheLifecycleHooks();
   if (shouldLoadWorkspace) {
     await NoteBooksStreamRuntime.loadStreamTree();
+    await startContentCatalogPolling();
     await startUpdatePolling();
     await fetchTree();
   }

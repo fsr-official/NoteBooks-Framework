@@ -39,7 +39,14 @@
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
   const formatDate = (value) => { const date = value ? new Date(value) : null; return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : 'Recently'; };
-  const slug = window.location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0] || 'about';
+  const getPathSegments = () => window.location.pathname.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
+  const getCommunityChannelRoute = () => {
+    const segments = getPathSegments();
+    if (segments[0] !== 'community') return 'general';
+    if (segments[1] === 'channel' && segments[2]) return decodeURIComponent(segments[2]);
+    return 'general';
+  };
+  const slug = getPathSegments()[0] || 'about';
   const page = pages[slug] || pages.about;
 
   if (slug === 'about') {
@@ -53,7 +60,92 @@
     return;
   }
 
-  root.innerHTML = `<div class="portal-page portal-space ${page.feed === 'community' ? 'community-space' : 'issues-space'}"><div class="landing-hero space-hero"><div class="landing-kicker">${escapeHtml(page.kicker)}</div><h1>${escapeHtml(page.title)}</h1><p>${escapeHtml(page.copy)}</p><div class="landing-actions"><a class="landing-secondary" href="/">Back to home</a>${page.feed === 'issues' ? '<a class="landing-primary" href="#issue-proposal">Suggest a change <span aria-hidden="true">→</span></a>' : '<a class="landing-primary" href="#community-channels">Open channels <span aria-hidden="true">→</span></a>'}</div></div><div class="portal-grid portal-grid--space"><section class="portal-panel portal-panel--wide"><div class="portal-panel-header"><span>${page.feed === 'community' ? 'Community room' : 'Issue desk'}</span><strong>${page.feed === 'community' ? 'Find your conversation' : 'Turn friction into progress'}</strong></div>${page.feed === 'community' ? '<div class="space-intro-grid"><div><span class="space-label">Open to everyone</span><h2>Conversations with a clear home.</h2><p>Choose a channel, see who is around, and keep questions close to the stream they belong to.</p></div><div class="space-stat-list"><span><strong>03</strong> stream libraries</span><span><strong>∞</strong> room for careful questions</span></div></div>' : '<div class="space-intro-grid"><div><span class="space-label">Reader-powered maintenance</span><h2>Make one useful improvement.</h2><p>Describe the problem, connect it to a source file, and let the community help move it toward review.</p></div><div class="space-stat-list"><span><strong>01</strong> clear source path</span><span><strong>02</strong> review stages</span></div></div>'}${page.feed === 'issues' ? '<section class="issue-submit-panel" id="issue-proposal" aria-labelledby="issue-proposal-title"><div class="portal-panel-header"><span>New proposal</span><strong id="issue-proposal-title">Suggest a source improvement</strong></div><p class="panel-help">Sign in to submit a proposal. Every request must point to a registered repository and source path.</p><form class="issue-proposal-form" id="issueProposalForm"><label>Title<input name="title" maxlength="200" required placeholder="What should be improved?" /></label><label>Stream<select name="stream"><option value="science">Science</option><option value="commerce">Commerce</option><option value="humanities">Humanities</option></select></label><label class="form-wide">Why should it change?<textarea name="body" maxlength="20000" rows="4" required placeholder="Explain the correction or missing piece…"></textarea></label><label>Source repository<input name="sourceRepository" required placeholder="fsr-official/NoteBooks-Science" /></label><label>Branch<input name="sourceBranch" value="main" maxlength="200" /></label><label class="form-wide">Source path<input name="sourcePath" required placeholder="notes/physics/kinematics.md" /></label><details class="form-wide"><summary>Optional line evidence</summary><div class="issue-evidence-grid"><label>Start line<input name="sourceStartLine" type="number" min="1" /></label><label>End line<input name="sourceEndLine" type="number" min="1" /></label><label class="form-wide">Selected text<textarea name="sourceText" rows="3" placeholder="Paste the exact selected lines if this proposal came from the reader."></textarea></label></div></details><div class="issue-form-actions form-wide"><button class="landing-primary" type="submit">Submit proposal <span aria-hidden="true">→</span></button><span id="issueProposalStatus" class="form-status" role="status"></span></div></form></section>' : ''}<div class="feed-toolbar"><div class="portal-panel-header"><span>${page.feed === 'community' ? 'Public activity' : 'Priorities from readers'}</span><strong>${page.feed === 'community' ? 'Latest conversations' : 'Open issue queue'}</strong></div><div class="feed-switcher" role="group" aria-label="Activity sorting"><button type="button" class="feed-switch is-active" data-portal-sort="latest">Latest</button><button type="button" class="feed-switch" data-portal-sort="trending">Trending</button></div></div><div class="portal-feed" id="portalFeed" role="status" aria-live="polite">Loading live activity…</div>${page.feed === 'community' ? '<section class="community-profile-tools" aria-labelledby="community-profiles-title"><div class="portal-panel-header"><span>Member directory</span><strong id="community-profiles-title">Presence and roles</strong></div><div id="ownProfileEditor" class="own-profile-editor"></div><div id="communityProfiles" class="community-profiles" role="list" aria-live="polite">Loading public profiles…</div></section>' : ''}</section><aside class="portal-panel space-aside"><div class="space-aside-kicker">${page.feed === 'community' ? 'Room guide' : 'Proposal guide'}</div><h2>${page.feed === 'community' ? 'A calmer community starts with context.' : 'Strong issues are easy to review.'}</h2><div class="space-guide-list">${page.feed === 'community' ? '<div><span>01</span><p><strong>Pick a channel.</strong> Keep stream questions, issue triage, and general conversation easy to find.</p></div><div><span>02</span><p><strong>Be specific.</strong> Link your message to a note, concept, or source file when useful.</p></div><div><span>03</span><p><strong>Respect presence.</strong> Online and DND states help people choose the right moment to engage.</p></div>' : '<div><span>01</span><p><strong>Name the gap.</strong> A concise title makes the queue legible.</p></div><div><span>02</span><p><strong>Show the source.</strong> Repository and path let reviewers reproduce the concern.</p></div><div><span>03</span><p><strong>Invite review.</strong> Submitted proposals move through triage before a PR is opened.</p></div>'}</div><a class="portal-doc-link" href="${page.feed === 'community' ? '/about' : '/volunteers'}">${page.feed === 'community' ? 'Read the NoteBooks mission' : 'Learn about contributing'} <span aria-hidden="true">↗</span></a></aside></div></div>`;
+  if (slug === 'system') {
+    root.innerHTML = `<div class="stream-landing portal-page system-page"><header class="landing-hero space-hero"><div class="landing-kicker">Public service timeline</div><h1>System</h1><p>Repository, content, Issue, publishing, and service-health events. Public entries contain project metadata only.</p><div class="landing-actions"><a class="landing-secondary" href="/">Back to home</a><button class="landing-primary" id="systemRefresh" type="button">Refresh timeline</button></div></header><section class="system-status-grid" aria-label="System status"><article class="portal-panel system-status-card"><span>Current status</span><strong id="systemStatusValue">Loading</strong><small id="systemCheckedAt">Checking monitor history…</small></article><article class="portal-panel system-status-card"><span>30-day availability</span><strong id="systemAvailability">—</strong><small id="systemDowntime">No monitoring data yet</small></article><article class="portal-panel system-status-card"><span>Workflow queue</span><strong id="systemQueueValue">—</strong><small id="systemQueueDetail">Loading delivery jobs…</small></article></section><section class="portal-panel system-uptime-panel"><div class="portal-panel-header"><span>Recent checks</span><strong>Uptime</strong></div><div id="systemChecks" class="system-checks" role="list" aria-label="Recent uptime checks"></div></section><section class="portal-panel system-events-panel"><div class="portal-panel-header"><span>Repository and service activity</span><strong>Timeline</strong></div><p id="systemMessage" class="system-message" role="status">Loading System history…</p><div id="systemEvents" class="system-events" role="list"></div><button id="systemLoadMore" class="landing-secondary system-load-more" type="button" hidden>Load older events</button></section></div>`;
+
+    const status = document.getElementById('systemStatusValue');
+    const checkedAt = document.getElementById('systemCheckedAt');
+    const availability = document.getElementById('systemAvailability');
+    const downtime = document.getElementById('systemDowntime');
+    const queueValue = document.getElementById('systemQueueValue');
+    const queueDetail = document.getElementById('systemQueueDetail');
+    const checks = document.getElementById('systemChecks');
+    const events = document.getElementById('systemEvents');
+    const message = document.getElementById('systemMessage');
+    const loadMore = document.getElementById('systemLoadMore');
+    const refresh = document.getElementById('systemRefresh');
+    let before = null;
+    let loading = false;
+    const timestamp = (value) => {
+      const date = value ? new Date(value) : null;
+      return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : 'Not available';
+    };
+    const safeGithubUrl = (value) => {
+      try {
+        const url = new URL(String(value || ''));
+        return url.protocol === 'https:' && url.hostname === 'github.com' ? url.href : null;
+      } catch {
+        return null;
+      }
+    };
+    const renderEvents = (items) => items.map((item) => {
+      const label = String(item.type || 'activity').replace(/_/g, ' ');
+      const href = safeGithubUrl(item.url);
+      return `<article class="system-event" role="listitem"><div class="system-event-marker system-event-marker--${escapeHtml(item.type || 'activity')}"></div><div class="system-event-copy"><div class="system-event-heading"><strong>${escapeHtml(item.summary)}</strong><time datetime="${escapeHtml(item.createdAt || '')}">${escapeHtml(timestamp(item.createdAt))}</time></div><div class="system-event-meta"><span>${escapeHtml(label)}</span>${item.repository ? `<span>${escapeHtml(item.repository)}</span>` : ''}${item.path ? `<code>${escapeHtml(item.path)}</code>` : ''}${href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a>` : ''}</div></div></article>`;
+    }).join('');
+
+    const loadSystem = async (cursor = null, append = false) => {
+      if (loading) return;
+      loading = true;
+      if (message) message.textContent = append ? 'Loading older events…' : 'Loading System history…';
+      if (refresh) refresh.disabled = true;
+      if (loadMore) loadMore.disabled = true;
+      try {
+        const response = await fetch(`/api/system-events${cursor ? `?before=${encodeURIComponent(cursor)}` : ''}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || `System history unavailable (${response.status})`);
+        const uptime = data.uptime || {};
+        const currentStatus = String(uptime.status || 'unknown');
+        if (status) {
+          status.textContent = currentStatus === 'up' ? 'Operational' : currentStatus === 'down' ? 'Down' : currentStatus === 'degraded' ? 'Degraded' : 'Unknown';
+          status.dataset.status = currentStatus;
+        }
+        if (checkedAt) checkedAt.textContent = `Last check: ${timestamp(uptime.lastCheckedAt)}`;
+        if (availability) availability.textContent = uptime.availablePercent == null ? '—' : `${uptime.availablePercent}%`;
+        const monitoredHours = Math.floor(Number(uptime.monitoredSeconds || 0) / 3600);
+        if (downtime) downtime.textContent = monitoredHours ? `${monitoredHours} monitored hours · ${Math.floor(Number(uptime.downtimeSeconds || 0) / 60)} minutes down` : 'No monitor coverage yet';
+        const workflow = data.workflows || {};
+        const pending = Number(workflow.pending || 0) + Number(workflow.processing || 0);
+        if (queueValue) queueValue.textContent = `${pending} active`;
+        if (queueDetail) queueDetail.textContent = `${Number(workflow.delivered || 0)} delivered · ${Number(workflow.failed || 0)} failed`;
+        if (checks) {
+          checks.innerHTML = (uptime.checks || []).map((check) => `<span role="listitem" class="system-check system-check--${escapeHtml(check.status)}" title="${escapeHtml(`${check.status} · ${timestamp(check.checkedAt)}`)}"></span>`).join('') || '<span class="system-check-empty">No checks recorded yet.</span>';
+        }
+        const batch = Array.isArray(data.events) ? data.events : [];
+        if (events) events.innerHTML = append ? `${events.innerHTML}${renderEvents(batch)}` : renderEvents(batch);
+        before = data.nextBefore || null;
+        if (loadMore) loadMore.hidden = !before;
+        if (message) message.textContent = batch.length || append ? '' : 'No System events have been recorded yet.';
+      } catch (error) {
+        if (message) message.textContent = error.message || 'System history is unavailable right now.';
+      } finally {
+        loading = false;
+        if (refresh) refresh.disabled = false;
+        if (loadMore) loadMore.disabled = false;
+      }
+    };
+    refresh?.addEventListener('click', () => loadSystem());
+    loadMore?.addEventListener('click', () => { if (before) loadSystem(before, true); });
+    loadSystem();
+    window.setInterval(() => loadSystem(), 60_000);
+    return;
+  }
+
+  root.innerHTML = `<div class="stream-landing portal-page portal-space ${page.feed === 'community' ? 'community-space' : 'issues-space'}"><div class="landing-hero space-hero"><div class="landing-kicker">${escapeHtml(page.kicker)}</div><h1>${escapeHtml(page.title)}</h1><p>${escapeHtml(page.copy)}</p><div class="landing-actions"><a class="landing-secondary" href="/">Back to home</a>${page.feed === 'issues' ? '<a class="landing-primary" href="#issue-proposal">Suggest a change <span aria-hidden="true">→</span></a>' : '<a class="landing-primary" href="#communityChannelWorkspace">Open channels <span aria-hidden="true">→</span></a>'}</div></div><div class="portal-grid portal-grid--space"><section class="portal-panel portal-panel--wide"><div class="portal-panel-header"><span>${page.feed === 'community' ? 'Community room' : 'Issue desk'}</span><strong>${page.feed === 'community' ? 'Find your conversation' : 'Turn friction into progress'}</strong></div>${page.feed === 'community' ? '<div class="space-intro-grid"><div><span class="space-label">Open to everyone</span><h2>Conversations with a clear home.</h2><p>Choose a channel, see who is around, and keep questions close to the stream they belong to.</p></div><div class="space-stat-list"><span><strong>03</strong> stream libraries</span><span><strong>∞</strong> room for careful questions</span></div></div>' : '<div class="space-intro-grid"><div><span class="space-label">Reader-powered maintenance</span><h2>Make one useful improvement.</h2><p>Describe the problem, connect it to a source file, and let the community help move it toward review.</p></div><div class="space-stat-list"><span><strong>01</strong> clear source path</span><span><strong>02</strong> review stages</span></div></div>'}${page.feed === 'issues' ? '<section class="issue-submit-panel" id="issue-proposal" aria-labelledby="issue-proposal-title"><div class="portal-panel-header"><span>New proposal</span><strong id="issue-proposal-title">Suggest a source improvement</strong></div><p class="panel-help">Sign in to submit a proposal. Every request must point to a registered repository and source path.</p><form class="issue-proposal-form" id="issueProposalForm"><label>Title<input name="title" maxlength="200" required placeholder="What should be improved?" /></label><label>Stream<select name="stream"><option value="science">Science</option><option value="commerce">Commerce</option><option value="humanities">Humanities</option></select></label><label class="form-wide">Why should it change?<textarea name="body" maxlength="20000" rows="4" required placeholder="Explain the correction or missing piece…"></textarea></label><label>Source repository<input name="sourceRepository" required placeholder="fsr-official/NoteBooks-Science" /></label><label>Branch<input name="sourceBranch" value="main" maxlength="200" /></label><label class="form-wide">Source path<input name="sourcePath" required placeholder="notes/physics/kinematics.md" /></label><details class="form-wide"><summary>Optional line evidence</summary><div class="issue-evidence-grid"><label>Start line<input name="sourceStartLine" type="number" min="1" /></label><label>End line<input name="sourceEndLine" type="number" min="1" /></label><label class="form-wide">Selected text<textarea name="sourceText" rows="3" placeholder="Paste the exact selected lines if this proposal came from the reader."></textarea></label></div></details><div class="issue-form-actions form-wide"><button class="landing-primary" type="submit">Submit proposal <span aria-hidden="true">→</span></button><span id="issueProposalStatus" class="form-status" role="status"></span></div></form></section>' : ''}<div class="feed-toolbar"><div class="portal-panel-header"><span>${page.feed === 'community' ? 'Public activity' : 'Priorities from readers'}</span><strong>${page.feed === 'community' ? 'Latest conversations' : 'Open issue queue'}</strong></div><div class="feed-switcher" role="group" aria-label="Activity sorting"><button type="button" class="feed-switch is-active" data-portal-sort="latest">Latest</button><button type="button" class="feed-switch" data-portal-sort="trending">Trending</button></div></div><div class="portal-feed" id="portalFeed" role="status" aria-live="polite">Loading live activity…</div>${page.feed === 'community' ? '<section class="community-profile-tools" aria-labelledby="community-profiles-title"><div class="portal-panel-header"><span>Member directory</span><strong id="community-profiles-title">Presence and roles</strong></div><div id="ownProfileEditor" class="own-profile-editor"></div><div id="communityProfiles" class="community-profiles" role="list" aria-live="polite">Loading public profiles…</div></section>' : ''}</section><aside class="portal-panel space-aside"><div class="space-aside-kicker">${page.feed === 'community' ? 'Room guide' : 'Proposal guide'}</div><h2>${page.feed === 'community' ? 'A calmer community starts with context.' : 'Strong issues are easy to review.'}</h2><div class="space-guide-list">${page.feed === 'community' ? '<div><span>01</span><p><strong>Pick a channel.</strong> Keep stream questions, issue triage, and general conversation easy to find.</p></div><div><span>02</span><p><strong>Be specific.</strong> Link your message to a note, concept, or source file when useful.</p></div><div><span>03</span><p><strong>Respect presence.</strong> Online and DND states help people choose the right moment to engage.</p></div>' : '<div><span>01</span><p><strong>Name the gap.</strong> A concise title makes the queue legible.</p></div><div><span>02</span><p><strong>Show the source.</strong> Repository and path let reviewers reproduce the concern.</p></div><div><span>03</span><p><strong>Invite review.</strong> Submitted proposals move through triage before a PR is opened.</p></div>'}</div><a class="portal-doc-link" href="${page.feed === 'community' ? '/about' : '/volunteers'}">${page.feed === 'community' ? 'Read the NoteBooks mission' : 'Learn about contributing'} <span aria-hidden="true">↗</span></a></aside></div></div>`;
+
+  if (slug === 'community') {
+    root.innerHTML = `<div class="community-channel-page portal-page"><header class="community-channel-header"><div><div class="landing-kicker">Community channels</div><h1>Find the right conversation.</h1><p>Start in <strong>#general</strong>, then move into a focused channel when the topic needs a clearer home.</p></div><a class="landing-secondary" href="/">Back to home</a></header><main id="communityChannelMount" class="community-channel-main"></main></div>`;
+  }
 
   const feed = document.getElementById('portalFeed');
   const profileList = document.getElementById('communityProfiles');
@@ -64,10 +156,25 @@
 
   function renderChannelWorkspace() {
     if (page.feed !== 'community') return;
-    const panel = root.querySelector('.portal-panel--wide');
-    const feedSwitcher = root.querySelector('.feed-switcher');
-    if (!panel || !feedSwitcher || document.getElementById('communityChannelWorkspace')) return;
-    feedSwitcher.insertAdjacentHTML('beforebegin', `<section class="community-channel-workspace" id="communityChannelWorkspace" aria-labelledby="community-channels-title"><div class="portal-panel-header"><span>Community</span><strong id="community-channels-title">Channels</strong></div><div class="channel-layout"><nav class="channel-list" id="communityChannelList" aria-label="Community channels"><p class="feed-loading">Loading channels…</p></nav><section class="channel-room" aria-live="polite"><div class="channel-room-header"><div><strong id="activeChannelName">Select a channel</strong><span id="activeChannelDescription"></span></div><span id="channelReadStatus" class="channel-read-status"></span></div><div class="channel-messages" id="communityChannelMessages"><p class="feed-empty">Choose a channel to read messages.</p></div><form class="channel-composer" id="communityChannelComposer"><label id="channelProposalLinkWrap" for="channelProposalId" hidden>Issue proposal ID<input id="channelProposalId" name="issueProposalId" type="number" min="1" inputmode="numeric" placeholder="Optional proposal reference" /></label><label for="channelMessageInput">Message</label><div class="channel-composer-row"><textarea id="channelMessageInput" name="body" maxlength="4000" rows="2" placeholder="Sign in to join the conversation…" disabled></textarea><button type="submit" class="landing-primary" disabled>Send</button></div><span class="channel-composer-status" id="channelComposerStatus" role="status"></span></form></section></div><section class="community-moderation-panel" id="communityModerationPanel" hidden aria-labelledby="community-moderation-title"><div class="portal-panel-header"><span>Governance</span><strong id="community-moderation-title">Report queue</strong></div><div id="communityModerationReports"><p class="feed-empty">Moderator access is checked securely.</p></div></section></section>`);
+    const mount = root.querySelector('#communityChannelMount');
+    if (!mount || document.getElementById('communityChannelWorkspace')) return;
+    mount.insertAdjacentHTML('afterbegin', `<section class="community-channel-workspace" id="communityChannelWorkspace" aria-labelledby="community-channels-title"><div class="portal-panel-header"><span>Community channels</span><strong id="community-channels-title">Choose a room</strong></div><div class="channel-layout"><nav class="channel-list" id="communityChannelList" aria-label="Community channels"><div class="channel-guide"><span class="space-label">Start here</span><strong>#general is the default room.</strong><p>Use it for open questions, then move focused topics into a niche channel so conversations stay easy to find.</p></div><p class="feed-loading">Loading channels…</p></nav><section class="channel-room" aria-live="polite"><div class="channel-room-header"><div><strong id="activeChannelName">Select a channel</strong><span id="activeChannelDescription"></span></div><span id="channelReadStatus" class="channel-read-status"></span></div><div class="channel-messages" id="communityChannelMessages"><p class="feed-empty">Choose a channel to read messages.</p></div><form class="channel-composer" id="communityChannelComposer"><label id="channelProposalLinkWrap" for="channelProposalId" hidden>Issue proposal ID<input id="channelProposalId" name="issueProposalId" type="number" min="1" inputmode="numeric" placeholder="Optional proposal reference" /></label><label for="channelMessageInput">Message</label><div class="channel-composer-row"><textarea id="channelMessageInput" name="body" maxlength="4000" rows="2" placeholder="Sign in to join the conversation…" disabled></textarea><button type="submit" class="landing-primary" disabled>Send</button></div><span class="channel-composer-status" id="channelComposerStatus" role="status"></span></form></section></div><section class="community-moderation-panel" id="communityModerationPanel" hidden aria-labelledby="community-moderation-title"><div class="portal-panel-header"><span>Governance</span><strong id="community-moderation-title">Report queue</strong></div><div id="communityModerationReports"><p class="feed-empty">Moderator access is checked securely.</p></div></section></section>`);
+  }
+
+  function updateChannelRoute(slugName) {
+    const target = `/community/channels/${encodeURIComponent(slugName || 'general')}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (current !== target) {
+      window.history.pushState({ channelSlug: slugName || 'general' }, '', target);
+    }
+  }
+
+  function updateChannelRoute(slugName) {
+    const target = `/community/channel/${encodeURIComponent(slugName || 'general')}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (current !== target) {
+      window.history.pushState({ channelSlug: slugName || 'general' }, '', target);
+    }
   }
 
   async function loadChannels() {
@@ -80,15 +187,17 @@
       availableChannels = Array.isArray(data.channels) ? data.channels : [];
       list.innerHTML = availableChannels.length ? availableChannels.map((channel) => `<button type="button" class="channel-list-item" data-channel-slug="${escapeHtml(channel.slug)}"><span># ${escapeHtml(channel.name)}${channel.unreadCount ? ` <em class="channel-unread-count">${escapeHtml(channel.unreadCount)}</em>` : ''}</span><small>${escapeHtml(channel.description || '')}</small></button>`).join('') : '<p class="feed-empty">No channels are available.</p>';
       list.querySelectorAll('[data-channel-slug]').forEach((button) => button.addEventListener('click', () => selectChannel(button.dataset.channelSlug)));
-      if (availableChannels.length) selectChannel(availableChannels[0].slug);
+      const preferredSlug = availableChannels.some((channel) => channel.slug === getCommunityChannelRoute()) ? getCommunityChannelRoute() : availableChannels.some((channel) => channel.slug === 'general') ? 'general' : availableChannels[0]?.slug || 'general';
+      if (availableChannels.length) selectChannel(preferredSlug);
     } catch (error) { list.innerHTML = `<p class="feed-empty">${escapeHtml(error.message || 'Channels are unavailable right now.')}</p>`; }
   }
 
   async function selectChannel(slug) {
-    const channel = availableChannels.find((item) => item.slug === slug);
+    const channel = availableChannels.find((item) => item.slug === slug) || availableChannels.find((item) => item.slug === 'general') || availableChannels[0];
     if (!channel) return;
     activeChannel = channel;
-    document.querySelectorAll('[data-channel-slug]').forEach((button) => button.classList.toggle('is-active', button.dataset.channelSlug === slug));
+    updateChannelRoute(channel.slug);
+    document.querySelectorAll('[data-channel-slug]').forEach((button) => button.classList.toggle('is-active', button.dataset.channelSlug === channel.slug));
     const name = document.getElementById('activeChannelName');
     const description = document.getElementById('activeChannelDescription');
     const messageList = document.getElementById('communityChannelMessages');
@@ -102,7 +211,7 @@
     if (send) send.disabled = !authToken();
     if (messageList) messageList.innerHTML = '<p class="feed-loading">Loading messages…</p>';
     try {
-      const response = await fetch(`/api/community/channels/${encodeURIComponent(slug)}/messages`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+      const response = await fetch(`/api/community/channels/${encodeURIComponent(channel.slug)}/messages`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Messages unavailable');
       const messages = Array.isArray(data.messages) ? data.messages : [];
@@ -110,8 +219,8 @@
       messageList?.querySelectorAll('[data-report-message]').forEach((button) => button.addEventListener('click', () => reportMessage(button.dataset.reportMessage)));
       const token = authToken();
       if (token) {
-        const readResponse = await fetch(`/api/community/channels/${encodeURIComponent(slug)}/read`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, credentials: 'same-origin' });
-        if (readResponse.ok) document.querySelector(`[data-channel-slug="${CSS.escape(slug)}"] .channel-unread-count`)?.remove();
+        const readResponse = await fetch(`/api/community/channels/${encodeURIComponent(channel.slug)}/read`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, credentials: 'same-origin' });
+        if (readResponse.ok) document.querySelector(`[data-channel-slug="${CSS.escape(channel.slug)}"] .channel-unread-count`)?.remove();
       }
     } catch (error) { if (messageList) messageList.innerHTML = `<p class="feed-empty">${escapeHtml(error.message || 'Messages are unavailable right now.')}</p>`; }
   }
@@ -200,7 +309,7 @@
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Could not submit proposal');
         form.reset();
-        if (status) status.textContent = 'Proposal submitted for review.';
+        if (status) status.textContent = 'Proposal saved and queued for the Issues repository.';
         await loadFeed('latest');
       } catch (error) { if (status) status.textContent = error.message || 'Could not submit proposal'; }
       finally { if (button) button.disabled = false; }

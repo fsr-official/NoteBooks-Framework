@@ -100,9 +100,15 @@ class ModernAuth {
     // ─── HTTP Helper ──────────────────────────────────────────────────────────
     async _post(action, body) {
         const send = window.noteBooksRequest || fetch;
-        const response = await send(`${this.apiUrl}?action=${action}`, {
+        const headers = { 'Content-Type': 'application/json' };
+        const csrfCookie = document.cookie.split('; ').find((cookie) => cookie.startsWith('csrf='));
+        if (csrfCookie) {
+            headers['x-csrf-token'] = decodeURIComponent(csrfCookie.slice('csrf='.length));
+        }
+        const response = await send(`${this.apiUrl}?action=${encodeURIComponent(action)}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            headers,
             body: JSON.stringify(body),
         });
         if (response.status === 401) {

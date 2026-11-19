@@ -91,6 +91,20 @@ function renderSvgFence(token) {
     return '<div class="note-figure diagram-figure diagram-svg" data-diagram-domain="svg">' + svg + '</div>\n';
 }
 
+function wrapMarkdownTables(container) {
+    if (!container || !(container instanceof Element))
+        return;
+    var tables = container.querySelectorAll('table');
+    tables.forEach(function (table) {
+        if (table.parentElement && table.parentElement.classList.contains('markdown-table-scroll'))
+            return;
+        var wrapper = document.createElement('div');
+        wrapper.className = 'markdown-table-scroll';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+    });
+}
+
 window.initializeMarkdownRenderer = function () {
     if (window.__markdownRuntimeState.renderer && typeof window.__markdownRuntimeState.renderer.render === 'function') {
         return window.__markdownRuntimeState.renderer;
@@ -137,6 +151,8 @@ window.initializeMarkdownRenderer = function () {
             return '#' + encodeURIComponent(target) + (anchor ? '%23' + encodeURIComponent(anchor) : '');
         },
         resolveEmbed: function (fileName) {
+            if (typeof window.__notebooksResolveEmbed === 'function')
+                return window.__notebooksResolveEmbed(fileName);
             /* Resolve embed path relative to the currently-rendering note's directory */
             var base = window._currentNotePath || '';
             if (!base)
@@ -174,7 +190,7 @@ window.initializeMarkdownRenderer = function () {
     }
     /* Initialise Mermaid (startOnLoad:false — we call mermaid.run() manually) */
     if (typeof mermaid !== 'undefined') {
-        var mermaidMode = document.documentElement && document.documentElement.dataset.themeMode;
+        var mermaidMode = document.documentElement && (document.documentElement.dataset.mode || document.documentElement.dataset.themeMode);
         var mermaidTheme = mermaidMode === 'light' ? 'default' : 'dark';
         mermaid.initialize({ startOnLoad: false, theme: mermaidTheme, securityLevel: 'strict' });
     }

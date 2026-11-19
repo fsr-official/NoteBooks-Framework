@@ -1,3 +1,33 @@
+// ===== MOBILE REPOSITORY NAVIGATOR =====
+function setMobileTreeOpen(open) {
+    const rail = document.getElementById('treeRail');
+    const toggle = document.getElementById('mobileTreeToggle');
+    if (!rail || !toggle) return;
+    const isOpen = Boolean(open);
+    rail.classList.toggle('mobile-tree-open', isOpen);
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.setAttribute('aria-label', isOpen ? 'Close repository navigator' : 'Open repository navigator');
+    toggle.title = isOpen ? 'Close repository navigator' : 'Open repository navigator';
+}
+function toggleMobileTree() {
+    const rail = document.getElementById('treeRail');
+    setMobileTreeOpen(!rail?.classList.contains('mobile-tree-open'));
+}
+function initMobileTree() {
+    const toggle = document.getElementById('mobileTreeToggle');
+    const rail = document.getElementById('treeRail');
+    if (!toggle || !rail) return;
+    toggle.addEventListener('click', toggleMobileTree);
+    rail.addEventListener('click', (event) => {
+        if (event.target.closest('.sidebar-collapse-control')) return;
+        if (event.target.closest('.tree-item, .sidebar-tree')) return;
+        if (event.target.closest('.tree-rail-header')) return;
+        if (window.matchMedia('(max-width: 768px)').matches) setMobileTreeOpen(false);
+    });
+    setMobileTreeOpen(false);
+}
+window.toggleMobileTree = toggleMobileTree;
+
 // ===== MOBILE OVERFLOW MENU =====
 function toggleMobOverflow() {
     document.getElementById('mobOverflowMenu')?.classList.toggle('open');
@@ -137,9 +167,7 @@ function openPreview(path, filename, repo = '', branch = '', repoPath = '') {
     win.dataset.id = id;
     const ext = filename.split('.').pop().toLowerCase();
     const isMarkdown = ext === 'md' || ext === 'mdx' || ext === 'markdown';
-    const editBtnHTML = isMarkdown
-        ? `<button class="btn-edit-split" id="${id}-editbtn" title="Edit existing Markdown file" aria-label="Edit existing Markdown file" onclick="toggleSplitEditor('${id}')"><svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span class="edit-label">Edit</span><span class="sv-dot"></span></button>`
-        : '';
+    const editBtnHTML = '';
     const minBtn = isMobile
         ? `<button onclick="minimizeWindowMobile('${id}')">🗕</button>`
         : `<button onclick="minimizeWindow('${id}')">🗕</button>`;
@@ -225,5 +253,6 @@ function updateTaskbar() {
 }
 // ===== INIT =====
 window.addEventListener('DOMContentLoaded', async () => {
+    initMobileTree();
     await updatePendingBadge();
 });
