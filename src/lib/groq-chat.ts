@@ -1,15 +1,13 @@
 import "server-only";
 
 import { AI_TIERS, type AiTier } from "@/lib/ai-tiers";
+import {
+  AI_PROVIDER_KEY_SLOTS,
+  isAiProviderKeySlot,
+  type AiProviderKeySlot,
+} from "@/lib/ai-provider-keys";
 import { getRedisClient } from "@/lib/public-index-cache";
-
-const GROQ_KEY_SLOTS = [
-  ["main", "GROQ_API_KEY_MAIN"],
-  ["science", "GROQ_API_KEY_SCIENCE"],
-  ["commerce", "GROQ_API_KEY_COMMERCE"],
-  ["humanities", "GROQ_API_KEY_HUMANITIES"],
-  ["lower-secondary", "GROQ_API_KEY_LOWER_SECONDARY"],
-] as const;
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const ROTATION_KEY = "notebooks:groq:key-rotation:v1";
 
@@ -37,7 +35,7 @@ export type GroqChatResult = {
   promptTokens: number;
   completionTokens: number;
   model: string;
-  keySlot: string;
+  keySlot: AiProviderKeySlot;
 };
 
 export class GroqChatError extends Error {
@@ -51,20 +49,46 @@ export class GroqChatError extends Error {
   }
 }
 
+class NoActiveGroqKeysError extends GroqChatError {
+  constructor() {
+    super("All configured AI provider keys are disabled or rate limited.", 503);
+    this.name = "NoActiveGroqKeysError";
+  }
+}
+
 function getConfiguredKeys() {
-  return GROQ_KEY_SLOTS.flatMap(([slot, variable]) => {
-    const key = process.env[variable]?.trim();
+  return AI_PROVIDER_KEY_SLOTS.flatMap(({ slot, environmentVariable }) => {
+    const key = process.env[environmentVariable]?.trim();
     return key ? [{ slot, key }] : [];
   });
 }
 
-async function nextGroqKey() {
+async function nextGroqKey(excludedSlots: ReadonlySet<AiProviderKeySlot>) {
   const keys = getConfiguredKeys();
   if (keys.length === 0) {
     throw new GroqChatError("Groq AI is not configured on the server.", 503);
   }
+  const { data, error } = await createSupabaseAdminClient()
+    .rpc("get_active_ai_provider_key_slots");
+  if (error) {
+    console.error("AI provider key controls could not be loaded", error);
+    throw new GroqChatError("AI provider key controls are unavailable.", 503);
+  }
+  const activeSlots = new Set(
+    Array.isArray(data)
+      ? data.flatMap((entry) => {
+          if (!entry || typeof entry !== "object") return [];
+          const slot = (entry as Record<string, unknown>).key_slot;
+          return isAiProviderKeySlot(slot) ? [slot] : [];
+        })
+      : [],
+  );
+  const availableKeys = keys.filter(({ slot }) => activeSlots.has(slot) && !excludedSlots.has(slot));
+  if (availableKeys.length === 0) {
+    throw new NoActiveGroqKeysError();
+  }
   const index = await getRedisClient().incr(ROTATION_KEY);
-  return keys[(Number(index) - 1) % keys.length];
+  return availableKeys[(Number(index) - 1) % availableKeys.length];
 }
 
 function getSystemPrompt(noteTitle: string, context: GroqContextSection[]): string {
@@ -134,11 +158,15 @@ function getUsageCount(value: unknown): number | null {
     : null;
 }
 
-export async function completeGroqChat(input: GroqChatInput, fallbackIndex = 0): Promise<GroqChatResult> {
+async function completeGroqChatAttempt(
+  input: GroqChatInput,
+  fallbackIndex: number,
+  excludedSlots: ReadonlySet<AiProviderKeySlot>,
+): Promise<GroqChatResult> {
   const tier = AI_TIERS[input.tier];
   const model = tier.models[Math.min(fallbackIndex, tier.models.length - 1)];
   const fitted = fitInputToTier(input, tier.maxInputTokens);
-  const selectedKey = await nextGroqKey();
+  const selectedKey = await nextGroqKey(excludedSlots);
   const messages = [
     { role: "system" as const, content: fitted.system },
     ...fitted.history,
@@ -164,22 +192,46 @@ export async function completeGroqChat(input: GroqChatInput, fallbackIndex = 0):
     cache: "no-store",
     });
   } catch {
-    if (fallbackIndex + 1 < tier.models.length) return completeGroqChat(input, fallbackIndex + 1);
+    if (fallbackIndex + 1 < tier.models.length) {
+      return completeGroqChatAttempt(input, fallbackIndex + 1, excludedSlots);
+    }
     throw new GroqChatError("The AI service could not connect to the provider.", 502);
   }
 
   if (!response.ok) {
-    const retryAfter = Number(response.headers.get("retry-after"));
     if (response.status === 429 || response.status >= 500) {
-      if (fallbackIndex + 1 < tier.models.length) {
-        return completeGroqChat(input, fallbackIndex + 1);
-      }
       if (response.status === 429) {
+        const retryAfterHeader = Number(response.headers.get("retry-after"));
+        const retryAfter = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+          ? Math.min(3600, Math.ceil(retryAfterHeader))
+          : 60;
+        const { error } = await createSupabaseAdminClient().rpc("record_ai_provider_key_rate_limit", {
+          p_key_slot: selectedKey.slot,
+          p_retry_after_seconds: retryAfter,
+        });
+        if (error) {
+          console.error("AI provider key rate limit could not be recorded", {
+            keySlot: selectedKey.slot,
+            error,
+          });
+        }
+        const nextExcludedSlots = new Set(excludedSlots);
+        nextExcludedSlots.add(selectedKey.slot);
+        if (fallbackIndex + 1 < tier.models.length) {
+          try {
+            return await completeGroqChatAttempt(input, fallbackIndex + 1, nextExcludedSlots);
+          } catch (fallbackError) {
+            if (!(fallbackError instanceof NoActiveGroqKeysError)) throw fallbackError;
+          }
+        }
         throw new GroqChatError(
           "The AI service is at its current limit. Please wait a little before trying again.",
           429,
-          Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : undefined,
+          retryAfter,
         );
+      }
+      if (fallbackIndex + 1 < tier.models.length) {
+        return completeGroqChatAttempt(input, fallbackIndex + 1, excludedSlots);
       }
       console.error("Groq chat request failed", { status: response.status, keySlot: selectedKey.slot, model });
       throw new GroqChatError("The AI service could not complete this request.", 502);
@@ -191,7 +243,9 @@ export async function completeGroqChat(input: GroqChatInput, fallbackIndex = 0):
   try {
     payload = await response.json();
   } catch {
-    if (fallbackIndex + 1 < tier.models.length) return completeGroqChat(input, fallbackIndex + 1);
+    if (fallbackIndex + 1 < tier.models.length) {
+      return completeGroqChatAttempt(input, fallbackIndex + 1, excludedSlots);
+    }
     throw new GroqChatError("The AI service returned an invalid response.", 502);
   }
   const completion = payload && typeof payload === "object"
@@ -211,9 +265,15 @@ export async function completeGroqChat(input: GroqChatInput, fallbackIndex = 0):
   const promptTokens = getUsageCount(usage.prompt_tokens);
   const completionTokens = getUsageCount(usage.completion_tokens);
   if (!answer || promptTokens === null || completionTokens === null) {
-    if (fallbackIndex + 1 < tier.models.length) return completeGroqChat(input, fallbackIndex + 1);
+    if (fallbackIndex + 1 < tier.models.length) {
+      return completeGroqChatAttempt(input, fallbackIndex + 1, excludedSlots);
+    }
     throw new GroqChatError("The AI service returned an incomplete response.", 502);
   }
 
   return { answer, promptTokens, completionTokens, model, keySlot: selectedKey.slot };
+}
+
+export async function completeGroqChat(input: GroqChatInput): Promise<GroqChatResult> {
+  return completeGroqChatAttempt(input, 0, new Set());
 }

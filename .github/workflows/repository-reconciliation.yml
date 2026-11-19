@@ -1,0 +1,34 @@
+name: Repository reconciliation
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-reconciliation
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+      REPOSITORY_RECONCILIATION_SECRET: ${{ secrets.REPOSITORY_RECONCILIATION_SECRET }}
+    steps:
+      - name: Enqueue scheduled repository checks
+        run: |
+          if [ -z "$APP_BASE_URL" ] || [ -z "$REPOSITORY_RECONCILIATION_SECRET" ]; then
+            echo "::error::Set APP_BASE_URL and REPOSITORY_RECONCILIATION_SECRET in repository Actions secrets."
+            exit 1
+          fi
+
+          base_url="${APP_BASE_URL%/}"
+          curl --fail-with-body --silent --show-error --retry 3 \
+            --request POST \
+            --header "Authorization: Bearer $REPOSITORY_RECONCILIATION_SECRET" \
+            "$base_url/api/cron/repository-reconciliation"

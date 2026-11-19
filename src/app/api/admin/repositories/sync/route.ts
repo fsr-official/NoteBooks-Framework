@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdmin } from "@/lib/admin-access";
-import { enqueueRepositoryUpdate } from "@/lib/qstash";
+import { queueRepositoryUpdates } from "@/lib/repository-update-queue";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { withApiTelemetry } from "@/lib/api-telemetry";
 
@@ -64,27 +64,7 @@ async function postSync(request: Request) {
     });
   }
 
-  const results: Array<{ repository: string; status: "queued" | "failed"; messageId?: string }> = [];
-  let nextIndex = 0;
-  async function enqueueNext(): Promise<void> {
-    const index = nextIndex++;
-    const repository = repositories[index];
-    if (!repository) return;
-    const name = `${repository.repo_owner}/${repository.repo_name}`;
-    try {
-      const messageId = await enqueueRepositoryUpdate({
-        repository: name,
-        branch: repository.branch,
-        requestedBy: account!.accountId,
-      });
-      results[index] = { repository: name, status: "queued", messageId };
-    } catch (error) {
-      console.error(`Unable to queue repository check for ${name}`, error);
-      results[index] = { repository: name, status: "failed" };
-    }
-    await enqueueNext();
-  }
-  await Promise.all(Array.from({ length: Math.min(4, repositories.length) }, () => enqueueNext()));
+  const results = await queueRepositoryUpdates(repositories, account!.accountId);
 
   const queued = results.filter((result) => result.status === "queued").length;
   const failed = results.filter((result) => result.status === "failed").map(({ repository }) => repository);

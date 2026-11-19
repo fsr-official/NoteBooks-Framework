@@ -163,6 +163,20 @@ async function postAiChat(request: Request) {
     return jsonError("The AI service is temporarily unavailable.", 503);
   }
 
+  try {
+    const { error } = await createSupabaseAdminClient().rpc("record_ai_provider_key_usage", {
+      p_key_slot: result.keySlot,
+      p_prompt_tokens: result.promptTokens,
+      p_completion_tokens: result.completionTokens,
+    });
+    if (error) throw error;
+  } catch (error) {
+    console.error("AI provider key usage could not be recorded", {
+      keySlot: result.keySlot,
+      error,
+    });
+  }
+
   if (account) {
     try {
       const { error } = await createSupabaseAdminClient().from("ai_usage_events").insert({

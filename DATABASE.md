@@ -1,6 +1,6 @@
 # Database and repository update design
 
-This document records the current Supabase schema and repository import behavior. The initial catalog migrations and API-key migration have been applied to the configured remote project. The admin dashboard migration is new and still needs to be applied; local Supabase remains unverified.
+This document records the current Supabase schema and repository import behavior. The initial catalog migrations and API-key migration have been applied to the configured remote project. The admin dashboard and AI provider key migrations still need to be applied; local Supabase remains unverified. See [ADMIN-OPERATIONS.md](ADMIN-OPERATIONS.md) for deployment, backup, and recovery procedures.
 
 ## Accounts and authentication
 
@@ -15,6 +15,8 @@ Every new account receives the `user` role. Only the single designated account m
 Apply [`20261116100000_admin_dashboard.sql`](supabase/migrations/20261116100000_admin_dashboard.sql) after the existing migrations before using the operations console. It adds `last_checked_at`, permits null `account_id` values for automated repository imports while retaining optional account assignment, adds aggregate API/page-view metrics, bounded sync-run and audit history, and a dashboard snapshot function. Metrics contain route/method counts and durations only; they do not capture request bodies, query strings, IP addresses, tokens, or response contents.
 
 The `/admin` console supports repository creation, editing, account assignment, disabling, and soft archive/restore. Changes rebuild the public indexes. Manual checks queue enabled repositories through QStash and are processed by the existing signed worker; queue acceptance does not mean the sync has already completed. Sync runs retain their status, duration, changed commit, file count, requesting admin, and a generic failure code, but not raw upstream error text. API traffic and public library page views aggregate in one-minute buckets. The activity panel is an application audit trail; detailed runtime logs remain available in the hosting provider's dashboard.
+
+Apply [`20261119120000_ai_provider_key_admin.sql`](supabase/migrations/20261119120000_ai_provider_key_admin.sql) to enable private Groq key-slot controls. It stores only enabled/cooldown state and one-minute per-slot request/token/rate-limit aggregates, pruned after 30 days. It does not store provider secrets, prompts, or anonymous visitor identifiers. The admin API reports only whether each server-side key variable is configured; provider secrets are never returned to the browser. Enable/disable actions are audited. Re-enabling a slot clears its cooldown; disabling does not modify its server environment variable.
 
 The content API uses separate per-account API keys. Only a verified Supabase Auth user with an existing `public.accounts` profile may create a key. The server returns the random key once and stores only its SHA-256 hash and non-secret display prefix. Keys can be listed by metadata and revoked by the owning account; a database function enforces a maximum of five active keys per account. The application stores no password or recoverable API-key secret.
 
@@ -81,9 +83,9 @@ When a repository is removed from the active registry, set `archived_at` on its 
 
 ## Repository list configuration
 
-Use a shared `GITHUB-REPOSITORIES.md` file in the v2 project as the canonical list of repositories and branches to synchronize. It should contain a consistently formatted table with the repository owner, repository name, branch, application account ID, and class/stream grouping. The admin dashboard is allowed to edit the file through a protected server-side operation; ordinary website visitors can only read its published contents. Do not expose filesystem write access or Supabase service credentials to the browser.
+`GITHUB-REPOSITORIES.md` is the bootstrap/import manifest, not the live source of truth. `scripts/import-repositories.ts` reads it to seed the catalog, but runtime synchronization, public indexes, scheduled reconciliation, and admin CRUD all use `public.repository_entries` in Supabase. The private admin console is the supported interface for changing the live catalog; editing the Markdown file alone does not change production. Keep the import manifest aligned when intentionally changing the bootstrap configuration. Do not expose filesystem write access or Supabase service credentials to the browser.
 
-Validate edits before saving: required values must be present, repository/branch identifiers must be valid, repositories must not be duplicated, and the grouping must be one of the supported tree groups. Save changes atomically, then synchronize the affected repositories into Supabase. If synchronization fails, report the failure in the admin dashboard and allow a retry; do not present unsynchronized configuration as a successful database update.
+Repository edits are validated before saving: required values must be present, repository/branch identifiers must be valid, repositories must not be duplicated, and the grouping must be one of the supported tree groups. Admin changes update Supabase and rebuild the affected public indexes. If synchronization or index rebuilding fails, report the failure and allow a retry; do not present an unsynchronized change as complete.
 
 Generate five section indexes and one repository registry index from `repository_entries`. Class 9 and Class 10 repositories share the `lowersecondary` group and `lowersecondary-tree` index. Each index is published in both compact, keyed JSON for direct browser lookup and JSONL for record streaming/export. JSONL is a line-delimited record feed; clients needing random access should use the keyed JSON representation. The six logical indexes are `lowersecondary-tree`, `science-tree`, `commerce-tree`, `humanities-tree`, `developer-tree`, and `github_repositories`.
 
@@ -111,7 +113,7 @@ The webhook returns an enqueue failure if QStash is unavailable. The QStash work
 
 ### Recovery: scheduled commit-SHA check
 
-Webhooks are the fast path, but deliveries can be delayed or exhausted. Run a scheduled reconciliation that checks each configured repository's configured branch head SHA through the GitHub API. If it differs from `last_commit_sha`, run the same manifest comparison and database sync as the webhook path. Also allow an authorized admin to trigger that reconciliation manually.
+Webhooks are the fast path, but deliveries can be delayed or exhausted. The daily `repository-reconciliation` GitHub Actions workflow queues every enabled, non-archived repository through `POST /api/cron/repository-reconciliation`. Configure `APP_BASE_URL` and a separate, random `REPOSITORY_RECONCILIATION_SECRET` in the backend repository's Actions secrets, and configure the same reconciliation secret only in the server environment. The endpoint rejects missing or invalid secrets and queues the existing worker; the worker checks the configured branch head SHA and updates the catalog only when it differs from `last_commit_sha`. The workflow also supports manual dispatch on `main`.
 
 The queue handles normal updates with per-repository ordering and retries; scheduled reconciliation repairs missed events. Both paths should use the same synchronization logic and database as the source for rebuilding public JSON.
 

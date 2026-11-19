@@ -55,8 +55,10 @@ function CallbackContent() {
           router.replace(`/account/setup?${setupParams.toString()}`);
           return;
         }
-        const linked = nextPath.startsWith("/account") && searchParams.get("next")?.includes("linked=github");
-        router.replace(linked ? "/account/settings?linked=github" : nextPath);
+        const linkedProvider = nextPath.match(/^\/account\/settings\?linked=(github|discord)$/)?.[1];
+        router.replace(linkedProvider
+          ? `/account/settings?linked=${linkedProvider}`
+          : nextPath);
       } catch (authError) {
         setError(authError instanceof Error ? authError.message : "Unable to complete sign-in.");
       }
