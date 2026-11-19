@@ -151,12 +151,12 @@ Public in production: dev docs, API docs, and the R&D currently going on in the 
 **Goal:** control over everything before opening the site up further.
 
 - [x] Private `/admin` console (FW-v2 step 10): one-time admin bootstrap, repository CRUD/archive/restore and account assignment, manual QStash checks, index rebuild, privacy-preserving API/page metrics, service health, bounded sync-run history, admin audit trail
-- [ ] Apply the admin migration and configure production secrets
-- [ ] Shared `GITHUB-REPOSITORIES.md` editing (edit in admin, read-only on the site)
-- [ ] Scheduled SHA reconciliation
+- [ ] Apply the admin and AI provider key migrations, configure production secrets
+- [ ] Keep the bootstrap `GITHUB-REPOSITORIES.md` manifest aligned with the admin-managed Supabase catalog
+- [x] Scheduled SHA reconciliation (daily GitHub Actions workflow and secret-protected route enqueue the existing idempotent worker; configure secrets and verify a live run)
 - [ ] Remote webhook verification
-- [ ] Backups and migration rollback/recovery
-- [ ] View AI usage per key and rate-limit state; ability to disable a key
+- [ ] Verify managed backups and rehearse restore/recovery (runbook documented; live backup/restore remains unverified)
+- [x] View AI usage per key and rate-limit state; ability to disable a key (code complete; apply the AI provider key migration before production use)
 - [ ] Content controls (what the reader and `/developers` fetch, cache refresh)
 
 **Done when:** you can see and change the main parts of the site without touching the database by hand.
@@ -167,7 +167,7 @@ Public in production: dev docs, API docs, and the R&D currently going on in the 
 
 **Goal:** real accounts and a proper policy.
 
-- [ ] Account page, profile, connected logins (GitHub, Discord)
+- [x] Account page/profile and GitHub/Discord connected-login controls (code complete; configure external providers and verify the flows)
 - [ ] Account setup flow tested end to end (suggested GitHub username, permanent User ID, editable User Name)
 - [ ] Per-user AI rate limits (replaces the IP-based limits from v2.1)
 - [ ] Full Usage Policy, Terms, Privacy Policy

@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { incr } = vi.hoisted(() => ({ incr: vi.fn() }));
+const { incr, rpc } = vi.hoisted(() => ({ incr: vi.fn(), rpc: vi.fn() }));
 vi.mock("../src/lib/public-index-cache", () => ({
   getRedisClient: () => ({ incr }),
+}));
+vi.mock("../src/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: () => ({ rpc }),
 }));
 
 import { completeGroqChat } from "../src/lib/groq-chat";
@@ -16,6 +19,12 @@ describe("completeGroqChat", () => {
     vi.stubEnv("GROQ_API_KEY_HUMANITIES", "humanities-key");
     vi.stubEnv("GROQ_API_KEY_LOWER_SECONDARY", "lower-key");
     incr.mockResolvedValue(1);
+    rpc.mockImplementation(async (functionName: string) => functionName === "get_active_ai_provider_key_slots"
+      ? {
+          data: ["main", "science", "commerce", "humanities", "lower-secondary"].map((key_slot) => ({ key_slot })),
+          error: null,
+        }
+      : { data: null, error: null });
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify({
       choices: [{ message: { content: "A grounded answer." } }],
       usage: { prompt_tokens: 80, completion_tokens: 22 },
@@ -160,8 +169,36 @@ describe("completeGroqChat", () => {
     });
 
     expect(result).toMatchObject({ answer: "Fallback answer.", model: "openai/gpt-oss-20b" });
+    expect(rpc).toHaveBeenCalledWith("record_ai_provider_key_rate_limit", {
+      p_key_slot: "main",
+      p_retry_after_seconds: 60,
+    });
     const fallbackBody = JSON.parse(String(vi.mocked(fetch).mock.calls.at(-1)?.[1]?.body)) as { model: string };
     expect(fallbackBody.model).toBe("openai/gpt-oss-20b");
+    expect(vi.mocked(fetch).mock.calls.at(-1)?.[1]?.headers).toMatchObject({
+      authorization: "Bearer science-key",
+    });
+  });
+
+  it("does not select disabled or rate-limited key slots", async () => {
+    rpc.mockImplementation(async (functionName: string) => functionName === "get_active_ai_provider_key_slots"
+      ? { data: [{ key_slot: "science" }, { key_slot: "commerce" }], error: null }
+      : { data: null, error: null });
+    incr.mockResolvedValue(1);
+
+    const result = await completeGroqChat({
+      tier: "low",
+      message: "Explain this.",
+      history: [],
+      context: [],
+      noteTitle: "Physics",
+      webSearch: false,
+    });
+
+    expect(result.keySlot).toBe("science");
+    expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toMatchObject({
+      authorization: "Bearer science-key",
+    });
   });
 
   it("trims history and note context to the selected input budget", async () => {

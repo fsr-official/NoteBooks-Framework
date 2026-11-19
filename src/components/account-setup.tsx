@@ -63,12 +63,10 @@ function AccountSetupContent() {
             ? githubIdentityData.login
             : "";
         const normalizedSuggestion = (suggestedId || githubUsername).trim().toLowerCase();
-        setAccountId(
-          isGeneratedAccountId(account.account_id)
-            && /^[a-z0-9][a-z0-9_-]{2,31}$/.test(normalizedSuggestion)
-            ? normalizedSuggestion
-            : account.account_id,
-        );
+        const validSuggestion = /^[a-z0-9][a-z0-9_-]{2,31}$/.test(normalizedSuggestion)
+          ? normalizedSuggestion
+          : "";
+        setAccountId(isGeneratedAccountId(account.account_id) ? validSuggestion : account.account_id);
         setUserName(isGeneratedAccountId(account.account_id) ? githubUsername || account.user_name : account.user_name);
       } catch (setupError) {
         if (active) {
@@ -127,7 +125,7 @@ function AccountSetupContent() {
         </Link>
         <span className="eyebrow"><span className="eyebrow-line" /> FINISH YOUR ACCOUNT</span>
         <h1>Choose your User ID.</h1>
-        <p className="auth-description">Your GitHub identity is linked. Choose a permanent User ID and display name, and optionally add a password for email sign-in.</p>
+        <p className="auth-description">Your sign-in identity is linked. Choose a permanent User ID and display name, and optionally add a password for email sign-in.</p>
         {loading ? (
           <p className="auth-description" role="status">Loading your account…</p>
         ) : (
@@ -168,7 +166,7 @@ function AccountSetupContent() {
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="At least 8 characters"
               />
-              <small>Leave blank to continue using GitHub sign-in only.</small>
+              <small>Leave blank to continue using your connected sign-in provider only.</small>
             </label>
             <button className="auth-submit" type="submit" disabled={busy || loading}>
               {busy ? "Saving…" : "Continue"}
