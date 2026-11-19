@@ -111,6 +111,22 @@ interface AdminStatus {
   bootstrapAvailable: boolean;
 }
 
+interface AiProviderKey {
+  keySlot: string;
+  configured: boolean;
+  enabled: boolean;
+  cooldownUntil: string | null;
+  cooldownActive: boolean;
+  lastRateLimitedAt: string | null;
+  requests24h: number;
+  promptTokens24h: number;
+  completionTokens24h: number;
+  rateLimited24h: number;
+  requests30d: number;
+  promptTokens30d: number;
+  completionTokens30d: number;
+}
+
 interface ApiError extends Error {
   status?: number;
 }
@@ -173,11 +189,16 @@ function healthLabel(value: string): string {
   return value.replaceAll("-", " ");
 }
 
+function formatCount(value: number): string {
+  return value.toLocaleString();
+}
+
 export function AdminDashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [adminStatus, setAdminStatus] = useState<AdminStatus | null>(null);
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [aiProviderKeys, setAiProviderKeys] = useState<AiProviderKey[]>([]);
   const [draft, setDraft] = useState<RepositoryDraft>({ ...EMPTY_DRAFT });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [bootstrapToken, setBootstrapToken] = useState("");
@@ -220,12 +241,14 @@ export function AdminDashboard() {
     setAdminStatus(statusPayload);
     if (!statusPayload.isAdmin) return;
 
-    const [overview, repositoryResponse] = await Promise.all([
+    const [overview, repositoryResponse, providerKeyResponse] = await Promise.all([
       apiRequest<DashboardSnapshot>("/api/admin/overview", { cache: "no-store" }),
       apiRequest<{ repositories: Repository[] }>("/api/admin/repositories", { cache: "no-store" }),
+      apiRequest<{ keys: AiProviderKey[] }>("/api/admin/ai-provider-keys", { cache: "no-store" }),
     ]);
     setSnapshot(overview);
     setRepositories(repositoryResponse.repositories);
+    setAiProviderKeys(providerKeyResponse.keys);
   }, [apiRequest]);
 
   const refresh = useCallback(async () => {
@@ -368,6 +391,26 @@ export function AdminDashboard() {
     }
   }
 
+  async function setAiProviderKeyEnabled(key: AiProviderKey, enabled: boolean) {
+    if (!key.configured) return;
+    if (!enabled && !window.confirm(`Disable the ${key.keySlot} Groq key slot? It will no longer receive new requests.`)) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await apiRequest(`/api/admin/ai-provider-keys/${key.keySlot}`, {
+        method: "PATCH",
+        body: JSON.stringify({ enabled }),
+      });
+      setMessage(`${key.keySlot} Groq key slot ${enabled ? "enabled" : "disabled"}.`);
+      await refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to update AI provider key status.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function signOut() {
     const { error: signOutError } = await getSupabaseBrowserClient().auth.signOut();
     if (signOutError) setError(signOutError.message);
@@ -376,6 +419,7 @@ export function AdminDashboard() {
       setAdminStatus(null);
       setSnapshot(null);
       setRepositories([]);
+      setAiProviderKeys([]);
     }
   }
 
@@ -487,6 +531,46 @@ export function AdminDashboard() {
         <div className="admin-health-notes">
           <span>{summary?.staleRepositories ?? 0} repositories not checked in the last 7 days</span>
           <span>{summary?.repositoriesWithoutCommit ?? 0} enabled repositories missing a commit SHA</span>
+        </div>
+      </section>
+
+      <section className="admin-section">
+        <div className="admin-section-heading">
+          <div><span className="admin-eyebrow">AI OPERATIONS</span><h2>Groq provider keys</h2></div>
+          <span className="admin-updated">Usage is aggregated; secret values are never displayed</span>
+        </div>
+        <div className="admin-ai-key-list">
+          {aiProviderKeys.map((key) => {
+            return (
+              <article className="admin-ai-key-card" key={key.keySlot}>
+                <div className="admin-ai-key-heading">
+                  <div>
+                    <h3>{key.keySlot}</h3>
+                    <span className={`admin-pill ${key.enabled ? "is-enabled" : "is-disabled"}`}>{key.enabled ? "Enabled" : "Disabled"}</span>
+                    <span className={`admin-pill ${key.configured ? "is-enabled" : "is-disabled"}`}>{key.configured ? "Configured" : "Missing secret"}</span>
+                    {key.cooldownActive && <span className="admin-pill is-running">Rate limited until {formatDate(key.cooldownUntil)}</span>}
+                  </div>
+                  <button
+                    className={key.enabled ? "admin-danger-button" : "admin-secondary-button"}
+                    disabled={busy || !key.configured}
+                    onClick={() => void setAiProviderKeyEnabled(key, !key.enabled)}
+                    type="button"
+                  >
+                    {key.enabled ? "Disable key" : "Enable key"}
+                  </button>
+                </div>
+                <div className="admin-ai-key-metrics">
+                  <span><strong>{formatCount(key.requests24h)}</strong> requests · 24h</span>
+                  <span><strong>{formatCount(key.promptTokens24h + key.completionTokens24h)}</strong> tokens · 24h</span>
+                  <span><strong>{formatCount(key.rateLimited24h)}</strong> rate limits · 24h</span>
+                  <span><strong>{formatCount(key.requests30d)}</strong> requests · 30d</span>
+                  <span><strong>{formatCount(key.promptTokens30d + key.completionTokens30d)}</strong> tokens · 30d</span>
+                  <span>Last rate limit: {formatDate(key.lastRateLimitedAt)}</span>
+                </div>
+              </article>
+            );
+          })}
+          {aiProviderKeys.length === 0 && <p className="admin-empty">No AI provider key status is available.</p>}
         </div>
       </section>
 

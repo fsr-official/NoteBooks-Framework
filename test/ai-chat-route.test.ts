@@ -5,11 +5,13 @@ const {
   consumeAiChatRateLimit,
   getAuthenticatedAccount,
   insert,
+  rpc,
 } = vi.hoisted(() => ({
   completeGroqChat: vi.fn(),
   consumeAiChatRateLimit: vi.fn(),
   getAuthenticatedAccount: vi.fn(),
   insert: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("../src/lib/groq-chat", async (importOriginal) => {
@@ -19,7 +21,7 @@ vi.mock("../src/lib/groq-chat", async (importOriginal) => {
 vi.mock("../src/lib/ai-rate-limit", () => ({ consumeAiChatRateLimit }));
 vi.mock("../src/lib/authenticated-account", () => ({ getAuthenticatedAccount }));
 vi.mock("../src/lib/supabase/admin", () => ({
-  createSupabaseAdminClient: () => ({ from: () => ({ insert }) }),
+  createSupabaseAdminClient: () => ({ from: () => ({ insert }), rpc }),
 }));
 
 import { POST } from "../src/app/api/ai/chat/route";
@@ -68,6 +70,7 @@ describe("POST /api/ai/chat", () => {
       keySlot: "main",
     });
     insert.mockResolvedValue({ error: null });
+    rpc.mockResolvedValue({ error: null });
   });
 
   afterEach(() => {
@@ -97,6 +100,11 @@ describe("POST /api/ai/chat", () => {
       completion_tokens: 48,
       key_slot: "main",
     }));
+    expect(rpc).toHaveBeenCalledWith("record_ai_provider_key_usage", {
+      p_key_slot: "main",
+      p_prompt_tokens: 110,
+      p_completion_tokens: 48,
+    });
   });
 
   it("limits anonymous users by both IP and browser and does not store their usage", async () => {
@@ -133,7 +141,7 @@ describe("POST /api/ai/chat", () => {
     expect(completeGroqChat).not.toHaveBeenCalled();
   });
 
-  it("propagates provider limits without retrying another key", async () => {
+  it("propagates provider limits with a retry delay", async () => {
     const { GroqChatError } = await import("../src/lib/groq-chat");
     completeGroqChat.mockRejectedValueOnce(new GroqChatError("Wait before retrying.", 429, 12));
     const response = await POST(makeRequest(payload()));

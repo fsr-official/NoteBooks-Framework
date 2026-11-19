@@ -68,6 +68,10 @@ function GitHubMark() {
   );
 }
 
+function DiscordMark() {
+  return <span aria-hidden="true" className="auth-provider-mark">D</span>;
+}
+
 function callbackUrl(next: string): string {
   const query = new URLSearchParams({ next });
   return `${window.location.origin}/auth/callback?${query.toString()}`;
@@ -241,7 +245,12 @@ function AuthContent({ mode }: AccountAuthProps) {
     return () => { active = false; };
   }, [mode, user]);
 
-  const queryMessage = searchParams.get("linked") === "github" ? "GitHub is linked to your account." : "";
+  const linkedProvider = searchParams.get("linked");
+  const queryMessage = linkedProvider === "github"
+    ? "GitHub is linked to your account."
+    : linkedProvider === "discord"
+      ? "Discord is linked to your account."
+      : "";
   const queryError = searchParams.get("error") ?? "";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -418,19 +427,20 @@ function AuthContent({ mode }: AccountAuthProps) {
     }
   }
 
-  async function signInWithGitHub(link: boolean) {
+  async function signInWithProvider(provider: "github" | "discord", link: boolean) {
     setBusy(true);
     setMessage("");
     setError("");
     try {
       const supabase = getSupabaseBrowserClient();
-      const options = { redirectTo: callbackUrl(link ? "/account/settings?linked=github" : nextPath) };
+      const options = { redirectTo: callbackUrl(link ? `/account/settings?linked=${provider}` : nextPath) };
       const { error: oauthError } = link
-        ? await supabase.auth.linkIdentity({ provider: "github", options })
-        : await supabase.auth.signInWithOAuth({ provider: "github", options });
+        ? await supabase.auth.linkIdentity({ provider, options })
+        : await supabase.auth.signInWithOAuth({ provider, options });
       if (oauthError) throw oauthError;
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : "Unable to start GitHub authentication.");
+      const providerName = provider === "github" ? "GitHub" : "Discord";
+      setError(authError instanceof Error ? authError.message : `Unable to start ${providerName} authentication.`);
       setBusy(false);
     }
   }
@@ -461,7 +471,7 @@ function AuthContent({ mode }: AccountAuthProps) {
     }
     if (!user) {
       return (
-        <AuthShell eyebrow="YOUR ACCOUNT" title="Sign in to manage linking." description="GitHub linking is optional and can be added after you sign in.">
+        <AuthShell eyebrow="YOUR ACCOUNT" title="Sign in to manage linking." description="GitHub and Discord linking are optional and can be added after you sign in.">
           <div className="account-auth-actions">
             <Link className="auth-submit" href="/login">Sign in</Link>
             <Link className="auth-secondary" href="/register">Create an account</Link>
@@ -471,9 +481,10 @@ function AuthContent({ mode }: AccountAuthProps) {
       );
     }
     const githubLinked = identities.some((identity) => identity.provider === "github");
+    const discordLinked = identities.some((identity) => identity.provider === "discord");
     const recoveringPassword = searchParams.get("recovery") === "1";
     return (
-      <AuthShell eyebrow="ACCOUNT SETTINGS" title="Your account." description="Connect GitHub for convenient sign-in, or keep using email and password. Linking is optional.">
+      <AuthShell eyebrow="ACCOUNT SETTINGS" title="Your account." description="Connect GitHub or Discord for convenient sign-in, or keep using email and password. Linking is optional.">
         <div className="auth-account-summary">
           <span>EMAIL</span><strong>{user.email}</strong>
           <span>USER ID</span><strong>{accountLabel || "Loading…"}</strong>
@@ -568,13 +579,23 @@ function AuthContent({ mode }: AccountAuthProps) {
             {busy ? "Please wait…" : "Update password"}
           </button>
         </form>
-        <div className="auth-provider-status">
+        <section className="account-connected-logins" aria-label="Connected logins">
+          <h2>Connected logins</h2>
+          <div className="auth-provider-status">
           <span className="auth-provider-mark"><GitHubMark /></span>
           <span><strong>GitHub</strong><small>{githubLinked ? "Linked to this account" : "Not linked"}</small></span>
           {githubLinked
             ? <span className="auth-linked">LINKED</span>
-            : <button className="auth-link-button" type="button" disabled={busy} onClick={() => void signInWithGitHub(true)}>Link GitHub</button>}
-        </div>
+            : <button className="auth-link-button" type="button" disabled={busy} onClick={() => void signInWithProvider("github", true)}>Link GitHub</button>}
+          </div>
+          <div className="auth-provider-status">
+            <DiscordMark />
+            <span><strong>Discord</strong><small>{discordLinked ? "Linked to this account" : "Not linked"}</small></span>
+            {discordLinked
+              ? <span className="auth-linked">LINKED</span>
+              : <button className="auth-link-button" type="button" disabled={busy} onClick={() => void signInWithProvider("discord", true)}>Link Discord</button>}
+          </div>
+        </section>
         <AuthFeedback message={message || queryMessage} error={error || queryError} />
         <button className="auth-secondary auth-signout" type="button" disabled={busy} onClick={() => void signOut()}>Sign out</button>
       </AuthShell>
@@ -589,8 +610,8 @@ function AuthContent({ mode }: AccountAuthProps) {
       description={pendingSignupOtp
         ? `Enter the confirmation code sent to ${email}.`
         : registering
-          ? "Create an account with email and password. Linking GitHub is optional."
-          : "Continue with your email, password, or GitHub."}
+          ? "Create an account with email and password, GitHub, or Discord."
+          : "Continue with email, password, GitHub, or Discord."}
     >
       {pendingSignupOtp ? (
         <>
@@ -645,9 +666,13 @@ function AuthContent({ mode }: AccountAuthProps) {
             </>
           ) : (
             <>
-              <button className="auth-github" type="button" disabled={busy} onClick={() => void signInWithGitHub(false)}>
+              <button className="auth-github" type="button" disabled={busy} onClick={() => void signInWithProvider("github", false)}>
                 <span className="auth-provider-mark"><GitHubMark /></span>
                 Continue with GitHub
+              </button>
+              <button className="auth-discord" type="button" disabled={busy} onClick={() => void signInWithProvider("discord", false)}>
+                <DiscordMark />
+                Continue with Discord
               </button>
               <div className="auth-divider"><span>OR WITH EMAIL</span></div>
               <form className="auth-form" onSubmit={(event) => void submit(event)}>
