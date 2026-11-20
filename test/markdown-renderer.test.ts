@@ -91,6 +91,36 @@ describe("renderNote", () => {
     expect(result.html).toContain("katex");
   });
 
+  it("renders standalone and custom callouts in the server reader", () => {
+    const result = renderNote([
+      "# Chitin",
+      "A topic introduction.",
+      "[!info] Scientific Definition: A tough nitrogenous polysaccharide.",
+      "",
+      "> [!KEY-PRINCIPLE] Preserve the polymer structure.",
+      "",
+      "> [!COMMON_MISTAKE] Confusing chitin with cellulose.",
+      "",
+      "> [!JEE] Exam-specific note.",
+      "",
+      "> [!SUCCESS] Structure identified.",
+      "",
+      "> [!NOTE] Outer callout",
+      "> > [!TIP] Nested callout",
+      "> > Nested body.",
+    ].join("\n"));
+
+    expect(result.html).toContain('class="callout" data-type="note"');
+    expect(result.html).toContain('<span class="callout-title">Info</span>');
+    expect(result.html).toContain("Scientific Definition: A tough nitrogenous polysaccharide.");
+    expect(result.html).toContain('data-type="principle"');
+    expect(result.html).toContain('data-type="warning"');
+    expect(result.html).toContain('data-type="tip"');
+    expect(result.html).toContain('data-type="success"');
+    expect(result.html).toContain("Exam-specific note.");
+    expect(result.html).toMatch(/<blockquote class="callout" data-type="note">[\s\S]*<blockquote class="callout" data-type="tip">[\s\S]*Nested body\./);
+  });
+
   it("returns client-renderable diagram placeholders and escapes raw HTML", () => {
     const result = renderNote([
       "# Figures",

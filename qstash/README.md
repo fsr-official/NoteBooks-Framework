@@ -1,6 +1,6 @@
 # QStash repository update workflow
 
-GitHub push notifications are verified synchronously with `WEBHOOK_SECRET`, then enqueued in a QStash FIFO queue dedicated to the repository. QStash delivers each repository's jobs serially; different repositories have different queues and can be processed concurrently.
+GitHub push notifications are verified synchronously with `WEBHOOK_SECRET`, then enqueued in one of four fixed QStash FIFO queues, selected by hashing the repository identifier. QStash processes each queue serially (parallelism one), preserving order for a repository while also serializing unrelated repositories assigned to the same shard. Different shards can be processed concurrently. This caps the application's repository-update queue usage at four queues.
 
 The worker verifies QStash signatures at `POST /api/workflows/repository-update`, re-reads current repository settings and branch head, synchronizes the Supabase catalog, then refreshes only the affected public indexes in Redis. QStash retries failed worker deliveries; synchronization and index rebuilds are idempotent.
 
@@ -19,6 +19,6 @@ For the current deployment, the canonical origin is `https://notebooks-framework
 
 ## Queue behavior
 
-The queue name is a stable hash of the normalized GitHub owner/repository identifier, avoiding invalid queue-name characters and preventing cross-repository head-of-line blocking. QStash queues default to parallelism one, preserving FIFO processing for that repository. Do not increase a repository queue's parallelism unless the database update path is changed to handle concurrent commits safely.
+Queue names are limited to `repo-update-shard-0` through `repo-update-shard-3`; the application must not create one queue per repository. If migrating from legacy per-repository queues and the QStash queue quota is full, drain and remove obsolete queues before relying on new shards. Do not delete queues that may still contain messages. Do not increase shard parallelism unless the database update path is changed to handle concurrent commits safely.
 
 File download API requests remain synchronous because clients expect the Markdown body in the same response. They are protected by per-API-key rate limiting and content caching, not sent through QStash.

@@ -1,3 +1,4 @@
+import "@/app/workspace-styles";
 import Link from "next/link";
 
 export default function PrivacyPolicyPage() {

@@ -29,10 +29,16 @@ describe("repositoryUpdateQueueName", () => {
       "fsr-science/SUPPLEMENTARY-PDF",
     ];
     const queueNames = repositories.map(repositoryUpdateQueueName);
+    const allowedQueueNames = new Set(
+      Array.from(
+        { length: REPOSITORY_UPDATE_QUEUE_SHARD_COUNT },
+        (_, shard) => `repo-update-shard-${shard}`,
+      ),
+    );
 
     expect(new Set(queueNames).size).toBeLessThanOrEqual(REPOSITORY_UPDATE_QUEUE_SHARD_COUNT);
     for (const queueName of queueNames) {
-      expect(queueName).toMatch(/^repo-update-shard-(0|[1-9])$/);
+      expect(allowedQueueNames.has(queueName)).toBe(true);
     }
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
@@ -77,8 +78,13 @@ interface ExplorerLocation {
   directory: string;
 }
 
+type FilePreviewState =
+  | { status: "ready"; text: string; truncated: boolean }
+  | { status: "error"; message: string };
+
 const STORAGE_KEY = "notebooks:v2:client-session";
 const FILE_HISTORY_LIMIT = 100;
+const FILE_PREVIEW_LIMIT = 1_600;
 const sessionListeners = new Set<() => void>();
 let memorySession: string | null = null;
 
@@ -104,8 +110,8 @@ const STREAMS: Array<{ id: LibraryId; route: StreamRoute; title: string; eyebrow
   { id: "developer", route: "developers", title: "Developers", eyebrow: "Build and contribute", description: "Project documentation, guides, and contributor resources.", icon: "⌘" },
 ];
 
-const LANDING_STREAMS = STREAMS.filter((item) => item.id !== "developer");
-const NAV_STREAMS = STREAMS.filter((item) => item.id !== "developer");
+const LANDING_STREAMS = STREAMS;
+const NAV_STREAMS = STREAMS;
 const EMPTY_PREFERENCES: Preferences = {
   fileHistory: [],
   preset: "midnight",
@@ -211,6 +217,47 @@ function markdownReaderHref(file: FileLookup, returnTo: string): string | null {
   return `/read?${params.toString()}`;
 }
 
+function publicContentUrl(file: FileLookup, endpoint: "/api/raw" | "/api/media"): string | null {
+  const [owner, repository, ...extra] = file.repository.split("/");
+  if (!owner || !repository || extra.length > 0) return null;
+  const params = new URLSearchParams({ owner, repo: repository, path: file.filePath });
+  return `${endpoint}?${params.toString()}`;
+}
+
+function isTextPreviewFile(fileName: string): boolean {
+  return /\.(?:md|markdown|mdx|txt|text|json|jsonl|csv|tsv|xml|ya?ml|html?|css|js|jsx|tsx?|py|java|c|h|cpp|go|rs|sql|sh|toml|ini|log)$/i.test(fileName);
+}
+
+function StreamLoadingArt({ stream }: { stream: LibraryId }) {
+  if (stream === "science") {
+    return (
+      <div className="stream-loading-art atom-loader" aria-hidden="true">
+        <span className="atom-orbit atom-orbit-one"><i /></span>
+        <span className="atom-orbit atom-orbit-two"><i /></span>
+        <span className="atom-orbit atom-orbit-three"><i /></span>
+        <span className="atom-nucleus" />
+      </div>
+    );
+  }
+  if (stream === "commerce") {
+    return (
+      <div className="stream-loading-art rupee-loader" aria-hidden="true">
+        <span className="rupee-pendulum"><i /><b>₹</b></span>
+      </div>
+    );
+  }
+  if (stream === "humanities") {
+    return (
+      <svg className="stream-loading-art government-loader" viewBox="0 0 96 80" aria-hidden="true" focusable="false">
+        <path d="M8 28 48 8l40 20H8Z" />
+        <path d="M13 33h70M10 72h76M16 66h64" />
+        <path d="M21 36v28M35 36v28M49 36v28M63 36v28M77 36v28" />
+      </svg>
+    );
+  }
+  return <span className="stream-loading-art generic-stream-loader" aria-hidden="true">{STREAMS.find((item) => item.id === stream)?.icon ?? "✳"}</span>;
+}
+
 function parseSession(serialized: string | null): ClientSession | null {
   if (!serialized) return null;
   try {
@@ -294,6 +341,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const [fileFilter, setFileFilter] = useState<FileFilter>("all");
   const [fileSort, setFileSort] = useState<FileSort>("recommended");
   const [activeFile, setActiveFile] = useState<{ key: string; file: FileLookup; stream: LibraryId } | null>(null);
+  const [filePreviews, setFilePreviews] = useState<Record<string, FilePreviewState>>({});
   const [readerFile, setReaderFile] = useState<FileLookup | null>(null);
   const [explorerLocation, setExplorerLocation] = useState<ExplorerLocation | null>(null);
   const [indexState, setIndexState] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -606,6 +654,55 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
     ? repositoryIndices.get(selectedRepository) ?? 0
     : 0;
 
+  useEffect(() => {
+    if (!selectedFile || !isTextPreviewFile(selectedFile.file.fileName)) return;
+    const file = selectedFile.file;
+    if (filePreviews[file.fileSha]) return;
+    const url = publicContentUrl(file, "/api/raw");
+    if (!url) return;
+
+    const controller = new AbortController();
+    void fetch(url, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Preview unavailable (${response.status}).`);
+        const content = await response.text();
+        if (controller.signal.aborted) return;
+        setFilePreviews((current) => current[file.fileSha]
+          ? current
+          : {
+              ...current,
+              [file.fileSha]: {
+                status: "ready",
+                text: content.slice(0, FILE_PREVIEW_LIMIT),
+                truncated: content.length > FILE_PREVIEW_LIMIT,
+              },
+            });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setFilePreviews((current) => current[file.fileSha]
+          ? current
+          : {
+              ...current,
+              [file.fileSha]: {
+                status: "error",
+                message: error instanceof Error ? error.message : "The file preview could not be loaded.",
+              },
+            });
+      });
+
+    return () => controller.abort();
+  }, [filePreviews, selectedFile]);
+
+  const selectedPreview = selectedFile ? filePreviews[selectedFile.file.fileSha] ?? null : null;
+  const previewExtension = selectedFile?.file.fileName.split(".").at(-1)?.toLowerCase() ?? "";
+  const previewTextUrl = selectedFile ? publicContentUrl(selectedFile.file, "/api/raw") : null;
+  const previewMediaUrl = selectedFile && (previewExtension === "pdf"
+    || /^(?:bmp|gif|jpe?g|png|svg|webp)$/.test(previewExtension))
+    ? publicContentUrl(selectedFile.file, "/api/media")
+    : null;
+  const isImagePreview = /^(?:bmp|gif|jpe?g|png|svg|webp)$/.test(previewExtension);
+
   return (
     <>
     <main className="workspace">
@@ -742,7 +839,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
               <section className="library-stories" id="library-stories" aria-label="Study collections">
                 {LANDING_STREAMS.map((item, index) => (
                   <article className={`library-story story-${item.id} ${index % 2 ? "story-reverse" : ""}`} id={`story-${item.id}`} key={item.id}>
-                    <div className="story-number">0{index + 1} <span>— 04</span></div>
+                    <div className="story-number">0{index + 1} <span>— 05</span></div>
                     <div className="story-copy">
                       <span className="eyebrow"><span className="eyebrow-line" /> {item.eyebrow}</span>
                       <h2>{item.title}</h2>
@@ -752,7 +849,9 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                           ? "Explore biology, chemistry, physics, and mathematics through clear, organized resources. Move between subjects while keeping each idea connected to the bigger picture."
                           : item.id === "commerce"
                             ? "Make sense of business, economics, and accounting with resources designed to bring concepts into focus and connect classroom learning to practical questions."
-                            : "Explore history, civics, culture, and society through materials that invite context, perspective, and thoughtful questions about the world around us."}</p>
+                              : item.id === "humanities"
+                                ? "Explore history, civics, culture, and society through materials that invite context, perspective, and thoughtful questions about the world around us."
+                                : "Explore the architecture, policies, renderer guides, test subjects, and parser research behind the NoteBooks platform."}</p>
                       <Link className="story-link" href={`/${item.route}`} onClick={() => {
                         setExplorerLocation(null);
                         setActiveFile(null);
@@ -867,7 +966,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
               </div>
             </div>
           ) : (
-            <div className="library-view">
+            <div className={`library-view stream-view stream-view-${stream}`}>
               <div className="library-heading">
                 <div>
                   <span className="eyebrow"><Link href="/">HOME</Link> <b>/</b> LIBRARY</span>
@@ -905,7 +1004,13 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                 </span>
               </div>
 
-              {indexState === "loading" && <div className="library-message"><span className="loading-spinner" /> Loading the {streamTitle(stream)} library…</div>}
+              {indexState === "loading" && (
+                <div className={`library-message stream-loading stream-loading-${stream}`} role="status" aria-live="polite" aria-busy="true">
+                  <StreamLoadingArt stream={stream} />
+                  <strong>{stream === "science" ? "Following the science" : stream === "commerce" ? "Gathering the collection" : stream === "humanities" ? "Opening the archive" : `Loading ${streamTitle(stream)}`}</strong>
+                  <span>{stream === "science" ? "Connecting ideas across the library…" : stream === "commerce" ? "Bringing the latest resources into view…" : stream === "humanities" ? "The collection will be ready in a moment…" : "Preparing the library…"}</span>
+                </div>
+              )}
               {indexState === "error" && <div className="library-message library-error"><strong>Couldn’t load this library.</strong><span>{indexError}</span><button type="button" onClick={() => void loadStream(stream)}>Try again</button></div>}
               {indexState === "ready" && visibleFiles.length === 0 && <div className="library-message"><strong>{query ? "No files match that search." : "This stream is ready for its first notes."}</strong><span>{query ? "Try a different title or repository name." : "Check back soon as the library grows."}</span></div>}
 
@@ -932,7 +1037,6 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                               <span className="repository-bullet" aria-hidden="true">•</span>
                               <span className="repository-row-copy">
                                 <strong>{repositories[repository]?.name ?? repository.split("/").at(-1)}</strong>
-                                <small>{repository}</small>
                               </span>
                               <span className="repo-count">{entries.length} files</span>
                               <span className="file-open">›</span>
@@ -985,7 +1089,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                         <section className="repository-group">
                           <div className="repository-heading">
                             <span className="repo-mark repository-bullet" style={{ "--repository-color": `var(--repository-tone-${selectedRepositoryIndex % 2})` } as CSSProperties} aria-hidden="true">•</span>
-                            <span><strong>{currentDirectory.split("/").at(-1) ?? repositories[selectedRepository]?.name ?? selectedRepository.split("/").at(-1)}</strong><small>{selectedRepository}{currentDirectory ? `/${currentDirectory}` : ""}</small></span>
+                            <span><strong>{currentDirectory.split("/").at(-1) ?? repositories[selectedRepository]?.name ?? selectedRepository.split("/").at(-1)}</strong></span>
                             <span className="repo-count">{explorerEntries.length} items</span>
                           </div>
                           <div className="file-list">
@@ -1015,16 +1119,15 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                                   className={`file-row ${selectedFile?.key === entry.key ? "file-selected" : ""}`}
                                   key={entry.key}
                                   type="button"
-                                  title="Double-click to read"
+                                  title="Click to preview · Double-click to read"
                                   onClick={() => selectFile(entry.key, files[entry.key])}
                                   onDoubleClick={() => openFile(entry.key, files[entry.key])}
                                   onKeyDown={(event) => {
-                                    if (event.key === "Enter") openFile(entry.key, files[entry.key]);
+                                    if (event.key === "Enter") selectFile(entry.key, files[entry.key]);
                                   }}
                                 >
                                   <span className={`file-type file-type-${badge.kind}`} title={badge.kind}>{badge.label}</span>
                                   <span className="file-name">{entry.file.fileName}</span>
-                                  <span className="file-path">{entry.file.filePath}</span>
                                   <span className="file-open">›</span>
                                 </button>
                               );
@@ -1039,19 +1142,63 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                   </div>
 
                   {selectedFile && (
-                    <aside className="file-detail" aria-label="Selected file details">
+                    <aside className="file-detail preview-panel" aria-label="Preview tab">
                       <div className="file-detail-heading">
-                        <span className="detail-eyebrow">SELECTED RESOURCE</span>
-                        <button aria-label="Close file details" className="file-detail-close" onClick={() => setActiveFile(null)} type="button">×</button>
+                        <div className="preview-tab-label">
+                          <span className="preview-tab is-active">Preview</span>
+                          <span className="detail-eyebrow">FILE</span>
+                        </div>
+                        <button aria-label="Close preview" className="file-detail-close" onClick={() => setActiveFile(null)} type="button">×</button>
                       </div>
                       <div className={`detail-icon file-type-${getFileTypeBadge(selectedFile.file.fileName).kind}`}>{getFileTypeBadge(selectedFile.file.fileName).label}</div>
                       <h2>{selectedFile.file.fileName}</h2>
                       <p className="detail-path">{selectedFile.file.filePath}</p>
+                      <div className="preview-surface" aria-live="polite">
+                        {previewMediaUrl && previewExtension === "pdf" ? (
+                          <iframe src={previewMediaUrl} title={`Preview of ${selectedFile.file.fileName}`} loading="lazy" />
+                        ) : previewMediaUrl && isImagePreview ? (
+                          <Image
+                            src={previewMediaUrl}
+                            alt={`Preview of ${selectedFile.file.fileName}`}
+                            width={560}
+                            height={320}
+                            unoptimized
+                          />
+                        ) : isTextPreviewFile(selectedFile.file.fileName) ? (
+                          !previewTextUrl ? (
+                            <p className="preview-error" role="alert">This file has an invalid repository path.</p>
+                          ) : selectedPreview?.status === "error" ? (
+                            <div className="preview-error-wrap">
+                              <p className="preview-error" role="alert">{selectedPreview.message}</p>
+                              <button
+                                className="preview-retry"
+                                onClick={() => setFilePreviews((current) => {
+                                  const next = { ...current };
+                                  delete next[selectedFile.file.fileSha];
+                                  return next;
+                                })}
+                                type="button"
+                              >
+                                Try again
+                              </button>
+                            </div>
+                          ) : selectedPreview?.status === "ready" ? (
+                            <pre className="preview-text"><code>{selectedPreview.text}{selectedPreview.truncated ? "\n\n… Preview shortened" : ""}</code></pre>
+                          ) : (
+                            <div className="preview-loading"><span className="loading-spinner" />Loading preview…</div>
+                          )
+                        ) : (
+                          <div className="preview-unavailable">
+                            <span>{getFileTypeBadge(selectedFile.file.fileName).label}</span>
+                            <p>A quick preview isn’t available for this file type.</p>
+                          </div>
+                        )}
+                      </div>
                       <div className="detail-rule" />
                       <dl>
                         <div><dt>Repository</dt><dd>{selectedFile.file.repository}</dd></div>
                         <div><dt>Branch</dt><dd>{selectedFile.file.branch}</dd></div>
-                        <div><dt>File SHA</dt><dd><code>{selectedFile.file.fileSha.slice(0, 12)}…</code></dd></div>
+                        <div><dt>File SHA</dt><dd><code>{selectedFile.file.fileSha}</code></dd></div>
                       </dl>
                       <button
                         className="primary-button detail-open"
@@ -1063,7 +1210,6 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                         Open file <span>↗</span>
                       </button>
                       <a className="primary-button detail-source" href={`https://github.com/${selectedFile.file.repository}/blob/${selectedFile.file.branch.split("/").map(encodeURIComponent).join("/")}/${selectedFile.file.filePath.split("/").map(encodeURIComponent).join("/")}`} target="_blank" rel="noreferrer">Open source on GitHub <span>↗</span></a>
-                      <p className="detail-note">Your reading place is saved to this browser session.</p>
                     </aside>
                   )}
                 </div>

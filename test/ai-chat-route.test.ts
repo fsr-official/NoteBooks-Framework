@@ -1,17 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  acquireAiChatRequestLock,
   completeGroqChat,
   consumeAiChatRateLimit,
   getAuthenticatedAccount,
   insert,
   rpc,
+  releaseRequestLock,
 } = vi.hoisted(() => ({
+  acquireAiChatRequestLock: vi.fn(),
   completeGroqChat: vi.fn(),
   consumeAiChatRateLimit: vi.fn(),
   getAuthenticatedAccount: vi.fn(),
   insert: vi.fn(),
   rpc: vi.fn(),
+  releaseRequestLock: vi.fn(),
 }));
 
 vi.mock("../src/lib/groq-chat", async (importOriginal) => {
@@ -19,6 +23,7 @@ vi.mock("../src/lib/groq-chat", async (importOriginal) => {
   return { ...actual, completeGroqChat };
 });
 vi.mock("../src/lib/ai-rate-limit", () => ({ consumeAiChatRateLimit }));
+vi.mock("../src/lib/ai-chat-concurrency", () => ({ acquireAiChatRequestLock }));
 vi.mock("../src/lib/authenticated-account", () => ({ getAuthenticatedAccount }));
 vi.mock("../src/lib/supabase/admin", () => ({
   createSupabaseAdminClient: () => ({ from: () => ({ insert }), rpc }),
@@ -61,6 +66,8 @@ describe("POST /api/ai/chat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getAuthenticatedAccount.mockResolvedValue(account);
+    releaseRequestLock.mockResolvedValue(undefined);
+    acquireAiChatRequestLock.mockResolvedValue(releaseRequestLock);
     consumeAiChatRateLimit.mockResolvedValue({ allowed: true, remaining: 8 });
     completeGroqChat.mockResolvedValue({
       answer: "A helpful answer.",
@@ -89,6 +96,7 @@ describe("POST /api/ai/chat", () => {
       usage: { promptTokens: 110, completionTokens: 48, requestsRemaining: 8 },
     });
     expect(consumeAiChatRateLimit).toHaveBeenCalledWith("account", expect.any(String));
+    expect(acquireAiChatRequestLock).toHaveBeenCalledWith("account", "reader_user");
     expect(completeGroqChat).toHaveBeenCalledWith(expect.objectContaining({
       tier: "low",
       message: "Explain this section.",
@@ -105,6 +113,7 @@ describe("POST /api/ai/chat", () => {
       p_prompt_tokens: 110,
       p_completion_tokens: 48,
     });
+    expect(releaseRequestLock).toHaveBeenCalledOnce();
   });
 
   it("limits anonymous users by both IP and browser and does not store their usage", async () => {
@@ -115,7 +124,22 @@ describe("POST /api/ai/chat", () => {
     expect(response.status).toBe(200);
     expect(consumeAiChatRateLimit).toHaveBeenNthCalledWith(1, "anonymous-ip", expect.any(String));
     expect(consumeAiChatRateLimit).toHaveBeenNthCalledWith(2, "anonymous-browser", expect.any(String));
+    expect(acquireAiChatRequestLock).toHaveBeenCalledWith("anonymous-browser", payload().visitorId);
     expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("rejects overlapping requests for the same user before consuming allowance", async () => {
+    acquireAiChatRequestLock.mockResolvedValueOnce(null);
+
+    const response = await POST(makeRequest(payload()));
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get("Retry-After")).toBe("5");
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("already have an AI request in progress"),
+    });
+    expect(consumeAiChatRateLimit).not.toHaveBeenCalled();
+    expect(completeGroqChat).not.toHaveBeenCalled();
   });
 
   it("requires sign-in for Medium, High, or Extra effort", async () => {
@@ -148,5 +172,6 @@ describe("POST /api/ai/chat", () => {
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("12");
     expect(insert).not.toHaveBeenCalled();
+    expect(releaseRequestLock).toHaveBeenCalledOnce();
   });
 });

@@ -1,3 +1,4 @@
+import "@/app/workspace-styles";
 import { notFound, redirect } from "next/navigation";
 import { NotebookWorkspace } from "@/components/notebook-workspace";
 

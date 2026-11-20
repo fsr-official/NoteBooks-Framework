@@ -8,6 +8,8 @@ NoteBooks Framework v2 will retain the existing GitHub file-system conventions a
 
 The application uses a protected admin dashboard to manage a Supabase-backed repository catalog. Supabase Auth handles account credentials, and the database permits only one designated admin. Repository records include their responsible account ID, latest commit SHA, and check/update timestamps. Issues and Community repositories are out of scope for now; if they are added later, they should be stored only in Supabase.
 
+The Developers stream is available from the native site navigation at `/developers`. Its tree is generated from the same Supabase catalog as the subject streams and includes architecture, public policies, renderer test subjects, and parser research from `fsr-official/NoteBooks-Developers`. The production renderer supports Markdown/KaTeX and Desmos 2D/3D; MDX remains a research proposal and is not executed in production.
+
 The database-backed build and update flow is planned to:
 
 1. Populate a repository file tree from each repository's `files.json`, storing each file's name, relative path, and file SHA.

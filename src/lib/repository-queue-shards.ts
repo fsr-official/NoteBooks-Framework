@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const REPOSITORY_UPDATE_QUEUE_SHARD_COUNT = 10;
+export const REPOSITORY_UPDATE_QUEUE_SHARD_COUNT = 4;
 
 export function repositoryUpdateQueueName(repository: string): string {
   const digest = createHash("sha256")

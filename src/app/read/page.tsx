@@ -1,10 +1,12 @@
-import { Manrope } from "next/font/google";
 import localFont from "next/font/local";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NextMarkdownReader } from "@/components/next-markdown-reader";
-import { renderNote } from "@/lib/markdown/renderer";
+import { renderNote, type RenderedNote } from "@/lib/markdown/renderer";
+import { MdxCompileError, renderMdxNote } from "@/lib/markdown/mdx-compiler";
+import { isMdxRenderingEnabled } from "@/lib/mdx-feature-flag";
 import { servePublicContent } from "@/lib/public-content-route";
+import "../reader-redesign.css";
 
 const readerSerif = localFont({
   src: [
@@ -20,13 +22,6 @@ const readerSerif = localFont({
   variable: "--reader-serif-font",
   display: "swap",
 });
-const readerSans = Manrope({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--reader-sans-font",
-  display: "swap",
-});
-
 type SearchParams = Record<string, string | string[] | undefined>;
 
 const RETURN_ROUTES = new Set([
@@ -87,14 +82,32 @@ export default async function ReadPage({
   const source = await response.text();
   const fileSha = response.headers.get("X-File-SHA") ?? "";
   const resolvedBranch = response.headers.get("X-Repository-Branch") ?? branch;
-  const rendered = renderNote(source, { owner, repository, branch: resolvedBranch, filePath: path });
+  const sourceInfo = { owner, repository, branch: resolvedBranch, filePath: path };
+  let rendered: RenderedNote;
+  try {
+    rendered = /\.(?:mdx)$/i.test(path) && await isMdxRenderingEnabled()
+      ? await renderMdxNote(source, sourceInfo)
+      : renderNote(source, sourceInfo);
+  } catch (error) {
+    console.error("Could not render a repository note", error);
+    const message = error instanceof MdxCompileError
+      ? error.message
+      : "The note renderer is unavailable. Please try again later.";
+    return (
+      <main className="next-reader-error">
+        <h1>This note could not be rendered</h1>
+        <p>{message}</p>
+        <Link href={returnTo}>Back to library</Link>
+      </main>
+    );
+  }
   const fileName = path.split("/").at(-1) ?? path;
 
   return (
     <NextMarkdownReader
       backHref={returnTo}
       file={{ owner, repository, branch: resolvedBranch, path, fileName, fileSha }}
-      readerFontClassName={`${readerSerif.variable} ${readerSans.variable}`}
+      readerFontClassName={readerSerif.variable}
       html={rendered.html}
       searchIndex={rendered.searchIndex}
       tree={rendered.tree}

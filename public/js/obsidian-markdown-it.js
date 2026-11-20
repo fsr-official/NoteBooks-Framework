@@ -19,6 +19,8 @@
  *   ✓ [[Wikilinks]] / [[Page|Alias]] / [[Page#Heading]]
  *   ✓ ![[Embeds]] — image, audio, video, PDF, note transclusion
  *   ✓ Callouts > [!NOTE] / [!TIP]+ (foldable) / [!WARN]-
+ *   ✓ Custom callout types such as [!formula] and [!key-principle]
+ *   ✓ Standalone [!info] Content lines
  *   ✓ ==Highlight==
  *   ✓ ~~Strikethrough~~
  *   ✓ Task lists [ ] [x] [/] [-] [!] [>] [<] [?] + more
@@ -34,21 +36,12 @@
 (function (global) {
     'use strict';
     /* ── Constants ─────────────────────────────────────────────────────────── */
-    var CALLOUT_TYPES = {
-        note: 1, abstract: 1, summary: 1, tldr: 1,
-        info: 1, todo: 1,
-        tip: 1, hint: 1, important: 1,
-        success: 1, check: 1, done: 1,
-        question: 1, help: 1, faq: 1,
-        warning: 1, caution: 1, attention: 1,
-        failure: 1, fail: 1, missing: 1,
-        danger: 1, error: 1,
-        bug: 1, example: 1, quote: 1, cite: 1
-    };
     var CALLOUT_ICONS = {
         note: '📝', abstract: '📋', summary: '📋', tldr: '📋',
         info: 'ℹ️', todo: '☑️',
         tip: '💡', hint: '💡', important: '💡',
+        formula: '📐', jee: '🎯', neet: '🎯',
+        'key-principle': '🔑', key: '🔑', 'common-mistake': '⚠️',
         success: '✅', check: '✅', done: '✅',
         question: '❓', help: '❓', faq: '❓',
         warning: '⚠️', caution: '⚠️', attention: '⚠️',
@@ -645,7 +638,7 @@
     /* ── Rule: callouts  > [!NOTE]  > [!TIP]+  > [!WARN]- ─────────────────── */
     function ruleCallouts(md, opts) {
         md.core.ruler.push('obs_callout_annotate', function (state) {
-            var tokens = state.tokens, i, j, bt, inlineTok, firstText, m, rawType;
+            var tokens = state.tokens, i, j, bt, inlineTok, m, rawType;
             for (i = 0; i < tokens.length; i++) {
                 if (tokens[i].type !== 'blockquote_open')
                     continue;
@@ -658,13 +651,10 @@
                 if (j >= tokens.length || tokens[j].type !== 'inline')
                     continue;
                 inlineTok = tokens[j];
-                firstText = (inlineTok.children && inlineTok.children[0] && inlineTok.children[0].content) || '';
-                m = firstText.replace(/^\s+/, '').match(/^\[!([a-zA-Z]+)\]([+-])?\s*(.*)?$/);
+                m = (inlineTok.content || '').match(/^\s*\[!([a-zA-Z][a-zA-Z0-9_-]*)\]([+-])?[ \t]*([^\r\n]*)/);
                 if (!m)
                     continue;
-                rawType = m[1].toLowerCase();
-                if (!CALLOUT_TYPES[rawType])
-                    continue;
+                rawType = m[1].toLowerCase().replace(/_/g, '-');
                 var type = rawType;
                 var foldState = m[2] || null;
                 var title = (m[3] && m[3].trim()) || (m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase());
@@ -673,12 +663,9 @@
                 if (!tokens[i].meta)
                     tokens[i].meta = {};
                 tokens[i].meta.callout = { type: type, foldState: foldState, title: title };
-                if (inlineTok.children && inlineTok.children[0]) {
-                    inlineTok.children[0].content = inlineTok.children[0].content
-                        .replace(/^\[![a-zA-Z]+\][+-]?\s*.*/, '').replace(/^\s+/, '');
-                    if (!inlineTok.children[0].content)
-                        inlineTok.children.shift();
-                }
+                inlineTok.content = inlineTok.content.slice(m[0].length).replace(/^\r?\n/, '');
+                inlineTok.children = [];
+                state.md.inline.parse(inlineTok.content, state.md, state.env, inlineTok.children);
                 /* If nothing was left after stripping the title marker (either the
                    title was on its own line, or — now that obs_math_block can
                    interrupt a paragraph — the next line became its own separate
@@ -1759,14 +1746,16 @@
         '.callout-fold-icon{font-size:.8em;margin-left:auto}',
         '.callout-note{--callout-color:#448aff;--callout-bg:rgba(68,138,255,.07);--callout-title-bg:rgba(68,138,255,.13)}',
         '.callout-info,.callout-todo{--callout-color:#29b6f6;--callout-bg:rgba(41,182,246,.07);--callout-title-bg:rgba(41,182,246,.13)}',
-        '.callout-tip,.callout-hint,.callout-important{--callout-color:#26a69a;--callout-bg:rgba(38,166,154,.07);--callout-title-bg:rgba(38,166,154,.13)}',
+        '.callout-tip,.callout-hint,.callout-important,.callout-jee,.callout-neet{--callout-color:#26a69a;--callout-bg:rgba(38,166,154,.07);--callout-title-bg:rgba(38,166,154,.13)}',
         '.callout-success,.callout-check,.callout-done{--callout-color:#66bb6a;--callout-bg:rgba(102,187,106,.07);--callout-title-bg:rgba(102,187,106,.13)}',
-        '.callout-warning,.callout-caution,.callout-attention{--callout-color:#ffa726;--callout-bg:rgba(255,167,38,.07);--callout-title-bg:rgba(255,167,38,.13)}',
+        '.callout-warning,.callout-caution,.callout-attention,.callout-common-mistake{--callout-color:#ffa726;--callout-bg:rgba(255,167,38,.07);--callout-title-bg:rgba(255,167,38,.13)}',
         '.callout-danger,.callout-error{--callout-color:#ef5350;--callout-bg:rgba(239,83,80,.07);--callout-title-bg:rgba(239,83,80,.13)}',
         '.callout-failure,.callout-fail,.callout-missing{--callout-color:#ec407a;--callout-bg:rgba(236,64,122,.07);--callout-title-bg:rgba(236,64,122,.13)}',
         '.callout-question,.callout-help,.callout-faq{--callout-color:#ab47bc;--callout-bg:rgba(171,71,188,.07);--callout-title-bg:rgba(171,71,188,.13)}',
         '.callout-bug{--callout-color:#f44336;--callout-bg:rgba(244,67,54,.07);--callout-title-bg:rgba(244,67,54,.13)}',
         '.callout-example{--callout-color:#7e57c2;--callout-bg:rgba(126,87,194,.07);--callout-title-bg:rgba(126,87,194,.13)}',
+        '.callout-formula{--callout-color:#ffa726;--callout-bg:rgba(255,167,38,.07);--callout-title-bg:rgba(255,167,38,.13)}',
+        '.callout-principle,.callout-key,.callout-key-principle{--callout-color:#26a69a;--callout-bg:rgba(38,166,154,.07);--callout-title-bg:rgba(38,166,154,.13)}',
         '.callout-quote,.callout-cite{--callout-color:#78909c;--callout-bg:rgba(120,144,156,.07);--callout-title-bg:rgba(120,144,156,.13)}',
         '.callout-abstract,.callout-summary,.callout-tldr{--callout-color:#26c6da;--callout-bg:rgba(38,198,218,.07);--callout-title-bg:rgba(38,198,218,.13)}',
         /* ── Footnotes ──────────────────────────────────────────────────────────── */
@@ -1933,6 +1922,7 @@
         ruleWikilinks(md, opts);
         ruleEmbeds(md, opts);
         ruleCallouts(md, opts);
+        ruleStandaloneCallouts(md);
         if (opts.enableMermaid)
             ruleMermaid(md);
         if (opts.enableTikz)
@@ -1942,6 +1932,58 @@
         ruleHeadingIds(md);
     }
     /* ── Expose globals ─────────────────────────────────────��───────────────── */
+    function ruleStandaloneCallouts(md) {
+        function standaloneCallout(state, startLine, endLine, silent) {
+            if (
+                state.level !== 0
+                || state.blkIndent !== 0
+                || (state.parentType !== 'root' && state.parentType !== 'paragraph')
+            )
+                return false;
+
+            var start = state.bMarks[startLine] + state.tShift[startLine];
+            var end = state.eMarks[startLine];
+            var match = state.src.slice(start, end).match(/^\[!([a-zA-Z][a-zA-Z0-9_-]*)\]([+-])?\s*(.*)$/);
+            if (!match)
+                return false;
+
+            var type = match[1].toLowerCase().replace(/_/g, '-');
+            if (silent)
+                return true;
+
+            var lineMap = [startLine, startLine + 1];
+            var open = state.push('blockquote_open', 'blockquote', 1);
+            open.block = true;
+            open.map = lineMap;
+            open.meta = {
+                callout: {
+                    type: type,
+                    foldState: match[2] || null,
+                    title: type.charAt(0).toUpperCase() + type.slice(1)
+                }
+            };
+
+            var paragraphOpen = state.push('paragraph_open', 'p', 1);
+            paragraphOpen.map = lineMap;
+
+            var inline = state.push('inline', '', 0);
+            inline.content = match[3];
+            inline.map = lineMap;
+            inline.children = [];
+
+            state.push('paragraph_close', 'p', -1);
+            var close = state.push('blockquote_close', 'blockquote', -1);
+            close.block = true;
+            close.map = lineMap;
+            state.line = startLine + 1;
+            return true;
+        }
+
+        md.block.ruler.before('paragraph', 'obsidian_standalone_callout', standaloneCallout, {
+            alt: ['paragraph']
+        });
+    }
+
     global.obsidianPlugin = obsidianPlugin;
     global.obsidianParseFrontmatter = parseFrontmatter;
     global.obsidianGetCSS = function () { return DEFAULT_CSS; };

@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "mdx:bench": "node --import tsx scripts/benchmark-mdx-compiler.mts",
     "indexes:rebuild": "tsx scripts/rebuild-public-indexes.ts",
     "redis:verify": "tsx redis/verify-public-indexes.ts",
     "repos:sync": "tsx scripts/import-repositories.ts",
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.6.3",
+    "@mdx-js/mdx": "^3.1.1",
     "@supabase/supabase-js": "^2.119.0",
     "@upstash/qstash": "^2.12.2",
     "@upstash/ratelimit": "^2.2.1",
@@ -38,10 +40,14 @@
     "pdfjs-dist": "4.10.38",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "server-only": "0.0.1"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.2.0",
+    "@types/mdx": "^2.0.14",
     "@types/node": "^22",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

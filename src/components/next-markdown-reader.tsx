@@ -1,26 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentType } from "react";
 import type { NoteSearchBlock, NoteSection } from "@/lib/markdown/renderer";
-import { compileDesmos2D } from "@/lib/desmos-2d";
-import { compileDesmos3D } from "@/lib/desmos-3d";
-import { formatDesmosDiagnostic } from "@/lib/desmos-source";
-import { AI_TIERS, isAiTier, type AiTier } from "@/lib/ai-tiers";
-import { renderChatMarkdown } from "@/lib/markdown/chat";
+import { isAiTier, type AiTier } from "@/lib/ai-tiers";
 import { createWildcardMatcher } from "@/lib/markdown/search";
-import { getRelevantNoteContext } from "@/lib/reader-ai-context";
-import { READER_CHAT_STORAGE_PREFIX } from "@/lib/reader-chat-storage";
-import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
-
-type ReaderFile = {
-  owner: string;
-  repository: string;
-  branch: string;
-  path: string;
-  fileName: string;
-  fileSha: string;
-};
+import type { ReaderChatPanelProps } from "@/components/reader-chat-panel";
+import type { ReaderFile } from "@/lib/reader-types";
 
 type ReaderWindow = Window & {
   Desmos?: {
@@ -51,60 +37,8 @@ type DesmosCalculator = {
 };
 
 type SectionPosition = { section: NoteSection; parent: NoteSection | null };
-type ReaderChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  tier?: AiTier;
-  model?: string;
-  promptTokens?: number;
-  completionTokens?: number;
-};
 
-const CHAT_CONSENT_KEY = "notebooks:ai-chat:consent:v1";
 const AI_TIER_PREFERENCE_KEY = "notebooks:reader:ai-tier:v1";
-const CHAT_WELCOME_LINES = [
-  "Hi, I’m your NoteBooks study companion. Ask me to explain an idea or connect it to this note.",
-  "Welcome! I’m ready to help you explore this note, one question at a time.",
-  "Let’s make this topic clearer. What would you like to understand first?",
-] as const;
-
-function getChatStorageKey(file: ReaderFile): string {
-  return `${READER_CHAT_STORAGE_PREFIX}${file.owner}/${file.repository}/${file.path}`;
-}
-
-function getChatWelcomeLine(storageKey: string): string {
-  const hash = Array.from(storageKey).reduce((total, character) => total + character.charCodeAt(0), 0);
-  return CHAT_WELCOME_LINES[hash % CHAT_WELCOME_LINES.length];
-}
-
-function readChatMessages(storageKey: string): ReaderChatMessage[] {
-  try {
-    const stored = localStorage.getItem(storageKey);
-    if (!stored) return [];
-    const value: unknown = JSON.parse(stored);
-    if (!Array.isArray(value)) return [];
-    return value.filter((item): item is ReaderChatMessage => (
-      Boolean(item)
-      && typeof item === "object"
-      && typeof item.id === "string"
-      && (item.role === "user" || item.role === "assistant")
-      && typeof item.content === "string"
-      && item.content.length <= 8000
-      && (item.tier === undefined || isAiTier(item.tier))
-      && (item.model === undefined
-        || (typeof item.model === "string" && /^[A-Za-z0-9._/-]{1,100}$/.test(item.model)))
-      && (item.promptTokens === undefined
-        || (typeof item.promptTokens === "number" && Number.isSafeInteger(item.promptTokens) && item.promptTokens >= 0))
-      && (item.completionTokens === undefined
-        || (typeof item.completionTokens === "number" && Number.isSafeInteger(item.completionTokens) && item.completionTokens >= 0))
-    )).slice(-30);
-  } catch (error) {
-    console.error("Could not read the saved reader chat", error);
-    return [];
-  }
-}
-
 function lockDesmosExpressions<T extends object>(expressions: T[]): Array<T & { readonly: true }> {
   return expressions.map((expression) => ({ ...expression, readonly: true }));
 }
@@ -280,7 +214,7 @@ function loadScript(source: string, timeoutMs = 0): Promise<void> {
 }
 
 async function waitForReaderLayout(root: HTMLElement): Promise<boolean> {
-  const diagrams = Array.from(root.querySelectorAll<HTMLElement>(".obsidian-mermaid, .tikz-wrapper, .obsidian-desmos, .obsidian-desmos3d"));
+  const diagrams = Array.from(root.querySelectorAll<HTMLElement>(".obsidian-mermaid:not([data-diagram-deferred]), .tikz-wrapper, .obsidian-desmos, .obsidian-desmos3d"));
   const deadline = Date.now() + 8000;
   let previousHeight = -1;
   let stableSince = Date.now();
@@ -337,43 +271,53 @@ function SearchHighlight({ query, root }: { query: string; root: HTMLElement | n
       return;
     }
 
-    const ranges: Range[] = [];
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: (node) => node.parentElement?.closest("pre, code, .katex, .katex-display") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
-    });
-    while (walker.nextNode()) {
-      const node = walker.currentNode;
-      const text = node.textContent ?? "";
-      matcher.lastIndex = 0;
-      for (const match of text.matchAll(new RegExp(matcher.source, "ig"))) {
-        if (!match[0]) continue;
-        const range = document.createRange();
-        range.setStart(node, match.index);
-        range.setEnd(node, match.index + match[0].length);
-        ranges.push(range);
+    let cleanup = () => {};
+    const timer = window.setTimeout(() => {
+      const ranges: Range[] = [];
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) => node.parentElement?.closest("pre, code, .katex, .katex-display") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+      });
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const text = node.textContent ?? "";
+        matcher.lastIndex = 0;
+        for (const match of text.matchAll(new RegExp(matcher.source, "ig"))) {
+          if (!match[0]) continue;
+          const range = document.createRange();
+          range.setStart(node, match.index);
+          range.setEnd(node, match.index + match[0].length);
+          ranges.push(range);
+        }
       }
-    }
-    if (css.highlights && HighlightCtor) {
-      css.highlights.set("reader-search", new HighlightCtor(...ranges));
-      return () => { css.highlights?.delete("reader-search"); };
-    }
 
-    const marks: HTMLElement[] = [];
-    for (const range of ranges.reverse()) {
-      const mark = document.createElement("mark");
-      try {
-        range.surroundContents(mark);
-        marks.push(mark);
-      } catch (error) {
-        console.error("Could not highlight a search match", error);
+      if (css.highlights && HighlightCtor) {
+        css.highlights.set("reader-search", new HighlightCtor(...ranges));
+        cleanup = () => { css.highlights?.delete("reader-search"); };
+        return;
       }
-    }
+
+      const marks: HTMLElement[] = [];
+      for (const range of ranges.reverse()) {
+        const mark = document.createElement("mark");
+        try {
+          range.surroundContents(mark);
+          marks.push(mark);
+        } catch (error) {
+          console.error("Could not highlight a search match", error);
+        }
+      }
+      cleanup = () => {
+        for (const mark of marks) {
+          const parent = mark.parentNode;
+          mark.replaceWith(...Array.from(mark.childNodes));
+          parent?.normalize();
+        }
+      };
+    }, 140);
+
     return () => {
-      for (const mark of marks) {
-        const parent = mark.parentNode;
-        mark.replaceWith(...Array.from(mark.childNodes));
-        parent?.normalize();
-      }
+      window.clearTimeout(timer);
+      cleanup();
     };
   }, [query, root]);
 
@@ -438,8 +382,11 @@ export function NextMarkdownReader({
   );
   const [compactOutlineOpen, setCompactOutlineOpen] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(false);
+  const [ChatPanel, setChatPanel] = useState<ComponentType<ReaderChatPanelProps> | null>(null);
+  const [chatPanelLoadFailed, setChatPanelLoadFailed] = useState(false);
   const effectiveOutlineOpen = isOutlineCompact ? compactOutlineOpen : outlineOpen;
   const isChatExpanded = isChatCompact && chatExpanded;
+  const shouldRenderChatPanel = !isChatCompact || isChatExpanded;
   const [activeSectionId, setActiveSectionId] = useState(tree[0]?.id ?? "");
   const searchMode = useSyncExternalStore(
     subscribeToReaderPreferences,
@@ -452,24 +399,10 @@ export function NextMarkdownReader({
     getDefaultAiTier,
   );
   const [query, setQuery] = useState("");
-  const [messageDraft, setMessageDraft] = useState("");
-  const [chatNotice, setChatNotice] = useState("");
-  const [chatMessages, setChatMessages] = useState<ReaderChatMessage[]>([]);
-  const [chatLoadedKey, setChatLoadedKey] = useState("");
-  const [chatPending, setChatPending] = useState(false);
-  const [selectedChatText, setSelectedChatText] = useState("");
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-  const [chatActionsOpen, setChatActionsOpen] = useState(false);
-  const [chatPoliciesAccepted, setChatPoliciesAccepted] = useState(false);
-  const [usagePolicyChecked, setUsagePolicyChecked] = useState(false);
-  const [privacyPolicyChecked, setPrivacyPolicyChecked] = useState(false);
-  const [welcomeText, setWelcomeText] = useState("");
-  const [requestsRemaining, setRequestsRemaining] = useState<number | null>(null);
-  const visitorIdRef = useRef("");
+  const hasSearchQuery = query.trim().length > 0;
   const [aiNotice, setAiNotice] = useState("");
   const [currentSearchMatchId, setCurrentSearchMatchId] = useState<string | null>(null);
   const fontPreferenceKey = `notebooks:reader-font:${file.owner}/${file.repository}/${file.path}`;
-  const chatStorageKey = getChatStorageKey(file);
   const fontScale = useSyncExternalStore(
     subscribeToReaderPreferences,
     () => readFontScale(fontPreferenceKey),
@@ -487,172 +420,47 @@ export function NextMarkdownReader({
   }, []);
 
   useEffect(() => {
-    setChatMessages(readChatMessages(chatStorageKey));
-    setChatLoadedKey(chatStorageKey);
-    setSelectedChatText("");
-  }, [chatStorageKey]);
+    if ((isChatCompactViewport() && !isChatExpanded) || ChatPanel) return;
+    let active = true;
+    void import("./reader-chat-panel")
+      .then(({ ReaderChatPanel }) => {
+        if (active) setChatPanel(() => ReaderChatPanel);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        console.error("Could not load the reader chat panel", error);
+        setChatPanelLoadFailed(true);
+      });
+    return () => { active = false; };
+  }, [ChatPanel, isChatExpanded]);
 
   useEffect(() => {
-    try {
-      setChatPoliciesAccepted(localStorage.getItem(CHAT_CONSENT_KEY) === "accepted");
-    } catch (error) {
-      console.error("Could not read the AI chat policy acceptance", error);
-    }
-  }, []);
-
-  const chatWelcomeLine = getChatWelcomeLine(chatStorageKey);
-  useEffect(() => {
-    setWelcomeText("");
-    if (chatLoadedKey !== chatStorageKey || chatMessages.length > 0) return;
-    let position = 0;
-    const timer = window.setInterval(() => {
-      position = Math.min(position + 2, chatWelcomeLine.length);
-      setWelcomeText(chatWelcomeLine.slice(0, position));
-      if (position === chatWelcomeLine.length) window.clearInterval(timer);
-    }, 24);
-    return () => window.clearInterval(timer);
-  }, [chatLoadedKey, chatMessages.length, chatStorageKey, chatWelcomeLine]);
-
-  useEffect(() => {
-    if (!contentElement) return;
-    const updateSelection = () => {
-      const selection = window.getSelection();
-      const anchor = selection?.anchorNode;
-      const focus = selection?.focusNode;
-      if (!selection || selection.isCollapsed
-          || !anchor || !focus
-          || !contentElement.contains(anchor)
-          || !contentElement.contains(focus)) {
-        return;
-      }
-      const text = selection.toString().trim();
-      if (text) setSelectedChatText(text.slice(0, 8000));
+    if (!contentElement?.querySelector(".katex, .katex-display")) return;
+    let active = true;
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        void import("katex/dist/katex.min.css").catch((error: unknown) => {
+          if (!active) return;
+          console.error("Could not load note math styles", error);
+          setAiNotice("Some equations could not be styled. Please reload the note.");
+        });
+      });
+    });
+    return () => {
+      active = false;
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
     };
-    document.addEventListener("selectionchange", updateSelection);
-    return () => document.removeEventListener("selectionchange", updateSelection);
-  }, [contentElement]);
-
-  useEffect(() => {
-    if (chatLoadedKey !== chatStorageKey) return;
-    try {
-      if (chatMessages.length === 0) localStorage.removeItem(chatStorageKey);
-      else localStorage.setItem(chatStorageKey, JSON.stringify(chatMessages.slice(-30)));
-    } catch (error) {
-      console.error("Could not save the reader chat locally", error);
-    }
-  }, [chatLoadedKey, chatMessages, chatStorageKey]);
+  }, [contentElement, html]);
 
   const flattened = useMemo(() => flattenTree(tree), [tree]);
   const activeSection = findSection(tree, activeSectionId);
   const currentRoot = rootSection(tree, activeSection);
   const rootIndex = currentRoot ? tree.findIndex((section) => section.id === currentRoot.id) : 0;
   const matcher = useMemo(() => createWildcardMatcher(query.trim()), [query]);
-  async function sendChatMessage(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const message = messageDraft.trim();
-    if (!message || chatPending) return;
-    if (!chatPoliciesAccepted) {
-      setChatNotice("Accept the AI usage and privacy policies before chatting.");
-      return;
-    }
-
-    setChatPending(true);
-    setChatNotice("");
-    const userMessage: ReaderChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: message,
-    };
-    const priorMessages = chatMessages.slice(-6).map(({ role, content }) => ({
-      role,
-      content: content.slice(0, 2000),
-    }));
-    setChatMessages((current) => [...current, userMessage].slice(-30));
-    setMessageDraft("");
-    try {
-      let visitorId = visitorIdRef.current;
-      try {
-        visitorId = localStorage.getItem("notebooks:ai-chat:visitor-id") ?? visitorId;
-      } catch (error) {
-        console.error("Could not read the AI chat visitor ID", error);
-      }
-      if (!/^[0-9a-f-]{36}$/i.test(visitorId)) {
-        visitorId = crypto.randomUUID();
-      }
-      visitorIdRef.current = visitorId;
-      try {
-        localStorage.setItem("notebooks:ai-chat:visitor-id", visitorId);
-      } catch (error) {
-        console.error("Could not save the AI chat visitor ID", error);
-      }
-
-      const { data: sessionData, error: sessionError } = await getSupabaseBrowserClient().auth.getSession();
-      if (sessionError) throw sessionError;
-      if (aiTier !== "low" && !sessionData.session) {
-        throw new Error("Sign in to use Medium, High, or Extra AI effort. Low is available without an account.");
-      }
-      const context = getRelevantNoteContext(message, searchIndex, tree, activeSectionId, selectedChatText);
-      const response = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: {
-          ...(sessionData.session
-            ? { authorization: `Bearer ${sessionData.session.access_token}` }
-            : {}),
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          context,
-          history: priorMessages,
-          tier: aiTier,
-          message,
-          noteTitle: `${file.fileName} (${file.repository}/${file.path})`,
-          visitorId,
-          webSearch: webSearchEnabled,
-        }),
-      });
-      const result = await response.json() as {
-        answer?: string;
-        model?: string;
-        tier?: string;
-        usage?: { promptTokens?: number; completionTokens?: number; requestsRemaining?: number };
-        error?: string;
-      };
-      const answer = typeof result.answer === "string" ? result.answer : "";
-      const model = typeof result.model === "string" ? result.model : "";
-      if (!response.ok || !answer || !/^[A-Za-z0-9._/-]{1,100}$/.test(model)) {
-        throw new Error(result.error || "The AI service could not answer this question.");
-      }
-      setChatMessages((current) => [...current, {
-        id: crypto.randomUUID(),
-        role: "assistant" as const,
-        content: answer,
-        tier: isAiTier(result.tier) ? result.tier : aiTier,
-        model,
-        promptTokens: result.usage?.promptTokens,
-        completionTokens: result.usage?.completionTokens,
-      }].slice(-30));
-      if (typeof result.usage?.requestsRemaining === "number") {
-        setRequestsRemaining(result.usage.requestsRemaining);
-      }
-      setSelectedChatText("");
-    } catch (error) {
-      setChatNotice(error instanceof Error ? error.message : "The AI service could not answer this question.");
-    } finally {
-      setChatPending(false);
-    }
-  }
-  function acceptChatPolicies() {
-    if (!usagePolicyChecked || !privacyPolicyChecked) return;
-    try {
-      localStorage.setItem(CHAT_CONSENT_KEY, "accepted");
-    } catch (error) {
-      console.error("Could not save the AI chat policy acceptance", error);
-      setChatNotice("Policy acceptance could not be saved in this browser. You can continue for this visit.");
-    }
-    setChatPoliciesAccepted(true);
-  }
   const matches = useMemo(() => {
-    if (!matcher) return [];
+    if (!hasSearchQuery || !matcher) return [];
     if (searchMode === "outline") {
       return flattened
         .filter(({ section }) => matcher.test(`${section.number} ${section.title}`))
@@ -660,7 +468,7 @@ export function NextMarkdownReader({
         .map(({ section }) => ({ sectionId: section.id, blockId: `${section.id}-heading`, text: `${section.number} ${section.title}` }));
     }
     return searchIndex.filter((block) => matcher.test(block.text)).slice(0, 200);
-  }, [flattened, matcher, searchIndex, searchMode]);
+  }, [flattened, hasSearchQuery, matcher, searchIndex, searchMode]);
   const groupedMatches = useMemo(() => {
     const groups = new Map<string, NoteSearchBlock[]>();
     for (const match of matches) {
@@ -720,18 +528,19 @@ export function NextMarkdownReader({
     let frame: number | null = null;
     const updateActiveSection = () => {
       const focusLine = window.innerHeight * 0.3;
+      let low = 0;
+      let high = headings.length - 1;
       let activeHeading: HTMLElement | null = null;
-      let activeTop = Number.NEGATIVE_INFINITY;
       let nextHeading: HTMLElement | null = null;
-      let nextTop = Number.POSITIVE_INFINITY;
-      for (const heading of headings) {
-        const top = heading.getBoundingClientRect().top;
-        if (top <= focusLine && top > activeTop) {
+      while (low <= high) {
+        const middle = Math.floor((low + high) / 2);
+        const heading = headings[middle];
+        if (heading.getBoundingClientRect().top <= focusLine) {
           activeHeading = heading;
-          activeTop = top;
-        } else if (top > focusLine && top < nextTop) {
+          low = middle + 1;
+        } else {
           nextHeading = heading;
-          nextTop = top;
+          high = middle - 1;
         }
       }
       const section = (activeHeading ?? nextHeading)?.closest<HTMLElement>(".note-section[data-id]");
@@ -774,14 +583,79 @@ export function NextMarkdownReader({
 
   useEffect(() => {
     const root = contentRef.current;
+    if (!root) return;
+    const blocks = Array.from(root.querySelectorAll<HTMLElement>(".obsidian-mermaid"));
+    if (!blocks.length) return;
+
+    let active = true;
+    const listeners = blocks.map((block) => {
+      const details = document.createElement("details");
+      details.className = "reader-diagram-disclosure";
+      details.dataset.readerDiagram = "mermaid";
+      const reservedHeight = Math.ceil(block.getBoundingClientRect().height);
+      if (reservedHeight > 0) details.style.minHeight = `${reservedHeight}px`;
+
+      const summary = document.createElement("summary");
+      summary.textContent = "Load interactive diagram";
+      block.setAttribute("data-diagram-deferred", "");
+      block.parentElement?.insertBefore(details, block);
+      details.append(summary, block);
+
+      let loading = false;
+      const onToggle = () => {
+        if (!details.open || loading || block.dataset.diagramReady === "true") return;
+        loading = true;
+        summary.textContent = "Loading diagram…";
+        block.removeAttribute("data-diagram-deferred");
+        void (async () => {
+          try {
+            await Promise.all([
+              loadScript("/js/markdown-vendors.js"),
+              loadScript("/js/obsidian-markdown-it.js"),
+            ]);
+            if (!active) return;
+            const runtime = window as ReaderWindow;
+            await runtime.NoteBooksMarkdownVendors?.ensureFor(details);
+            if (!active) return;
+            await runtime.obsidianInitMermaid?.(details);
+            if (!active) return;
+            if (!block.querySelector("svg")) throw new Error("The diagram did not produce an SVG.");
+            block.dataset.diagramReady = "true";
+            summary.textContent = "Interactive diagram";
+          } catch (error) {
+            if (!active) return;
+            console.error("Could not load an interactive Mermaid diagram", error);
+            block.setAttribute("data-diagram-deferred", "");
+            summary.textContent = "Could not load diagram. Close and reopen to retry.";
+          } finally {
+            loading = false;
+          }
+        })();
+      };
+      details.addEventListener("toggle", onToggle);
+      return () => {
+        details.removeEventListener("toggle", onToggle);
+        if (details.contains(block)) details.replaceWith(block);
+        if (block.dataset.diagramReady !== "true") block.removeAttribute("data-diagram-deferred");
+      };
+    });
+
+    return () => {
+      active = false;
+      listeners.forEach((removeListener) => removeListener());
+    };
+  }, [html]);
+
+  useEffect(() => {
+    const root = contentRef.current;
     if (!root) {
       diagramInitializationRef.current = Promise.resolve(true);
       return;
     }
-    const hasLegacyDiagrams = Boolean(root.querySelector(".obsidian-mermaid, .tikz-wrapper"));
+    const hasTikzDiagrams = Boolean(root.querySelector(".tikz-wrapper"));
     const desmosBlocks = Array.from(root.querySelectorAll<HTMLElement>(".obsidian-desmos"));
     const desmos3DBlocks = Array.from(root.querySelectorAll<HTMLElement>(".obsidian-desmos3d"));
-    if (!hasLegacyDiagrams && !desmosBlocks.length && !desmos3DBlocks.length) {
+    if (!hasTikzDiagrams && !desmosBlocks.length && !desmos3DBlocks.length) {
       diagramInitializationRef.current = waitForReaderLayout(root);
       return;
     }
@@ -833,7 +707,7 @@ export function NextMarkdownReader({
     diagramInitializationRef.current = (async () => {
       try {
         const runtime = window as ReaderWindow;
-        if (hasLegacyDiagrams) {
+        if (hasTikzDiagrams) {
           await Promise.all([
             loadScript("/js/markdown-vendors.js"),
             loadScript("/js/obsidian-markdown-it.js"),
@@ -841,11 +715,14 @@ export function NextMarkdownReader({
           if (!active) return true;
           await runtime.NoteBooksMarkdownVendors?.ensureFor(root);
           if (!active) return true;
-          await runtime.obsidianInitMermaid?.(root);
-          if (!active) return true;
           runtime.obsidianInitTikz?.(root);
         }
         if (desmosBlocks.length) {
+          const [{ compileDesmos2D }, { formatDesmosDiagnostic }] = await Promise.all([
+            import("@/lib/desmos-2d"),
+            import("@/lib/desmos-source"),
+          ]);
+          if (!active) return true;
           const compiledBlocks = desmosBlocks.map((block) => {
             const source = block.querySelector("pre.desmos-source")?.textContent ?? "";
             return { block, source, result: compileDesmos2D(source) };
@@ -917,6 +794,11 @@ export function NextMarkdownReader({
           }
         }
         if (desmos3DBlocks.length) {
+          const [{ compileDesmos3D }, { formatDesmosDiagnostic }] = await Promise.all([
+            import("@/lib/desmos-3d"),
+            import("@/lib/desmos-source"),
+          ]);
+          if (!active) return true;
           const compiledBlocks = desmos3DBlocks.map((block) => {
             const source = block.querySelector("pre.desmos-source")?.textContent ?? "";
             return { block, source, result: compileDesmos3D(source) };
@@ -1138,16 +1020,22 @@ export function NextMarkdownReader({
       <div className="next-reader-progress-track" aria-label="Reading progress"><span style={{ width: `${Math.round(readingProgress * 100)}%` }} /></div>
       {aiNotice && <p className="reader-feature-notice" role="status">{aiNotice}</p>}
       <div className={`next-reader-layout${effectiveOutlineOpen ? "" : " outline-collapsed"}${isChatExpanded ? " chat-expanded" : ""}`}>
-        <aside className="next-reader-outline" aria-label="Section outline">
-          <div className="reader-search">
+        <aside className="next-reader-outline" aria-label="Search and outline">
+          <section className="reader-search" aria-labelledby="reader-search-heading">
+            <h2 id="reader-search-heading">Search</h2>
             <label htmlFor="reader-search">Search this note</label>
-            <input ref={searchRef} id="reader-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search… (* and ?)" />
-            <div className="reader-search-modes" role="group" aria-label="Search mode">
+            <input ref={searchRef} id="reader-search" type="search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search… (* and ?)" />
+            <div className="reader-search-modes" role="group" aria-label="Search scope">
               <button type="button" aria-pressed={searchMode === "outline"} onClick={() => setSearchMode("outline")}>Outline</button>
               <button type="button" aria-pressed={searchMode === "notes"} onClick={() => setSearchMode("notes")}>Notes</button>
             </div>
-          </div>
-          {query ? (
+            <p className="reader-mode-status" data-mode={hasSearchQuery ? "search" : "outline"} role="status" aria-live="polite">
+              <span className="reader-mode-status-dot" aria-hidden="true" />
+              <strong>{hasSearchQuery ? "Search mode" : "Outline mode"}</strong>
+              {hasSearchQuery && <span>Searching {searchMode === "notes" ? "notes" : "outline"}</span>}
+            </p>
+          </section>
+          {hasSearchQuery ? (
             <div className="reader-search-results" aria-live="polite">
               <p>{matches.length} matches{searchMode === "notes" ? ` in ${groupedMatches.length} sections` : ""}</p>
               {searchMode === "notes"
@@ -1180,7 +1068,7 @@ export function NextMarkdownReader({
                 ))}
             </div>
           ) : (
-            <nav className="reader-outline-window">
+            <nav className="reader-outline-window" aria-label="Outline">
               {rootIndex === 0
                 ? <button className="outline-edge" type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>The start of the document</button>
                 : <button className="outline-neighbor" type="button" onClick={() => jumpTo(`${tree[rootIndex - 1].id}-heading`, tree[rootIndex - 1].id)}>{tree[rootIndex - 1].number} {tree[rootIndex - 1].title}</button>}
@@ -1192,7 +1080,7 @@ export function NextMarkdownReader({
           )}
         </aside>
         <article className="next-reader-content" ref={setContentRoot}>
-          <SearchHighlight query={searchMode === "notes" ? query : ""} root={contentElement} />
+          <SearchHighlight query={hasSearchQuery && searchMode === "notes" ? query.trim() : ""} root={contentElement} />
           <div className="reader-document-card">
             <div className="markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
           </div>
@@ -1217,241 +1105,26 @@ export function NextMarkdownReader({
             <path d="M8 11h8M8 14.5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </button>
-        <aside className={`next-reader-ai${isChatExpanded ? " chat-expanded" : ""}`} aria-label="Chat">
-          <div className="ai-panel-content">
-            <header className="reader-chat-header">
-              <span className="reader-chat-brand-mark" aria-hidden="true">n</span>
-              <div>
-                <h2>NoteBooks AI Assistant</h2>
-                <p>Study companion · grounded in this note</p>
-              </div>
-            </header>
-            <div className="reader-chat-messages" role="log" aria-live="polite">
-              {!chatPoliciesAccepted && (
-                <section className="reader-chat-consent" aria-labelledby="reader-chat-consent-title">
-                  <span className="reader-chat-consent-mark" aria-hidden="true">n</span>
-                  <h3 id="reader-chat-consent-title">A quick note before we begin</h3>
-                  <p>Your question, recent chat messages, and relevant note excerpts will be sent to Groq to generate an answer. Chat history stays in this browser.</p>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={usagePolicyChecked}
-                      onChange={(event) => setUsagePolicyChecked(event.target.checked)}
-                    />
-                    I agree to the                     <Link href="/ai-usage-policy" target="_blank" rel="noreferrer">AI Usage Policy</Link>.
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={privacyPolicyChecked}
-                      onChange={(event) => setPrivacyPolicyChecked(event.target.checked)}
-                    />
-                    I agree to the                     <Link href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</Link>.
-                  </label>
-                  <button
-                    type="button"
-                    onClick={acceptChatPolicies}
-                    disabled={!usagePolicyChecked || !privacyPolicyChecked}
-                  >
-                    Agree and continue
-                  </button>
-                </section>
-              )}
-              {chatMessages.length === 0 && (
-                <div className="reader-chat-welcome">
-                  <span className="reader-chat-avatar" aria-hidden="true">n</span>
-                  <div>
-                    <strong>NoteBooks AI</strong>
-                    <p>{welcomeText}<span className="reader-chat-caret" aria-hidden="true">▋</span></p>
-                  </div>
-                  <div className="reader-chat-starters" aria-label="Conversation starters">
-                    {[
-                      "Explain the key idea",
-                      "Give me a quick summary",
-                      "Quiz me on this note",
-                    ].map((starter) => (
-                      <button
-                        key={starter}
-                        type="button"
-                        onClick={() => setMessageDraft(starter)}
-                      >
-                        {starter}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {chatMessages.map((chatMessage) => (
-                <article className={`reader-chat-message is-${chatMessage.role}`} key={chatMessage.id}>
-                  <strong>
-                    {chatMessage.role === "assistant" && <span className="reader-chat-avatar is-small" aria-hidden="true">n</span>}
-                    {chatMessage.role === "user" ? "You" : "NoteBooks AI"}
-                  </strong>
-                  <div
-                    className="reader-chat-markdown"
-                    dangerouslySetInnerHTML={{ __html: renderChatMarkdown(chatMessage.content) }}
-                  />
-                  {chatMessage.role === "assistant" && (
-                    <small className="reader-chat-message-meta">
-                      <span>
-                        {chatMessage.tier ? `${AI_TIERS[chatMessage.tier].label} · ` : ""}
-                        {chatMessage.model ? `Model: ${chatMessage.model}` : "Model info unavailable for this saved reply"}
-                      </span>
-                      {chatMessage.promptTokens !== undefined && chatMessage.completionTokens !== undefined
-                        && <span>{(chatMessage.promptTokens + chatMessage.completionTokens).toLocaleString()} tokens</span>}
-                    </small>
-                  )}
-                </article>
-              ))}
-              {chatPending && (
-                <div className="reader-chat-pending" role="status">
-                  <span className="reader-chat-avatar is-typing" aria-hidden="true">n</span>
-                  <span>NoteBooks AI is reading and writing</span>
-                  <span className="reader-chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>
-                </div>
-              )}
-              {requestsRemaining !== null && requestsRemaining <= 3 && (
-                <p className="reader-chat-usage-warning" role="status">
-                  {requestsRemaining === 0
-                    ? "You’re at the limit for your current AI chat allowance."
-                    : `You have ${requestsRemaining} AI chat ${requestsRemaining === 1 ? "request" : "requests"} left in your current allowance.`}
-                </p>
-              )}
+        {shouldRenderChatPanel && (ChatPanel ? (
+          <ChatPanel
+            key={`${file.owner}/${file.repository}/${file.path}`}
+            file={file}
+            searchIndex={searchIndex}
+            tree={tree}
+            activeSectionId={activeSectionId}
+            activeSectionTitle={activeSection?.title}
+            contentElement={contentElement}
+            expanded={isChatExpanded}
+            aiTier={aiTier}
+            onAiTierChange={(tier) => writeReaderPreference(AI_TIER_PREFERENCE_KEY, tier)}
+          />
+        ) : (
+          <aside className={`next-reader-ai${isChatExpanded ? " chat-expanded" : ""}`} aria-label="Chat">
+            <div className="ai-panel-content">
+              <p className="reader-chat-notice" role="status">{chatPanelLoadFailed ? "Chat failed to load. Reload the page to try again." : "Loading chat…"}</p>
             </div>
-            <form
-              className="reader-chat-composer"
-              onSubmit={(event) => void sendChatMessage(event)}
-            >
-              <div className="reader-chat-tier-control">
-                <label htmlFor="reader-chat-tier">AI effort</label>
-                <select
-                  id="reader-chat-tier"
-                  aria-label="AI effort and token ceiling"
-                  value={aiTier}
-                  onChange={(event) => {
-                    if (isAiTier(event.target.value)) {
-                      writeReaderPreference(AI_TIER_PREFERENCE_KEY, event.target.value);
-                    }
-                  }}
-                  disabled={chatPending}
-                >
-                  {Object.entries(AI_TIERS).map(([tier, option]) => (
-                    <option key={tier} value={tier}>{option.label}</option>
-                  ))}
-                </select>
-                <p>
-                  Up to {AI_TIERS[aiTier].maxOutputTokens.toLocaleString()} answer tokens;
-                  input is fitted to about {AI_TIERS[aiTier].maxInputTokens.toLocaleString()} tokens.
-                  {aiTier !== "low" && " Sign-in required."}
-                </p>
-              </div>
-              {selectedChatText && (
-                <p className="reader-chat-selection">
-                  <span><b>#Selected-Text</b> · {selectedChatText.length.toLocaleString()} characters</span>
-                  <button type="button" onClick={() => setSelectedChatText("")} aria-label="Remove selected text">×</button>
-                </p>
-              )}
-              <div className="reader-chat-input-shell">
-                <textarea
-                  id="reader-chat-message"
-                  aria-label="Message"
-                  value={messageDraft}
-                  onChange={(event) => {
-                    setMessageDraft(event.target.value);
-                    setChatNotice("");
-                  }}
-                  placeholder="Ask anything about this note…"
-                  rows={4}
-                  maxLength={4000}
-                  disabled={chatPending}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault();
-                      event.currentTarget.form?.requestSubmit();
-                    }
-                  }}
-                />
-                <div className="reader-chat-input-actions">
-                  <span className="reader-chat-shortcut">Enter to send · Shift + Enter for a new line</span>
-                  <button
-                    type="submit"
-                    className="reader-chat-send-button"
-                    aria-label={chatPending ? "Sending message" : "Send message"}
-                    disabled={!messageDraft.trim() || chatPending || !chatPoliciesAccepted}
-                  >
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-                      <path d="M4.5 12 20 4l-4.1 16-3.1-6.2L4.5 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                      <path d="m12.8 13.8 7.2-9.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                  <div className="reader-chat-action-wrap">
-                    <button
-                      type="button"
-                      className="reader-chat-add-button"
-                      aria-label="More chat actions"
-                      aria-haspopup="menu"
-                      aria-expanded={chatActionsOpen}
-                      onClick={() => setChatActionsOpen((open) => !open)}
-                      disabled={chatPending}
-                    >
-                      +
-                    </button>
-                    {chatActionsOpen && (
-                      <div className="reader-chat-action-menu" role="menu">
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            if (!selectedChatText) setChatNotice("Select text in the note to attach it.");
-                            else setChatNotice("");
-                            setChatActionsOpen(false);
-                          }}
-                        >
-                          {selectedChatText ? "Selected text attached" : "Attach selected text"}
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setMessageDraft(`Explain this section: ${activeSection?.title ?? file.fileName}`);
-                            setChatActionsOpen(false);
-                          }}
-                        >
-                          Explain this section
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setMessageDraft(`Summarize this section: ${activeSection?.title ?? file.fileName}`);
-                            setChatActionsOpen(false);
-                          }}
-                        >
-                          Summarize this section
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitemcheckbox"
-                          aria-checked={webSearchEnabled}
-                          onClick={() => {
-                            setWebSearchEnabled((enabled) => !enabled);
-                            setChatActionsOpen(false);
-                          }}
-                        >
-                          {webSearchEnabled ? "✓ Web search on" : "Search the web"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <p className="reader-chat-disclaimer">
-                AI can make mistakes. Check important information against the note and trusted sources.
-              </p>
-              {chatNotice && <p className="reader-chat-notice" role="status">{chatNotice}</p>}
-            </form>
-          </div>
-        </aside>
+          </aside>
+        ))}
       </div>
     </main>
   );

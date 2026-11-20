@@ -99,12 +99,11 @@ function makeAbsolute(url) {
 function inject(props = {
   debug: true
 }, confString) {
-  var _a;
   if (!isBrowser()) return;
   const { beforeSend, src, dataset } = loadProps(props, confString);
   initQueue();
   if (beforeSend) {
-    (_a = window.va) == null ? void 0 : _a.call(window, "beforeSend", beforeSend);
+    window.va?.("beforeSend", beforeSend);
   }
   if (document.head.querySelector(`script[src*="${src}"]`)) return;
   const script = document.createElement("script");
@@ -206,13 +205,12 @@ function makeAbsolute2(url) {
   return url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/") ? url : `/${url}`;
 }
 function injectSpeedInsights(props = {}, confString) {
-  var _a;
   if (!isBrowser2() || props.route === null) return null;
   initQueue2();
   const { beforeSend, src, dataset } = loadProps2(props, confString);
   if (document.head.querySelector(`script[src*="${src}"]`)) return null;
   if (beforeSend) {
-    (_a = window.si) == null ? void 0 : _a.call(window, "beforeSend", beforeSend);
+    window.si?.("beforeSend", beforeSend);
   }
   const script = document.createElement("script");
   script.src = src;
