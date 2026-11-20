@@ -177,30 +177,47 @@ function obsidianInlineHtml(
 const CALLOUT_TYPE: Record<string, string> = {
   abstract: "note",
   attention: "warning",
+  bug: "warning",
   caution: "warning",
   cite: "note",
   danger: "warning",
+  done: "success",
   error: "warning",
   example: "example",
   failure: "warning",
   fail: "warning",
   formula: "formula",
+  faq: "note",
+  help: "note",
+  hint: "tip",
   jee: "tip",
   "key-principle": "principle",
+  key: "principle",
   "common-mistake": "warning",
   important: "principle",
   info: "note",
-  key: "principle",
   missing: "warning",
   neet: "tip",
   note: "note",
   question: "note",
+  quote: "note",
   summary: "note",
+  success: "success",
   tip: "tip",
   tldr: "note",
   todo: "note",
   warning: "warning",
+  check: "success",
 };
+
+function normalizeCalloutType(type: string): string {
+  const normalized = type.toLowerCase().replace(/_/g, "-");
+  return CALLOUT_TYPE[normalized] ?? normalized;
+}
+
+function calloutLabel(type: string): string {
+  return type.replace(/-/g, " ").replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+}
 
 function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
   const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
@@ -211,21 +228,73 @@ function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
     katexOptions: { throwOnError: false, strict: "ignore", output: "html" },
   });
 
+  md.block.ruler.before("paragraph", "notebooks_standalone_callout", (state, startLine, _endLine, silent) => {
+    if (state.level !== 0 || state.blkIndent !== 0
+      || (state.parentType !== "root" && state.parentType !== "paragraph")) return false;
+    const start = state.bMarks[startLine] + state.tShift[startLine];
+    const end = state.eMarks[startLine];
+    const match = state.src.slice(start, end).match(/^\[!([a-zA-Z][a-zA-Z0-9_-]*)\]([+-])?\s*(.*)$/);
+    if (!match) return false;
+    if (silent) return true;
+
+    const rawType = match[1].toLowerCase().replace(/_/g, "-");
+    const open = state.push("blockquote_open", "blockquote", 1);
+    open.block = true;
+    open.map = [startLine, startLine + 1];
+    open.attrJoin("class", "callout");
+    open.attrSet("data-type", normalizeCalloutType(rawType));
+    open.meta = { calloutTitle: calloutLabel(rawType), standaloneCallout: true };
+
+    const paragraphOpen = state.push("paragraph_open", "p", 1);
+    paragraphOpen.map = [startLine, startLine + 1];
+    const inline = state.push("inline", "", 0);
+    inline.content = match[3];
+    inline.map = [startLine, startLine + 1];
+    inline.children = [];
+    state.push("paragraph_close", "p", -1);
+
+    const close = state.push("blockquote_close", "blockquote", -1);
+    close.block = true;
+    close.map = [startLine, startLine + 1];
+    state.line = startLine + 1;
+    return true;
+  }, { alt: ["paragraph"] });
+
   md.core.ruler.push("notebooks_callouts", (state) => {
     const tokens = state.tokens;
     for (let index = 0; index < tokens.length; index += 1) {
       const open = tokens[index];
-      if (open.type !== "blockquote_open" || open.level !== 0) continue;
+      if (open.type !== "blockquote_open") continue;
 
-      const inline = tokens.slice(index + 1).find((token) => token.type === "inline");
-      const match = inline?.content.match(/^\s*\[!([A-Z0-9_-]+)\](?:[ \t]+([^\r\n]*))?/i);
+      let nestedBlockquotes = 0;
+      let inline: import("markdown-it").Token | undefined;
+      for (let cursor = index + 1; cursor < tokens.length; cursor += 1) {
+        const token = tokens[cursor];
+        if (token.type === "blockquote_open") {
+          nestedBlockquotes += 1;
+        } else if (token.type === "blockquote_close") {
+          if (nestedBlockquotes === 0) break;
+          nestedBlockquotes -= 1;
+        } else if (token.type === "inline" && nestedBlockquotes === 0) {
+          inline = token;
+          break;
+        }
+      }
+      if (open.meta?.standaloneCallout === true && inline) {
+        const titleToken = new state.Token("html_inline", "", 0);
+        titleToken.content = `<span class="callout-title">${state.md.utils.escapeHtml(String(open.meta.calloutTitle))}</span>`;
+        inline.children = [titleToken, ...(inline.children ?? [])];
+        continue;
+      }
+
+      const match = inline?.content.match(/^\s*\[!([A-Z0-9_-]+)\]([+-])?(?:[ \t]+([^\r\n]*))?/i);
       if (!inline || !match) continue;
 
       const rawType = match[1].toLowerCase().replace(/_/g, "-");
-      const type = CALLOUT_TYPE[rawType] ?? rawType;
+      const type = normalizeCalloutType(rawType);
       open.attrJoin("class", "callout");
       open.attrSet("data-type", type);
-      const title = match[2]?.trim() || rawType.replace(/-/g, " ");
+      const title = match[3]?.trim() || calloutLabel(rawType);
       open.meta = { ...open.meta, calloutTitle: title };
       const titleToken = new state.Token("html_inline", "", 0);
       titleToken.content = `<span class="callout-title">${state.md.utils.escapeHtml(title)}</span>`;
@@ -348,7 +417,7 @@ function resolveRepositoryPath(path: string, filePath: string): string | null {
   return segments.length ? segments.join("/") : null;
 }
 
-function rewriteSourceUrl(value: string, source: RenderNoteSource, isImage: boolean): string {
+export function rewriteSourceUrl(value: string, source: RenderNoteSource, isImage: boolean): string {
   if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(value)) return value;
   const [cleanPath, fragment] = value.split("#", 2);
   const resolvedPath = resolveRepositoryPath(cleanPath, source.filePath);

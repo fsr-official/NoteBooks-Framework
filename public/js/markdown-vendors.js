@@ -120,8 +120,9 @@
   async function ensureFor(root) {
     const target = root || document;
     const jobs = [];
+    const hasMermaid = has(target, '.obsidian-mermaid:not([data-diagram-deferred])');
     if (has(target, '.math[data-math]')) jobs.push(loadScript('mathjax'));
-    if (has(target, '.obsidian-mermaid')) jobs.push(loadScript('mermaid'));
+    if (hasMermaid) jobs.push(loadScript('mermaid'));
     if (has(target, '.tikz-wrapper')) jobs.push(loadStyle('tikzFonts'), loadScript('tikz'));
     if (has(target, '.desmos-block')) jobs.push(loadScript('desmos'));
     if (has(target, '.desmos3d-block')) jobs.push(loadScript('desmos3d'));
@@ -130,7 +131,7 @@
       jobs.push(loadStyle(mode === 'light' ? 'highlightLight' : 'highlightDark'), loadScript('highlight'));
     }
     await Promise.all(jobs);
-    if (has(target, '.obsidian-mermaid') && typeof global.mermaid !== 'undefined' && typeof global.mermaid.initialize === 'function') {
+    if (hasMermaid && typeof global.mermaid !== 'undefined' && typeof global.mermaid.initialize === 'function') {
       const mode = global.document?.documentElement?.dataset?.mode || global.document?.documentElement?.dataset?.themeMode;
       global.mermaid.initialize({ startOnLoad: false, theme: mode === 'light' ? 'default' : 'dark', securityLevel: 'strict' });
     }

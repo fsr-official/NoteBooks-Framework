@@ -38,16 +38,6 @@ async function getStreamRepoMap() {
     }
     return streamRepoMapPromise || Promise.resolve({});
 }
-/** Finds the top-level registry tree node for a given repo (e.g. "fsr-science/NCERT-Science"). */
-function findRepoNode(tree, repo) {
-    if (!tree || !Array.isArray(tree.children))
-        return null;
-    for (const child of tree.children) {
-        if (child.repo === repo)
-            return child;
-    }
-    return null;
-}
 function streamFileIcon(name) {
     const ext = (name.split('.').pop() || '').toLowerCase();
     if (ext === 'md' || ext === 'markdown')
@@ -189,7 +179,7 @@ async function populateStreamTree(container, slug) {
                 payload = await r.json();
                 break;
             }
-            catch (e) {
+            catch {
                 // try next
             }
         }
@@ -250,3 +240,4 @@ document.addEventListener('DOMContentLoaded', bootstrapStreamRouting);
 // Exposed for the nav links (which do full page loads today, but this keeps the
 // function reachable if nav is later switched to client-side routing).
 window.initStreamShell = initStreamShell;
+window.populateStreamTree = populateStreamTree;

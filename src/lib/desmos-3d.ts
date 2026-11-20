@@ -309,7 +309,6 @@ function applyAttributes(
   attributes: Attribute[],
   id: string,
   diagnostics: Desmos3DDiagnostic[],
-  vector: boolean,
 ): { zDrag: boolean } {
   const parameterDomains: Record<string, { min: string; max: string }> = {};
   let zDrag = false;
@@ -596,7 +595,7 @@ function addState(
   if (reserved && ids.has(id)) return;
   const merged = mergePresetAttributes(attributes, presets, line, id, diagnostics);
   const state: Record<string, unknown> = { id, latex };
-  const { zDrag } = applyAttributes(state, merged, id, diagnostics, isVector);
+  const { zDrag } = applyAttributes(state, merged, id, diagnostics);
   expressions.push(state as ExpressionState);
   if (isVector) {
     vectorIds.push(id);
@@ -707,7 +706,7 @@ export function compileDesmos3D(source: string): Desmos3DCompileResult {
           diagnostics.push(issue("error", "E_UNKNOWN_ATTR", `Unknown table column key '${attribute.key}'.`, line, attribute.col, { id: table.id, field: attribute.key }));
         }
       }
-      if (display.length) applyAttributes(column, display, table.id, diagnostics, false);
+      if (display.length) applyAttributes(column, display, table.id, diagnostics);
       if (!latex) diagnostics.push(issue("error", "E_TABLE_SYNTAX", "Each table column requires latex=.", line, 1, { id: table.id }));
       else (table.columns as Array<Record<string, unknown>>).push({ latex, ...(values ? { values } : {}), ...column });
       continue;
@@ -860,7 +859,7 @@ export function compileDesmos3D(source: string): Desmos3DCompileResult {
           vectorAttrs.push({ key: "label", value: axisLabels[item.axis], line, col: 1 }, { key: "showLabel", value: true, line, col: 1 });
         }
         const vectorState: Record<string, unknown> = { id: item.id, latex: vectorLatex(["0", "0", "0"], item.dir) };
-        const { zDrag } = applyAttributes(vectorState, vectorAttrs, item.id, diagnostics, true);
+        const { zDrag } = applyAttributes(vectorState, vectorAttrs, item.id, diagnostics);
         expressions.push(vectorState as ExpressionState);
         vectorIds.push(item.id);
         vectorLatexes[item.id] = vectorState.latex as string;
@@ -903,7 +902,7 @@ export function compileDesmos3D(source: string): Desmos3DCompileResult {
           continue;
         }
         values.set(key, attribute);
-        applyAttributes(validation, [attribute], match[1], diagnostics, true);
+        applyAttributes(validation, [attribute], match[1], diagnostics);
       }
       if (presets.has(match[1])) diagnostics.push(issue("error", "E_DUP_PRESET", `Duplicate preset '${match[1]}'.`, line, 1));
       else presets.set(match[1], values);

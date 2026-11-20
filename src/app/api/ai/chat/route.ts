@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import { NextResponse } from "next/server";
 import { isAiTier, type AiTier } from "@/lib/ai-tiers";
+import { acquireAiChatRequestLock } from "@/lib/ai-chat-concurrency";
 import {
   completeGroqChat,
   GroqChatError,
@@ -134,76 +135,100 @@ async function postAiChat(request: Request) {
         { scope: "anonymous-ip" as const, id: hashIdentifier(ip ?? "local-development") },
         { scope: "anonymous-browser" as const, id: hashIdentifier(payload.visitorId) },
       ];
-  let requestsRemaining = Number.POSITIVE_INFINITY;
+  let releaseRequestLock: (() => Promise<void>) | null;
   try {
-    for (const identifier of rateLimitIdentifiers) {
-      const rateLimit = await consumeAiChatRateLimit(identifier.scope, identifier.id);
-      if (!rateLimit.allowed) {
-        return jsonError("You’ve reached the AI chat limit. Please try again later.", 429, {
-          "Retry-After": String(rateLimit.retryAfterSeconds),
-        });
-      }
-      requestsRemaining = Math.min(requestsRemaining, rateLimit.remaining);
-    }
+    releaseRequestLock = await acquireAiChatRequestLock(
+      account ? "account" : "anonymous-browser",
+      account?.accountId ?? payload.visitorId,
+    );
   } catch (error) {
-    console.error("AI chat rate limiter unavailable", error);
+    console.error("AI chat concurrency guard unavailable", error);
     return jsonError("AI chat protection is temporarily unavailable.", 503);
   }
-
-  let result;
-  try {
-    result = await completeGroqChat(payload);
-  } catch (error) {
-    if (error instanceof GroqChatError) {
-      return jsonError(error.message, error.status, error.retryAfterSeconds
-        ? { "Retry-After": String(error.retryAfterSeconds) }
-        : undefined);
-    }
-    console.error("AI chat provider unavailable", error);
-    return jsonError("The AI service is temporarily unavailable.", 503);
-  }
-
-  try {
-    const { error } = await createSupabaseAdminClient().rpc("record_ai_provider_key_usage", {
-      p_key_slot: result.keySlot,
-      p_prompt_tokens: result.promptTokens,
-      p_completion_tokens: result.completionTokens,
-    });
-    if (error) throw error;
-  } catch (error) {
-    console.error("AI provider key usage could not be recorded", {
-      keySlot: result.keySlot,
-      error,
+  if (!releaseRequestLock) {
+    return jsonError("You already have an AI request in progress. Please wait for it to finish.", 409, {
+      "Retry-After": "5",
     });
   }
 
-  if (account) {
+  try {
+    let requestsRemaining = Number.POSITIVE_INFINITY;
     try {
-      const { error } = await createSupabaseAdminClient().from("ai_usage_events").insert({
-        request_id: randomUUID(),
-        account_id: account.accountId,
-        model: result.model,
-        key_slot: result.keySlot,
-        prompt_tokens: result.promptTokens,
-        completion_tokens: result.completionTokens,
+      for (const identifier of rateLimitIdentifiers) {
+        const rateLimit = await consumeAiChatRateLimit(identifier.scope, identifier.id);
+        if (!rateLimit.allowed) {
+          return jsonError("You’ve reached the AI chat limit. Please try again later.", 429, {
+            "Retry-After": String(rateLimit.retryAfterSeconds),
+          });
+        }
+        requestsRemaining = Math.min(requestsRemaining, rateLimit.remaining);
+      }
+    } catch (error) {
+      console.error("AI chat rate limiter unavailable", error);
+      return jsonError("AI chat protection is temporarily unavailable.", 503);
+    }
+
+    let result;
+    try {
+      result = await completeGroqChat(payload);
+    } catch (error) {
+      if (error instanceof GroqChatError) {
+        return jsonError(error.message, error.status, error.retryAfterSeconds
+          ? { "Retry-After": String(error.retryAfterSeconds) }
+          : undefined);
+      }
+      console.error("AI chat provider unavailable", error);
+      return jsonError("The AI service is temporarily unavailable.", 503);
+    }
+
+    try {
+      const { error } = await createSupabaseAdminClient().rpc("record_ai_provider_key_usage", {
+        p_key_slot: result.keySlot,
+        p_prompt_tokens: result.promptTokens,
+        p_completion_tokens: result.completionTokens,
       });
       if (error) throw error;
     } catch (error) {
-      console.error("AI chat usage could not be recorded", error);
-      return jsonError("The answer was generated but its usage could not be recorded. Please retry.", 503);
+      console.error("AI provider key usage could not be recorded", {
+        keySlot: result.keySlot,
+        error,
+      });
+    }
+
+    if (account) {
+      try {
+        const { error } = await createSupabaseAdminClient().from("ai_usage_events").insert({
+          request_id: randomUUID(),
+          account_id: account.accountId,
+          model: result.model,
+          key_slot: result.keySlot,
+          prompt_tokens: result.promptTokens,
+          completion_tokens: result.completionTokens,
+        });
+        if (error) throw error;
+      } catch (error) {
+        console.error("AI chat usage could not be recorded", error);
+        return jsonError("The answer was generated but its usage could not be recorded. Please retry.", 503);
+      }
+    }
+
+    return NextResponse.json({
+      answer: result.answer,
+      usage: {
+        promptTokens: result.promptTokens,
+        completionTokens: result.completionTokens,
+        requestsRemaining,
+      },
+      model: result.model,
+      tier: payload.tier,
+    }, { headers: { "Cache-Control": "no-store" } });
+  } finally {
+    try {
+      await releaseRequestLock();
+    } catch (error) {
+      console.error("AI chat request lock could not be released; it will expire automatically", error);
     }
   }
-
-  return NextResponse.json({
-    answer: result.answer,
-    usage: {
-      promptTokens: result.promptTokens,
-      completionTokens: result.completionTokens,
-      requestsRemaining,
-    },
-    model: result.model,
-    tier: payload.tier,
-  }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export const POST = withApiTelemetry("/api/ai/chat", "POST", postAiChat);
