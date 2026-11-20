@@ -14,14 +14,14 @@ Checklist key: `[x]` done (status checked against the repository and test suite 
 
 | Version | Theme | Status | Depends on |
 |---|---|---|---|
-| v2.0.x | Next.js migration: database-first backend, library, reader, `/developers` shell | Mostly done; verification and migrations open | none |
+| v2.0.x | Next.js migration: database-first backend, library, reader, `/developers` shell | ~~Mostly done; verification and migrations open~~ Mostly done; data and operational verification open | none |
 | v2.1.x | Renderer upgrades (Desmos, MDX R&D, typed renderer modules, AI "explain this" backend) | In progress; Desmos and AI chat are implemented, MDX/TikZ verification remains | v2.0 |
-| v2.2.x | Admin dashboard and control centre | Initial console done; hardening open | v2.0 (sessions) |
-| v2.3.x | User/account update + Usage Policy | Identity code done, migration pending | v2.0, v2.2 |
+| v2.2.x | Admin dashboard and control centre | ~~Initial console done; hardening open~~ Initial console done; migrations current, production setup and hardening open | v2.0 (sessions) |
+| v2.3.x | User/account update + Usage Policy | ~~Identity code done, migration pending~~ Identity code done; account/provider verification and policy work open | v2.0, v2.2 |
 | v2.4.x | API/CLI use update (API docs in `/developers`) | API keys + downloads done; docs, CLI open | v2.3 |
 | v2.5.x | Community/chat update (Discord webhook or similar) | Not started | v2.3, v2.1 (AI) |
 
-**Repository verification (2026-11-19):** `pnpm test` passed (173 tests across 44 files), `pnpm typecheck` passed, `pnpm build` passed, and `pnpm lint` passed with 0 errors (6 warnings). The performance pass added short-lived parsed-index caching with concurrent-request deduplication, navigation prefetch on explicit open intent, a reader rendering overlay, and reduced-motion-aware stream-page entrance animations. Vercel Speed Insights is wired into the root layout for Vercel deployments; PDF page-mode preferences and the embedded NoteBooks AI Assistant were validated in a production browser smoke test. Security review found no exploitable vulnerabilities. This verifies the local automated setup, not production migrations, live provider quotas, or deployment secrets.
+**Repository verification (2026-11-19):** `pnpm test` passed (173 tests across 44 files), `pnpm typecheck` passed, `pnpm build` passed, and `pnpm lint` passed with 0 errors (6 warnings). The performance pass added short-lived parsed-index caching with concurrent-request deduplication, navigation prefetch on explicit open intent, a reader rendering overlay, and reduced-motion-aware stream-page entrance animations. Vercel Speed Insights is wired into the root layout for Vercel deployments; PDF page-mode preferences and the embedded NoteBooks AI Assistant were validated in a production browser smoke test. Security review found no exploitable vulnerabilities. ~~This verifies the local automated setup, not production migrations, live provider quotas, or deployment secrets.~~ The Supabase CLI reported the production database up to date on 2026-11-19; this does not verify production secrets, live provider quotas, scheduled workflows, or backup/restore.
 
 ---
 
@@ -153,12 +153,18 @@ Public in production: dev docs, API docs, and the R&D currently going on in the 
 **Goal:** control over everything before opening the site up further.
 
 - [x] Private `/admin` console (FW-v2 step 10): one-time admin bootstrap, repository CRUD/archive/restore and account assignment, manual QStash checks, index rebuild, privacy-preserving API/page metrics, service health, bounded sync-run history, admin audit trail
-- [ ] Apply the admin and AI provider key migrations, configure production secrets
+- ~~[ ] Apply the admin and AI provider key migrations, configure production secrets~~
+- [x] Apply admin, AI usage, and AI provider key migrations (Supabase CLI reported the production database up to date on 2026-11-19)
+- [ ] Configure production secrets
 - [ ] Keep the bootstrap `GITHUB-REPOSITORIES.md` manifest aligned with the admin-managed Supabase catalog
-- [x] Scheduled SHA reconciliation (daily GitHub Actions workflow and secret-protected route enqueue the existing idempotent worker; configure secrets and verify a live run)
+- ~~[x] Scheduled SHA reconciliation (daily GitHub Actions workflow and secret-protected route enqueue the existing idempotent worker; configure secrets and verify a live run)~~
+- [x] Scheduled SHA reconciliation implementation (daily GitHub Actions workflow and secret-protected route enqueue the existing idempotent worker)
+- [ ] Configure reconciliation secrets and verify a live scheduled/manual run
 - [ ] Remote webhook verification
-- [ ] Verify managed backups and rehearse restore/recovery (runbook documented; live backup/restore remains unverified)
-- [x] View AI usage per key and rate-limit state; ability to disable a key (code complete; apply the AI provider key migration before production use)
+- ~~[ ] Verify managed backups and rehearse restore/recovery (runbook documented; live backup/restore remains unverified)~~
+- [ ] Backup and recovery: managed backups/PITR require a paid plan; on the current Free plan, make encrypted logical exports and rehearse restoring into a separate project (not yet verified)
+- ~~[x] View AI usage per key and rate-limit state; ability to disable a key (code complete; apply the AI provider key migration before production use)~~
+- [x] View AI usage per key and rate-limit state; ability to disable a key (code complete; migration applied)
 - [ ] Content controls (what the reader and `/developers` fetch, cache refresh)
 
 **Done when:** you can see and change the main parts of the site without touching the database by hand.
