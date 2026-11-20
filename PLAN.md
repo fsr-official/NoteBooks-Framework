@@ -29,18 +29,20 @@ Checklist key: `[x]` done (status checked against the repository and test suite 
 
 Public in production: dev docs, API docs, and the R&D currently going on in the project.
 
-**Content source:** bound to the **NoteBooks-Developers** repository. Pages are fetched from that repo (same pattern as the notes repos), so docs and R&D write-ups are updated by committing to it, not by redeploying the site.
+**Content source:** the `/developers` stream is a first-class library destination backed by the Supabase repository catalog and generated developer tree. It includes both the legacy NoteBooks-Documents content and the NoteBooks-Developers architecture, policy, test-subject, and R&D materials. Changes are published through the signed repository update workflow without redeploying the site.
 
-- [ ] Confirm this is the same thing as the existing **Developers** stream in the library (the five library sections are Lower Secondary, Science, Commerce, Humanities, Developers), or decide how `/developers` and that stream relate
+- [x] Make `/developers` a native top navigation and landing-page destination, backed by the Supabase `developer` stream index
 
 **Structure**
-- `/developers/docs`: stable documentation
+- `/developers/architecture`: architecture references
+- `/developers/policies`: usage, privacy, and licensing guidance
+- `/developers/test-subjects`: production renderer fixtures and expected behaviors
+- `/developers/research-and-development`: parser design notes and experiments
 - `/developers/api`: API docs (added in v2.4.x)
-- `/developers/rnd`: experiments, each marked **Experimental** with a status (Testing / Working / Parked) and the version it targets
-  - `/rnd/desmos`, `/rnd/tikz`, `/rnd/mermaid`, `/rnd/mdx`
+  - MDX is an R&D proposal, not a production compiler; do not execute untrusted JSX or server-compile visitor-authored MDX.
 
 **Rules**
-- R&D pages use the same components and compile path as production, so a passing test means it works in the reader.
+- Test subjects use the production reader and renderer path; R&D proposals remain non-production until implemented and verified.
 - Never compile visitor-written MDX on the server. Only compile files from the repos. A playground, if added, runs fully in the browser.
 - Do not publish internals: admin routes, env var names, internal endpoints, key-routing details.
 - Anything that costs money (AI demo) uses the same Turnstile + Upstash rate limits as the reader.
@@ -111,7 +113,7 @@ Public in production: dev docs, API docs, and the R&D currently going on in the 
 
 ### Added in this roadmap
 
-- [ ] `/developers` shell bound to the NoteBooks-Developers repo, with the R&D page skeletons
+- [x] `/developers` is a native navigation destination backed by the Supabase developer tree and NoteBooks-Developers documentation; MDX remains an explicitly non-production proposal
 
 **Done when:** the reader and library run on Next.js with no feature loss, GitHub login actually logs a user in, the identity migration is applied, Redis is configured, and the import/rebuild path is verified against the remote catalog.
 

@@ -104,8 +104,8 @@ const STREAMS: Array<{ id: LibraryId; route: StreamRoute; title: string; eyebrow
   { id: "developer", route: "developers", title: "Developers", eyebrow: "Build and contribute", description: "Project documentation, guides, and contributor resources.", icon: "⌘" },
 ];
 
-const LANDING_STREAMS = STREAMS.filter((item) => item.id !== "developer");
-const NAV_STREAMS = STREAMS.filter((item) => item.id !== "developer");
+const LANDING_STREAMS = STREAMS;
+const NAV_STREAMS = STREAMS;
 const EMPTY_PREFERENCES: Preferences = {
   fileHistory: [],
   preset: "midnight",
@@ -742,7 +742,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
               <section className="library-stories" id="library-stories" aria-label="Study collections">
                 {LANDING_STREAMS.map((item, index) => (
                   <article className={`library-story story-${item.id} ${index % 2 ? "story-reverse" : ""}`} id={`story-${item.id}`} key={item.id}>
-                    <div className="story-number">0{index + 1} <span>— 04</span></div>
+                    <div className="story-number">0{index + 1} <span>— 05</span></div>
                     <div className="story-copy">
                       <span className="eyebrow"><span className="eyebrow-line" /> {item.eyebrow}</span>
                       <h2>{item.title}</h2>
@@ -752,7 +752,9 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                           ? "Explore biology, chemistry, physics, and mathematics through clear, organized resources. Move between subjects while keeping each idea connected to the bigger picture."
                           : item.id === "commerce"
                             ? "Make sense of business, economics, and accounting with resources designed to bring concepts into focus and connect classroom learning to practical questions."
-                            : "Explore history, civics, culture, and society through materials that invite context, perspective, and thoughtful questions about the world around us."}</p>
+                              : item.id === "humanities"
+                                ? "Explore history, civics, culture, and society through materials that invite context, perspective, and thoughtful questions about the world around us."
+                                : "Explore the architecture, policies, renderer guides, test subjects, and parser research behind the NoteBooks platform."}</p>
                       <Link className="story-link" href={`/${item.route}`} onClick={() => {
                         setExplorerLocation(null);
                         setActiveFile(null);
