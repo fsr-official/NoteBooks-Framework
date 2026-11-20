@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   reconcile:
-    if: github.ref == 'refs/heads/whoami'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
