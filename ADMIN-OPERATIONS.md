@@ -39,6 +39,8 @@ Rotate a secret at its provider, update all matching environments in the same ma
 
 ## Repository and AI recovery
 
+- Repository syncs use 10 deterministic QStash shards, with queue parallelism 1. Repositories always map to the same shard, so their syncs remain serialized; different repositories sharing a shard wait in that shard's FIFO queue.
+- When migrating from the previous per-repository queue names, pause scheduled, webhook, and manual sync triggers and allow all old queues to drain, including retries and duplicate jobs. Do not delete queues with pending or processing messages. After confirming they are empty, delete the old `repo-update-<hash>` queues to free the QStash queue quota, deploy the sharded version, re-enable the triggers, then run one reconciliation and verify all enabled repositories were queued.
 - A missed GitHub webhook can be repaired by running the daily or manually dispatched `repository-reconciliation` workflow. The route confirms that work was enqueued; check QStash and the admin sync-run history to confirm worker completion.
 - An administrator can queue a repository check or rebuild public indexes from `/admin`. Rebuild indexes after restoring the database or when Redis cache contents are missing.
 - Groq rate limits automatically cool down the affected key slot. An administrator can disable a configured slot in `/admin`; re-enabling clears its cooldown. Secret values are changed only in the hosting environment, not in the console.

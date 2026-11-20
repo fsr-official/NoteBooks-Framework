@@ -1,7 +1,7 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
 import { Client, Receiver } from "@upstash/qstash";
+import { repositoryUpdateQueueName } from "@/lib/repository-queue-shards";
 
 export const REPOSITORY_UPDATE_WORKER_PATH = "/api/workflows/repository-update";
 
@@ -34,11 +34,6 @@ function publicWorkerUrl(): string {
   return new URL(REPOSITORY_UPDATE_WORKER_PATH, site.origin).toString();
 }
 
-function repositoryQueueName(repository: string): string {
-  const digest = createHash("sha256").update(repository.toLowerCase()).digest("hex").slice(0, 32);
-  return `repo-update-${digest}`;
-}
-
 export function createQstashClient(): Client {
   const token = requiredEnv("QSTASH_TOKEN");
   return new Client({
@@ -50,7 +45,7 @@ export function createQstashClient(): Client {
 
 export async function enqueueRepositoryUpdate(job: RepositoryUpdateJob): Promise<string> {
   const response = await createQstashClient()
-    .queue({ queueName: repositoryQueueName(job.repository) })
+    .queue({ queueName: repositoryUpdateQueueName(job.repository) })
     .enqueueJSON({
       url: publicWorkerUrl(),
       body: job,
