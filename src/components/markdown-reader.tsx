@@ -372,8 +372,7 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
         <main className="reader-main" aria-live="polite">
           {(state === "loading" || state === "rendering") && (
             <div className="reader-loading-overlay" role="status" aria-live="polite" aria-busy="true">
-              <span className="reader-loading-mark" aria-hidden="true">n</span>
-              <span className="reader-loading-spinner" aria-hidden="true" />
+              <span className="reader-loading-mark" aria-hidden="true">&gt;</span>
               <strong>Rendering your file</strong>
               <span>{state === "loading" ? "Opening the file…" : "Preparing diagrams and math…"}</span>
             </div>

@@ -37,6 +37,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .nav-link { height: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 7px; position: relative; color: var(--muted); font-size: 14px; transition: color .18s ease; white-space: nowrap; }
 .nav-stream-icon { min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--partner); background: color-mix(in srgb, var(--partner) 11%, transparent); font-size: 13px; font-weight: 650; line-height: 1; opacity: .68; transition: opacity .18s ease, box-shadow .18s ease, filter .18s ease; }
 .nav-stream-icon-commerce .nav-icon-glyph { transform: translateY(-1px); }
+.nav-icon-glyph .corporal-rank-icon { width: 15px; height: 15px; display: block; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .nav-home-icon { color: var(--page); background: var(--accent); font: 700 15px Georgia, serif; }
 .nav-link:hover, .nav-link.active { color: var(--text); }
 .nav-link.active .nav-stream-icon { opacity: 1; box-shadow: 0 0 0 1px color-mix(in srgb, var(--partner) 42%, transparent), 0 0 16px color-mix(in srgb, var(--partner) 52%, transparent); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--partner) 58%, transparent)); }
@@ -236,6 +237,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .rupee-pendulum b { width: 43px; height: 43px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border)); border-radius: 50%; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 13%, transparent); font: 600 24px var(--font-dm-sans), sans-serif; }
 .government-loader { fill: none; stroke: color-mix(in srgb, var(--partner) 84%, var(--text)); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 6px 12px color-mix(in srgb, var(--partner) 10%, transparent)); }
 .generic-stream-loader { font: 500 56px/1 var(--font-manrope), sans-serif; animation: generic-loader-float 2.4s ease-in-out infinite; }
+.developer-stream-loader { font: 500 56px/1 var(--font-dm-mono), monospace; animation: generic-loader-float 1.1s ease-in-out infinite; }
 @keyframes atom-electron-spin { to { transform: rotate(360deg); } }
 @keyframes atom-electron-spin-two { from { transform: rotate(60deg); } to { transform: rotate(420deg); } }
 @keyframes atom-electron-spin-three { from { transform: rotate(-60deg); } to { transform: rotate(300deg); } }
@@ -630,6 +632,7 @@ body { font-family: var(--font-dm-sans), var(--font-dm-sans), sans-serif; }
 .story-link span { font-size: 18px; transition: transform .2s ease; }
 .story-link:hover span { transform: translate(3px, -3px); }
 .story-art-symbol { justify-self: center; align-self: center; color: var(--partner); font: 500 clamp(90px, 12vw, 160px)/1 var(--font-manrope), sans-serif; text-align: center; }
+.story-art-symbol .corporal-rank-icon { width: clamp(140px, 16vw, 220px); height: auto; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 12px 28px color-mix(in srgb, var(--partner) 18%, transparent)); }
 .story-commerce .story-art-symbol { color: var(--accent); }
 .story-humanities .story-art-symbol { color: var(--partner); }
 .scroll-reveals-ready .library-story:not(.is-visible) { opacity: .14; transform: translateY(28px); }

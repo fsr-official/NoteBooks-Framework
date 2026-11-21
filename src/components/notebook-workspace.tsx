@@ -107,7 +107,7 @@ const STREAMS: Array<{ id: LibraryId; route: StreamRoute; title: string; eyebrow
   { id: "science", route: "science", title: "Science", eyebrow: "Explore the natural world", description: "Clear notes for biology, chemistry, physics, and mathematics.", icon: "✳" },
   { id: "commerce", route: "commerce", title: "Commerce", eyebrow: "Understand how things work", description: "Business, economics, accounting, and practical knowledge.", icon: "◈" },
   { id: "humanities", route: "humanities", title: "Humanities", eyebrow: "Ideas, people, and society", description: "History, civics, culture, and critical perspectives.", icon: "⌘" },
-  { id: "developer", route: "developers", title: "Developers", eyebrow: "Build and contribute", description: "Project documentation, guides, and contributor resources.", icon: "⌘" },
+  { id: "developer", route: "developers", title: "Developers", eyebrow: "Build and contribute", description: "Project documentation, guides, and contributor resources.", icon: "››" },
 ];
 
 const LANDING_STREAMS = STREAMS;
@@ -255,7 +255,22 @@ function StreamLoadingArt({ stream }: { stream: LibraryId }) {
       </svg>
     );
   }
+  if (stream === "developer") {
+    return <span className="stream-loading-art developer-stream-loader" aria-hidden="true">&gt;</span>;
+  }
   return <span className="stream-loading-art generic-stream-loader" aria-hidden="true">{STREAMS.find((item) => item.id === stream)?.icon ?? "✳"}</span>;
+}
+
+function StreamIconGlyph({ stream, fallback }: { stream: LibraryId; fallback: string }) {
+  if (stream === "developer") {
+    return (
+      <svg className="corporal-rank-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M5 16.5 12 21l7-4.5" />
+        <path d="M5 11.5 12 16l7-4.5" />
+      </svg>
+    );
+  }
+  return <>{fallback}</>;
 }
 
 function parseSession(serialized: string | null): ClientSession | null {
@@ -733,7 +748,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
               }}
             >
               <span className={`nav-stream-icon nav-stream-icon-${item.id}`} aria-hidden="true">
-                <span className="nav-icon-glyph">{item.icon}</span>
+                <span className="nav-icon-glyph"><StreamIconGlyph stream={item.id} fallback={item.icon} /></span>
               </span>
               <span>{item.title}</span>
             </Link>
@@ -857,7 +872,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                         setActiveFile(null);
                       }}>Explore {item.title}<span aria-hidden="true">↗</span></Link>
                     </div>
-                    <span className="story-art-symbol" aria-hidden="true">{item.icon}</span>
+                    <span className="story-art-symbol" aria-hidden="true"><StreamIconGlyph stream={item.id} fallback={item.icon} /></span>
                   </article>
                 ))}
               </section>
