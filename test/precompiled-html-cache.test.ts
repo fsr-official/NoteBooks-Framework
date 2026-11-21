@@ -71,6 +71,22 @@ describe("precompiled HTML cache", () => {
     expect([...entries.values()].some((value) => value.includes("<article"))).toBe(false);
   });
 
+  it("reads cached compiled HTML larger than the ordinary text file limit", async () => {
+    const largeHtml = `<article data-renderer-version="0.2.4">${"x".repeat(2 * 1024 * 1024 + 1)}</article>`;
+    const fileSha = blobSha(largeHtml);
+
+    await cachePrecompiledHtml("owner", "repo", "chapter.html", {
+      branch: "main",
+      commitSha: "b".repeat(40),
+      fileSha,
+    }, largeHtml);
+
+    await expect(getCachedPrecompiledHtml(fileSha)).resolves.toEqual({
+      html: largeHtml,
+      rendererVersion: "0.2.4",
+    });
+  });
+
   it("rejects HTML whose body does not match the catalog blob SHA", async () => {
     await expect(cachePrecompiledHtml("owner", "repo", "chapter.html", {
       branch: "main",

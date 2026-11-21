@@ -1,6 +1,7 @@
 import {
   fetchVerifiedTextFile,
   FileDownloadError,
+  MAX_COMPILED_HTML_BYTES,
   normalizeRepositoryPath,
 } from "@/lib/file-download";
 import {
@@ -125,6 +126,7 @@ export async function servePublicContent(request: Request, kind: ContentKind): P
             path: file.filePath,
             expectedBlobSha: file.fileSha,
             token: process.env.GITHUB_TOKEN,
+            maxBytes: isCompiledHtml ? MAX_COMPILED_HTML_BYTES : undefined,
           });
           const rendererVersion = getSupportedRendererVersion(html);
           try {

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 const GIT_SHA_PATTERN = /^[a-f0-9]{40}$/i;
 const GIT_REF_PATTERN = /^[A-Za-z0-9._/-]{1,255}$/;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
+export const MAX_COMPILED_HTML_BYTES = 8 * 1024 * 1024;
 const FILE_FETCH_TIMEOUT_MS = 15_000;
 
 export class FileDownloadError extends Error {
@@ -39,7 +40,7 @@ function isSafeGitRef(value: string): boolean {
     && value.split("/").every((segment) => segment.length > 0 && segment !== "." && segment !== ".." && !segment.endsWith(".lock"));
 }
 
-async function readLimitedBody(response: Response): Promise<Uint8Array> {
+async function readLimitedBody(response: Response, maxBytes: number): Promise<Uint8Array> {
   if (!response.body) throw new FileDownloadError("GitHub returned an empty response body", 502);
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -50,9 +51,12 @@ async function readLimitedBody(response: Response): Promise<Uint8Array> {
       const { done, value } = await reader.read();
       if (done) break;
       total += value.byteLength;
-      if (total > MAX_FILE_BYTES) {
+      if (total > maxBytes) {
         await reader.cancel();
-        throw new FileDownloadError("Text file exceeds the 2 MiB API limit", 413);
+        throw new FileDownloadError(
+          `Text file exceeds the ${maxBytes / (1024 * 1024)} MiB API limit`,
+          413,
+        );
       }
       chunks.push(value);
     }
@@ -76,6 +80,7 @@ export async function fetchVerifiedTextFile(options: {
   path: string;
   expectedBlobSha: string;
   token?: string;
+  maxBytes?: number;
   fetcher?: typeof fetch;
 }): Promise<string> {
   const {
@@ -85,8 +90,12 @@ export async function fetchVerifiedTextFile(options: {
     path,
     expectedBlobSha,
     token,
+    maxBytes = MAX_FILE_BYTES,
     fetcher = fetch,
   } = options;
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) {
+    throw new FileDownloadError("File size limit is invalid", 500);
+  }
   if (!isSafeGitRef(commitSha) || !GIT_SHA_PATTERN.test(expectedBlobSha)) {
     throw new FileDownloadError("Repository file metadata is invalid", 502);
   }
@@ -112,7 +121,7 @@ export async function fetchVerifiedTextFile(options: {
   if (response.status === 404) throw new FileDownloadError("File is no longer available upstream", 404);
   if (!response.ok) throw new FileDownloadError(`GitHub returned HTTP ${response.status}`, 502);
 
-  const contents = await readLimitedBody(response);
+  const contents = await readLimitedBody(response, maxBytes);
   if (gitBlobSha(contents) !== expectedBlobSha.toLowerCase()) {
     throw new FileDownloadError("File content does not match the catalog SHA", 502);
   }
