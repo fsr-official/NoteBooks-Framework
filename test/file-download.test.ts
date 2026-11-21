@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchVerifiedMarkdownFile,
   fetchVerifiedTextFile,
+  MAX_COMPILED_HTML_BYTES,
   normalizeMarkdownPath,
   normalizeRepositoryPath,
 } from "../src/lib/file-download";
@@ -64,6 +65,31 @@ describe("Markdown file download", () => {
     expect(fetcher.mock.calls[0][0]).toBe(
       "https://raw.githubusercontent.com/owner/repo/release/v2/src/answer.ts",
     );
+  });
+
+  it("keeps the default text limit while allowing bounded larger compiled HTML", async () => {
+    const largeContent = "x".repeat(2 * 1024 * 1024 + 1);
+    const largeSha = createHash("sha1")
+      .update(Buffer.from(`blob ${Buffer.byteLength(largeContent)}\0`))
+      .update(largeContent)
+      .digest("hex");
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(
+      async () => new Response(largeContent),
+    );
+    const file = {
+      owner: "owner",
+      repository: "repo",
+      commitSha: "a".repeat(40),
+      path: "chapter.html",
+      expectedBlobSha: largeSha,
+      fetcher,
+    };
+
+    await expect(fetchVerifiedTextFile(file)).rejects.toMatchObject({ status: 413 });
+    await expect(fetchVerifiedTextFile({
+      ...file,
+      maxBytes: MAX_COMPILED_HTML_BYTES,
+    })).resolves.toBe(largeContent);
   });
 
   it("rejects content that does not match the catalog blob SHA", async () => {

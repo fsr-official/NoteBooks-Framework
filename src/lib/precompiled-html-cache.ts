@@ -2,11 +2,11 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
+import { MAX_COMPILED_HTML_BYTES } from "@/lib/file-download";
 import { getRedisClient } from "@/lib/public-index-cache";
 
 const CACHE_KEY_PREFIX = "notebooks:precompiled-html:v1";
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
-const MAX_HTML_BYTES = 2 * 1024 * 1024;
 const SHA_PATTERN = /^[a-f0-9]{40}$/i;
 const VERSION_PATTERN = /^0\.2\.\d+$/;
 
@@ -87,7 +87,7 @@ async function getCachedContent(
   let html: string;
   try {
     html = gunzipSync(Buffer.from(record.body, "base64"), {
-      maxOutputLength: MAX_HTML_BYTES,
+      maxOutputLength: MAX_COMPILED_HTML_BYTES,
     }).toString("utf8");
   } catch (error) {
     throw new Error("Redis returned a corrupt compiled HTML cache entry", { cause: error });
@@ -120,6 +120,9 @@ export async function cachePrecompiledHtml(
   html: string,
 ): Promise<void> {
   const rendererVersion = getSupportedRendererVersion(html);
+  if (Buffer.byteLength(html, "utf8") > MAX_COMPILED_HTML_BYTES) {
+    throw new Error("Compiled HTML exceeds the 8 MiB cache limit");
+  }
   if (
     !SHA_PATTERN.test(file.fileSha)
     || !SHA_PATTERN.test(file.commitSha)
