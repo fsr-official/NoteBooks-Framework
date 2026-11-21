@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { NoteSearchBlock, NoteSection } from "@/lib/markdown/renderer";
 import { isAiTier, type AiTier } from "@/lib/ai-tiers";
 import { createWildcardMatcher } from "@/lib/markdown/search";
+import { withDesmosTheme } from "@/lib/desmos-theme";
 import type { ReaderChatPanelProps } from "@/components/reader-chat-panel";
 import type { ReaderFile } from "@/lib/reader-types";
 
@@ -749,7 +750,10 @@ export function NextMarkdownReader({
                 const graph = document.createElement("div");
                 graph.className = "desmos-calculator";
                 block.replaceChildren(graph);
-                const calculator = desmos.GraphingCalculator(graph, entry.result.output.options);
+                const calculator = desmos.GraphingCalculator(
+                  graph,
+                  withDesmosTheme(entry.result.output.options, document.documentElement.dataset.mode),
+                );
                 const setExpressions = calculator.setExpressions;
                 const updateSettings = calculator.updateSettings;
                 const setMathBounds = calculator.setMathBounds;
@@ -829,7 +833,10 @@ export function NextMarkdownReader({
               block.replaceChildren(calculatorHost);
               let calculator: DesmosCalculator | null = null;
               try {
-                calculator = desmos.Calculator3D(calculatorHost, result.output.options);
+                calculator = desmos.Calculator3D(
+                  calculatorHost,
+                  withDesmosTheme(result.output.options, document.documentElement.dataset.mode),
+                );
                 const setExpressions = calculator?.setExpressions;
                 const updateSettings = calculator?.updateSettings;
                 const setMathBounds = calculator?.setMathBounds;

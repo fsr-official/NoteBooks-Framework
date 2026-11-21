@@ -18,6 +18,8 @@ const repository: PublicRepositoryRecord = {
   fallback: null,
   id: "repo-id",
   lfs: false,
+  last_commit_sha: "b".repeat(40),
+  mdx_styled_rendering: false,
   pages: true,
   priority: 1,
   registry_name: "Science Notes",
@@ -45,6 +47,7 @@ describe("public indexes", () => {
     expect(document.entries["owner/notes/physics/lesson.pdf"]).toMatchObject({
       filePath: "physics/lesson.pdf",
       fileSha: "a".repeat(40),
+      commitSha: "b".repeat(40),
     });
     expect(formats.jsonl.split("\n").filter(Boolean)).toHaveLength(1);
     expect(JSON.parse(formats.jsonl.trim())).toHaveProperty("repositoryId", "repo-id");
@@ -53,14 +56,34 @@ describe("public indexes", () => {
   it("builds the repository lookup with stable GitHub identifiers", () => {
     const formats = buildRepositoryIndex([repository]);
     const document = JSON.parse(formats.json) as {
-      entries: Record<string, { branch: string; classOrStream: string }>;
+      entries: Record<string, { branch: string; classOrStream: string; mdxStyledRendering: boolean }>;
     };
 
     expect(document.entries["owner/notes"]).toMatchObject({
       branch: "main",
       classOrStream: "science",
+      commitSha: "b".repeat(40),
+      mdxStyledRendering: false,
     });
     expect(JSON.parse(formats.jsonl.trim())).toHaveProperty("name", "Science Notes");
+  });
+
+  it("only exposes compiled HTML in indexes for repositories with MDX rendering enabled", () => {
+    const htmlFile: PublicFileRecord = {
+      file_name: "chapter.html",
+      file_path: "AI-NOTES/chapter.html",
+      file_sha: "c".repeat(40),
+      repo_id: "repo-id",
+    };
+
+    expect(JSON.parse(buildSectionIndex([repository], [htmlFile]).json).entries).toEqual({});
+    expect(JSON.parse(buildSectionIndex(
+      [{ ...repository, mdx_styled_rendering: true }],
+      [htmlFile],
+    ).json).entries["owner/notes/AI-NOTES/chapter.html"]).toMatchObject({
+      filePath: "AI-NOTES/chapter.html",
+      fileSha: "c".repeat(40),
+    });
   });
 
   it("restricts public assets to the six known indexes and both supported formats", () => {

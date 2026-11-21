@@ -1,10 +1,10 @@
+import { createHash } from "node:crypto";
 import { compile, run } from "@mdx-js/mdx";
 import katex from "katex";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { createElement, Fragment, isValidElement, type ComponentPropsWithoutRef, type ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { jsx, jsxs } from "react/jsx-runtime";
 import type { MDXComponents } from "mdx/types";
 import { isTrustedMdxRepository } from "@/lib/mdx-feature-flag";
@@ -35,6 +35,12 @@ type RenderState = {
   source: RenderNoteSource;
 };
 type MdxComponentProps = { children?: ReactNode; [key: string]: unknown };
+type CompiledCacheEntry = { code: string; bytes: number };
+
+const MAX_COMPILED_CACHE_ENTRIES = 64;
+const MAX_COMPILED_CACHE_BYTES = 8 * 1024 * 1024;
+const compiledCache = new Map<string, CompiledCacheEntry>();
+let compiledCacheBytes = 0;
 
 export class MdxCompileError extends Error {
   constructor(
@@ -253,6 +259,33 @@ function createMdxComponents(state: RenderState): MDXComponents {
   return components;
 }
 
+function getCachedCompiledMdx(key: string): string | null {
+  const entry = compiledCache.get(key);
+  if (!entry) return null;
+  compiledCache.delete(key);
+  compiledCache.set(key, entry);
+  return entry.code;
+}
+
+function cacheCompiledMdx(key: string, code: string): void {
+  const existing = compiledCache.get(key);
+  if (existing) {
+    compiledCacheBytes -= existing.bytes;
+    compiledCache.delete(key);
+  }
+  const bytes = Buffer.byteLength(code);
+  if (bytes > MAX_COMPILED_CACHE_BYTES) return;
+  compiledCache.set(key, { code, bytes });
+  compiledCacheBytes += bytes;
+  while (compiledCache.size > MAX_COMPILED_CACHE_ENTRIES || compiledCacheBytes > MAX_COMPILED_CACHE_BYTES) {
+    const oldestKey = compiledCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    const oldest = compiledCache.get(oldestKey);
+    if (oldest) compiledCacheBytes -= oldest.bytes;
+    compiledCache.delete(oldestKey);
+  }
+}
+
 export async function compileMdx(source: string): Promise<string> {
   const compiled = await compile(source.replace(/\r\n?/g, "\n"), {
     development: false,
@@ -274,7 +307,13 @@ export async function renderMdxNote(
     );
   }
   const body = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
-  const compiled = await compileMdx(body);
+  const contentHash = createHash("sha256").update(body).digest("hex");
+  const cacheKey = `${sourceInfo.owner}/${sourceInfo.repository}/${sourceInfo.filePath}:${contentHash}`;
+  let compiled = getCachedCompiledMdx(cacheKey);
+  if (!compiled) {
+    compiled = await compileMdx(body);
+    cacheCompiledMdx(cacheKey, compiled);
+  }
   const compiledMdx = await run(compiled, { Fragment, jsx, jsxs });
   const state: RenderState = {
     figures: [],
@@ -290,6 +329,7 @@ export async function renderMdxNote(
     ...applicationComponents,
     ...createMdxComponents(state),
   };
+  const { renderToStaticMarkup } = await import("react-dom/server");
   const html = renderToStaticMarkup(createElement(compiledMdx.default, { components }));
   return {
     html,
