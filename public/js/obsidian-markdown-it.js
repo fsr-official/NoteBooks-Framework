@@ -2332,6 +2332,19 @@
             var rawSource = div.textContent;
             // Render middle dots through the math-symbol font instead of the missing text glyph.
             var tikzSource = rawSource.replace(/\u00b7/g, '\\ensuremath{\\cdot}');
+            // TikZJax does not bundle arrows.meta; use its built-in arrow tips.
+            tikzSource = tikzSource
+                .replace(/\\usetikzlibrary\{([^}]*)\}/g, function (_match, libraries) {
+                    var supported = libraries.split(',').map(function (library) {
+                        return library.trim();
+                    }).filter(function (library) {
+                        return library && library.toLowerCase() !== 'arrows.meta';
+                    });
+                    return supported.length ? '\\usetikzlibrary{' + supported.join(',') + '}' : '';
+                })
+                .replace(/<={[^}]*}\s*,\s*/g, '')
+                .replace(/,\s*<={[^}]*}/g, '')
+                .replace(/\bStealth(?:\s*\[[^\]]*\])?/g, 'stealth');
             var parsed = extractPreamble(tikzSource);
             var s = document.createElement('script');
             s.type = 'text/tikz';

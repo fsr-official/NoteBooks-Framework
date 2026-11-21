@@ -734,7 +734,7 @@ export function NextMarkdownReader({
           });
           const runnableBlocks = compiledBlocks.filter(({ result }) => result.ok);
           if (runnableBlocks.length) {
-            await loadScript("/api/desmos.js", 15_000);
+            await loadScript("/api/desmos.js", 30_000);
             if (!active) return true;
           }
           const desmos = runtime.Desmos;
@@ -813,7 +813,7 @@ export function NextMarkdownReader({
           });
           const runnableBlocks = compiledBlocks.filter(({ result }) => result.ok);
           if (runnableBlocks.length) {
-            await loadScript("/api/desmos3d.js", 15_000);
+            await loadScript("/api/desmos3d.js", 30_000);
             if (!active) return true;
           }
           const desmos = runtime.Desmos;
