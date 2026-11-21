@@ -25,7 +25,7 @@ export async function getDesmosApiScript(kind: DesmosApiKind): Promise<Response>
   const apiKey = process.env.DESMOS_API_KEY?.trim();
   if (!apiKey) return scriptResponse(UNAVAILABLE_SCRIPT, 60);
 
-  const url = `https://www.desmos.com/api/v1.11/calculator.js?apiKey=${encodeURIComponent(apiKey)}`;
+  const url = `https://www.desmos.com/api/v1.11.4/calculator.js?apiKey=${encodeURIComponent(apiKey)}`;
   try {
     const response = await fetch(url, {
       headers: { Accept: "application/javascript, text/javascript, */*;q=0.8" },

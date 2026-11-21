@@ -1,4 +1,4 @@
-const DESMOS_API = "https://www.desmos.com/api/v1.11/calculator.js";
+const DESMOS_API = "https://www.desmos.com/api/v1.11.4/calculator.js";
 const desmosLoads = new Map();
 
 function chapterData(root) {
