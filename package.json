@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "mdx:bench": "node --import tsx scripts/benchmark-mdx-compiler.mts",
+    "mdx:bench": "vitest run test/mdx-compiler-benchmark.test.ts --reporter=verbose --silent=false",
     "indexes:rebuild": "tsx scripts/rebuild-public-indexes.ts",
     "redis:verify": "tsx redis/verify-public-indexes.ts",
     "repos:sync": "tsx scripts/import-repositories.ts",

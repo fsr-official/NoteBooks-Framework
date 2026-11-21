@@ -12,6 +12,12 @@ import {
 } from "@/lib/public-content";
 import { cacheFileContent, getCachedFileContent } from "@/lib/file-content-cache";
 import { createMediaResponse } from "@/lib/media-range";
+import {
+  cachePrecompiledHtml,
+  getCachedPrecompiledHtml,
+  getLastKnownGoodPrecompiledHtml,
+  getSupportedRendererVersion,
+} from "@/lib/precompiled-html-cache";
 
 type ContentKind = "markdown" | "media";
 
@@ -63,10 +69,11 @@ export async function servePublicContent(request: Request, kind: ContentKind): P
 
   const contentType = kind === "markdown" ? textContentType(path) : mediaContentType(path);
   if (!contentType) return errorResponse("Unsupported media file type", 415);
+  const isCompiledHtml = kind === "markdown" && /\.html$/i.test(path);
 
   try {
     const file = await getCatalogFile(owner, repository, path);
-    if (!file) return errorResponse("Repository file not found", 404);
+    if (!file) throw new FileDownloadError("Repository file not found", 404);
 
     const etag = `"${file.fileSha}"`;
     const headers = new Headers({
@@ -78,21 +85,107 @@ export async function servePublicContent(request: Request, kind: ContentKind): P
       "X-File-SHA": file.fileSha,
       "X-Repository": `${file.owner}/${file.repository}`,
       "X-Repository-Branch": file.branch,
+      ...(file.commitSha ? { "X-Repository-Commit-SHA": file.commitSha } : {}),
     });
     if (contentType === "image/svg+xml") {
       headers.set("Content-Security-Policy", "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'");
     }
-    if (request.headers.get("if-none-match") === etag) {
+    if (request.headers.get("if-none-match") === etag && !isCompiledHtml) {
       return new Response(null, { status: 304, headers });
     }
 
     if (kind === "markdown") {
+      if (isCompiledHtml) {
+        let cached: Awaited<ReturnType<typeof getCachedPrecompiledHtml>> = null;
+        try {
+          cached = await getCachedPrecompiledHtml(file.fileSha);
+        } catch (error) {
+          console.warn("Compiled HTML cache could not be read", {
+            owner,
+            repository,
+            path,
+            reason: error instanceof Error ? error.message : String(error),
+          });
+        }
+        if (cached) {
+          if (request.headers.get("if-none-match") === etag) {
+            return new Response(null, { status: 304, headers });
+          }
+          return new Response(cached.html, { headers });
+        }
+
+        try {
+          if (!file.commitSha) {
+            throw new FileDownloadError("Compiled HTML metadata is missing its repository commit SHA", 503);
+          }
+          const html = await fetchVerifiedTextFile({
+            owner: file.owner,
+            repository: file.repository,
+            commitSha: file.commitSha,
+            path: file.filePath,
+            expectedBlobSha: file.fileSha,
+            token: process.env.GITHUB_TOKEN,
+          });
+          const rendererVersion = getSupportedRendererVersion(html);
+          try {
+            await cachePrecompiledHtml(owner, repository, path, {
+              branch: file.branch,
+              commitSha: file.commitSha,
+              fileSha: file.fileSha,
+            }, html);
+          } catch (error) {
+            console.warn("Verified compiled HTML could not be cached", {
+              owner,
+              repository,
+              path,
+              rendererVersion,
+              reason: error instanceof Error ? error.message : String(error),
+            });
+          }
+          if (request.headers.get("if-none-match") === etag) {
+            return new Response(null, { status: 304, headers });
+          }
+          return new Response(html, { headers });
+        } catch (error) {
+          let stale: Awaited<ReturnType<typeof getLastKnownGoodPrecompiledHtml>> = null;
+          try {
+            stale = await getLastKnownGoodPrecompiledHtml(owner, repository, path);
+          } catch (cacheError) {
+            console.error("Last-known-good compiled HTML could not be read", {
+              owner,
+              repository,
+              path,
+              reason: cacheError instanceof Error ? cacheError.message : String(cacheError),
+            });
+          }
+          if (stale) {
+            console.warn("Serving last-known-good compiled HTML after refresh failure", {
+              owner,
+              repository,
+              path,
+              failedFileSha: file.fileSha,
+              servedFileSha: stale.fileSha,
+              reason: error instanceof Error ? error.message : String(error),
+            });
+            const staleHeaders = new Headers(headers);
+            staleHeaders.set("Cache-Control", "no-store");
+            staleHeaders.set("ETag", `"${stale.fileSha}"`);
+            staleHeaders.set("X-File-SHA", stale.fileSha);
+            staleHeaders.set("X-Repository-Branch", stale.branch);
+            staleHeaders.set("X-Repository-Commit-SHA", stale.commitSha);
+            staleHeaders.set("X-Compiled-HTML-Stale", "true");
+            return new Response(stale.html, { headers: staleHeaders });
+          }
+          throw error;
+        }
+      }
+
       let body = await getCachedFileContent(file.fileSha);
       if (body === null) {
         body = await fetchVerifiedTextFile({
           owner: file.owner,
           repository: file.repository,
-          commitSha: file.branch,
+          commitSha: file.commitSha ?? file.branch,
           path: file.filePath,
           expectedBlobSha: file.fileSha,
           token: process.env.GITHUB_TOKEN,
@@ -120,7 +213,7 @@ export async function servePublicContent(request: Request, kind: ContentKind): P
     return createMediaResponse(request, body, headers);
   } catch (error) {
     if (error instanceof FileDownloadError) return errorResponse(error.message, error.status);
-    console.error(`Public ${kind} file retrieval failed`, error);
+    console.error(`Public ${isCompiledHtml ? "compiled HTML" : kind} file retrieval failed`, error);
     return errorResponse("Public file service is unavailable", 503);
   }
 }

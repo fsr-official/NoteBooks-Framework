@@ -1,13 +1,14 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { compileMdx, MdxCompileError, renderMdxNote } from "@/lib/markdown/mdx-compiler";
 
-const compilerGuide = readFileSync(
-  resolve(process.cwd(), "../NoteBooks-Developers/research-and-development/mdx-compiler.mdx"),
-  "utf8",
+const compilerGuidePath = resolve(
+  process.cwd(),
+  "../NoteBooks-Developers/research-and-development/mdx-compiler.mdx",
 );
+const compilerGuide = existsSync(compilerGuidePath) ? readFileSync(compilerGuidePath, "utf8") : null;
 const sourceInfo = {
   owner: "notebooks",
   repository: "developers",
@@ -111,20 +112,24 @@ describe("renderMdxNote", () => {
     ]);
   });
 
-  it("compiles and renders this guide as its own test fixture", async () => {
-    process.env.TRUSTED_MDX_REPOSITORIES = "notebooks/developers";
-    const rendered = await renderMdxNote(compilerGuide, sourceInfo);
+  if (compilerGuide) {
+    it("compiles and renders this guide as its own test fixture", async () => {
+      process.env.TRUSTED_MDX_REPOSITORIES = "notebooks/developers";
+      const rendered = await renderMdxNote(compilerGuide, sourceInfo);
 
-    expect(rendered.html).toContain('id="react-elements-available-to-mdx"');
-    expect(rendered.html).toContain('id="supported-markdown-and-note-features"');
-    expect(rendered.html).toContain('data-type="note"');
-    expect(rendered.html).toContain("katex");
-    expect(rendered.figures.map(({ type }) => type)).toEqual([
-      "mermaid",
-      "tikz",
-      "desmos",
-      "desmos3d",
-    ]);
-    expect(rendered.html).not.toContain("<script>");
-  });
+      expect(rendered.html).toContain('id="react-elements-available-to-mdx"');
+      expect(rendered.html).toContain('id="supported-markdown-and-note-features"');
+      expect(rendered.html).toContain('data-type="note"');
+      expect(rendered.html).toContain("katex");
+      expect(rendered.figures.map(({ type }) => type)).toEqual([
+        "mermaid",
+        "tikz",
+        "desmos",
+        "desmos3d",
+      ]);
+      expect(rendered.html).not.toContain("<script>");
+    });
+  } else {
+    it.skip("compiles and renders this guide as its own test fixture", () => {});
+  }
 });
