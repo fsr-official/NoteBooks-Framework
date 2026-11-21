@@ -181,6 +181,29 @@ export function PrecompiledHtmlReader({
   }, []);
 
   useEffect(() => {
+    if (!contentElement?.querySelector(".katex, .katex-display")) return;
+    let active = true;
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        void import("katex/dist/katex.min.css").catch((error: unknown) => {
+          if (!active) return;
+          console.error("Could not load compiled reader math styles", error);
+          setRuntimeError({
+            html,
+            message: "Some equations could not be styled. Please reload the note.",
+          });
+        });
+      });
+    });
+    return () => {
+      active = false;
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [contentElement, html]);
+
+  useEffect(() => {
     if (!chatOpen || ChatPanel) return;
     let active = true;
     import("../reader-chat-panel")
