@@ -9,6 +9,37 @@ function chapterData(root) {
   return data;
 }
 
+function showFeatureError(container, error) {
+  if (container.querySelector(":scope > .reader-feature-error")) return;
+  const message = document.createElement("span");
+  message.className = "reader-feature-error";
+  message.setAttribute("role", "alert");
+  message.textContent = error instanceof Error
+    ? `This feature could not be loaded: ${error.message}`
+    : `This feature could not be loaded: ${String(error)}`;
+  container.append(message);
+}
+
+function protectFeature(container, action) {
+  return (...args) => {
+    try {
+      return action(...args);
+    } catch (error) {
+      console.error("Compiled reader feature failed", error);
+      showFeatureError(container, error);
+    }
+  };
+}
+
+function attachFeature(container, action) {
+  try {
+    action();
+  } catch (error) {
+    console.error("Compiled reader feature could not be initialized", error);
+    showFeatureError(container, error);
+  }
+}
+
 function targetHeading(root, sectionId) {
   return [...root.querySelectorAll(
     "h1[data-section-id],h2[data-section-id],h3[data-section-id],h4[data-section-id],h5[data-section-id],h6[data-section-id]",
@@ -68,6 +99,7 @@ function activateGlossary(root, data, cleanups) {
     if (!entry) {
       button.setAttribute("aria-invalid", "true");
       button.title = `Missing glossary entry: ${termId || "unknown"}`;
+      showFeatureError(button.parentElement || root, new Error(button.title));
       return;
     }
     const existing = button.parentElement.querySelector(".chapter-glossary-popover");
@@ -85,11 +117,13 @@ function activateGlossary(root, data, cleanups) {
     button.setAttribute("aria-expanded", "true");
   };
   const scroll = () => hide();
-  root.addEventListener("click", click);
-  window.addEventListener("scroll", scroll, true);
+  const guardedClick = protectFeature(root, click);
+  const guardedScroll = protectFeature(root, scroll);
+  root.addEventListener("click", guardedClick);
+  window.addEventListener("scroll", guardedScroll, true);
   cleanups.push(() => {
-    root.removeEventListener("click", click);
-    window.removeEventListener("scroll", scroll, true);
+    root.removeEventListener("click", guardedClick);
+    window.removeEventListener("scroll", guardedScroll, true);
   });
 }
 
@@ -139,9 +173,10 @@ function attachChapterLayout(root, cleanups) {
     const button = event.target.closest("[data-reader-pane]");
     if (button) setPane(button.dataset.readerPane);
   };
-  tabs.addEventListener("click", tabClick);
+  const guardedTabClick = protectFeature(tabs, tabClick);
+  tabs.addEventListener("click", guardedTabClick);
   setPane("notes");
-  cleanups.push(() => tabs.removeEventListener("click", tabClick));
+  cleanups.push(() => tabs.removeEventListener("click", guardedTabClick));
 
   const factsList = [...facts.querySelectorAll(".chapter-reader-fact")];
   let activeFact;
@@ -197,7 +232,7 @@ function attachChapterLayout(root, cleanups) {
     }
   };
 
-  const observer = new IntersectionObserver((entries) => {
+  const observeSections = protectFeature(facts, (entries) => {
     const visible = entries
       .filter((entry) => entry.isIntersecting)
       .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top)[0];
@@ -207,7 +242,12 @@ function attachChapterLayout(root, cleanups) {
     for (const link of outline.querySelectorAll("a[data-section-id]")) {
       link.classList.toggle("is-active", link.dataset.sectionId === sectionId);
     }
-  }, { root: notes, rootMargin: "-15% 0px -70% 0px", threshold: 0 });
+  });
+  const observer = new IntersectionObserver(observeSections, {
+    root: notes,
+    rootMargin: "-15% 0px -70% 0px",
+    threshold: 0,
+  });
   for (const heading of notes.querySelectorAll("[data-section-id]")) observer.observe(heading);
   cleanups.push(() => observer.disconnect());
   cleanups.push(() => {
@@ -241,9 +281,12 @@ function attachChapterLayout(root, cleanups) {
       scrollToHeading(root, back.dataset.returnSection);
     }
   };
-  root.addEventListener("click", navigate);
-  cleanups.push(() => root.removeEventListener("click", navigate));
-  updateFacts(notes.querySelector("[data-section-id]")?.dataset.sectionId || "");
+  const guardedNavigate = protectFeature(root, navigate);
+  root.addEventListener("click", guardedNavigate);
+  cleanups.push(() => root.removeEventListener("click", guardedNavigate));
+  protectFeature(facts, () => {
+    updateFacts(notes.querySelector("[data-section-id]")?.dataset.sectionId || "");
+  })();
 }
 
 function openDiagram(root, svg, title, cleanups) {
@@ -286,6 +329,7 @@ function attachDiagrams(root, cleanups) {
         openDiagram(root, svg, figure.dataset.diagramKind || "Diagram", cleanups);
       } catch (error) {
         figure.dataset.error = error instanceof Error ? error.message : String(error);
+        showFeatureError(figure, error);
       }
     });
     figure.append(button);
@@ -391,22 +435,26 @@ export function attachChapterReader(root, options = {}) {
   const data = chapterData(root);
   const cleanups = [];
   root.dataset.readerAttached = "true";
+  cleanups.push(() => {
+    for (const message of root.querySelectorAll(".reader-feature-error")) message.remove();
+  });
   try {
     if (root.dataset.kind === "chapter") {
-      attachChapterLayout(root, cleanups);
-      activateGlossary(root, data, cleanups);
-      attachDiagrams(root, cleanups);
-      attachDesmos(root, options.desmosApiKey || "", cleanups);
+      attachFeature(root, () => attachChapterLayout(root, cleanups));
+      attachFeature(root, () => activateGlossary(root, data, cleanups));
+      attachFeature(root, () => attachDiagrams(root, cleanups));
+      attachFeature(root, () => attachDesmos(root, options.desmosApiKey || "", cleanups));
     } else {
-      const outline = makePageOutline(root, data);
-      if (outline) {
+      attachFeature(root, () => {
+        const outline = makePageOutline(root, data);
+        if (!outline) return;
         const content = root.querySelector("[data-content]");
         const layout = document.createElement("div");
         layout.className = "page-reader-layout";
         layout.append(outline);
         if (content) layout.append(content);
         root.append(layout);
-      }
+      });
     }
   } catch (error) {
     root.dataset.readerAttached = "false";
