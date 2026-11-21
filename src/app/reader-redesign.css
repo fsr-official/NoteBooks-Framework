@@ -72,7 +72,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   border-radius: 14px 14px 14px 4px;
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
-  font: 700 25px Georgia, serif;
+  font: 700 25px/1 var(--font-dm-mono), monospace;
+  animation: read-route-pulse 1.1s ease-in-out infinite;
 }
 .read-route-loading-spinner {
   width: 22px;
@@ -86,6 +87,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .read-route-loading-card strong { font: 650 15px var(--font-manrope), sans-serif; }
 .read-route-loading-card > span:last-child { color: var(--muted); font: 12px/1.6 var(--font-dm-sans), sans-serif; }
 @keyframes read-route-spin { to { transform: rotate(360deg); } }
+@keyframes read-route-pulse { 50% { opacity: .45; transform: translateX(4px); } }
 
 .next-reader-toolbar {
   position: sticky;

@@ -64,13 +64,13 @@
       "lfs": false
     },
     {
-      "name": "NoteBooks-Documents",
+      "name": "NoteBooks-Developers",
       "stream": "developers",
-      "repo": "fsr-official/NoteBooks-Documents",
+      "repo": "fsr-official/NoteBooks-Developers",
       "branch": "main",
       "root": "",
       "enabled": true,
-      "priority": 6,
+      "priority": 16,
       "pages": false,
       "empty": false,
       "lfs": false,

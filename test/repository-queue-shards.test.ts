@@ -5,6 +5,10 @@ import {
 } from "../src/lib/repository-queue-shards";
 
 describe("repositoryUpdateQueueName", () => {
+  it("uses exactly five fixed queue shards", () => {
+    expect(REPOSITORY_UPDATE_QUEUE_SHARD_COUNT).toBe(5);
+  });
+
   it("maps a repository consistently and without case sensitivity", () => {
     expect(repositoryUpdateQueueName("fsr-science/NCERT-Science"))
       .toBe(repositoryUpdateQueueName("FSR-SCIENCE/ncert-science"));

@@ -154,7 +154,7 @@
 .reader-main .markdown-content { padding-bottom: 60px; }
 .reader-message { width: min(780px, 100%); margin: 5vh auto 0; padding: 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--muted); font-size: 13px; line-height: 1.6; }
 .reader-loading-overlay { position: absolute; z-index: 8; inset: 0; display: grid; align-content: center; justify-items: center; gap: 12px; padding: 24px; background: color-mix(in srgb, var(--page) 94%, transparent); backdrop-filter: blur(10px); text-align: center; }
-.reader-loading-mark { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: 14px 14px 14px 4px; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); font: 700 25px Georgia, serif; }
+.reader-loading-mark { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius: 14px 14px 14px 4px; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); font: 700 25px/1 var(--font-dm-mono), monospace; animation: read-route-pulse 1.1s ease-in-out infinite; }
 .reader-loading-spinner { width: 22px; height: 22px; border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: read-route-spin .75s linear infinite; }
 .reader-loading-overlay strong { color: var(--text); font: 650 15px var(--font-manrope), sans-serif; }
 .reader-loading-overlay > span:last-child { color: var(--muted); font: 12px/1.6 var(--font-dm-sans), sans-serif; }

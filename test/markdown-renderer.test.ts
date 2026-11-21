@@ -91,6 +91,42 @@ describe("renderNote", () => {
     expect(result.html).toContain("katex");
   });
 
+  it("renders NCERT inline, bracketed, and bare begin/end LaTeX delimiters", () => {
+    const result = renderNote(String.raw`
+Inline \(x^2+1=0\).
+
+\[
+x^2=-1
+\]
+
+> \begin{aligned}
+> x &= 1
+> \end{aligned}
+`);
+
+    expect(result.html.match(/class="katex"/g)).toHaveLength(3);
+    expect(result.html).toContain('class="katex-display"');
+  });
+
+  it("normalizes inconsistent math delimiters found in repository notes", () => {
+    const result = renderNote(String.raw`
+Cross-force pair: \(N_A$–$e_B\).
+
+Frequency: Hz $= $ s⁻¹; dimension $[T^{-1}]$.
+
+$$I = \sum_i m_i r_i^2 \quad \text{(mass $m$ is common)}$$
+
+Potential energy: $V = $ sum over all **pairs**, $-Gm_im_j/r_{ij}$.
+`);
+
+    expect(result.html).not.toContain("katex-error");
+    expect(result.html.match(/class="katex"/g)).toHaveLength(6);
+    expect(result.html).toContain("<strong>pairs</strong>");
+    expect(result.html).toContain('class="katex-display"');
+
+    expect(renderNote("Code: ``$V = $``.").html).toContain("<code>$V = $</code>");
+  });
+
   it("renders standalone and custom callouts in the server reader", () => {
     const result = renderNote([
       "# Chitin",
@@ -233,6 +269,15 @@ describe("renderNote", () => {
     expect(result.html).toContain('src="/api/media?owner=owner&amp;repo=repo&amp;path=physics%2Fdiagram.png"');
     expect(result.html).toContain('data-task="in-progress"');
     expect(result.searchIndex.some((block) => block.text.includes("important text related #revision/topic"))).toBe(true);
+  });
+
+  it("renders valid HTML attributes for standard task-list checkboxes", () => {
+    const result = renderNote("- [ ] To do\n- [x] Done");
+
+    expect(result.html).toContain('<input class="task-list-item-checkbox" type="checkbox">');
+    expect(result.html).toContain('<input class="task-list-item-checkbox" checked="" type="checkbox">');
+    expect(result.html).not.toContain('checkbox"type=');
+    expect(result.html).not.toContain('""type=');
   });
 
   it("keeps all headings and searchable text in a long chapter", () => {

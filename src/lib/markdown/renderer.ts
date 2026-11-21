@@ -219,13 +219,90 @@ function calloutLabel(type: string): string {
   return type.replace(/-/g, " ").replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
 }
 
+function replaceOutsideInlineCode(
+  source: string,
+  transform: (text: string) => string,
+): string {
+  let output = "";
+  let cursor = 0;
+  let plainStart = 0;
+
+  while (cursor < source.length) {
+    if (source[cursor] !== "`") {
+      cursor += 1;
+      continue;
+    }
+
+    let delimiterEnd = cursor + 1;
+    while (source[delimiterEnd] === "`") delimiterEnd += 1;
+    const delimiter = source.slice(cursor, delimiterEnd);
+    let closing = source.indexOf(delimiter, delimiterEnd);
+    while (closing >= 0
+      && (source[closing - 1] === "`" || source[closing + delimiter.length] === "`")) {
+      closing = source.indexOf(delimiter, closing + delimiter.length);
+    }
+    if (closing < 0) {
+      cursor = delimiterEnd;
+      continue;
+    }
+
+    output += transform(source.slice(plainStart, cursor));
+    output += source.slice(cursor, closing + delimiter.length);
+    cursor = closing + delimiter.length;
+    plainStart = cursor;
+  }
+
+  return output + transform(source.slice(plainStart));
+}
+
+function normalizeInlineMathSource(source: string): string {
+  const removeNestedDollarDelimiters = (math: string) =>
+    math.replace(/(?<!\\)\$([^$\r\n]+)(?<!\\)\$/g, "$1");
+
+  const displayMath = source.match(/^(\s*)\$\$([\s\S]*?)\$\$(\s*)$/);
+  if (displayMath) {
+    return `${displayMath[1]}$$${removeNestedDollarDelimiters(displayMath[2])}$$${displayMath[3]}`;
+  }
+
+  return source.replace(/(\r?\n)|([^\r\n]+)/g, (line, newline: string | undefined, content: string | undefined) => {
+    if (newline) return newline;
+    return (content ?? "")
+      .replace(/\$\$([\s\S]*?)\$\$/g, (_match, math: string) => `$$${removeNestedDollarDelimiters(math)}$$`)
+      .replace(/\\\((.*?)\\\)/g, (_match, math: string) => `\\(${removeNestedDollarDelimiters(math)}\\)`)
+      .replace(/\\\[(.*?)\\\]/g, (_match, math: string) => `\\[${removeNestedDollarDelimiters(math)}\\]`)
+      .replace(/(?<!\S)(?<!\\)\$([^\s$\r\n](?:[^$\r\n]*?[^\s$\r\n])?)\s+(?<!\\)\$/g, (_match, math: string) => `\\(${math.trim()}\\)`);
+  });
+}
+
 function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
   const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
   md.use(footnote).use(sub).use(sup).use(taskLists, { enabled: true });
   md.use(texmath, {
     engine: katex,
-    delimiters: "dollars",
+    delimiters: ["dollars", "brackets", "beg_end"],
     katexOptions: { throwOnError: false, strict: "ignore", output: "html" },
+  });
+  md.core.ruler.before("inline", "notebooks_math_source", (state) => {
+    for (let index = 0; index < state.tokens.length; index += 1) {
+      const token = state.tokens[index];
+      if (token.type !== "inline") continue;
+      token.content = replaceOutsideInlineCode(token.content, normalizeInlineMathSource);
+
+      const displayMath = token.content.match(/^\s*\$\$([\s\S]*?)\$\$\s*$/);
+      if (!displayMath
+        || state.tokens[index - 1]?.type !== "paragraph_open"
+        || state.tokens[index + 1]?.type !== "paragraph_close") continue;
+
+      const paragraph = state.tokens[index - 1];
+      const math = new state.Token("math_block", "math", 0);
+      math.block = true;
+      math.tag = "$$";
+      math.content = displayMath[1].trim();
+      math.map = paragraph.map;
+      math.level = paragraph.level;
+      state.tokens.splice(index - 1, 3, math);
+      index -= 1;
+    }
   });
 
   md.block.ruler.before("paragraph", "notebooks_standalone_callout", (state, startLine, _endLine, silent) => {
@@ -625,8 +702,12 @@ export function renderNote(markdown: string, sourceInfo?: RenderNoteSource): Ren
   const searchIndex: NoteSearchBlock[] = [];
   const figures: NoteFigure[] = [];
   const { preamble, sections } = addIdsAndCollect(splitBlocks(tokens), md, searchIndex, figures);
+  const html = `${preamble}${renderNodes(sections.map((section) => ({ type: "section", section })))}`;
   return {
-    html: `${preamble}${renderNodes(sections.map((section) => ({ type: "section", section })))}`,
+    html: html.replace(
+      /(<input\b[^>]*class="task-list-item-checkbox"[^>]*?)(?<!\s)(checked|type)=/g,
+      "$1 $2=",
+    ),
     tree: toTree(sections),
     searchIndex,
     figures,

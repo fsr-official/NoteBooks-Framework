@@ -20,6 +20,8 @@ export interface PublicRepositoryRecord {
   fallback: string | null;
   id: string;
   lfs: boolean;
+  last_commit_sha: string | null;
+  mdx_styled_rendering: boolean;
   pages: boolean;
   priority: number | null;
   registry_name: string;
@@ -37,6 +39,7 @@ export interface PublicFileRecord {
 
 export interface FileLookupRecord {
   branch: string;
+  commitSha: string | null;
   fileName: string;
   filePath: string;
   fileSha: string;
@@ -48,8 +51,10 @@ export interface FileLookupRecord {
 export interface PublicRepositoryLookupRecord {
   branch: string;
   classOrStream: TreeGroup;
+  commitSha: string | null;
   id: string;
   lfs: boolean;
+  mdxStyledRendering: boolean;
   name: string;
   owner: string;
   pages: boolean;
@@ -150,6 +155,13 @@ function parseRepository(value: unknown): PublicRepositoryRecord {
   if (value.fallback !== null && typeof value.fallback !== "string") {
     throw new Error("Repository catalog row has an invalid fallback");
   }
+  const lastCommitSha = value.last_commit_sha;
+  if (lastCommitSha !== null && (
+    typeof lastCommitSha !== "string"
+    || !/^[a-f0-9]{40}$/i.test(lastCommitSha)
+  )) {
+    throw new Error("Repository catalog row has an invalid last_commit_sha");
+  }
 
   return {
     branch: requiredString(value, "branch"),
@@ -159,6 +171,8 @@ function parseRepository(value: unknown): PublicRepositoryRecord {
     fallback: value.fallback,
     id: requiredString(value, "id"),
     lfs: requiredBoolean(value, "lfs"),
+    last_commit_sha: lastCommitSha,
+    mdx_styled_rendering: requiredBoolean(value, "mdx_styled_rendering"),
     pages: requiredBoolean(value, "pages"),
     priority,
     registry_name: requiredString(value, "registry_name"),
@@ -200,10 +214,12 @@ export function buildSectionIndex(
   for (const file of files) {
     const repository = repositoriesById.get(file.repo_id);
     if (!repository) throw new Error(`File row references an unknown repository: ${file.repo_id}`);
+    if (/\.html$/i.test(file.file_path) && !repository.mdx_styled_rendering) continue;
     const identifier = `${repository.repo_owner}/${repository.repo_name}/${file.file_path}`;
     if (entries[identifier]) throw new Error(`Duplicate public file index key: ${identifier}`);
     entries[identifier] = {
       branch: repository.branch,
+      commitSha: repository.last_commit_sha,
       fileName: file.file_name,
       filePath: file.file_path,
       fileSha: file.file_sha,
@@ -225,8 +241,10 @@ export function buildRepositoryIndex(repositories: PublicRepositoryRecord[]): Pu
     entries[identifier] = {
       branch: repository.branch,
       classOrStream: repository.class_or_stream,
+      commitSha: repository.last_commit_sha,
       id: repository.id,
       lfs: repository.lfs,
+      mdxStyledRendering: repository.mdx_styled_rendering,
       name: repository.registry_name,
       owner: repository.repo_owner,
       pages: repository.pages,
@@ -267,7 +285,7 @@ async function loadRepositories(
     (start, end) => {
       let query = supabase
         .from("repository_entries")
-        .select("id, branch, class_or_stream, empty, enabled, fallback, lfs, pages, priority, registry_name, repo_name, repo_owner, root")
+        .select("id, branch, class_or_stream, empty, enabled, fallback, last_commit_sha, lfs, mdx_styled_rendering, pages, priority, registry_name, repo_name, repo_owner, root")
         .eq("record_type", "repository")
         .eq("enabled", true)
         .is("archived_at", null)

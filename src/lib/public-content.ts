@@ -13,6 +13,7 @@ const MEDIA_TIMEOUT_MS = 20_000;
 
 export interface CatalogFile {
   branch: string;
+  commitSha?: string;
   filePath: string;
   fileSha: string;
   owner: string;
@@ -111,6 +112,7 @@ export async function getCatalogFile(
     || !isTreeGroup(repositoryRow.classOrStream)
     || typeof repositoryRow.branch !== "string"
   ) return null;
+  if (/\.html$/i.test(path) && repositoryRow.mdxStyledRendering !== true) return null;
 
   const group = repositoryRow.classOrStream as TreeGroup;
   const treeName = `${group}-tree` as PublicIndexName;
@@ -124,8 +126,15 @@ export async function getCatalogFile(
     || typeof fileRow.fileSha !== "string"
     || !SHA_PATTERN.test(fileRow.fileSha)
   ) return null;
+  const indexCommitSha = fileRow.commitSha ?? repositoryRow.commitSha;
+  if (
+    indexCommitSha !== undefined
+    && indexCommitSha !== null
+    && (typeof indexCommitSha !== "string" || !SHA_PATTERN.test(indexCommitSha))
+  ) return null;
   return {
     branch: fileRow.branch,
+    ...(typeof indexCommitSha === "string" ? { commitSha: indexCommitSha.toLowerCase() } : {}),
     filePath: fileRow.filePath,
     fileSha: fileRow.fileSha.toLowerCase(),
     owner,
