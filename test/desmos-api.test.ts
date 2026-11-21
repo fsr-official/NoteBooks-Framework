@@ -19,7 +19,7 @@ describe("getDesmosApiScript", () => {
     expect(response.headers.get("content-type")).toContain("application/javascript");
     await expect(response.text()).resolves.toContain("window.Desmos");
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://www.desmos.com/api/v1.11/calculator.js?apiKey=test-api-key",
+      "https://www.desmos.com/api/v1.11.4/calculator.js?apiKey=test-api-key",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });

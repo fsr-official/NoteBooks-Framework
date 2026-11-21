@@ -1,4 +1,4 @@
-const DESMOS_API = "https://www.desmos.com/api/v1.11/calculator.js";
+const DESMOS_API = "https://www.desmos.com/api/v1.11.4/calculator.js";
 const desmosLoads = new Map();
 
 function chapterData(root) {
@@ -89,11 +89,10 @@ function activateGlossary(root, data, cleanups) {
     for (const popover of root.querySelectorAll(".chapter-glossary-popover")) popover.remove();
     for (const button of root.querySelectorAll(".chapter-glossary-reference[aria-expanded='true']")) {
       button.setAttribute("aria-expanded", "false");
+      delete button.dataset.glossaryOpenedBy;
     }
   };
-  const click = (event) => {
-    const button = event.target.closest(".chapter-glossary-reference");
-    if (!button || !root.contains(button)) return;
+  const show = (button, source) => {
     const termId = button.dataset.termId;
     const entry = entries[termId];
     if (!entry) {
@@ -103,8 +102,8 @@ function activateGlossary(root, data, cleanups) {
       return;
     }
     const existing = button.parentElement.querySelector(".chapter-glossary-popover");
-    hide();
     if (existing) return;
+    hide();
     const popover = document.createElement("span");
     popover.className = "chapter-glossary-popover";
     popover.setAttribute("role", "tooltip");
@@ -115,14 +114,48 @@ function activateGlossary(root, data, cleanups) {
     popover.append(term, definition);
     button.parentElement.append(popover);
     button.setAttribute("aria-expanded", "true");
+    button.dataset.glossaryOpenedBy = source;
+  };
+  const click = (event) => {
+    const button = event.target.closest(".chapter-glossary-reference");
+    if (!button || !root.contains(button)) return;
+    const existing = button.parentElement.querySelector(".chapter-glossary-popover");
+    if (existing && button.dataset.glossaryOpenedBy === "hover") {
+      button.dataset.glossaryOpenedBy = "click";
+      return;
+    }
+    if (existing) {
+      hide();
+      return;
+    }
+    show(button, "click");
+  };
+  const pointerOver = (event) => {
+    if (event.pointerType === "touch") return;
+    const button = event.target.closest(".chapter-glossary-reference");
+    if (!button || !root.contains(button) || button.contains(event.relatedTarget)) return;
+    show(button, "hover");
+  };
+  const pointerOut = (event) => {
+    if (event.pointerType === "touch") return;
+    const button = event.target.closest(".chapter-glossary-reference");
+    if (!button || !root.contains(button) || button.dataset.glossaryOpenedBy !== "hover") return;
+    if (button.parentElement.contains(event.relatedTarget)) return;
+    hide();
   };
   const scroll = () => hide();
   const guardedClick = protectFeature(root, click);
+  const guardedPointerOver = protectFeature(root, pointerOver);
+  const guardedPointerOut = protectFeature(root, pointerOut);
   const guardedScroll = protectFeature(root, scroll);
   root.addEventListener("click", guardedClick);
+  root.addEventListener("pointerover", guardedPointerOver);
+  root.addEventListener("pointerout", guardedPointerOut);
   window.addEventListener("scroll", guardedScroll, true);
   cleanups.push(() => {
     root.removeEventListener("click", guardedClick);
+    root.removeEventListener("pointerover", guardedPointerOver);
+    root.removeEventListener("pointerout", guardedPointerOut);
     window.removeEventListener("scroll", guardedScroll, true);
   });
 }
@@ -140,17 +173,37 @@ function attachChapterLayout(root, cleanups) {
   grid.className = "chapter-reader-grid";
   const columns = document.createElement("div");
   columns.className = "chapter-reader-columns";
-  columns.append(facts, notes, outline);
+  columns.append(outline, notes, facts);
   grid.append(columns);
   root.append(grid, examples);
+
+  const chapterTitle = root.querySelector("[data-chapter-title]")?.textContent?.trim();
+  const chapterBriefHeading = facts.querySelector(".chapter-reader-overview h2");
+  if (chapterTitle && chapterBriefHeading) {
+    const title = document.createElement("span");
+    title.className = "chapter-reader-overview-title";
+    title.textContent = chapterTitle;
+    chapterBriefHeading.append(document.createTextNode(": "), title);
+  }
+
+  const factsList = [...facts.querySelectorAll(".chapter-reader-fact")];
+  for (const fact of factsList) {
+    const sectionId = fact.dataset.sectionId;
+    if (!sectionId || sectionId === "chapter-overview") continue;
+    const heading = targetHeading(root, sectionId);
+    const title = fact.querySelector("h2");
+    if (!heading || !title) continue;
+    title.replaceChildren(...[...heading.childNodes].map((node) => node.cloneNode(true)));
+    title.classList.add("chapter-reader-fact-title");
+  }
 
   const tabs = document.createElement("nav");
   tabs.className = "chapter-reader-mobile-tabs";
   tabs.setAttribute("aria-label", "Chapter sections");
   const panes = [
-    ["notes", "Notes"],
-    ["facts", "Facts"],
     ["outline", "Outline"],
+    ["notes", "Notes"],
+    ["facts", "CNOTES"],
     ["examples", "Examples"],
   ];
   for (const [pane, label] of panes) {
@@ -178,7 +231,6 @@ function attachChapterLayout(root, cleanups) {
   setPane("notes");
   cleanups.push(() => tabs.removeEventListener("click", guardedTabClick));
 
-  const factsList = [...facts.querySelectorAll(".chapter-reader-fact")];
   let activeFact;
   let transitionTimer = 0;
   let transitionFrame = 0;

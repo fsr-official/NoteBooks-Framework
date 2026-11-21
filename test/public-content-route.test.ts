@@ -4,6 +4,7 @@ const {
   getCatalogFile,
   getCachedFileContent,
   fetchVerifiedTextFile,
+  maxCompiledHtmlBytes,
   cachePrecompiledHtml,
   getCachedPrecompiledHtml,
   getLastKnownGoodPrecompiledHtml,
@@ -11,6 +12,7 @@ const {
   getCatalogFile: vi.fn(),
   getCachedFileContent: vi.fn(),
   fetchVerifiedTextFile: vi.fn(),
+  maxCompiledHtmlBytes: 8 * 1024 * 1024,
   cachePrecompiledHtml: vi.fn(),
   getCachedPrecompiledHtml: vi.fn(),
   getLastKnownGoodPrecompiledHtml: vi.fn(),
@@ -34,6 +36,7 @@ vi.mock("@/lib/file-download", () => ({
     }
   },
   fetchVerifiedTextFile,
+  MAX_COMPILED_HTML_BYTES: maxCompiledHtmlBytes,
   normalizeRepositoryPath: vi.fn((path: string) => path),
 }));
 vi.mock("@/lib/media-range", () => ({
@@ -94,7 +97,10 @@ describe("servePublicContent", () => {
     const response = await servePublicContent(request, "markdown");
 
     expect(response.status).toBe(200);
-    expect(fetchVerifiedTextFile).toHaveBeenCalledWith(expect.objectContaining({ commitSha }));
+    expect(fetchVerifiedTextFile).toHaveBeenCalledWith(expect.objectContaining({
+      commitSha,
+      maxBytes: maxCompiledHtmlBytes,
+    }));
     expect(response.headers.get("X-Repository-Commit-SHA")).toBe(commitSha);
     expect(await response.text()).toBe('<article data-renderer-version="0.2.4">compiled</article>');
     expect(cachePrecompiledHtml).toHaveBeenCalledWith(
