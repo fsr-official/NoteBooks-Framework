@@ -473,18 +473,30 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   }, []);
 
   useEffect(() => {
-    if (!window.matchMedia("(max-width: 1050px)").matches) return;
     const nav = topNavRef.current;
     const activeLink = nav?.querySelector<HTMLElement>('[aria-current="page"]');
     if (!nav || !activeLink) return;
 
-    const navBounds = nav.getBoundingClientRect();
-    const linkBounds = activeLink.getBoundingClientRect();
-    if (linkBounds.right > navBounds.right) {
-      nav.scrollLeft += linkBounds.right - navBounds.right;
-    } else if (linkBounds.left < navBounds.left) {
-      nav.scrollLeft -= navBounds.left - linkBounds.left;
-    }
+    let frame = 0;
+    const revealActiveLink = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const navBounds = nav.getBoundingClientRect();
+        const linkBounds = activeLink.getBoundingClientRect();
+        if (linkBounds.right > navBounds.right) {
+          nav.scrollLeft += linkBounds.right - navBounds.right;
+        } else if (linkBounds.left < navBounds.left) {
+          nav.scrollLeft -= navBounds.left - linkBounds.left;
+        }
+      });
+    };
+
+    revealActiveLink();
+    window.addEventListener("resize", revealActiveLink);
+    return () => {
+      window.removeEventListener("resize", revealActiveLink);
+      window.cancelAnimationFrame(frame);
+    };
   }, [stream]);
 
   const loadStream = useCallback(async (selectedStream: LibraryId, signal?: AbortSignal) => {
