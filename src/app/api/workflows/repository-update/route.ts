@@ -1,28 +1,10 @@
 import { NextResponse } from "next/server";
 import { processRepositoryUpdate } from "../../../../../workflow/repository-update";
 import { verifyQstashRequest } from "@/lib/qstash";
+import { isRepositoryUpdateJob } from "@/lib/repository-update-identity";
 import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
-
-interface RepositoryUpdateJob {
-  repository: string;
-  branch: string;
-  requestedBy?: string;
-}
-
-function isRepositoryUpdateJob(value: unknown): value is RepositoryUpdateJob {
-  if (!value || typeof value !== "object") return false;
-  const job = value as Record<string, unknown>;
-  return typeof job.repository === "string"
-    && /^[\w.-]+\/[\w.-]+$/.test(job.repository)
-    && job.repository.length <= 200
-    && typeof job.branch === "string"
-    && job.branch.trim().length > 0
-    && job.branch.length <= 200
-    && (job.requestedBy === undefined
-      || (typeof job.requestedBy === "string" && /^[a-z0-9][a-z0-9_-]{2,31}$/.test(job.requestedBy)));
-}
 
 async function postRepositoryWorker(request: Request) {
   const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;

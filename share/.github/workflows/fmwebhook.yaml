@@ -11,6 +11,14 @@ on:
         description: Updated repository branch
         required: true
         type: string
+      run_id:
+        description: GitHub workflow run ID from the triggering push workflow
+        required: true
+        type: string
+      run_attempt:
+        description: GitHub workflow run attempt from the triggering push workflow
+        required: true
+        type: number
     secrets:
       WEBSITE_URL:
         description: Full NoteBooks repository-update webhook URL
@@ -32,11 +40,13 @@ jobs:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           REPOSITORY: ${{ inputs.repository }}
           BRANCH: ${{ inputs.branch }}
+          WORKFLOW_RUN_ID: ${{ inputs.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ inputs.run_attempt }}
         run: |
           set -euo pipefail
           test -n "$WEBSITE_URL"
           test -n "$WEBHOOK_SECRET"
-          request_body="$(node -e 'process.stdout.write(JSON.stringify({repository: process.env.REPOSITORY, branch: process.env.BRANCH}))')"
+          request_body="$(node -e 'process.stdout.write(JSON.stringify({repository: process.env.REPOSITORY, branch: process.env.BRANCH, identity: {source: "push", runId: process.env.WORKFLOW_RUN_ID, runAttempt: Number(process.env.WORKFLOW_RUN_ATTEMPT)}}))')"
           signature="$(printf '%s' "$request_body" | node -e '
             const crypto = require("node:crypto");
             let body = "";

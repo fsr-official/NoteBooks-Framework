@@ -1,6 +1,10 @@
 import "server-only";
 
 import { enqueueRepositoryUpdate } from "@/lib/qstash";
+import {
+  createAdminRepositoryUpdateIdentity,
+  type RepositoryUpdateIdentity,
+} from "@/lib/repository-update-identity";
 
 export interface RepositoryToQueue {
   branch: string;
@@ -17,6 +21,7 @@ export interface RepositoryQueueResult {
 export async function queueRepositoryUpdates(
   repositories: RepositoryToQueue[],
   requestedBy?: string,
+  identity: RepositoryUpdateIdentity = createAdminRepositoryUpdateIdentity(),
 ): Promise<RepositoryQueueResult[]> {
   const results: RepositoryQueueResult[] = new Array(repositories.length);
   let nextIndex = 0;
@@ -30,6 +35,7 @@ export async function queueRepositoryUpdates(
         const messageId = await enqueueRepositoryUpdate({
           repository: name,
           branch: repository.branch,
+          identity,
           ...(requestedBy ? { requestedBy } : {}),
         });
         results[index] = { repository: name, status: "queued", messageId };

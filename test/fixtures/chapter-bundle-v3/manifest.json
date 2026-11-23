@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "rendererVersion": "0.1.7",
+  "chapters": [
+    {
+      "id": "physics06-system-of-particles-and-rotational-motion",
+      "title": "Test",
+      "bundle": "physics06-system-of-particles-and-rotational-motion.json",
+      "sourceShas": {
+        "glossary": "7f4e685b3eec0fff681dd98adbfb474314ef7fb8beda104e27ab01ef13b18ae1",
+        "notes": "332d7bdc3d332ed88c472e27e05dbc50d1cad815dc659a5cb2ea4ca80e26e5ea",
+        "cnotes": "4622f958f83b97bbc016dee177ec3d4c8d161ca1fd16f0e0232433db4d26f2b0"
+      }
+    }
+  ]
+}

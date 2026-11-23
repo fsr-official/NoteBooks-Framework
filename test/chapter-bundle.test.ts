@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
 import {
   ChapterBundleLoadError,
@@ -5,6 +6,11 @@ import {
   createChapterBundleLoader,
   type ChapterBundleCache,
 } from "../src/lib/chapter-bundle";
+import {
+  parseChapterBundle,
+  parseChapterManifest,
+  sourceShasMatch,
+} from "../src/lib/chapter-bundle/schema";
 import type { ChapterBundle, ChapterManifest } from "../src/lib/chapter-bundle/schema";
 
 const chapterId = "physics06-system-of-particles-and-rotational-motion";
@@ -15,10 +21,11 @@ const sourceShas = {
   notes: "2".repeat(64),
   cnotes: "3".repeat(64),
 };
+const generatedFixtureDirectory = new URL("./fixtures/chapter-bundle-v3/", import.meta.url);
 
 function bundle(overrides: Partial<ChapterBundle> = {}): ChapterBundle {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     id: chapterId,
     title: "System of Particles and Rotational Motion",
     rendererVersion: "0.1.2",
@@ -36,7 +43,7 @@ function bundle(overrides: Partial<ChapterBundle> = {}): ChapterBundle {
 
 function manifest(chapter: ChapterBundle = bundle()): ChapterManifest {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     rendererVersion: chapter.rendererVersion,
     chapters: [{
       id: chapter.id,
@@ -45,6 +52,17 @@ function manifest(chapter: ChapterBundle = bundle()): ChapterManifest {
       sourceShas: chapter.sourceShas,
     }],
   };
+}
+
+async function producerGeneratedBundle(): Promise<unknown> {
+  return JSON.parse(await readFile(
+    new URL("physics06-system-of-particles-and-rotational-motion.json", generatedFixtureDirectory),
+    "utf8",
+  )) as unknown;
+}
+
+async function producerGeneratedManifest(): Promise<unknown> {
+  return JSON.parse(await readFile(new URL("manifest.json", generatedFixtureDirectory), "utf8")) as unknown;
 }
 
 class MemoryCache implements ChapterBundleCache {
@@ -82,6 +100,75 @@ function loaderFor(
 }
 
 describe("chapter bundle loader", () => {
+  it("parses a producer-generated v3 bundle and matching manifest with compiled fact visuals", async () => {
+    const parsedBundle = parseChapterBundle(await producerGeneratedBundle());
+    const parsedManifest = parseChapterManifest(await producerGeneratedManifest());
+    const manifestEntry = parsedManifest.chapters.find(({ id }) => id === parsedBundle.id);
+    const overviewHeadings = parsedBundle.notes.tree.filter(
+      (node) => node.type === "heading" && node.id === "chapter-overview",
+    );
+
+    expect(parsedBundle.schemaVersion).toBe(3);
+    expect(manifestEntry).toMatchObject({
+      title: parsedBundle.title,
+      bundle: `${parsedBundle.id}.json`,
+    });
+    expect(manifestEntry && sourceShasMatch(parsedBundle.sourceShas, manifestEntry.sourceShas)).toBe(true);
+    expect(Object.values(parsedBundle.sourceShas).every((sha) => /^[a-f0-9]{64}$/.test(sha))).toBe(true);
+    expect(overviewHeadings).toHaveLength(1);
+    expect(parsedBundle.outline[0]).toMatchObject({ id: "chapter-overview" });
+    expect(parsedBundle.facts[0].visuals.map(({ name }) => name)).toEqual(["Diagram", "Desmos"]);
+    expect(parsedBundle.facts.every(({ visuals }) => Array.isArray(visuals))).toBe(true);
+    expect(parsedBundle.facts.flatMap(({ visuals }) => visuals).every(
+      ({ type, name }) => type === "component" && (name === "Diagram" || name === "Desmos"),
+    )).toBe(true);
+  });
+
+  it("fails closed for v2 bundles, missing visuals, and non-compiled fact visual nodes", async () => {
+    const original = await producerGeneratedBundle();
+    const unsupported = structuredClone(original) as Record<string, unknown>;
+    unsupported.schemaVersion = 2;
+    expect(() => parseChapterBundle(unsupported)).toThrow("schema version 3");
+
+    const missingVisuals = structuredClone(original) as {
+      facts: Array<Record<string, unknown>>;
+    };
+    delete missingVisuals.facts[0].visuals;
+    expect(() => parseChapterBundle(missingVisuals)).toThrow("schema version 3");
+
+    const invalidVisuals = structuredClone(original) as {
+      facts: Array<{ visuals: unknown[] }>;
+    };
+    invalidVisuals.facts[0].visuals = [{
+      type: "component",
+      name: "Example",
+      props: { name: "Example" },
+    }];
+    expect(() => parseChapterBundle(invalidVisuals)).toThrow("schema version 3");
+
+    const unsupportedManifest = structuredClone(await producerGeneratedManifest()) as Record<string, unknown>;
+    unsupportedManifest.schemaVersion = 2;
+    expect(() => parseChapterManifest(unsupportedManifest)).toThrow("schema version 3");
+  });
+
+  it("loads the producer artifact through the manifest-pinned Framework boundary", async () => {
+    const rawBundle = await producerGeneratedBundle();
+    const rawManifest = await producerGeneratedManifest();
+    const parsedBundle = parseChapterBundle(rawBundle);
+    const cache = new MemoryCache();
+    const fetcher = vi.fn(async (input: string | URL) => (
+      String(input).endsWith("/build/manifest.json")
+        ? Response.json(rawManifest)
+        : Response.json(rawBundle)
+    ));
+    const loader = createChapterBundleLoader({ cache, fetch: fetcher, log: vi.fn() });
+
+    const result = await loader.getChapterBundle(parsedBundle.id, commitSha);
+
+    expect(result).toEqual({ bundle: parsedBundle, sourceCommitSha: commitSha, stale: false });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it("fetches at a pinned SHA, validates metadata, and caches by SHA and renderer version", async () => {
     const cache = new MemoryCache();
     const { fetcher, loader } = loaderFor(cache);
@@ -143,7 +230,7 @@ describe("chapter bundle loader", () => {
       JSON.stringify({ commitSha: previousCommitSha, bundle: bundle() }),
     );
     const { loader } = loaderFor(cache, bundle(), {
-      schemaVersion: 2,
+      schemaVersion: 3,
       rendererVersion: "0.1.2",
       chapters: [],
     });

@@ -439,7 +439,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .next-reader-content .markdown-content .callout-title { display: block; margin-bottom: .35em; color: var(--callout-color); font: 650 .9em var(--reader-sans); }
 .next-reader-content .markdown-content .markdown-table-scroll { max-width: 100%; overflow-x: auto; margin: 1em 0; }
 .next-reader-content .markdown-content .math,
-.next-reader-content .markdown-content .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.next-reader-content .markdown-content .katex-display { max-width: 100%; margin-block: .75em; overflow-x: auto; overflow-y: hidden; }
 .next-reader-content .markdown-content .katex { color: currentColor; }
 .next-reader-content .markdown-content .tikz-wrapper,
 .next-reader-content .markdown-content .obsidian-mermaid,
@@ -956,6 +956,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 @media (prefers-reduced-motion: reduce) {
   .next-reader-outline,
   .next-reader-progress-track span { transition: none; }
+  .reader-chat-caret { animation: none; }
+  .reader-chat-avatar.is-typing { animation: none; }
+  .reader-chat-typing-dots i { animation: none; }
 }
 
 @media print {

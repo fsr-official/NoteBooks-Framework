@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { queueRepositoryUpdates } from "@/lib/repository-update-queue";
+import { isRepositoryUpdateIdentity } from "@/lib/repository-update-identity";
 import { withApiTelemetry } from "@/lib/api-telemetry";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,33 @@ async function postReconciliation(request: Request) {
     return NextResponse.json({ error: "Invalid repository reconciliation credentials" }, { status: 401 });
   }
 
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > 1024) {
+    return NextResponse.json({ error: "Reconciliation request is too large" }, { status: 413 });
+  }
+  let payload: unknown;
+  try {
+    const body = await request.text();
+    if (body.length > 1024) {
+      return NextResponse.json({ error: "Reconciliation request is too large" }, { status: 413 });
+    }
+    payload = JSON.parse(body);
+  } catch {
+    return NextResponse.json({ error: "Reconciliation run identity must be valid JSON" }, { status: 400 });
+  }
+  if (!payload || typeof payload !== "object") {
+    return NextResponse.json({ error: "Invalid reconciliation run identity" }, { status: 400 });
+  }
+  const run = payload as Record<string, unknown>;
+  const identity = {
+    source: "reconciliation",
+    runId: run.runId,
+    runAttempt: run.runAttempt,
+  } as const;
+  if (!isRepositoryUpdateIdentity(identity)) {
+    return NextResponse.json({ error: "Invalid reconciliation run identity" }, { status: 400 });
+  }
+
   try {
     const { data, error } = await createSupabaseAdminClient()
       .from("repository_entries")
@@ -43,7 +71,7 @@ async function postReconciliation(request: Request) {
     if (error) throw error;
 
     const repositories = (data ?? []) as Repository[];
-    const results = await queueRepositoryUpdates(repositories);
+    const results = await queueRepositoryUpdates(repositories, undefined, identity);
     const failed = results
       .filter((result) => result.status === "failed")
       .map((result) => result.repository);

@@ -19,6 +19,8 @@ jobs:
     env:
       APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
       REPOSITORY_RECONCILIATION_SECRET: ${{ secrets.REPOSITORY_RECONCILIATION_SECRET }}
+      WORKFLOW_RUN_ID: ${{ github.run_id }}
+      WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
     steps:
       - name: Enqueue scheduled repository checks
         run: |
@@ -28,7 +30,10 @@ jobs:
           fi
 
           base_url="${APP_BASE_URL%/}"
+          request_body="$(node -e 'process.stdout.write(JSON.stringify({runId: process.env.WORKFLOW_RUN_ID, runAttempt: Number(process.env.WORKFLOW_RUN_ATTEMPT)}))')"
           curl --fail-with-body --silent --show-error --retry 3 \
             --request POST \
+            --header "Content-Type: application/json" \
             --header "Authorization: Bearer $REPOSITORY_RECONCILIATION_SECRET" \
+            --data-binary "$request_body" \
             "$base_url/api/cron/repository-reconciliation"

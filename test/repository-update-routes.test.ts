@@ -12,7 +12,11 @@ vi.mock("../workflow/repository-update", () => ({ processRepositoryUpdate }));
 import { POST as webhook } from "../src/app/api/webhooks/repository-update/route";
 import { POST as worker } from "../src/app/api/workflows/repository-update/route";
 
-const validPayload = { repository: "owner/repo", branch: "main" };
+const validPayload = {
+  repository: "owner/repo",
+  branch: "main",
+  identity: { source: "push", runId: "123456789", runAttempt: 1 },
+};
 const jsonRequest = (url: string, body: unknown, headers: HeadersInit = {}) =>
   new Request(url, { method: "POST", headers, body: JSON.stringify(body) });
 
@@ -66,6 +70,20 @@ describe("POST /api/webhooks/repository-update", () => {
     }));
     expect(invalid.status).toBe(400);
 
+    for (const payload of [
+      { repository: "owner/repo", branch: "main" },
+      { ...validPayload, identity: { source: "push", runId: "123", runAttempt: 0 } },
+      { ...validPayload, identity: { source: "reconciliation", runId: "123", runAttempt: 1 } },
+    ]) {
+      const body = JSON.stringify(payload);
+      const response = await webhook(new Request("https://example.test/api/webhook", {
+        method: "POST",
+        headers: { "x-notebooks-signature": sign(body) },
+        body,
+      }));
+      expect(response.status).toBe(400);
+    }
+
     const body = JSON.stringify(validPayload);
     enqueueRepositoryUpdate.mockResolvedValue("message-123");
     const queued = await webhook(new Request("https://example.test/api/webhook", {
@@ -75,11 +93,13 @@ describe("POST /api/webhooks/repository-update", () => {
     }));
 
     expect(queued.status).toBe(202);
-    await expect(queued.json()).resolves.toEqual({
+    const queuedBody = await queued.json();
+    expect(queuedBody).toEqual({
       repository: "owner/repo",
       status: "queued",
       messageId: "message-123",
     });
+    expect(queuedBody).not.toHaveProperty("completed");
     expect(enqueueRepositoryUpdate).toHaveBeenCalledWith(validPayload);
   });
 
@@ -138,12 +158,14 @@ describe("POST /api/workflows/repository-update", () => {
     }));
     expect(malformed.status).toBe(400);
 
-    const invalidBody = JSON.stringify({ repository: "not-a-repository", branch: "main" });
-    const invalid = await worker(new Request("https://example.test/api/worker", {
-      method: "POST",
-      body: invalidBody,
-    }));
-    expect(invalid.status).toBe(400);
+    for (const payload of [
+      { repository: "not-a-repository", branch: "main", identity: validPayload.identity },
+      { repository: "owner/repo", branch: "main" },
+      { ...validPayload, identity: { source: "push", runId: "123", runAttempt: 1.5 } },
+    ]) {
+      const invalid = await worker(jsonRequest("https://example.test/api/worker", payload));
+      expect(invalid.status).toBe(400);
+    }
   });
 
   it("processes a verified update job", async () => {
@@ -165,5 +187,32 @@ describe("POST /api/workflows/repository-update", () => {
     processRepositoryUpdate.mockRejectedValue(new Error("sync failed"));
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect((await worker(jsonRequest("https://example.test/api/worker", validPayload))).status).toBe(500);
+  });
+
+  it("keeps failed worker processing in the retryable 500 state across a retry", async () => {
+    verifyQstashRequest.mockResolvedValue(true);
+    processRepositoryUpdate
+      .mockRejectedValueOnce(new Error("Public index rebuild failed"))
+      .mockResolvedValueOnce({
+        status: "unchanged",
+        catalogStatus: "unchanged",
+        indexStatus: "rebuilt",
+        rebuiltIndexes: ["science-tree"],
+      });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const failed = await worker(jsonRequest("https://example.test/api/worker", validPayload));
+    expect(failed.status).toBe(500);
+    await expect(failed.json()).resolves.toEqual({
+      error: "Repository update processing failed",
+    });
+
+    const retried = await worker(jsonRequest("https://example.test/api/worker", validPayload));
+    expect(retried.status).toBe(200);
+    await expect(retried.json()).resolves.toMatchObject({
+      status: "unchanged",
+      catalogStatus: "unchanged",
+      indexStatus: "rebuilt",
+    });
   });
 });

@@ -65,18 +65,37 @@ export type BlockNode =
 export type ChapterSourceShas = { glossary: string; notes: string; cnotes: string };
 export type GlossaryMatch = { start: number; end: number; termId: string };
 
+export type ChapterOutlineId =
+  | "chapter-overview"
+  | `SECTION-${number}`
+  | `${number}.${number}`
+  | `${number}.${number}.${number}`;
+
+export type ChapterVisualNode =
+  | {
+      type: "component";
+      name: "Diagram";
+      props: { name: "Diagram"; id: string; kind: "mermaid" | "tikz"; title?: string };
+    }
+  | {
+      type: "component";
+      name: "Desmos";
+      props: { name: "Desmos"; id: string; kind: "2d" | "3d"; data: JsonValue };
+    };
+
 export type ChapterBundle = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   id: string;
   title: string;
   rendererVersion: string;
   sourceShas: ChapterSourceShas;
-  outline: Array<{ id: string; title: string; importance: 0 | 1 | 2 | 3; brief: string }>;
+  outline: Array<{ id: ChapterOutlineId; title: string; importance: 0 | 1 | 2 | 3; brief: string }>;
   notes: { tree: BlockNode[] };
   facts: Array<{
     sectionId: string;
     brief: string;
     points: string[];
+    visuals: ChapterVisualNode[];
     glossaryRefs: { brief: GlossaryMatch[]; points: GlossaryMatch[][] };
   }>;
   examples: Array<{
@@ -100,7 +119,7 @@ export type ChapterManifestEntry = {
 };
 
 export type ChapterManifest = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   rendererVersion: string;
   chapters: ChapterManifestEntry[];
 };
@@ -133,6 +152,13 @@ function isStringArray(value: unknown): value is string[] {
 
 function isSectionId(value: unknown): value is string {
   return typeof value === "string" && /^\d+\.\d+(?:\.\d+)?$/.test(value);
+}
+
+export function isChapterOutlineId(value: unknown): value is ChapterOutlineId {
+  return typeof value === "string"
+    && (value === "chapter-overview"
+      || /^SECTION-\d+$/.test(value)
+      || /^\d+\.\d+(?:\.\d+)?$/.test(value));
 }
 
 function isSectionIdArray(value: unknown): value is string[] {
@@ -197,7 +223,7 @@ function isBlockNode(value: unknown): value is BlockNode {
         && Number.isInteger(value.depth)
         && Number(value.depth) >= 1
         && Number(value.depth) <= 6
-        && (value.id === undefined || isSectionId(value.id))
+        && (value.id === undefined || value.id === "chapter-overview" || isSectionId(value.id))
         && Array.isArray(value.children)
         && value.children.every(isInlineNode);
     case "list":
@@ -288,6 +314,28 @@ function isComponentNode(value: Record<string, unknown>): value is BlockNode & R
   }
 }
 
+function isChapterVisualNode(value: unknown): value is ChapterVisualNode {
+  if (!isRecord(value)
+    || !hasKeys(value, ["type", "name", "props"])
+    || value.type !== "component"
+    || !isRecord(value.props)
+    || value.props.name !== value.name) return false;
+
+  if (value.name === "Diagram") {
+    return hasKeys(value.props, ["name", "id", "kind"], ["title"])
+      && isNonEmptyString(value.props.id)
+      && ["mermaid", "tikz"].includes(String(value.props.kind))
+      && (value.props.title === undefined || isString(value.props.title));
+  }
+  if (value.name === "Desmos") {
+    return hasKeys(value.props, ["name", "id", "kind", "data"])
+      && isNonEmptyString(value.props.id)
+      && ["2d", "3d"].includes(String(value.props.kind))
+      && isJsonValue(value.props.data);
+  }
+  return false;
+}
+
 function isGlossary(value: unknown): value is ChapterBundle["glossary"] {
   if (!isRecord(value)) return false;
   return Object.values(value).every((entry) => isRecord(entry)
@@ -359,10 +407,12 @@ function isFact(
   glossary: ChapterBundle["glossary"],
 ): value is ChapterBundle["facts"][number] {
   if (!isRecord(value)
-    || !hasKeys(value, ["sectionId", "brief", "points", "glossaryRefs"])
+    || !hasKeys(value, ["sectionId", "brief", "points", "visuals", "glossaryRefs"])
     || !isSectionId(value.sectionId)
     || !isString(value.brief)
-    || !isStringArray(value.points)) return false;
+    || !isStringArray(value.points)
+    || !Array.isArray(value.visuals)
+    || !value.visuals.every(isChapterVisualNode)) return false;
   const points = value.points;
   if (
     !isRecord(value.glossaryRefs)
@@ -380,7 +430,7 @@ function isChapterBundle(value: unknown): value is ChapterBundle {
     "schemaVersion", "id", "title", "rendererVersion", "sourceShas", "outline",
     "notes", "facts", "examples", "glossary", "diagrams", "desmos",
   ])) return false;
-  if (value.schemaVersion !== 2
+  if (value.schemaVersion !== 3
     || typeof value.id !== "string"
     || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.id)
     || !isNonEmptyString(value.title)
@@ -399,7 +449,7 @@ function isChapterBundle(value: unknown): value is ChapterBundle {
   const glossary = value.glossary;
   const outlineIsValid = value.outline.every((entry) => isRecord(entry)
     && hasKeys(entry, ["id", "title", "importance", "brief"])
-    && isNonEmptyString(entry.id)
+    && isChapterOutlineId(entry.id)
     && isString(entry.title)
     && Number.isInteger(entry.importance)
     && Number(entry.importance) >= 0
@@ -435,14 +485,14 @@ function isChapterBundle(value: unknown): value is ChapterBundle {
 }
 
 export function parseChapterBundle(value: unknown): ChapterBundle {
-  if (!isChapterBundle(value)) throw new Error("Chapter bundle does not match schema version 2");
+  if (!isChapterBundle(value)) throw new Error("Chapter bundle does not match schema version 3");
   return value;
 }
 
 export function isChapterManifest(value: unknown): value is ChapterManifest {
   if (!isRecord(value)
     || !hasKeys(value, ["schemaVersion", "rendererVersion", "chapters"])
-    || value.schemaVersion !== 2
+    || value.schemaVersion !== 3
     || !isNonEmptyString(value.rendererVersion)
     || !Array.isArray(value.chapters)) return false;
 
@@ -463,7 +513,7 @@ export function isChapterManifest(value: unknown): value is ChapterManifest {
 }
 
 export function parseChapterManifest(value: unknown): ChapterManifest {
-  if (!isChapterManifest(value)) throw new Error("Chapter manifest does not match schema version 2");
+  if (!isChapterManifest(value)) throw new Error("Chapter manifest does not match schema version 3");
   return value;
 }
 

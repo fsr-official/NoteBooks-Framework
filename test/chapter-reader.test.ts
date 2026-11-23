@@ -5,7 +5,7 @@ import { ChapterReader } from "../src/components/chapter-bundle/chapter-reader";
 import type { ChapterBundle } from "../src/lib/chapter-bundle/schema";
 
 const bundle: ChapterBundle = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   id: "physics06-system-of-particles-and-rotational-motion",
   title: "System of Particles and Rotational Motion",
   rendererVersion: "0.1.2",
@@ -20,6 +20,7 @@ const bundle: ChapterBundle = {
   ],
   notes: {
     tree: [
+      { type: "heading", depth: 2, id: "chapter-overview", children: [{ type: "text", value: "Concept Roadmap" }] },
       { type: "heading", depth: 2, children: [{ type: "text", value: "SECTION 1 — Foundations" }] },
       { type: "heading", depth: 3, id: "1.1", children: [{ type: "text", value: "1.1 Momentum" }] },
       {
@@ -48,6 +49,7 @@ const bundle: ChapterBundle = {
     sectionId: "1.1",
     brief: "Linear momentum.",
     points: ["$p=mv$."],
+    visuals: [],
     glossaryRefs: {
       brief: [{ start: 7, end: 15, termId: "momentum" }],
       points: [[]],

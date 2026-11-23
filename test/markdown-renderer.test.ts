@@ -204,6 +204,29 @@ Potential energy: $V = $ sum over all **pairs**, $-Gm_im_j/r_{ij}$.
     expect(result.html).toContain('data-diagram-type="mindmap"');
   });
 
+  it("renders CNOTES section facts with both mindmaps and LaTeX", () => {
+    const result = renderNote([
+      "# CNOTES",
+      "",
+      "## Section 1 — Sets",
+      "",
+      "```mermaid",
+      "mindmap",
+      "  root((Sets))",
+      "    Operations",
+      "      Union",
+      "      Intersection",
+      "```",
+      "",
+      String.raw`The distributive law is \(A\cap(B\cup C)=(A\cap B)\cup(A\cap C)\).`,
+    ].join("\n"));
+
+    expect(result.html).toContain('data-diagram-type="mindmap"');
+    expect(result.html).toContain("katex");
+    expect(result.html).not.toContain("katex-error");
+    expect(result.searchIndex.some(({ text }) => text.includes("distributive law"))).toBe(true);
+  });
+
   it("renders regular fenced code through Markdown-it's complete fence renderer", () => {
     const result = renderNote("# Example\n\n```ts\nconst answer = 42;\n```");
     expect(result.html).toContain('<pre><code class="language-ts">const answer = 42;');
