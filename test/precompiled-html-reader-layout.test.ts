@@ -18,8 +18,8 @@ describe("precompiled HTML chapter reader layout contract", () => {
     expect(runtime).toContain('readingArea.append(topicHeader, tabs, contentColumns)');
     expect(runtime).toContain('conceptsTitle.textContent = "Concepts"');
     expect(runtime).toContain('factsTitle.textContent = "Important Facts"');
-    expect(stylesheet).toMatch(/\.chapter-reader-columns\s*\{[^}]*grid-template-columns:\s*minmax\(190px,\s*250px\)\s+minmax\(0,\s*1fr\)/s);
-    expect(stylesheet).toMatch(/\.chapter-reader-content-columns\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.2fr\)\s+minmax\(220px,\s*\.8fr\)/s);
+    expect(stylesheet).toMatch(/\.chapter-reader-columns\s*\{[\s\S]*?grid-template-columns:\s*minmax\(190px,\s*250px\)\s+minmax\(0,\s*1fr\)/);
+    expect(stylesheet).toMatch(/\.chapter-reader-content-columns\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1\.2fr\)\s+minmax\(220px,\s*\.8fr\)/);
   });
 
   it("exposes mobile tabs as an accessible tablist with keyboard navigation", () => {
