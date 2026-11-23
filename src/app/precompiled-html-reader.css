@@ -512,6 +512,9 @@ figure[data-diagram] svg { max-width: 100%; height: auto; color: var(--reader-te
   [data-renderer-version] .chapter-reader-content-columns {
     grid-template-columns: minmax(0, 1.1fr) minmax(190px, .9fr);
   }
+  [data-renderer-version] .chapter-reader-content-columns > .chapter-reader-facts {
+    grid-column: 2;
+  }
   [data-renderer-version] .chapter-reader-outline-pane { max-height: 72vh; }
   [data-renderer-version] [data-outline],
   [data-renderer-version] [data-notes],
