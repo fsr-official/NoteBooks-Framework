@@ -9,7 +9,7 @@ import { precompiledChapterId } from "@/lib/chapter-bundle/selection";
 import { renderNote, type RenderedNote } from "@/lib/markdown/renderer";
 import { MdxCompileError, renderMdxNote } from "@/lib/markdown/mdx-compiler";
 import { isMdxRenderingEnabled, isRepositoryMdxRenderingEnabled } from "@/lib/mdx-feature-flag";
-import { readLocalPrecompiledHtml } from "@/lib/precompiled-html";
+import { localPrecompiledHtmlDirectory, readLocalPrecompiledHtml } from "@/lib/precompiled-html";
 import { servePublicContent } from "@/lib/public-content-route";
 import "../reader-redesign.css";
 import "../chapter-reader.css";
@@ -57,8 +57,8 @@ export default async function ReadPage({
   const branch = oneValue(params, "branch") ?? "main";
   const isHtmlFile = path ? /\.html$/i.test(path) : false;
   const isMdxFile = path ? /\.mdx$/i.test(path) : false;
-  const localHtmlDirectory = process.env.NODE_ENV === "development"
-    ? process.env.NOTEBOOKS_MDX_HTML_DIRECTORY
+  const localHtmlDirectory = isHtmlFile && owner && repository
+    ? localPrecompiledHtmlDirectory(owner, repository)
     : undefined;
   const isLocalHtml = isHtmlFile && Boolean(localHtmlDirectory);
   const returnToValue = oneValue(params, "returnTo") ?? "/";

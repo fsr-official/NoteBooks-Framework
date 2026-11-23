@@ -1,3 +1,5 @@
+import { buildChapterOutline, outlineSectionId } from "./chapter-reader-outline.js";
+
 const DESMOS_API = "https://www.desmos.com/api/v1.11.4/calculator.js";
 const desmosLoads = new Map();
 
@@ -165,28 +167,115 @@ function attachChapterLayout(root, cleanups) {
   const notes = root.querySelector("[data-notes]");
   const facts = root.querySelector("[data-facts]");
   const examples = root.querySelector("[data-examples]");
-  if (!outline || !notes || !facts || !examples) {
-    throw new Error("The chapter fragment is missing an outline, notes, facts, or examples region.");
+  if (!outline || !notes || !facts) {
+    throw new Error("The chapter fragment is missing its outline, notes, or CNOTES region.");
   }
 
+  const originalOutlineHtml = outline.innerHTML;
+  const originalActiveFact = facts.dataset.activeSection;
+  const chapterHeading = root.querySelector("[data-chapter-title]");
+  const originalChapterHeadingParent = chapterHeading?.parentNode;
+  const originalChapterHeadingNextSibling = chapterHeading?.nextSibling;
+  const notesDocumentHeading = notes.querySelector(":scope > h1");
+  const outlineHeading = outline.querySelector(":scope > h2");
+  const chapterBriefHeading = facts.querySelector(".chapter-reader-overview h2");
+  const originalChapterBriefHeadingHtml = chapterBriefHeading?.innerHTML;
+  const exampleLinks = [...notes.querySelectorAll(".chapter-example-links")].map((element) => ({
+    element,
+    parent: element.parentNode,
+    nextSibling: element.nextSibling,
+  }));
+  const entries = [...outline.querySelectorAll("a[data-section-id]")].map((link) => ({
+    id: link.dataset.sectionId,
+    title: link.textContent?.trim() || link.dataset.sectionId,
+    importance: link.closest("li")?.dataset.importance,
+  }));
+  const headings = [...notes.querySelectorAll("h1[data-section-id],h2[data-section-id],h3[data-section-id],h4[data-section-id]")]
+    .map((heading) => ({
+      id: heading.dataset.sectionId,
+      title: heading.textContent?.trim() || heading.dataset.sectionId,
+      depth: Number(heading.tagName.slice(1)),
+    }))
+    .filter((heading) => heading.id && heading.title);
+  const outlineModel = buildChapterOutline(entries, headings);
+
+  if (outlineHeading) outlineHeading.textContent = "Chapter Outline";
+  if (chapterHeading) {
+    chapterHeading.classList.add("chapter-reader-flow-heading");
+    notes.insertBefore(chapterHeading, notes.firstChild);
+  }
+  notesDocumentHeading?.remove();
+  for (const { element } of exampleLinks) element.remove();
+  examples?.remove();
+
   const grid = document.createElement("div");
-  grid.className = "chapter-reader-grid";
+  grid.className = "precompiled-chapter-grid";
   const columns = document.createElement("div");
   columns.className = "chapter-reader-columns";
   columns.append(outline, notes, facts);
+  const bindingSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  bindingSvg.classList.add("chapter-reader-binding-lines");
+  bindingSvg.setAttribute("aria-hidden", "true");
+  bindingSvg.setAttribute("focusable", "false");
+  const bindingPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  bindingPath.dataset.readerBindingLine = "";
+  bindingSvg.append(bindingPath);
+  columns.append(bindingSvg);
   grid.append(columns);
-  root.append(grid, examples);
+  root.append(grid);
 
-  const chapterTitle = root.querySelector("[data-chapter-title]")?.textContent?.trim();
-  const chapterBriefHeading = facts.querySelector(".chapter-reader-overview h2");
+  const outlineList = outline.querySelector("ol");
+  if (!outlineList) throw new Error("The chapter outline is missing its list.");
+  outlineList.replaceChildren();
+  for (const item of outlineModel) {
+    const listItem = document.createElement("li");
+    listItem.className = "chapter-reader-outline-group";
+    listItem.dataset.outlineGroup = item.id;
+    if (item.importance) listItem.dataset.importance = item.importance;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chapter-reader-outline-button";
+    button.textContent = item.title;
+    button.dataset.sectionId = item.id;
+    if (item.kind === "section") {
+      button.dataset.mainSection = "";
+      if (item.importance) button.dataset.importance = item.importance;
+    }
+    listItem.append(button);
+
+    if (item.children.length) {
+      const subsections = document.createElement("ol");
+      subsections.className = "chapter-reader-outline-subsections";
+      for (const subsection of item.children) {
+        const childItem = document.createElement("li");
+        const childButton = document.createElement("button");
+        childButton.type = "button";
+        childButton.className = "chapter-reader-outline-button";
+        childButton.dataset.sectionId = subsection.id;
+        childButton.dataset.subsection = "";
+        childButton.style.setProperty("--outline-depth", String(Math.max(0, subsection.depth - 3)));
+        childButton.textContent = subsection.title;
+        childItem.append(childButton);
+        subsections.append(childItem);
+      }
+      subsections.hidden = true;
+      listItem.append(subsections);
+    }
+    outlineList.append(listItem);
+  }
+
+  const chapterTitle = chapterHeading?.textContent?.trim();
   if (chapterTitle && chapterBriefHeading) {
+    chapterBriefHeading.textContent = `${chapterBriefHeading.textContent?.trim()}:`;
     const title = document.createElement("span");
     title.className = "chapter-reader-overview-title";
     title.textContent = chapterTitle;
-    chapterBriefHeading.append(document.createTextNode(": "), title);
+    chapterBriefHeading.after(title);
   }
 
-  const factsList = [...facts.querySelectorAll(".chapter-reader-fact")];
+  const factsList = [...facts.querySelectorAll(".chapter-reader-fact:not(.chapter-reader-overview)")];
+  const originalFactHidden = factsList.map((fact) => fact.hidden);
   for (const fact of factsList) {
     const sectionId = fact.dataset.sectionId;
     if (!sectionId || sectionId === "chapter-overview") continue;
@@ -204,7 +293,6 @@ function attachChapterLayout(root, cleanups) {
     ["outline", "Outline"],
     ["notes", "Notes"],
     ["facts", "CNOTES"],
-    ["examples", "Examples"],
   ];
   for (const [pane, label] of panes) {
     const button = document.createElement("button");
@@ -224,7 +312,10 @@ function attachChapterLayout(root, cleanups) {
   };
   const tabClick = (event) => {
     const button = event.target.closest("[data-reader-pane]");
-    if (button) setPane(button.dataset.readerPane);
+    if (button) {
+      setPane(button.dataset.readerPane);
+      scheduleBinding();
+    }
   };
   const guardedTabClick = protectFeature(tabs, tabClick);
   tabs.addEventListener("click", guardedTabClick);
@@ -232,6 +323,9 @@ function attachChapterLayout(root, cleanups) {
   cleanups.push(() => tabs.removeEventListener("click", guardedTabClick));
 
   let activeFact;
+  let pendingSectionId = "";
+  let pendingSectionTimer = 0;
+  let scheduleBinding = () => {};
   let transitionTimer = 0;
   let transitionFrame = 0;
   for (const fact of factsList) fact.hidden = true;
@@ -284,61 +378,215 @@ function attachChapterLayout(root, cleanups) {
     }
   };
 
+  let bindingFrame = 0;
+  const drawBinding = () => {
+    bindingFrame = 0;
+    const bounds = columns.getBoundingClientRect();
+    bindingSvg.setAttribute("viewBox", `0 0 ${Math.max(1, bounds.width)} ${Math.max(1, bounds.height)}`);
+    const flowHeaders = [
+      outline.querySelector(":scope > h2"),
+      chapterHeading,
+      chapterBriefHeading,
+    ];
+    if (!bounds.width || !bounds.height || flowHeaders.some((header) => !header)) {
+      bindingPath.setAttribute("d", "");
+      return;
+    }
+
+    const rect = (element) => {
+      const box = element.getBoundingClientRect();
+      return {
+        left: box.left - bounds.left,
+        right: box.right - bounds.left,
+        top: box.top - bounds.top,
+        centerY: box.top + box.height / 2 - bounds.top,
+      };
+    };
+    const [outlineBox, headingBox, briefBox] = flowHeaders.map(rect);
+    const lineY = (outlineBox.centerY + headingBox.centerY + briefBox.centerY) / 3;
+    const values = [outlineBox.right, headingBox.left, headingBox.right, briefBox.left, lineY];
+    if (values.some((value) => !Number.isFinite(value))) {
+      bindingPath.setAttribute("d", "");
+      return;
+    }
+    const format = (value) => Number(value.toFixed(1));
+    const d = [
+      `M ${format(outlineBox.right)} ${format(lineY)}`,
+      `H ${format(headingBox.left)}`,
+      `M ${format(headingBox.right)} ${format(lineY)}`,
+      `H ${format(briefBox.left)}`,
+    ].join(" ");
+    bindingPath.setAttribute("d", d);
+  };
+  scheduleBinding = () => {
+    if (bindingFrame) return;
+    bindingFrame = window.requestAnimationFrame(drawBinding);
+  };
+
+  const updateActiveSection = (sectionId) => {
+    const mainSectionId = outlineSectionId(sectionId);
+    if (!mainSectionId) return;
+    root.dataset.activeSection = sectionId;
+    root.dataset.activeMainSection = mainSectionId;
+
+    for (const group of outline.querySelectorAll("[data-outline-group]")) {
+      const expanded = group.dataset.outlineGroup === mainSectionId;
+      group.classList.toggle("is-active", expanded);
+      const mainButton = group.querySelector(":scope > .chapter-reader-outline-button");
+      const subsectionList = group.querySelector(":scope > .chapter-reader-outline-subsections");
+      if (mainButton) {
+        mainButton.classList.toggle("is-active", expanded);
+        if (subsectionList) {
+          mainButton.setAttribute("aria-expanded", String(expanded));
+          if (expanded) mainButton.setAttribute("aria-current", "location");
+          else mainButton.removeAttribute("aria-current");
+        }
+      }
+      if (subsectionList) subsectionList.hidden = !expanded;
+    }
+
+    for (const button of outline.querySelectorAll("button[data-section-id]")) {
+      const isCurrent = button.dataset.sectionId === sectionId;
+      button.classList.toggle("is-current", isCurrent);
+      if (isCurrent) button.setAttribute("aria-current", "location");
+      else if (!button.hasAttribute("data-main-section")) button.removeAttribute("aria-current");
+    }
+    for (const noteHeading of notes.querySelectorAll("h1[data-section-id],h2[data-section-id],h3[data-section-id],h4[data-section-id]")) {
+      noteHeading.classList.toggle("is-bound-active", noteHeading.dataset.sectionId === sectionId);
+    }
+
+    updateFacts(sectionId);
+    for (const fact of factsList) {
+      fact.classList.toggle("is-bound-active", fact === activeFact);
+    }
+
+    const activeMainButton = [...outline.querySelectorAll("button[data-main-section]")]
+      .find((button) => button.dataset.sectionId === mainSectionId);
+    if (activeMainButton) {
+      const outlineBounds = outline.getBoundingClientRect();
+      const buttonBounds = activeMainButton.getBoundingClientRect();
+      if (buttonBounds.top < outlineBounds.top) {
+        outline.scrollTop -= outlineBounds.top - buttonBounds.top;
+      } else if (buttonBounds.bottom > outlineBounds.bottom) {
+        outline.scrollTop += buttonBounds.bottom - outlineBounds.bottom;
+      }
+    }
+    scheduleBinding();
+  };
+
+  const bindingScroll = () => scheduleBinding();
+  for (const column of [outline, notes, facts]) {
+    column.addEventListener("scroll", bindingScroll, { passive: true });
+  }
+  window.addEventListener("resize", bindingScroll);
+  const bindingResizeObserver = typeof ResizeObserver === "undefined"
+    ? null
+    : new ResizeObserver(bindingScroll);
+  bindingResizeObserver?.observe(columns);
+  for (const header of [outlineHeading, chapterHeading, chapterBriefHeading]) {
+    if (header) bindingResizeObserver?.observe(header);
+  }
+  cleanups.push(() => {
+    for (const column of [outline, notes, facts]) {
+      column.removeEventListener("scroll", bindingScroll);
+    }
+    window.removeEventListener("resize", bindingScroll);
+    bindingResizeObserver?.disconnect();
+    if (bindingFrame) window.cancelAnimationFrame(bindingFrame);
+  });
+
   const observeSections = protectFeature(facts, (entries) => {
     const visible = entries
       .filter((entry) => entry.isIntersecting)
       .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top)[0];
     const sectionId = visible?.target.dataset.sectionId;
     if (!sectionId) return;
-    updateFacts(sectionId);
-    for (const link of outline.querySelectorAll("a[data-section-id]")) {
-      link.classList.toggle("is-active", link.dataset.sectionId === sectionId);
+    if (pendingSectionId) {
+      const pendingMainSection = outlineSectionId(pendingSectionId);
+      const pendingIsMainSection = pendingSectionId === "chapter-overview" || /^SECTION-\d+$/.test(pendingSectionId);
+      if (
+        sectionId !== pendingSectionId
+        && (!pendingIsMainSection || outlineSectionId(sectionId) !== pendingMainSection)
+      ) return;
+      pendingSectionId = "";
+      window.clearTimeout(pendingSectionTimer);
+      pendingSectionTimer = 0;
     }
+    updateActiveSection(sectionId);
   });
   const observer = new IntersectionObserver(observeSections, {
     root: notes,
     rootMargin: "-15% 0px -70% 0px",
     threshold: 0,
   });
-  for (const heading of notes.querySelectorAll("[data-section-id]")) observer.observe(heading);
+  for (const heading of notes.querySelectorAll("h1[data-section-id],h2[data-section-id],h3[data-section-id],h4[data-section-id]")) {
+    observer.observe(heading);
+  }
   cleanups.push(() => observer.disconnect());
   cleanups.push(() => {
     if (transitionTimer) window.clearTimeout(transitionTimer);
     if (transitionFrame) window.cancelAnimationFrame(transitionFrame);
+    if (pendingSectionTimer) window.clearTimeout(pendingSectionTimer);
   });
 
   const navigate = (event) => {
-    const link = event.target.closest("[data-section-id]");
-    if (link && outline.contains(link)) {
+    const button = event.target.closest("button[data-section-id]");
+    if (button && outline.contains(button)) {
       event.preventDefault();
-      scrollToHeading(root, link.dataset.sectionId);
+      pendingSectionId = button.dataset.sectionId;
+      if (pendingSectionTimer) window.clearTimeout(pendingSectionTimer);
+      pendingSectionTimer = window.setTimeout(() => {
+        pendingSectionId = "";
+        pendingSectionTimer = 0;
+      }, 4000);
+      updateActiveSection(button.dataset.sectionId);
+      scrollToHeading(root, button.dataset.sectionId);
       setPane("notes");
       return;
-    }
-    const example = event.target.closest("[data-example-target]");
-    if (example && root.contains(example)) {
-      const card = [...examples.querySelectorAll("[data-example-id]")].find(
-        (item) => item.dataset.exampleId === example.dataset.exampleTarget,
-      );
-      if (card) {
-        setPane("examples");
-        card.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-      return;
-    }
-    const back = event.target.closest("[data-return-section]");
-    if (back && root.contains(back)) {
-      event.preventDefault();
-      setPane("notes");
-      scrollToHeading(root, back.dataset.returnSection);
     }
   };
   const guardedNavigate = protectFeature(root, navigate);
   root.addEventListener("click", guardedNavigate);
   cleanups.push(() => root.removeEventListener("click", guardedNavigate));
-  protectFeature(facts, () => {
-    updateFacts(notes.querySelector("[data-section-id]")?.dataset.sectionId || "");
-  })();
+  updateActiveSection(notes.querySelector("h1[data-section-id],h2[data-section-id],h3[data-section-id],h4[data-section-id]")?.dataset.sectionId || "");
+  cleanups.push(() => {
+    outline.innerHTML = originalOutlineHtml;
+    if (chapterBriefHeading && originalChapterBriefHeadingHtml !== undefined) {
+      chapterBriefHeading.innerHTML = originalChapterBriefHeadingHtml;
+    }
+    factsList.forEach((fact, index) => {
+      fact.hidden = originalFactHidden[index];
+      fact.classList.remove("is-bound-active");
+    });
+    for (const noteHeading of notes.querySelectorAll(".is-bound-active")) {
+      noteHeading.classList.remove("is-bound-active");
+    }
+    delete root.dataset.activeSection;
+    delete root.dataset.activeMainSection;
+    delete root.dataset.activePane;
+    if (originalActiveFact === undefined) delete facts.dataset.activeSection;
+    else facts.dataset.activeSection = originalActiveFact;
+    tabs.remove();
+    bindingSvg.remove();
+    grid.remove();
+    root.append(outline, notes, facts);
+    if (notesDocumentHeading) notes.insertBefore(notesDocumentHeading, notes.firstChild);
+    if (chapterHeading) {
+      chapterHeading.classList.remove("chapter-reader-flow-heading");
+      if (originalChapterHeadingParent) {
+        const reference = originalChapterHeadingNextSibling?.parentNode === originalChapterHeadingParent
+          ? originalChapterHeadingNextSibling
+          : null;
+        originalChapterHeadingParent.insertBefore(chapterHeading, reference);
+      }
+    }
+    for (const { element, parent, nextSibling } of exampleLinks) {
+      if (!parent) continue;
+      const reference = nextSibling?.parentNode === parent ? nextSibling : null;
+      parent.insertBefore(element, reference);
+    }
+    if (examples) root.append(examples);
+  });
 }
 
 function openDiagram(root, svg, title, cleanups) {

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { enqueueRepositoryUpdate } from "@/lib/qstash";
+import {
+  isRepositoryUpdateIdentity,
+  type RepositoryUpdateIdentity,
+} from "@/lib/repository-update-identity";
 import { verifyWebhookSignature } from "@/lib/webhook-signature";
 import { withApiTelemetry } from "@/lib/api-telemetry";
 
@@ -8,6 +12,7 @@ export const dynamic = "force-dynamic";
 interface UpdateRequest {
   repository: string;
   branch: string;
+  identity: RepositoryUpdateIdentity;
 }
 
 function isUpdateRequest(value: unknown): value is UpdateRequest {
@@ -18,7 +23,9 @@ function isUpdateRequest(value: unknown): value is UpdateRequest {
     && request.repository.length <= 200
     && typeof request.branch === "string"
     && request.branch.trim().length > 0
-    && request.branch.length <= 200;
+    && request.branch.length <= 200
+    && isRepositoryUpdateIdentity(request.identity)
+    && request.identity.source === "push";
 }
 
 async function postRepositoryUpdate(request: Request) {
@@ -46,7 +53,7 @@ async function postRepositoryUpdate(request: Request) {
     return NextResponse.json({ error: "Request body must be valid JSON" }, { status: 400 });
   }
   if (!isUpdateRequest(payload)) {
-    return NextResponse.json({ error: "Expected repository and branch strings" }, { status: 400 });
+    return NextResponse.json({ error: "Expected repository, branch, and push workflow identity" }, { status: 400 });
   }
 
   try {

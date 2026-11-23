@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 3,
+  "id": "physics06-system-of-particles-and-rotational-motion",
+  "title": "Test",
+  "rendererVersion": "0.1.7",
+  "sourceShas": {
+    "glossary": "7f4e685b3eec0fff681dd98adbfb474314ef7fb8beda104e27ab01ef13b18ae1",
+    "notes": "332d7bdc3d332ed88c472e27e05dbc50d1cad815dc659a5cb2ea4ca80e26e5ea",
+    "cnotes": "4622f958f83b97bbc016dee177ec3d4c8d161ca1fd16f0e0232433db4d26f2b0"
+  },
+  "outline": [
+    {
+      "id": "chapter-overview",
+      "title": "Concept Roadmap",
+      "importance": 0,
+      "brief": "A generated chapter overview."
+    },
+    {
+      "id": "SECTION-1",
+      "title": "Basics",
+      "importance": 2,
+      "brief": "Torque changes rotational motion."
+    }
+  ],
+  "notes": {
+    "tree": [
+      {
+        "type": "heading",
+        "depth": 1,
+        "children": [
+          {
+            "type": "text",
+            "value": "Physics | Chapter 06 | Test | NOTES"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "depth": 2,
+        "id": "chapter-overview",
+        "children": [
+          {
+            "type": "text",
+            "value": "🗺️ CONCEPT ROADMAP"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "children": [
+          {
+            "type": "text",
+            "value": "A compact path from force to rotation."
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "depth": 2,
+        "children": [
+          {
+            "type": "text",
+            "value": "SECTION 1 — Basics "
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "depth": 3,
+        "id": "1.1",
+        "children": [
+          {
+            "type": "text",
+            "value": "1.1 First idea"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "children": [
+          {
+            "type": "glossaryRef",
+            "termId": "torque",
+            "children": [
+              {
+                "type": "text",
+                "value": "Torque"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": " changes rotational motion."
+          }
+        ]
+      }
+    ]
+  },
+  "facts": [
+    {
+      "sectionId": "1.1",
+      "brief": "Torque links force to rotational change.",
+      "points": [
+        "Exact fact: $F=ma$."
+      ],
+      "visuals": [
+        {
+          "type": "component",
+          "name": "Diagram",
+          "props": {
+            "name": "Diagram",
+            "id": "diagram-9d694672c510",
+            "kind": "mermaid"
+          }
+        },
+        {
+          "type": "component",
+          "name": "Desmos",
+          "props": {
+            "name": "Desmos",
+            "id": "desmos-6733387afe3e",
+            "kind": "2d",
+            "data": {
+              "ref": "desmos-6733387afe3e"
+            }
+          }
+        }
+      ],
+      "glossaryRefs": {
+        "brief": [
+          {
+            "start": 0,
+            "end": 6,
+            "termId": "torque"
+          }
+        ],
+        "points": [
+          []
+        ]
+      }
+    }
+  ],
+  "examples": [],
+  "glossary": {
+    "torque": {
+      "term": "Torque (τ)",
+      "definition": "Turning effect of a force. *(§1.1)*",
+      "aliases": [
+        "τ"
+      ],
+      "common": false
+    }
+  },
+  "diagrams": [
+    {
+      "id": "diagram-9d694672c510",
+      "kind": "mermaid",
+      "source": "flowchart TD\nA --> B"
+    }
+  ],
+  "desmos": [
+    {
+      "id": "desmos-6733387afe3e",
+      "kind": "2d",
+      "data": {
+        "expressions": [
+          {
+            "id": "auto_1",
+            "latex": "y=x"
+          }
+        ]
+      }
+    }
+  ]
+}

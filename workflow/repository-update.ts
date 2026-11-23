@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { RepositoryUpdateJob } from "@/lib/repository-update-identity";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchRepositorySyncPayload } from "@/lib/repository-import";
 import { getPublicIndexStore } from "@/lib/public-index-cache";
@@ -9,12 +10,6 @@ import {
   rebuildPublicIndexes,
   type TreeGroup,
 } from "@/lib/public-indexes";
-
-export interface RepositoryUpdateJob {
-  repository: string;
-  branch: string;
-  requestedBy?: string;
-}
 
 interface RepositoryDatabaseEntry {
   branch: string;
@@ -33,11 +28,54 @@ interface RepositoryDatabaseEntry {
 }
 
 export interface RepositoryUpdateResult {
+  catalogStatus?: "not_attempted" | "unchanged" | "updated";
   commitSha?: string;
   fileCount?: number;
+  indexStatus?: "not_attempted" | "rebuilt";
   rebuiltIndexes?: string[];
   repository: string;
   status: "ignored" | "unchanged" | "updated";
+}
+
+type RepositoryUpdateCatalogStatus =
+  | "failed"
+  | "not_attempted"
+  | "unchanged"
+  | "updated";
+type RepositoryUpdateIndexStatus =
+  | "failed"
+  | "not_attempted"
+  | "rebuilt";
+
+export class RepositoryUpdateFailure extends Error {
+  readonly catalogStatus: RepositoryUpdateCatalogStatus;
+  readonly commitSha: string | null;
+  readonly errorCode:
+    | "catalog_sync_failed"
+    | "index_rebuild_failed"
+    | "repository_check_failed"
+    | "sync_failed";
+  readonly fileCount: number | null;
+  readonly indexStatus: RepositoryUpdateIndexStatus;
+
+  constructor(
+    errorCode: RepositoryUpdateFailure["errorCode"],
+    message: string,
+    options: {
+      catalogStatus: RepositoryUpdateCatalogStatus;
+      commitSha?: string | null;
+      fileCount?: number | null;
+      indexStatus: RepositoryUpdateIndexStatus;
+    },
+  ) {
+    super(message);
+    this.name = "RepositoryUpdateFailure";
+    this.errorCode = errorCode;
+    this.catalogStatus = options.catalogStatus;
+    this.commitSha = options.commitSha ?? null;
+    this.fileCount = options.fileCount ?? null;
+    this.indexStatus = options.indexStatus;
+  }
 }
 
 function isRepositoryEntry(value: unknown): value is RepositoryDatabaseEntry {
@@ -72,11 +110,28 @@ async function processRepositoryUpdateUnchecked(job: RepositoryUpdateJob): Promi
     .maybeSingle();
 
   if (lookupError) throw new Error(`Repository update lookup failed: ${lookupError.message}`);
-  if (!storedEntry) return { repository: job.repository, status: "ignored" };
-  if (!isRepositoryEntry(storedEntry)) {
-    throw new Error(`Stored repository configuration is invalid: ${job.repository}`);
+  if (!storedEntry) {
+    return {
+      catalogStatus: "not_attempted",
+      indexStatus: "not_attempted",
+      repository: job.repository,
+      status: "ignored",
+    };
   }
-  if (storedEntry.branch !== job.branch) return { repository: job.repository, status: "ignored" };
+  if (!isRepositoryEntry(storedEntry)) {
+    throw new RepositoryUpdateFailure("sync_failed", `Stored repository configuration is invalid: ${job.repository}`, {
+      catalogStatus: "not_attempted",
+      indexStatus: "not_attempted",
+    });
+  }
+  if (storedEntry.branch !== job.branch) {
+    return {
+      catalogStatus: "not_attempted",
+      indexStatus: "not_attempted",
+      repository: job.repository,
+      status: "ignored",
+    };
+  }
 
   const syncPayload = await fetchRepositorySyncPayload({
     branch: storedEntry.branch,
@@ -96,6 +151,7 @@ async function processRepositoryUpdateUnchecked(job: RepositoryUpdateJob): Promi
   });
 
   const unchanged = syncPayload.last_commit_sha === storedEntry.last_commit_sha;
+  const catalogStatus: "unchanged" | "updated" = unchanged ? "unchanged" : "updated";
   if (!unchanged) {
     const { error: syncError } = await supabase.rpc("sync_repository_catalog", {
       p_repositories: [{
@@ -103,7 +159,40 @@ async function processRepositoryUpdateUnchecked(job: RepositoryUpdateJob): Promi
         registry_name: syncPayload.name,
       }],
     });
-    if (syncError) throw new Error(`Repository catalog sync failed: ${syncError.message}`);
+    if (syncError) {
+      throw new RepositoryUpdateFailure(
+        "catalog_sync_failed",
+        `Repository catalog sync failed: ${syncError.message}`,
+        {
+          catalogStatus: "failed",
+          commitSha: syncPayload.last_commit_sha,
+          fileCount: syncPayload.files.length,
+          indexStatus: "not_attempted",
+        },
+      );
+    }
+  }
+
+  let rebuiltIndexes: string[];
+  try {
+    // An unchanged source commit can still require repair after Redis loss,
+    // or when a previously published index is stale. Always rebuild here.
+    rebuiltIndexes = await rebuildPublicIndexes(
+      createPublicIndexDatabase(supabase),
+      getPublicIndexStore(),
+      { groups: [storedEntry.class_or_stream] },
+    );
+  } catch (error) {
+    throw new RepositoryUpdateFailure(
+      "index_rebuild_failed",
+      `Public index rebuild failed: ${error instanceof Error ? error.message : "unknown error"}`,
+      {
+        catalogStatus,
+        commitSha: syncPayload.last_commit_sha,
+        fileCount: syncPayload.files.length,
+        indexStatus: "failed",
+      },
+    );
   }
 
   const { error: checkedAtError } = await supabase
@@ -114,19 +203,26 @@ async function processRepositoryUpdateUnchecked(job: RepositoryUpdateJob): Promi
     .eq("repo_name", name)
     .eq("enabled", true)
     .is("archived_at", null);
-  if (checkedAtError) throw new Error(`Repository check timestamp update failed: ${checkedAtError.message}`);
-
-  const rebuiltIndexes = await rebuildPublicIndexes(
-    createPublicIndexDatabase(supabase),
-    getPublicIndexStore(),
-    { groups: [storedEntry.class_or_stream] },
-  );
+  if (checkedAtError) {
+    throw new RepositoryUpdateFailure(
+      "repository_check_failed",
+      `Repository check timestamp update failed: ${checkedAtError.message}`,
+      {
+        catalogStatus,
+        commitSha: syncPayload.last_commit_sha,
+        fileCount: syncPayload.files.length,
+        indexStatus: "rebuilt",
+      },
+    );
+  }
 
   return {
+    catalogStatus,
     repository: job.repository,
     status: unchanged ? "unchanged" : "updated",
     commitSha: syncPayload.last_commit_sha,
     fileCount: syncPayload.files.length,
+    indexStatus: "rebuilt",
     rebuiltIndexes,
   };
 }
@@ -165,12 +261,23 @@ export async function processRepositoryUpdate(job: RepositoryUpdateJob): Promise
     if (updateError) throw new Error(`Unable to record repository sync result: ${updateError.message}`);
     return result;
   } catch (error) {
+    const failure = error instanceof RepositoryUpdateFailure ? error : null;
+    const errorCode = failure?.errorCode ?? "sync_failed";
+    console.error("Repository update failed", {
+      catalogStatus: failure?.catalogStatus ?? "not_attempted",
+      errorCode,
+      indexStatus: failure?.indexStatus ?? "not_attempted",
+      repository: job.repository,
+      message: error instanceof Error ? error.message : "unknown error",
+    });
     const { error: updateError } = await supabase
       .from("repository_sync_runs")
       .update({
+        commit_sha: failure?.commitSha ?? null,
         completed_at: new Date().toISOString(),
         duration_ms: Math.max(0, Date.now() - startedAt),
-        error_code: "sync_failed",
+        error_code: errorCode,
+        file_count: failure?.fileCount ?? null,
         status: "failed",
       })
       .eq("id", run.id);

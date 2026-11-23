@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
+import { readerHref } from "@/lib/reader-navigation";
 import { MarkdownReader } from "@/components/markdown-reader";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -201,20 +202,6 @@ function isFileLookup(value: unknown): value is FileLookup {
     && typeof file.repository === "string"
     && typeof file.repositoryId === "string"
     && typeof file.root === "string";
-}
-
-function markdownReaderHref(file: FileLookup, returnTo: string): string | null {
-  if (!/\.(?:md|markdown|mdx)$/i.test(file.filePath)) return null;
-  const [owner, repository, ...extra] = file.repository.split("/");
-  if (!owner || !repository || extra.length > 0) return null;
-  const params = new URLSearchParams({
-    owner,
-    repo: repository,
-    path: file.filePath,
-    branch: file.branch,
-    returnTo,
-  });
-  return `/read?${params.toString()}`;
 }
 
 function publicContentUrl(file: FileLookup, endpoint: "/api/raw" | "/api/media"): string | null {
@@ -559,9 +546,9 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const openFile = useCallback((key: string, file: FileLookup) => {
     selectFile(key, file);
     if (isLibraryId(stream)) recordOpenedFile(key, file, stream);
-    const readerHref = markdownReaderHref(file, `/${stream === "developer" ? "developers" : stream}`);
-    if (readerHref) {
-      router.push(readerHref);
+    const href = readerHref(file, `/${stream === "developer" ? "developers" : stream}`);
+    if (href) {
+      router.push(href);
       return;
     }
     setReaderFile(file);
@@ -572,9 +559,9 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
     setExplorerLocation({ stream: item.stream, repository: item.file.repository, directory });
     setActiveFile({ key: item.key, file: item.file, stream: item.stream });
     recordOpenedFile(item.key, item.file, item.stream);
-    const readerHref = markdownReaderHref(item.file, `/${item.stream === "developer" ? "developers" : item.stream}`);
-    if (readerHref) {
-      router.push(readerHref);
+    const href = readerHref(item.file, `/${item.stream === "developer" ? "developers" : item.stream}`);
+    if (href) {
+      router.push(href);
       return;
     }
     setReaderFile(item.file);
@@ -582,8 +569,8 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const closeReader = useCallback(() => setReaderFile(null), []);
   const prefetchFile = useCallback((file: FileLookup) => {
     const returnTo = `/${stream === "developer" ? "developers" : stream}`;
-    const readerHref = markdownReaderHref(file, returnTo);
-    if (readerHref) router.prefetch(readerHref);
+    const href = readerHref(file, returnTo);
+    if (href) router.prefetch(href);
   }, [router, stream]);
 
   const visibleFiles = useMemo(() => {

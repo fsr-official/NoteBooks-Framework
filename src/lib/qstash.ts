@@ -2,14 +2,15 @@ import "server-only";
 
 import { Client, Receiver } from "@upstash/qstash";
 import { repositoryUpdateQueueName } from "@/lib/repository-queue-shards";
+import {
+  isRepositoryUpdateJob,
+  repositoryUpdateDeduplicationId,
+  type RepositoryUpdateJob,
+} from "@/lib/repository-update-identity";
 
 export const REPOSITORY_UPDATE_WORKER_PATH = "/api/workflows/repository-update";
 
-export interface RepositoryUpdateJob {
-  repository: string;
-  branch: string;
-  requestedBy?: string;
-}
+export type { RepositoryUpdateJob } from "@/lib/repository-update-identity";
 
 function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -44,12 +45,17 @@ export function createQstashClient(): Client {
 }
 
 export async function enqueueRepositoryUpdate(job: RepositoryUpdateJob): Promise<string> {
+  if (!isRepositoryUpdateJob(job)) {
+    throw new Error("Invalid repository update job identity or payload");
+  }
+
   const response = await createQstashClient()
     .queue({ queueName: repositoryUpdateQueueName(job.repository) })
     .enqueueJSON({
       url: publicWorkerUrl(),
       body: job,
       retries: 5,
+      deduplicationId: repositoryUpdateDeduplicationId(job),
     });
   return response.messageId;
 }

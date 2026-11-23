@@ -31,10 +31,13 @@ function configureRepositories(data: unknown, error: unknown = null) {
   return query;
 }
 
-function request(token = secret) {
+const runIdentity = { runId: "987654321", runAttempt: 1 };
+
+function request(token = secret, payload: unknown = runIdentity) {
   return new Request("https://example.test/api/cron/repository-reconciliation", {
     method: "POST",
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 
@@ -68,23 +71,41 @@ describe("POST /api/cron/repository-reconciliation", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(202);
-    await expect(response.json()).resolves.toEqual({
+    const body = await response.json();
+    expect(body).toEqual({
       checked: 2,
       queued: 2,
       failed: [],
       status: "queued",
     });
+    expect(body).not.toHaveProperty("completed");
     expect(query.eq).toHaveBeenCalledWith("record_type", "repository");
     expect(query.eq).toHaveBeenCalledWith("enabled", true);
     expect(query.is).toHaveBeenCalledWith("archived_at", null);
     expect(enqueueRepositoryUpdate).toHaveBeenCalledWith({
       repository: "owner/one",
       branch: "main",
+      identity: { source: "reconciliation", ...runIdentity },
     });
     expect(enqueueRepositoryUpdate).toHaveBeenCalledWith({
       repository: "owner/two",
       branch: "main",
+      identity: { source: "reconciliation", ...runIdentity },
     });
+  });
+
+  it("rejects missing and malformed run identities before database access", async () => {
+    for (const payload of [
+      {},
+      { runId: "not-numeric", runAttempt: 1 },
+      { runId: "123", runAttempt: 0 },
+      { runId: "123", runAttempt: 1.5 },
+    ]) {
+      expect((await POST(request(secret, payload))).status).toBe(400);
+    }
+
+    expect(createSupabaseAdminClient).not.toHaveBeenCalled();
+    expect(enqueueRepositoryUpdate).not.toHaveBeenCalled();
   });
 
   it("returns success when there are no enabled repositories", async () => {

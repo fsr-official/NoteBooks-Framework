@@ -14,7 +14,12 @@ import { ChapterContent } from "@/components/chapter-bundle/chapter-content";
 import { GlossaryProvider, GlossaryText } from "@/components/chapter-bundle/glossary";
 import { InteractiveErrorBoundary } from "@/components/chapter-bundle/interactive-error-boundary";
 import type { AiTier } from "@/lib/ai-tiers";
-import type { ChapterBundle, BlockNode, InlineNode } from "@/lib/chapter-bundle/schema";
+import {
+  isChapterOutlineId,
+  type ChapterBundle,
+  type BlockNode,
+  type InlineNode,
+} from "@/lib/chapter-bundle/schema";
 import type { NoteSearchBlock, NoteSection } from "@/lib/markdown/renderer";
 import type { ReaderFile } from "@/lib/reader-types";
 
@@ -217,7 +222,9 @@ export function ChapterReader({ bundle, sourceCommitSha, stale, backHref }: Prop
       const visible = entries
         .filter((entry) => entry.isIntersecting)
         .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top)[0];
-      if (visible?.target instanceof HTMLElement) setActiveSectionId(visible.target.id);
+      if (visible?.target instanceof HTMLElement && isChapterOutlineId(visible.target.id)) {
+        setActiveSectionId(visible.target.id);
+      }
     }, { rootMargin: "-18% 0px -68% 0px", threshold: [0, 1] });
     headings.forEach((heading) => observer.observe(heading));
     return () => observer.disconnect();
@@ -233,6 +240,7 @@ export function ChapterReader({ bundle, sourceCommitSha, stale, backHref }: Prop
   }, [chatOpen]);
 
   const jumpTo = useCallback((id: string) => {
+    if (!isChapterOutlineId(id)) return;
     setActiveSectionId(id);
     setActiveTab("notes");
     const target = document.getElementById(id);
