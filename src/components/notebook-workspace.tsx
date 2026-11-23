@@ -3,10 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
 import { readerHref } from "@/lib/reader-navigation";
-import { MarkdownReader } from "@/components/markdown-reader";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   bindAuthenticatedClientSession,
@@ -16,6 +16,11 @@ import {
 } from "@/lib/client-session";
 import { COLOR_TOKENS, isThemePreset, type ThemePreset } from "@/lib/theme-tokens";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+
+const MarkdownReader = dynamic(
+  () => import("@/components/markdown-reader").then((module) => module.MarkdownReader),
+  { ssr: false, loading: () => <div className="reader-message" role="status">Opening file…</div> },
+);
 
 type LibraryId = "lowersecondary" | "science" | "commerce" | "humanities" | "developer";
 type StreamRoute = "lowersecondary" | "science" | "commerce" | "humanities" | "developers";
@@ -350,6 +355,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const [indexError, setIndexError] = useState("");
   const [authBindingError, setAuthBindingError] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const topNavRef = useRef<HTMLElement>(null);
   const indexCache = useRef(new Map<LibraryId, Record<string, FileLookup>>());
   const repoCache = useRef<Record<string, RepositoryLookup> | null>(null);
 
@@ -465,6 +471,21 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
     window.addEventListener("keydown", handleSearchShortcut);
     return () => window.removeEventListener("keydown", handleSearchShortcut);
   }, []);
+
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 1050px)").matches) return;
+    const nav = topNavRef.current;
+    const activeLink = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !activeLink) return;
+
+    const navBounds = nav.getBoundingClientRect();
+    const linkBounds = activeLink.getBoundingClientRect();
+    if (linkBounds.right > navBounds.right) {
+      nav.scrollLeft += linkBounds.right - navBounds.right;
+    } else if (linkBounds.left < navBounds.left) {
+      nav.scrollLeft -= navBounds.left - linkBounds.left;
+    }
+  }, [stream]);
 
   const loadStream = useCallback(async (selectedStream: LibraryId, signal?: AbortSignal) => {
     const cachedFiles = indexCache.current.get(selectedStream);
@@ -708,7 +729,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   return (
     <>
     <main className="workspace">
-      <header className="topbar">
+      <header className={stream === "home" || stream === "account" ? "topbar" : "topbar stream-topbar"}>
         <Link className="brand" href="/" aria-label="NoteBooks home" onClick={() => {
           setExplorerLocation(null);
           setActiveFile(null);
@@ -717,8 +738,8 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
           <span>NoteBooks</span>
           <span className="brand-tag">STUDY SPACE</span>
         </Link>
-        <nav className="top-nav" aria-label="Main navigation">
-          <Link className={stream === "home" ? "nav-link active" : "nav-link"} href="/" onClick={() => {
+        <nav className="top-nav" aria-label="Main navigation" ref={topNavRef}>
+          <Link aria-current={stream === "home" ? "page" : undefined} className={stream === "home" ? "nav-link active" : "nav-link"} href="/" onClick={() => {
             setExplorerLocation(null);
             setActiveFile(null);
           }}>
@@ -726,6 +747,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
           </Link>
           {NAV_STREAMS.map((item) => (
             <Link
+              aria-current={stream === item.id ? "page" : undefined}
               className={stream === item.id ? "nav-link active" : "nav-link"}
               href={`/${item.route}`}
               key={item.id}
@@ -740,7 +762,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
               <span>{item.title}</span>
             </Link>
           ))}
-          <Link className={`nav-link auth-nav-link ${stream === "account" ? "active" : ""}`} href="/account">Account</Link>
+          <Link aria-current={stream === "account" ? "page" : undefined} className={`nav-link auth-nav-link ${stream === "account" ? "active" : ""}`} href="/account">Account</Link>
           <Link className="nav-link auth-nav-join" href="/register">Join</Link>
         </nav>
       </header>
