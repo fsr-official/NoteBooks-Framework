@@ -58,6 +58,15 @@ function workspaceRulesAt(width: number): string {
 }
 
 describe("mobile stream content ordering", () => {
+  it("reveals the active stream link against the navigation client scrollport", () => {
+    expect(workspace).toContain("const navViewportLeft = navBounds.left + nav.clientLeft;");
+    expect(workspace).toContain("const navViewportRight = navViewportLeft + nav.clientWidth;");
+    expect(workspace).toContain("if (linkBounds.right > navViewportRight)");
+    expect(workspace).toContain("nav.scrollLeft += linkBounds.right - navViewportRight;");
+    expect(workspace).toContain("else if (linkBounds.left < navViewportLeft)");
+    expect(workspace).toContain("nav.scrollLeft -= navViewportLeft - linkBounds.left;");
+  });
+
   it.each([320, 390])("places library content before expanded theme controls at %i px", (width) => {
     const responsiveStyles = workspaceRulesAt(width);
     expect(declarationsFor(responsiveStyles, ".workspace-layout")).toMatchObject({
