@@ -38,6 +38,12 @@ describe("precompiled HTML chapter reader layout contract", () => {
     expect(stylesheet).toContain('[data-kind="chapter"][data-active-pane="facts"] [data-reader-panel="facts"]');
   });
 
+  it("keeps the C1 Facts pane in the second tablet column", () => {
+    expect(stylesheet).toMatch(
+      /@media \(max-width:\s*1000px\)\s+and\s+\(min-width:\s*641px\)\s*\{[\s\S]*?\[data-renderer-version\]\s+\.chapter-reader-content-columns\s*>\s*\.chapter-reader-facts\s*\{\s*grid-column:\s*2;\s*\}/,
+    );
+  });
+
   it("synchronizes Facts with the section selected from the outline or Concepts", () => {
     expect(runtime).toContain('const updateFacts = (sectionId) => {');
     expect(runtime).toContain('facts.dataset.activeSection = active?.dataset.sectionId || ""');
