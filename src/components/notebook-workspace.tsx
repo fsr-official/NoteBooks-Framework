@@ -483,10 +483,12 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
       frame = window.requestAnimationFrame(() => {
         const navBounds = nav.getBoundingClientRect();
         const linkBounds = activeLink.getBoundingClientRect();
-        if (linkBounds.right > navBounds.right) {
-          nav.scrollLeft += linkBounds.right - navBounds.right;
-        } else if (linkBounds.left < navBounds.left) {
-          nav.scrollLeft -= navBounds.left - linkBounds.left;
+        const navViewportLeft = navBounds.left + nav.clientLeft;
+        const navViewportRight = navViewportLeft + nav.clientWidth;
+        if (linkBounds.right > navViewportRight) {
+          nav.scrollLeft += linkBounds.right - navViewportRight;
+        } else if (linkBounds.left < navViewportLeft) {
+          nav.scrollLeft -= navViewportLeft - linkBounds.left;
         }
       });
     };
