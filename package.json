@@ -46,6 +46,7 @@
     "server-only": "0.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.1",
     "@types/markdown-it": "^14.2.0",
     "@types/mdx": "^2.0.14",
     "@types/node": "^22",
