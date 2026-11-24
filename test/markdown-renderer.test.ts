@@ -108,6 +108,35 @@ x^2=-1
     expect(result.html).toContain('class="katex-display"');
   });
 
+  it("keeps a prose-parenthetical inline formula separate after bracketed display math", () => {
+    const result = renderNote(String.raw`
+\[
+x=1
+\]
+
+( \(x=2\) ) Following prose remains separate.
+`);
+
+    expect(result.html.match(/class="katex-display"/g)).toHaveLength(1);
+    expect(result.html.match(/class="katex"/g)).toHaveLength(2);
+    expect(result.html).not.toContain('class="eqno"');
+    expect(result.html).toMatch(/<p>[\s\S]*class="katex"[\s\S]*Following prose remains separate\.<\/p>/);
+  });
+
+  it("preserves a numeric equation number after bracketed display math", () => {
+    const result = renderNote(String.raw`
+\[
+x=1
+\]
+
+(7)
+`);
+
+    expect(result.html.match(/class="katex-display"/g)).toHaveLength(1);
+    expect(result.html).toContain('<section class="eqno">');
+    expect(result.html).toContain("<span>(7)</span>");
+  });
+
   it("normalizes inconsistent math delimiters found in repository notes", () => {
     const result = renderNote(String.raw`
 Cross-force pair: \(N_A$–$e_B\).
