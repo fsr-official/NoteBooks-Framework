@@ -274,6 +274,50 @@ function normalizeInlineMathSource(source: string): string {
   });
 }
 
+function separateCalloutDisplayMath(markdown: string): string {
+  const lines = markdown.split(/\r?\n/);
+  const newline = markdown.includes("\r\n") ? "\r\n" : "\n";
+  const output: string[] = [];
+  let fence: { character: string; length: number } | null = null;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const withoutBlockquote = line.replace(/^(?: {0,3}>[ \t]?)+/, "");
+    const fenceMarker = withoutBlockquote.match(/^ {0,3}(`{3,}|~{3,})/);
+
+    if (fence) {
+      const closingFence = withoutBlockquote.match(/^ {0,3}(`+|~+)[ \t]*$/);
+      if (closingFence
+        && closingFence[1][0] === fence.character
+        && closingFence[1].length >= fence.length) {
+        fence = null;
+      }
+      output.push(line);
+      continue;
+    }
+
+    if (fenceMarker) {
+      fence = { character: fenceMarker[1][0], length: fenceMarker[1].length };
+      output.push(line);
+      continue;
+    }
+
+    const calloutHeading = line.match(
+      /^((?: {0,3}>[ \t]?)+)\[![a-zA-Z][a-zA-Z0-9_-]*\](?:[+-])?(?:[ \t]+[^\r\n]*)?$/,
+    );
+    const mathOpening = lines[index + 1]?.match(/^((?: {0,3}>[ \t]?)+)\\\[[ \t]*$/);
+    if (calloutHeading && mathOpening
+      && (calloutHeading[1].match(/>/g)?.length ?? 0) === (mathOpening[1].match(/>/g)?.length ?? 0)) {
+      output.push(line, calloutHeading[1].trimEnd());
+      continue;
+    }
+
+    output.push(line);
+  }
+
+  return output.join(newline);
+}
+
 function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
   const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
   md.use(footnote).use(sub).use(sup).use(taskLists, { enabled: true });
@@ -374,12 +418,9 @@ function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
       const title = match[3]?.trim() || calloutLabel(rawType);
       open.meta = { ...open.meta, calloutTitle: title };
       const titleToken = new state.Token("html_inline", "", 0);
-      titleToken.content = `<span class="callout-title">${state.md.utils.escapeHtml(title)}</span>`;
-      const firstText = inline.children?.find((token) => token.type === "text");
-      if (firstText) {
-        firstText.content = firstText.content.replace(match[0], "").replace(/^\s+/, "");
-        inline.content = inline.content.replace(match[0], "").replace(/^\s+/, "");
-      }
+      titleToken.content = `<span class="callout-title">${md.renderInline(title)}</span>`;
+      inline.content = inline.content.replace(match[0], "").replace(/^\s+/, "");
+      inline.children = md.parseInline(inline.content, {}).flatMap((token) => token.children ?? []);
       inline.children = [titleToken, ...(inline.children ?? [])];
     }
   });
@@ -697,7 +738,7 @@ export function renderNote(markdown: string, sourceInfo?: RenderNoteSource): Ren
       return renderer.renderToken(tokens, index, options);
     };
   }
-  const body = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
+  const body = separateCalloutDisplayMath(markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, ""));
   const tokens = md.parse(body, {});
   const searchIndex: NoteSearchBlock[] = [];
   const figures: NoteFigure[] = [];
