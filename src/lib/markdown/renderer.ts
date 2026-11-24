@@ -274,50 +274,6 @@ function normalizeInlineMathSource(source: string): string {
   });
 }
 
-function separateCalloutDisplayMath(markdown: string): string {
-  const lines = markdown.split(/\r?\n/);
-  const newline = markdown.includes("\r\n") ? "\r\n" : "\n";
-  const output: string[] = [];
-  let fence: { character: string; length: number } | null = null;
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    const withoutBlockquote = line.replace(/^(?: {0,3}>[ \t]?)+/, "");
-    const fenceMarker = withoutBlockquote.match(/^ {0,3}(`{3,}|~{3,})/);
-
-    if (fence) {
-      const closingFence = withoutBlockquote.match(/^ {0,3}(`+|~+)[ \t]*$/);
-      if (closingFence
-        && closingFence[1][0] === fence.character
-        && closingFence[1].length >= fence.length) {
-        fence = null;
-      }
-      output.push(line);
-      continue;
-    }
-
-    if (fenceMarker) {
-      fence = { character: fenceMarker[1][0], length: fenceMarker[1].length };
-      output.push(line);
-      continue;
-    }
-
-    const calloutHeading = line.match(
-      /^((?: {0,3}>[ \t]?)+)\[![a-zA-Z][a-zA-Z0-9_-]*\](?:[+-])?(?:[ \t]+[^\r\n]*)?$/,
-    );
-    const mathOpening = lines[index + 1]?.match(/^((?: {0,3}>[ \t]?)+)\\\[[ \t]*$/);
-    if (calloutHeading && mathOpening
-      && (calloutHeading[1].match(/>/g)?.length ?? 0) === (mathOpening[1].match(/>/g)?.length ?? 0)) {
-      output.push(line, calloutHeading[1].trimEnd());
-      continue;
-    }
-
-    output.push(line);
-  }
-
-  return output.join(newline);
-}
-
 function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
   const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
   md.use(footnote).use(sub).use(sup).use(taskLists, { enabled: true });
@@ -326,6 +282,43 @@ function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
     delimiters: ["dollars", "brackets", "beg_end"],
     katexOptions: { throwOnError: false, strict: "ignore", output: "html" },
   });
+  md.block.ruler.before("paragraph", "notebooks_display_math_interrupt", (state, startLine, endLine, silent) => {
+    const start = state.bMarks[startLine] + state.tShift[startLine];
+    const end = state.eMarks[startLine];
+    const opening = state.src.slice(start, end);
+    const closingPattern = /^\\\[[ \t]*$/.test(opening)
+      ? /^\\\][ \t]*$/
+      : /^\$\$[ \t]*$/.test(opening)
+        ? /^\$\$[ \t]*$/
+        : null;
+    if (!closingPattern) return false;
+
+    let fence: { character: string; length: number } | null = null;
+    for (let line = startLine + 1; line < endLine; line += 1) {
+      const lineStart = state.bMarks[line] + state.tShift[line];
+      const lineEnd = state.eMarks[line];
+      const content = state.src.slice(lineStart, lineEnd);
+      if (fence) {
+        const closingFence = content.match(/^ {0,3}(`+|~+)[ \t]*$/);
+        if (closingFence
+          && closingFence[1][0] === fence.character
+          && closingFence[1].length >= fence.length) {
+          fence = null;
+        }
+        continue;
+      }
+
+      const fenceMarker = content.match(/^ {0,3}(`{3,}|~{3,})/);
+      if (fenceMarker) {
+        fence = { character: fenceMarker[1][0], length: fenceMarker[1].length };
+        continue;
+      }
+
+      if (closingPattern.test(content)) return silent;
+    }
+
+    return false;
+  }, { alt: ["paragraph"] });
   md.core.ruler.before("inline", "notebooks_math_source", (state) => {
     for (let index = 0; index < state.tokens.length; index += 1) {
       const token = state.tokens[index];
@@ -738,7 +731,7 @@ export function renderNote(markdown: string, sourceInfo?: RenderNoteSource): Ren
       return renderer.renderToken(tokens, index, options);
     };
   }
-  const body = separateCalloutDisplayMath(markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, ""));
+  const body = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
   const tokens = md.parse(body, {});
   const searchIndex: NoteSearchBlock[] = [];
   const figures: NoteFigure[] = [];
