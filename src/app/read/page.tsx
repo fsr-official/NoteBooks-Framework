@@ -8,9 +8,8 @@ import { getChapterBundle } from "@/lib/chapter-bundle/server";
 import { precompiledChapterId } from "@/lib/chapter-bundle/selection";
 import { renderNote, type RenderedNote } from "@/lib/markdown/renderer";
 import { MdxCompileError, renderMdxNote } from "@/lib/markdown/mdx-compiler";
-import { isMdxRenderingEnabled, isRepositoryMdxRenderingEnabled } from "@/lib/mdx-feature-flag";
 import { localPrecompiledHtmlDirectory, readLocalPrecompiledHtml } from "@/lib/precompiled-html";
-import { servePublicContent } from "@/lib/public-content-route";
+import { getReadRouteDataProvider } from "@/lib/read-route-data";
 import "../reader-redesign.css";
 import "../chapter-reader.css";
 import "../precompiled-html-reader.css";
@@ -75,13 +74,14 @@ export default async function ReadPage({
     notFound();
   }
 
+  const routeIdentity = { owner, repository, path, branch };
+  const dataProvider = getReadRouteDataProvider(routeIdentity);
   let response: Response | null = null;
   let mdxRenderingEnabled = false;
   let featureFlagReadFailed = false;
   if ((isMdxFile || isHtmlFile) && !isLocalHtml) {
     try {
-      mdxRenderingEnabled = await isMdxRenderingEnabled()
-        && await isRepositoryMdxRenderingEnabled(owner, repository);
+      mdxRenderingEnabled = await dataProvider.isMdxRenderingEnabled(routeIdentity);
     } catch (error) {
       featureFlagReadFailed = true;
       console.error("Could not read the MDX rendering settings", {
@@ -128,7 +128,7 @@ export default async function ReadPage({
     url.searchParams.set("owner", owner);
     url.searchParams.set("repo", repository);
     url.searchParams.set("path", path);
-    response = await servePublicContent(new Request(url), "markdown");
+    response = await dataProvider.servePublicContent(new Request(url), routeIdentity);
 
     if (response.status === 404) notFound();
     if (!response.ok) {
