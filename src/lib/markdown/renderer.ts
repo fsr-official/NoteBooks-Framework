@@ -274,6 +274,102 @@ function normalizeInlineMathSource(source: string): string {
   });
 }
 
+function protectTableMathPipes(source: string): string {
+  const segments = source.match(/[^\r\n]*(?:\r\n|\n|$)/g)?.filter((segment) => segment.length > 0) ?? [];
+  let fence: { character: string; length: number } | null = null;
+  const tableLines = new Set<number>();
+
+  for (let lineIndex = 0; lineIndex < segments.length; lineIndex += 1) {
+    const line = segments[lineIndex].replace(/\r?\n$/, "");
+    const content = line.replace(/^[ \t]*(?:>[ \t]*)*/, "");
+
+    if (fence) {
+      const closingFence = content.match(/^ {0,3}(`+|~+)[ \t]*$/);
+      if (closingFence
+        && closingFence[1][0] === fence.character
+        && closingFence[1].length >= fence.length) {
+        fence = null;
+      }
+      continue;
+    }
+
+    const fenceMarker = content.match(/^ {0,3}(`{3,}|~{3,})/);
+    if (fenceMarker) {
+      fence = { character: fenceMarker[1][0], length: fenceMarker[1].length };
+      continue;
+    }
+
+    if (lineIndex + 1 >= segments.length) continue;
+    const nextLine = segments[lineIndex + 1].replace(/\r?\n$/, "");
+    const nextContent = nextLine.replace(/^[ \t]*(?:>[ \t]*)*/, "");
+    const delimiter = /^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(nextContent);
+    if (!delimiter || !line.includes("|")) continue;
+
+    tableLines.add(lineIndex);
+    tableLines.add(lineIndex + 1);
+    for (let bodyIndex = lineIndex + 2; bodyIndex < segments.length; bodyIndex += 1) {
+      const bodyLine = segments[bodyIndex].replace(/\r?\n$/, "");
+      const bodyContent = bodyLine.replace(/^[ \t]*(?:>[ \t]*)*/, "");
+      if (!bodyLine.includes("|") || /^ {0,3}(?:`{3,}|~{3,})/.test(bodyContent)) break;
+      tableLines.add(bodyIndex);
+    }
+  }
+
+  for (let lineIndex = 0; lineIndex < segments.length; lineIndex += 1) {
+    if (!tableLines.has(lineIndex)) continue;
+
+    const segment = segments[lineIndex];
+    const newline = segment.match(/\r?\n$/)?.[0] ?? "";
+    const line = segment.slice(0, segment.length - newline.length);
+    let protectedLine = "";
+    let inDollarMath = false;
+
+    for (let index = 0; index < line.length; index += 1) {
+      const character = line[index];
+
+      if (character === "`") {
+        const runMatch = line.slice(index).match(/^`+/);
+        const runLength = runMatch?.[0].length ?? 1;
+        const closing = "`".repeat(runLength);
+        const closingIndex = line.indexOf(closing, index + runLength);
+        if (closingIndex !== -1) {
+          protectedLine += line.slice(index, closingIndex + runLength);
+          index = closingIndex + runLength - 1;
+          continue;
+        }
+      }
+
+      if (character === "$") {
+        let backslashes = 0;
+        for (let before = index - 1; before >= 0 && line[before] === "\\"; before -= 1) {
+          backslashes += 1;
+        }
+        if (backslashes % 2 === 0) {
+          if (line[index + 1] === "$") {
+            inDollarMath = !inDollarMath;
+            protectedLine += "$";
+            index += 1;
+          } else {
+            inDollarMath = !inDollarMath;
+          }
+        }
+      } else if (character === "|" && inDollarMath) {
+        let backslashes = 0;
+        for (let before = index - 1; before >= 0 && line[before] === "\\"; before -= 1) {
+          backslashes += 1;
+        }
+        if (backslashes % 2 === 0) protectedLine += "\\";
+      }
+
+      protectedLine += character;
+    }
+
+    segments[lineIndex] = `${protectedLine}${newline}`;
+  }
+
+  return segments.join("");
+}
+
 function protectBracketMathFromProseEquationNumbers(source: string): string {
   const lines = source.match(/[^\n]*\n|[^\n]+$/g) ?? [];
   let fence: { character: string; length: number } | null = null;
@@ -781,7 +877,7 @@ export function renderNote(markdown: string, sourceInfo?: RenderNoteSource): Ren
     };
   }
   const body = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
-  const tokens = md.parse(protectBracketMathFromProseEquationNumbers(body), {});
+  const tokens = md.parse(protectBracketMathFromProseEquationNumbers(protectTableMathPipes(body)), {});
   const searchIndex: NoteSearchBlock[] = [];
   const figures: NoteFigure[] = [];
   const { preamble, sections } = addIdsAndCollect(splitBlocks(tokens), md, searchIndex, figures);
