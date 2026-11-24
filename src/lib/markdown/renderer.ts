@@ -274,6 +274,55 @@ function normalizeInlineMathSource(source: string): string {
   });
 }
 
+function protectBracketMathFromProseEquationNumbers(source: string): string {
+  const lines = source.match(/[^\n]*\n|[^\n]+$/g) ?? [];
+  let fence: { character: string; length: number } | null = null;
+  let previousNonblank: { quoteDepth: number; closesBracketMath: boolean } | null = null;
+
+  return lines.map((line) => {
+    const content = line.replace(/\r?\n$/, "");
+    const prefix = content.match(/^[ \t]*(?:>[ \t]*)*/)?.[0] ?? "";
+    const quoteDepth = (prefix.match(/>/g) ?? []).length;
+    const markdown = content.slice(prefix.length);
+
+    if (fence) {
+      const closingFence = markdown.match(/^ {0,3}(`+|~+)[ \t]*$/);
+      if (closingFence
+        && closingFence[1][0] === fence.character
+        && closingFence[1].length >= fence.length) {
+        fence = null;
+      }
+      previousNonblank = null;
+      return line;
+    }
+
+    const fenceMarker = markdown.match(/^ {0,3}(`{3,}|~{3,})/);
+    if (fenceMarker) {
+      fence = { character: fenceMarker[1][0], length: fenceMarker[1].length };
+      previousNonblank = null;
+      return line;
+    }
+
+    const inlineMathProse = /\\(?:[A-Za-z]+|[([])/.test(markdown);
+    const standaloneParenthetical = markdown.match(/^([ \t]*)\(/);
+    const sameLineParenthetical = markdown.match(/^(\\\][ \t]+)\(/);
+    let protectedLine = line;
+    // texmath treats any parenthesis after \] as an equation number, even across blank lines.
+    if (inlineMathProse && sameLineParenthetical) {
+      protectedLine = `${prefix}${sameLineParenthetical[1]}&#40;${markdown.slice(sameLineParenthetical[0].length)}`;
+    } else if (inlineMathProse && standaloneParenthetical
+      && previousNonblank?.closesBracketMath
+      && previousNonblank.quoteDepth === quoteDepth) {
+      protectedLine = `${prefix}${standaloneParenthetical[1]}&#40;${markdown.slice(standaloneParenthetical[0].length)}`;
+    }
+
+    previousNonblank = markdown.trim()
+      ? { quoteDepth, closesBracketMath: /^\\\][ \t]*$/.test(markdown) }
+      : previousNonblank;
+    return protectedLine;
+  }).join("");
+}
+
 function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
   const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
   md.use(footnote).use(sub).use(sup).use(taskLists, { enabled: true });
@@ -732,7 +781,7 @@ export function renderNote(markdown: string, sourceInfo?: RenderNoteSource): Ren
     };
   }
   const body = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
-  const tokens = md.parse(body, {});
+  const tokens = md.parse(protectBracketMathFromProseEquationNumbers(body), {});
   const searchIndex: NoteSearchBlock[] = [];
   const figures: NoteFigure[] = [];
   const { preamble, sections } = addIdsAndCollect(splitBlocks(tokens), md, searchIndex, figures);
