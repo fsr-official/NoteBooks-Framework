@@ -127,6 +127,25 @@ Potential energy: $V = $ sum over all **pairs**, $-Gm_im_j/r_{ij}$.
     expect(renderNote("Code: ``$V = $``.").html).toContain("<code>$V = $</code>");
   });
 
+  it("preserves vertical-bar math operators inside Markdown table cells", () => {
+    const result = renderNote([
+      "| Kind | Value | Extra |",
+      "| --- | --- | --- |",
+      String.raw`| Math | $\sum_{i=1}^{n} x_i | y_i$ | ordinary |`,
+      "| Code | `left \\| right` | ordinary |",
+    ].join("\n"));
+
+    expect(result.html.match(/<th\b/g)).toHaveLength(3);
+    expect(result.html.match(/<td\b/g)).toHaveLength(6);
+    expect(result.html.match(/class="katex"/g)).toHaveLength(1);
+    expect(result.html).not.toContain("katex-error");
+    expect(result.html).not.toContain("\\sum");
+    expect(result.html.match(/∣/g)).toHaveLength(1);
+    expect(result.html).not.toContain("∥");
+    expect(result.html).toContain("<code>left | right</code>");
+    expect(result.html.match(/<td>ordinary<\/td>/g)).toHaveLength(2);
+  });
+
   it("renders standalone and custom callouts in the server reader", () => {
     const result = renderNote([
       "# Chitin",
