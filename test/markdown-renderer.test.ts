@@ -108,6 +108,88 @@ x^2=-1
     expect(result.html).toContain('class="katex-display"');
   });
 
+  it("renders quoted callout display math immediately after its heading", () => {
+    const result = renderNote(String.raw`
+> [!NOTE] Display title
+> \[
+> \boxed{x=1}
+> \]
+`);
+
+    expect(result.html).toContain('class="callout" data-type="note"');
+    expect(result.html).toContain('<span class="callout-title">Display title</span>');
+    expect(result.html.match(/class="katex-display"/g)).toHaveLength(1);
+    expect(result.html.match(/class="katex"/g)).toHaveLength(1);
+    expect(result.html).not.toContain("\\[");
+    expect(result.html).not.toContain("\\]");
+    expect(result.html).not.toContain("\\boxed");
+    expect(result.html).not.toContain("katex-error");
+  });
+
+  it("renders inline math inside a callout title", () => {
+    const result = renderNote(String.raw`
+> [!NOTE] Relation \(x=y\)
+> Body remains here.
+`);
+
+    expect(result.html).toMatch(/<span class="callout-title">Relation <eq><span class="katex">/);
+    expect(result.html.match(/class="katex"/g)).toHaveLength(1);
+    expect(result.html).toContain("Body remains here.");
+    expect(result.html).not.toContain("\\(");
+    expect(result.html).not.toContain("\\)");
+    expect(result.html).not.toContain("katex-error");
+  });
+
+  it("keeps a prose label before an immediately following aligned display block", () => {
+    const result = renderNote(String.raw`
+Alignment:
+\[
+\begin{aligned}
+x &= y \\
+y &= z
+\end{aligned}
+\]
+`);
+
+    expect(result.html).toContain("<p>Alignment:</p>");
+    expect(result.html.match(/class="katex-display"/g)).toHaveLength(1);
+    expect(result.html.indexOf("<p>Alignment:</p>")).toBeLessThan(result.html.indexOf('class="katex-display"'));
+    expect(result.html).not.toContain("\\[");
+    expect(result.html).not.toContain("\\]");
+    expect(result.html).not.toContain("\\begin{aligned}");
+    expect(result.html).not.toContain("\\end{aligned}");
+    expect(result.html).not.toContain("katex-error");
+  });
+
+  it("keeps a prose-parenthetical inline formula separate after bracketed display math", () => {
+    const result = renderNote(String.raw`
+\[
+x=1
+\]
+
+( \(x=2\) ) Following prose remains separate.
+`);
+
+    expect(result.html.match(/class="katex-display"/g)).toHaveLength(1);
+    expect(result.html.match(/class="katex"/g)).toHaveLength(2);
+    expect(result.html).not.toContain('class="eqno"');
+    expect(result.html).toMatch(/<p>[\s\S]*class="katex"[\s\S]*Following prose remains separate\.<\/p>/);
+  });
+
+  it("preserves a numeric equation number after bracketed display math", () => {
+    const result = renderNote(String.raw`
+\[
+x=1
+\]
+
+(7)
+`);
+
+    expect(result.html.match(/class="katex-display"/g)).toHaveLength(1);
+    expect(result.html).toContain('<section class="eqno">');
+    expect(result.html).toContain("<span>(7)</span>");
+  });
+
   it("normalizes inconsistent math delimiters found in repository notes", () => {
     const result = renderNote(String.raw`
 Cross-force pair: \(N_A$–$e_B\).
@@ -125,6 +207,25 @@ Potential energy: $V = $ sum over all **pairs**, $-Gm_im_j/r_{ij}$.
     expect(result.html).toContain('class="katex-display"');
 
     expect(renderNote("Code: ``$V = $``.").html).toContain("<code>$V = $</code>");
+  });
+
+  it("preserves vertical-bar math operators inside Markdown table cells", () => {
+    const result = renderNote([
+      "| Kind | Value | Extra |",
+      "| --- | --- | --- |",
+      String.raw`| Math | $\sum_{i=1}^{n} x_i | y_i$ | ordinary |`,
+      "| Code | `left \\| right` | ordinary |",
+    ].join("\n"));
+
+    expect(result.html.match(/<th\b/g)).toHaveLength(3);
+    expect(result.html.match(/<td\b/g)).toHaveLength(6);
+    expect(result.html.match(/class="katex"/g)).toHaveLength(1);
+    expect(result.html).not.toContain("katex-error");
+    expect(result.html).not.toContain("\\sum");
+    expect(result.html.match(/∣/g)).toHaveLength(1);
+    expect(result.html).not.toContain("∥");
+    expect(result.html).toContain("<code>left | right</code>");
+    expect(result.html.match(/<td>ordinary<\/td>/g)).toHaveLength(2);
   });
 
   it("renders standalone and custom callouts in the server reader", () => {

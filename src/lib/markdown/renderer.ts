@@ -274,6 +274,151 @@ function normalizeInlineMathSource(source: string): string {
   });
 }
 
+function protectTableMathPipes(source: string): string {
+  const segments = source.match(/[^\r\n]*(?:\r\n|\n|$)/g)?.filter((segment) => segment.length > 0) ?? [];
+  let fence: { character: string; length: number } | null = null;
+  const tableLines = new Set<number>();
+
+  for (let lineIndex = 0; lineIndex < segments.length; lineIndex += 1) {
+    const line = segments[lineIndex].replace(/\r?\n$/, "");
+    const content = line.replace(/^[ \t]*(?:>[ \t]*)*/, "");
+
+    if (fence) {
+      const closingFence = content.match(/^ {0,3}(`+|~+)[ \t]*$/);
+      if (closingFence
+        && closingFence[1][0] === fence.character
+        && closingFence[1].length >= fence.length) {
+        fence = null;
+      }
+      continue;
+    }
+
+    const fenceMarker = content.match(/^ {0,3}(`{3,}|~{3,})/);
+    if (fenceMarker) {
+      fence = { character: fenceMarker[1][0], length: fenceMarker[1].length };
+      continue;
+    }
+
+    if (lineIndex + 1 >= segments.length) continue;
+    const nextLine = segments[lineIndex + 1].replace(/\r?\n$/, "");
+    const nextContent = nextLine.replace(/^[ \t]*(?:>[ \t]*)*/, "");
+    const delimiter = /^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(nextContent);
+    if (!delimiter || !line.includes("|")) continue;
+
+    tableLines.add(lineIndex);
+    tableLines.add(lineIndex + 1);
+    for (let bodyIndex = lineIndex + 2; bodyIndex < segments.length; bodyIndex += 1) {
+      const bodyLine = segments[bodyIndex].replace(/\r?\n$/, "");
+      const bodyContent = bodyLine.replace(/^[ \t]*(?:>[ \t]*)*/, "");
+      if (!bodyLine.includes("|") || /^ {0,3}(?:`{3,}|~{3,})/.test(bodyContent)) break;
+      tableLines.add(bodyIndex);
+    }
+  }
+
+  for (let lineIndex = 0; lineIndex < segments.length; lineIndex += 1) {
+    if (!tableLines.has(lineIndex)) continue;
+
+    const segment = segments[lineIndex];
+    const newline = segment.match(/\r?\n$/)?.[0] ?? "";
+    const line = segment.slice(0, segment.length - newline.length);
+    let protectedLine = "";
+    let inDollarMath = false;
+
+    for (let index = 0; index < line.length; index += 1) {
+      const character = line[index];
+
+      if (character === "`") {
+        const runMatch = line.slice(index).match(/^`+/);
+        const runLength = runMatch?.[0].length ?? 1;
+        const closing = "`".repeat(runLength);
+        const closingIndex = line.indexOf(closing, index + runLength);
+        if (closingIndex !== -1) {
+          protectedLine += line.slice(index, closingIndex + runLength);
+          index = closingIndex + runLength - 1;
+          continue;
+        }
+      }
+
+      if (character === "$") {
+        let backslashes = 0;
+        for (let before = index - 1; before >= 0 && line[before] === "\\"; before -= 1) {
+          backslashes += 1;
+        }
+        if (backslashes % 2 === 0) {
+          if (line[index + 1] === "$") {
+            inDollarMath = !inDollarMath;
+            protectedLine += "$";
+            index += 1;
+          } else {
+            inDollarMath = !inDollarMath;
+          }
+        }
+      } else if (character === "|" && inDollarMath) {
+        let backslashes = 0;
+        for (let before = index - 1; before >= 0 && line[before] === "\\"; before -= 1) {
+          backslashes += 1;
+        }
+        if (backslashes % 2 === 0) protectedLine += "\\";
+      }
+
+      protectedLine += character;
+    }
+
+    segments[lineIndex] = `${protectedLine}${newline}`;
+  }
+
+  return segments.join("");
+}
+
+function protectBracketMathFromProseEquationNumbers(source: string): string {
+  const lines = source.match(/[^\n]*\n|[^\n]+$/g) ?? [];
+  let fence: { character: string; length: number } | null = null;
+  let previousNonblank: { quoteDepth: number; closesBracketMath: boolean } | null = null;
+
+  return lines.map((line) => {
+    const content = line.replace(/\r?\n$/, "");
+    const prefix = content.match(/^[ \t]*(?:>[ \t]*)*/)?.[0] ?? "";
+    const quoteDepth = (prefix.match(/>/g) ?? []).length;
+    const markdown = content.slice(prefix.length);
+
+    if (fence) {
+      const closingFence = markdown.match(/^ {0,3}(`+|~+)[ \t]*$/);
+      if (closingFence
+        && closingFence[1][0] === fence.character
+        && closingFence[1].length >= fence.length) {
+        fence = null;
+      }
+      previousNonblank = null;
+      return line;
+    }
+
+    const fenceMarker = markdown.match(/^ {0,3}(`{3,}|~{3,})/);
+    if (fenceMarker) {
+      fence = { character: fenceMarker[1][0], length: fenceMarker[1].length };
+      previousNonblank = null;
+      return line;
+    }
+
+    const inlineMathProse = /\\(?:[A-Za-z]+|[([])/.test(markdown);
+    const standaloneParenthetical = markdown.match(/^([ \t]*)\(/);
+    const sameLineParenthetical = markdown.match(/^(\\\][ \t]+)\(/);
+    let protectedLine = line;
+    // texmath treats any parenthesis after \] as an equation number, even across blank lines.
+    if (inlineMathProse && sameLineParenthetical) {
+      protectedLine = `${prefix}${sameLineParenthetical[1]}&#40;${markdown.slice(sameLineParenthetical[0].length)}`;
+    } else if (inlineMathProse && standaloneParenthetical
+      && previousNonblank?.closesBracketMath
+      && previousNonblank.quoteDepth === quoteDepth) {
+      protectedLine = `${prefix}${standaloneParenthetical[1]}&#40;${markdown.slice(standaloneParenthetical[0].length)}`;
+    }
+
+    previousNonblank = markdown.trim()
+      ? { quoteDepth, closesBracketMath: /^\\\][ \t]*$/.test(markdown) }
+      : previousNonblank;
+    return protectedLine;
+  }).join("");
+}
+
 function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
   const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
   md.use(footnote).use(sub).use(sup).use(taskLists, { enabled: true });
@@ -282,6 +427,43 @@ function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
     delimiters: ["dollars", "brackets", "beg_end"],
     katexOptions: { throwOnError: false, strict: "ignore", output: "html" },
   });
+  md.block.ruler.before("paragraph", "notebooks_display_math_interrupt", (state, startLine, endLine, silent) => {
+    const start = state.bMarks[startLine] + state.tShift[startLine];
+    const end = state.eMarks[startLine];
+    const opening = state.src.slice(start, end);
+    const closingPattern = /^\\\[[ \t]*$/.test(opening)
+      ? /^\\\][ \t]*$/
+      : /^\$\$[ \t]*$/.test(opening)
+        ? /^\$\$[ \t]*$/
+        : null;
+    if (!closingPattern) return false;
+
+    let fence: { character: string; length: number } | null = null;
+    for (let line = startLine + 1; line < endLine; line += 1) {
+      const lineStart = state.bMarks[line] + state.tShift[line];
+      const lineEnd = state.eMarks[line];
+      const content = state.src.slice(lineStart, lineEnd);
+      if (fence) {
+        const closingFence = content.match(/^ {0,3}(`+|~+)[ \t]*$/);
+        if (closingFence
+          && closingFence[1][0] === fence.character
+          && closingFence[1].length >= fence.length) {
+          fence = null;
+        }
+        continue;
+      }
+
+      const fenceMarker = content.match(/^ {0,3}(`{3,}|~{3,})/);
+      if (fenceMarker) {
+        fence = { character: fenceMarker[1][0], length: fenceMarker[1].length };
+        continue;
+      }
+
+      if (closingPattern.test(content)) return silent;
+    }
+
+    return false;
+  }, { alt: ["paragraph"] });
   md.core.ruler.before("inline", "notebooks_math_source", (state) => {
     for (let index = 0; index < state.tokens.length; index += 1) {
       const token = state.tokens[index];
@@ -374,12 +556,9 @@ function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
       const title = match[3]?.trim() || calloutLabel(rawType);
       open.meta = { ...open.meta, calloutTitle: title };
       const titleToken = new state.Token("html_inline", "", 0);
-      titleToken.content = `<span class="callout-title">${state.md.utils.escapeHtml(title)}</span>`;
-      const firstText = inline.children?.find((token) => token.type === "text");
-      if (firstText) {
-        firstText.content = firstText.content.replace(match[0], "").replace(/^\s+/, "");
-        inline.content = inline.content.replace(match[0], "").replace(/^\s+/, "");
-      }
+      titleToken.content = `<span class="callout-title">${md.renderInline(title)}</span>`;
+      inline.content = inline.content.replace(match[0], "").replace(/^\s+/, "");
+      inline.children = md.parseInline(inline.content, {}).flatMap((token) => token.children ?? []);
       inline.children = [titleToken, ...(inline.children ?? [])];
     }
   });
@@ -698,7 +877,7 @@ export function renderNote(markdown: string, sourceInfo?: RenderNoteSource): Ren
     };
   }
   const body = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
-  const tokens = md.parse(body, {});
+  const tokens = md.parse(protectBracketMathFromProseEquationNumbers(protectTableMathPipes(body)), {});
   const searchIndex: NoteSearchBlock[] = [];
   const figures: NoteFigure[] = [];
   const { preamble, sections } = addIdsAndCollect(splitBlocks(tokens), md, searchIndex, figures);

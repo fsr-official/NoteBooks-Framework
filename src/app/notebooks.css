@@ -27,7 +27,7 @@ body { margin: 0; background: var(--page); color: var(--text); font-family: var(
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
-button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .workspace { min-height: 100vh; }
 .topbar { height: 72px; display: flex; align-items: center; gap: 48px; padding: 0 42px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--page) 91%, transparent); position: sticky; top: 0; z-index: 20; backdrop-filter: blur(18px); }
 .brand { display: flex; align-items: center; gap: 11px; font-family: var(--font-manrope), sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -.045em; white-space: nowrap; }
@@ -141,6 +141,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .library-stat span { color: var(--muted); font: 10px var(--font-dm-mono), monospace; letter-spacing: .1em; }
 .library-toolbar { display: flex; align-items: center; gap: 12px; padding: 18px 0; }
 .search-box { min-height: 42px; max-width: 540px; flex: 1; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--muted); }
+.search-box:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 .search-box > span { color: var(--accent); font-size: 20px; }
 .search-box input { flex: 1; min-width: 0; border: 0; outline: 0; color: var(--text); background: transparent; font-size: 13px; }
 .search-box input::placeholder { color: var(--muted); opacity: .8; }
@@ -843,4 +844,66 @@ body { font-family: var(--font-dm-sans), var(--font-dm-sans), sans-serif; }
   .library-view .library-heading,
   .library-view .library-toolbar,
   .library-view .library-content { animation: none; }
+}
+
+.stream-view .library-heading h1 {
+  line-height: 1.08;
+  text-transform: none;
+}
+
+.stream-view .search-box { min-height: 46px; }
+.stream-view .library-controls select { min-height: 44px; }
+.stream-view .repository-row, .stream-view .folder-row { min-height: 48px; }
+.stream-view .file-row { min-height: 46px; }
+.stream-view .explorer-breadcrumbs > button,
+.stream-view .breadcrumb-segment button { min-height: 40px; padding-block: 6px; }
+.stream-view { overflow-x: clip; }
+
+@media (max-width: 1050px) {
+  .stream-topbar {
+    height: 100px;
+    flex-wrap: wrap;
+    align-content: center;
+    gap: 0;
+    padding: 8px 24px;
+  }
+  .stream-topbar .brand {
+    flex: 0 0 100%;
+    height: 34px;
+  }
+  .stream-topbar .top-nav {
+    width: 100%;
+    height: 42px;
+    flex: 0 0 100%;
+    gap: 14px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-color: var(--muted) transparent;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .stream-topbar .top-nav::-webkit-scrollbar { display: block; height: 3px; }
+  .stream-topbar .top-nav::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--muted); }
+  .stream-topbar .nav-link {
+    height: 40px;
+    min-height: 40px;
+    flex: 0 0 auto;
+    padding-inline: 5px;
+  }
+  .stream-topbar + .workspace-layout { min-height: calc(100vh - 100px); }
+  .stream-view .file-detail { top: 100px; }
+}
+
+@media (max-width: 760px) {
+  .stream-topbar { height: 90px; padding: 7px 16px 5px; }
+  .stream-topbar .brand { height: 32px; }
+  .stream-topbar .top-nav { gap: 12px; }
+  .stream-view .library-heading {
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .stream-view .library-heading h1 { font-size: clamp(29px, 8vw, 36px); }
+  .stream-view .search-box kbd { display: none; }
+  .stream-topbar + .workspace-layout { min-height: calc(100vh - 90px); }
+  .stream-view .file-detail { top: 90px; }
 }
