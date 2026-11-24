@@ -171,6 +171,10 @@ function attachChapterLayout(root, cleanups) {
     throw new Error("The chapter fragment is missing its outline, notes, or CNOTES region.");
   }
 
+  const originalRootId = root.id;
+  const originalActivePane = root.dataset.activePane;
+  const readerId = root.id || "precompiled-html-chapter-reader";
+  if (!root.id) root.id = readerId;
   const originalOutlineHtml = outline.innerHTML;
   const originalActiveFact = facts.dataset.activeSection;
   const chapterHeading = root.querySelector("[data-chapter-title]");
@@ -180,6 +184,13 @@ function attachChapterLayout(root, cleanups) {
   const outlineHeading = outline.querySelector(":scope > h2");
   const chapterBriefHeading = facts.querySelector(".chapter-reader-overview h2");
   const originalChapterBriefHeadingHtml = chapterBriefHeading?.innerHTML;
+  const panelAttributeNames = ["id", "role", "aria-labelledby", "tabindex", "data-reader-panel"];
+  const originalPanelAttributes = new Map(
+    [notes, facts].map((panel) => [
+      panel,
+      Object.fromEntries(panelAttributeNames.map((name) => [name, panel.getAttribute(name)])),
+    ]),
+  );
   const exampleLinks = [...notes.querySelectorAll(".chapter-example-links")].map((element) => ({
     element,
     parent: element.parentNode,
@@ -200,11 +211,44 @@ function attachChapterLayout(root, cleanups) {
   const outlineModel = buildChapterOutline(entries, headings);
 
   if (outlineHeading) outlineHeading.textContent = "Chapter Outline";
+
+  const outlinePanel = document.createElement("section");
+  outlinePanel.className = "chapter-reader-outline-pane";
+  outlinePanel.dataset.readerPanel = "outline";
+  outlinePanel.id = `${readerId}-outline-pane`;
+  outlinePanel.setAttribute("role", "tabpanel");
+  outlinePanel.setAttribute("aria-labelledby", `${readerId}-outline-tab`);
+  outlinePanel.tabIndex = 0;
+  outlinePanel.append(outline);
+
+  const topicHeader = document.createElement("header");
+  topicHeader.className = "chapter-reader-topic-heading";
   if (chapterHeading) {
     chapterHeading.classList.add("chapter-reader-flow-heading");
-    notes.insertBefore(chapterHeading, notes.firstChild);
+    topicHeader.append(chapterHeading);
   }
   notesDocumentHeading?.remove();
+
+  const conceptsTitle = document.createElement("h2");
+  conceptsTitle.className = "chapter-reader-pane-title";
+  conceptsTitle.textContent = "Concepts";
+  notes.prepend(conceptsTitle);
+  notes.id = `${readerId}-concepts-pane`;
+  notes.dataset.readerPanel = "concepts";
+  notes.setAttribute("role", "tabpanel");
+  notes.setAttribute("aria-labelledby", `${readerId}-concepts-tab`);
+  notes.tabIndex = 0;
+
+  const factsTitle = document.createElement("h2");
+  factsTitle.className = "chapter-reader-pane-title";
+  factsTitle.textContent = "Important Facts";
+  facts.prepend(factsTitle);
+  facts.id = `${readerId}-facts-pane`;
+  facts.dataset.readerPanel = "facts";
+  facts.setAttribute("role", "tabpanel");
+  facts.setAttribute("aria-labelledby", `${readerId}-facts-tab`);
+  facts.tabIndex = 0;
+
   for (const { element } of exampleLinks) element.remove();
   examples?.remove();
 
@@ -212,7 +256,12 @@ function attachChapterLayout(root, cleanups) {
   grid.className = "precompiled-chapter-grid";
   const columns = document.createElement("div");
   columns.className = "chapter-reader-columns";
-  columns.append(outline, notes, facts);
+  const readingArea = document.createElement("div");
+  readingArea.className = "chapter-reader-reading-area";
+  const contentColumns = document.createElement("div");
+  contentColumns.className = "chapter-reader-content-columns";
+  contentColumns.append(notes, facts);
+  columns.append(outlinePanel, readingArea);
   const bindingSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   bindingSvg.classList.add("chapter-reader-binding-lines");
   bindingSvg.setAttribute("aria-hidden", "true");
@@ -288,26 +337,35 @@ function attachChapterLayout(root, cleanups) {
 
   const tabs = document.createElement("nav");
   tabs.className = "chapter-reader-mobile-tabs";
-  tabs.setAttribute("aria-label", "Chapter sections");
+  tabs.setAttribute("role", "tablist");
+  tabs.setAttribute("aria-label", "Reader sections");
+  tabs.setAttribute("aria-orientation", "horizontal");
   const panes = [
     ["outline", "Outline"],
-    ["notes", "Notes"],
-    ["facts", "CNOTES"],
+    ["concepts", "Concepts"],
+    ["facts", "Facts"],
   ];
   for (const [pane, label] of panes) {
     const button = document.createElement("button");
     button.type = "button";
+    button.id = `${readerId}-${pane}-tab`;
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-controls", `${readerId}-${pane}-pane`);
     button.dataset.readerPane = pane;
     button.textContent = label;
-    button.setAttribute("aria-pressed", pane === "notes" ? "true" : "false");
+    button.setAttribute("aria-selected", "false");
+    button.tabIndex = -1;
     tabs.append(button);
   }
-  root.prepend(tabs);
+  readingArea.append(topicHeader, tabs, contentColumns);
 
   const setPane = (pane) => {
+    if (!panes.some(([name]) => name === pane)) return;
     root.dataset.activePane = pane;
     for (const button of tabs.querySelectorAll("[data-reader-pane]")) {
-      button.setAttribute("aria-pressed", String(button.dataset.readerPane === pane));
+      const selected = button.dataset.readerPane === pane;
+      button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
     }
   };
   const tabClick = (event) => {
@@ -317,10 +375,31 @@ function attachChapterLayout(root, cleanups) {
       scheduleBinding();
     }
   };
+  const tabKeydown = (event) => {
+    const currentButton = event.target.closest("[data-reader-pane]");
+    if (!currentButton) return;
+    const index = panes.findIndex(([pane]) => pane === currentButton.dataset.readerPane);
+    let nextIndex = index;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % panes.length;
+    else if (event.key === "ArrowLeft") nextIndex = (index + panes.length - 1) % panes.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = panes.length - 1;
+    else return;
+    event.preventDefault();
+    const [nextPane] = panes[nextIndex];
+    setPane(nextPane);
+    tabs.querySelector(`[data-reader-pane="${nextPane}"]`)?.focus();
+    scheduleBinding();
+  };
   const guardedTabClick = protectFeature(tabs, tabClick);
+  const guardedTabKeydown = protectFeature(tabs, tabKeydown);
   tabs.addEventListener("click", guardedTabClick);
-  setPane("notes");
-  cleanups.push(() => tabs.removeEventListener("click", guardedTabClick));
+  tabs.addEventListener("keydown", guardedTabKeydown);
+  setPane("concepts");
+  cleanups.push(() => {
+    tabs.removeEventListener("click", guardedTabClick);
+    tabs.removeEventListener("keydown", guardedTabKeydown);
+  });
 
   let activeFact;
   let pendingSectionId = "";
@@ -386,7 +465,7 @@ function attachChapterLayout(root, cleanups) {
     const flowHeaders = [
       outline.querySelector(":scope > h2"),
       chapterHeading,
-      chapterBriefHeading,
+      conceptsTitle,
     ];
     if (!bounds.width || !bounds.height || flowHeaders.some((header) => !header)) {
       bindingPath.setAttribute("d", "");
@@ -541,19 +620,27 @@ function attachChapterLayout(root, cleanups) {
       }, 4000);
       updateActiveSection(button.dataset.sectionId);
       scrollToHeading(root, button.dataset.sectionId);
-      setPane("notes");
+      setPane("concepts");
       return;
     }
   };
   const guardedNavigate = protectFeature(root, navigate);
   root.addEventListener("click", guardedNavigate);
   cleanups.push(() => root.removeEventListener("click", guardedNavigate));
-  updateActiveSection(notes.querySelector("h1[data-section-id],h2[data-section-id],h3[data-section-id],h4[data-section-id]")?.dataset.sectionId || "");
+  const sectionHeadings = [...notes.querySelectorAll(
+    "h1[data-section-id],h2[data-section-id],h3[data-section-id],h4[data-section-id]",
+  )].filter((heading) => outlineSectionId(heading.dataset.sectionId || ""));
+  const initialSectionHeading = sectionHeadings.find(
+    (heading) => heading.dataset.sectionId !== "chapter-overview",
+  ) || sectionHeadings[0];
+  updateActiveSection(initialSectionHeading?.dataset.sectionId || "");
   cleanups.push(() => {
     outline.innerHTML = originalOutlineHtml;
     if (chapterBriefHeading && originalChapterBriefHeadingHtml !== undefined) {
       chapterBriefHeading.innerHTML = originalChapterBriefHeadingHtml;
     }
+    conceptsTitle.remove();
+    factsTitle.remove();
     factsList.forEach((fact, index) => {
       fact.hidden = originalFactHidden[index];
       fact.classList.remove("is-bound-active");
@@ -563,9 +650,18 @@ function attachChapterLayout(root, cleanups) {
     }
     delete root.dataset.activeSection;
     delete root.dataset.activeMainSection;
-    delete root.dataset.activePane;
+    if (originalActivePane === undefined) delete root.dataset.activePane;
+    else root.dataset.activePane = originalActivePane;
     if (originalActiveFact === undefined) delete facts.dataset.activeSection;
     else facts.dataset.activeSection = originalActiveFact;
+    for (const [panel, attributes] of originalPanelAttributes) {
+      for (const [name, value] of Object.entries(attributes)) {
+        if (value === null) panel.removeAttribute(name);
+        else panel.setAttribute(name, value);
+      }
+    }
+    if (originalRootId) root.id = originalRootId;
+    else root.removeAttribute("id");
     tabs.remove();
     bindingSvg.remove();
     grid.remove();

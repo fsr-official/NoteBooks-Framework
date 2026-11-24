@@ -26,5 +26,7 @@ describe("PrecompiledHtmlReader", () => {
     expect(markup).toContain('aria-expanded="false"');
     expect(markup).toContain("Ask AI");
     expect(markup).toContain('data-kind="chapter"');
+    expect(markup).not.toContain("chapter-reader-ai-layer");
+    expect(markup).not.toContain("chapter-reader-ai-drawer");
   });
 });
