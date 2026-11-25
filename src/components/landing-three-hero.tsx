@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { THEME_CHANGE_EVENT } from "@/lib/theme-preferences";
 import styles from "./landing-three.module.css";
 
-type SceneState = "static" | "loading" | "ready" | "failed";
+type SceneState = "static" | "loading" | "ready" | "unavailable" | "failed";
 type ThreeModule = typeof import("three");
 type ThreeRenderer = import("three").WebGLRenderer;
 type ThreeCamera = import("three").OrthographicCamera;
@@ -12,9 +12,17 @@ type ThreeObject = import("three").Object3D;
 type ThreeGeometry = import("three").BufferGeometry;
 type ThreeMaterial = import("three").Material;
 
+class WebGLUnavailableError extends Error {
+  constructor() {
+    super("WebGL is unavailable");
+    this.name = "WebGLUnavailableError";
+  }
+}
+
 function mountFolioScene(
   THREE: ThreeModule,
   canvas: HTMLCanvasElement,
+  animate: boolean,
   onContextLoss: () => void,
 ): (loseContext?: boolean) => void {
   let renderer: ThreeRenderer | null = null;
@@ -22,6 +30,7 @@ function mountFolioScene(
   let resizeObserver: ResizeObserver | null = null;
   let contextLostHandler: ((event: Event) => void) | null = null;
   let themeChangeHandler: (() => void) | null = null;
+  let drawScene: (() => void) | null = null;
   let disposed = false;
   const geometries = new Set<ThreeGeometry>();
   const materials = new Set<ThreeMaterial>();
@@ -42,6 +51,7 @@ function mountFolioScene(
       camera.bottom = -3.2;
       camera.updateProjectionMatrix();
     }
+    drawScene?.();
   };
 
   const cleanup = (loseContext = true) => {
@@ -72,12 +82,17 @@ function mountFolioScene(
   };
 
   try {
-    const activeRenderer = new THREE.WebGLRenderer({
-      canvas,
-      alpha: true,
-      antialias: true,
-      powerPreference: "low-power",
-    });
+    let activeRenderer: ThreeRenderer;
+    try {
+      activeRenderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: "low-power",
+      });
+    } catch {
+      throw new WebGLUnavailableError();
+    }
     renderer = activeRenderer;
     activeRenderer.setClearColor(0x000000, 0);
 
@@ -86,6 +101,7 @@ function mountFolioScene(
     camera = activeCamera;
     activeCamera.position.set(0, 0, 12);
     activeCamera.lookAt(0, 0, 0);
+    drawScene = () => activeRenderer.render(scene, activeCamera);
 
     scene.add(new THREE.AmbientLight(0xffffff, 1.7));
     const keyLight = new THREE.DirectionalLight(0xfff4da, 2.4);
@@ -184,6 +200,7 @@ function mountFolioScene(
       nodeMaterials.forEach((material, index) => {
         material.color.set([accentColor, highlightColor, partnerColor, mainColor][index]);
       });
+      drawScene?.();
     };
     themeChangeHandler = updateTheme;
     window.addEventListener(THEME_CHANGE_EVENT, themeChangeHandler);
@@ -203,11 +220,15 @@ function mountFolioScene(
     };
     canvas.addEventListener("webglcontextlost", contextLostHandler);
 
-    activeRenderer.setAnimationLoop((time) => {
-      orbitingConcepts.rotation.z = time * 0.000035;
-      folio.rotation.y = Math.sin(time * 0.0003) * 0.035;
-      activeRenderer.render(scene, activeCamera);
-    });
+    if (animate) {
+      activeRenderer.setAnimationLoop((time) => {
+        orbitingConcepts.rotation.z = time * 0.000035;
+        folio.rotation.y = Math.sin(time * 0.0003) * 0.035;
+        drawScene?.();
+      });
+    } else {
+      drawScene();
+    }
 
     return cleanup;
   } catch (error) {
@@ -224,17 +245,18 @@ export default function LandingThreeHero() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const mobileViewport = window.matchMedia("(max-width: 720px), (max-height: 500px) and (pointer: coarse)");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let cancelled = false;
     let loading = false;
     let failed = false;
+    let loadVersion = 0;
     let sceneCleanup: ((loseContext?: boolean) => void) | null = null;
     let observer: IntersectionObserver | null = null;
     let loadTimer: number | null = null;
 
-    const disallowed = () => mobileViewport.matches || reducedMotion.matches;
     const stopScene = () => {
+      loadVersion += 1;
+      loading = false;
       if (loadTimer !== null) {
         window.clearTimeout(loadTimer);
         loadTimer = null;
@@ -252,26 +274,44 @@ export default function LandingThreeHero() {
       sceneCleanup = null;
       if (!cancelled) setSceneState("failed");
     };
+    const markWebGLUnavailable = () => {
+      failed = true;
+      loading = false;
+      sceneCleanup?.();
+      sceneCleanup = null;
+      if (!cancelled) setSceneState("unavailable");
+    };
     const loadScene = async () => {
-      if (cancelled || disallowed() || loading || failed) return;
+      if (cancelled || loading || failed) return;
       loading = true;
+      const currentLoadVersion = ++loadVersion;
       setSceneState("loading");
       try {
         const THREE = await import("three");
-        if (cancelled || disallowed()) {
-          loading = false;
+        if (cancelled || currentLoadVersion !== loadVersion) {
           return;
         }
-        sceneCleanup = mountFolioScene(THREE, canvas, failScene);
+        try {
+          sceneCleanup = mountFolioScene(THREE, canvas, !reducedMotion.matches, markWebGLUnavailable);
+        } catch (error) {
+          if (!cancelled && currentLoadVersion === loadVersion) {
+            loading = false;
+            if (error instanceof WebGLUnavailableError) markWebGLUnavailable();
+            else failScene();
+          }
+          return;
+        }
         loading = false;
         setSceneState("ready");
       } catch {
-        loading = false;
-        if (!cancelled && !disallowed()) failScene();
+        if (!cancelled && currentLoadVersion === loadVersion) {
+          loading = false;
+          failScene();
+        }
       }
     };
     const scheduleScene = () => {
-      if (cancelled || disallowed() || loading || failed || loadTimer !== null) return;
+      if (cancelled || loading || failed || loadTimer !== null) return;
       loadTimer = window.setTimeout(() => {
         loadTimer = null;
         void loadScene();
@@ -280,7 +320,7 @@ export default function LandingThreeHero() {
     const observeHero = () => {
       observer?.disconnect();
       observer = null;
-      if (cancelled || disallowed() || loading || failed) return;
+      if (cancelled || loading || failed) return;
       const target = canvas.parentElement;
       if (!target || typeof IntersectionObserver === "undefined") {
         scheduleScene();
@@ -296,21 +336,16 @@ export default function LandingThreeHero() {
       observer.observe(target);
     };
     const handlePreferenceChange = () => {
-      if (disallowed()) {
-        stopScene();
-        return;
-      }
+      stopScene();
       failed = false;
       observeHero();
     };
 
-    mobileViewport.addEventListener("change", handlePreferenceChange);
     reducedMotion.addEventListener("change", handlePreferenceChange);
     observeHero();
 
     return () => {
       cancelled = true;
-      mobileViewport.removeEventListener("change", handlePreferenceChange);
       reducedMotion.removeEventListener("change", handlePreferenceChange);
       if (loadTimer !== null) window.clearTimeout(loadTimer);
       observer?.disconnect();
@@ -360,6 +395,11 @@ export default function LandingThreeHero() {
       {sceneState === "failed" && (
         <p className={styles.sceneStatus} role="status">
           The interactive folio is unavailable; the static diagram remains.
+        </p>
+      )}
+      {sceneState === "unavailable" && (
+        <p className={styles.sceneStatus} role="status">
+          WebGL is unavailable; the folio is shown as a static diagram.
         </p>
       )}
     </figure>
