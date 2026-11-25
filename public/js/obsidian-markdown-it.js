@@ -1353,67 +1353,96 @@
         svg.setAttribute('width', targetW);
         svg.setAttribute('height', targetH);
     }
+    function _openDiagramZoomSurface(trigger, svg, title) {
+        var dialog = document.createElement('dialog');
+        dialog.className = 'reader-diagram-zoom-dialog';
+        dialog.setAttribute('aria-label', title);
+        var header = document.createElement('header');
+        var heading = document.createElement('h2');
+        heading.textContent = title;
+        var toolbar = document.createElement('div');
+        toolbar.className = 'reader-diagram-zoom-toolbar';
+        var viewport = document.createElement('div');
+        viewport.className = 'reader-diagram-zoom-viewport';
+        var canvas = document.createElement('div');
+        canvas.className = 'reader-diagram-zoom-canvas';
+        var copy = svg.cloneNode(true);
+        copy.removeAttribute('id');
+        canvas.appendChild(copy);
+        viewport.appendChild(canvas);
+
+        var scale = 1;
+        var x = 0;
+        var y = 0;
+        var drag = null;
+        var paint = function () {
+            canvas.style.transform = 'translate(' + x + 'px, ' + y + 'px) scale(' + scale + ')';
+        };
+        var button = function (label, action) {
+            var control = document.createElement('button');
+            control.type = 'button';
+            control.textContent = label;
+            control.setAttribute('aria-label', label);
+            control.addEventListener('click', action);
+            toolbar.appendChild(control);
+            return control;
+        };
+        var close = button('Close diagram', function () { dialog.close(); });
+        close.className = 'reader-diagram-zoom-close';
+        button('Zoom out', function () { scale = Math.max(.5, scale / 1.25); paint(); });
+        button('Zoom in', function () { scale = Math.min(6, scale * 1.25); paint(); });
+        button('Reset view', function () { scale = 1; x = 0; y = 0; paint(); });
+        header.appendChild(heading);
+        header.appendChild(toolbar);
+        dialog.appendChild(header);
+        dialog.appendChild(viewport);
+        var dialogParent = trigger.closest('.next-note-reader, .reader-overlay, .chapter-reader-app') || document.body;
+        dialogParent.appendChild(dialog);
+
+        viewport.addEventListener('pointerdown', function (event) {
+            if (event.button !== 0) return;
+            drag = { x: event.clientX, y: event.clientY, left: x, top: y };
+            viewport.setPointerCapture(event.pointerId);
+        });
+        viewport.addEventListener('pointermove', function (event) {
+            if (!drag) return;
+            x = drag.left + event.clientX - drag.x;
+            y = drag.top + event.clientY - drag.y;
+            paint();
+        });
+        viewport.addEventListener('pointerup', function () { drag = null; });
+        viewport.addEventListener('pointercancel', function () { drag = null; });
+        viewport.addEventListener('wheel', function (event) {
+            event.preventDefault();
+            scale = Math.max(.5, Math.min(6, scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1)));
+            paint();
+        }, { passive: false });
+        dialog.addEventListener('close', function () {
+            dialog.remove();
+            trigger.focus();
+        }, { once: true });
+        dialog.showModal();
+        close.focus();
+    }
+    function _attachStaticDiagramControl(container, svg, title) {
+        if (!container || !svg || container.querySelector('[data-reader-diagram-zoom]')) return;
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'reader-diagram-zoom-trigger';
+        button.dataset.readerDiagramZoom = 'true';
+        button.textContent = 'Expand diagram';
+        button.setAttribute('aria-label', 'Open zoomable ' + title);
+        button.addEventListener('click', function () {
+            _openDiagramZoomSurface(button, svg, title);
+        });
+        container.appendChild(button);
+    }
     function _wrapMermaidDiagram(el) {
         var svg = el.querySelector('svg');
-        if (!svg || el.querySelector('.mermaid-viewer-wrap'))
-            return;
+        if (!svg) return;
         _sizeMermaidSVG(svg);
-        /* Mermaid mindmaps have a dedicated SVG class; retain transform detection for older output. */
-        var isMindmap = el.getAttribute('data-diagram-type') === 'mindmap' || svg.classList.contains('mindmapDiagram');
-        var groups = svg.querySelectorAll('g');
-        for (var g = 0; g < groups.length && !isMindmap; g++) {
-            var transform = groups[g].getAttribute('transform') || '';
-            if (transform.indexOf('rotate(') !== -1) {
-                isMindmap = true;
-            }
-        }
-        /* Set a sensible fixed height so the viewer doesn't collapse */
-        var svgH = parseFloat(svg.getAttribute('height')) || 0;
-        if (!svgH) {
-            var _vb = svg.getAttribute('viewBox');
-            if (_vb) {
-                var _p = _vb.trim().split(/[\s,]+/);
-                svgH = parseFloat(_p[3]) || 0;
-            }
-        }
-        if (!svgH)
-            svgH = svg.getBoundingClientRect().height || 0;
-        var viewH;
-        if (isMindmap) {
-            var initialWidth = parseFloat(svg.getAttribute('width')) || 1;
-            var initialHeight = parseFloat(svg.getAttribute('height')) || 1;
-            var initialScale = _mindmapReadableScale(svg, initialWidth, initialHeight);
-            viewH = Math.max(180, Math.ceil(svgH * initialScale) + 48);
-        }
-        else {
-            var maxViewH = Math.min(window.innerHeight * 0.65, 560);
-            viewH = Math.min(Math.max(Math.min(svgH, 480) + 80, 260), maxViewH);
-        }
-        var wrap = document.createElement('div');
-        wrap.className = 'mermaid-viewer-wrap' + (isMindmap ? ' mermaid-mindmap' : '');
-        wrap.style.height = viewH + 'px';
-        var toolbar = document.createElement('div');
-        toolbar.className = 'mermaid-toolbar';
-        var viewAction = isMindmap ? 'fill' : 'fit';
-        var viewTitle = isMindmap ? 'Fill to view' : 'Fit to view';
-        toolbar.innerHTML =
-            '<button class="mermaid-tb-btn" data-a="zin"  title="Zoom in">+</button>' +
-                '<button class="mermaid-tb-btn" data-a="zout" title="Zoom out">−</button>' +
-                '<button class="mermaid-tb-btn" data-a="' + viewAction + '" title="' + viewTitle + '" style="font-size:12px">⊡</button>' +
-                '<button class="mermaid-tb-btn" data-a="reset" title="Reset" style="font-size:11px">↺</button>';
-        var canvas = document.createElement('div');
-        canvas.className = 'mermaid-canvas' + (isMindmap ? ' mermaid-canvas-centered' : '');
-        var hint = document.createElement('div');
-        hint.className = 'mermaid-hint';
-        hint.textContent = 'Scroll to zoom · Drag to pan';
-        /* Move all SVG content into the canvas */
-        while (el.firstChild)
-            canvas.appendChild(el.firstChild);
-        wrap.appendChild(toolbar);
-        wrap.appendChild(canvas);
-        wrap.appendChild(hint);
-        el.appendChild(wrap);
-        _mermaidPanZoom(wrap, canvas, svg, isMindmap);
+        el.classList.add('reader-static-diagram');
+        _attachStaticDiagramControl(el, svg, el.dataset.diagramType === 'mindmap' ? 'mind map' : 'diagram');
     }
     function initMermaid(root) {
         if (typeof mermaid === 'undefined')
@@ -2010,6 +2039,18 @@
         });
     };
     global.obsidianInitMath = initMath;
+    global.obsidianAttachDiagramControls = function (root) {
+        var scope = root || document;
+        scope.querySelectorAll('.obsidian-mermaid, .tikz-wrapper, figure[data-diagram]').forEach(function (container) {
+            var svg = container.querySelector('svg');
+            if (!svg) return;
+            container.classList.add('reader-static-diagram');
+            var title = container.dataset.diagramType === 'mindmap'
+                ? 'mind map'
+                : container.dataset.diagramKind || (container.classList.contains('tikz-wrapper') ? 'TikZ diagram' : 'diagram');
+            _attachStaticDiagramControl(container, svg, title);
+        });
+    };
     global.obsidianInitTikz = function (root) {
         /* ── Smart SVG sizer ─────────────────────────────────────────────────── */
         function _tikzSizeSVG(svg) {
@@ -2398,7 +2439,8 @@
                     var ld3 = wrapper.querySelector('.tikz-loading');
                     if (ld3)
                         ld3.parentNode.removeChild(ld3);
-                    _wrapTikZ(wrapper, svg);
+                    wrapper.classList.add('reader-static-diagram');
+                    _attachStaticDiagramControl(wrapper, svg, 'TikZ diagram');
                 }
             });
             div.parentNode.replaceChild(s, div);

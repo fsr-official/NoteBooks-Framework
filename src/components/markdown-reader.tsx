@@ -5,6 +5,12 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import createDOMPurify from "dompurify";
 import { loadMarkdownRuntime } from "@/lib/markdown-runtime";
+import {
+  readRenderedNote,
+  readerRenderCacheKey,
+  readerSourceRevision,
+  writeRenderedNote,
+} from "@/lib/reader-render-cache";
 
 const PdfReader = dynamic(() => import("./pdf-reader"), {
   ssr: false,
@@ -25,6 +31,7 @@ type ReaderWindow = Window & {
   __notebooksResolveEmbed?: (fileName: string) => string;
   markdownToHTML?: (source: string, filePath?: string) => string;
   initMarkdownFeatures?: (container: Element) => Promise<void>;
+  obsidianAttachDiagramControls?: (container?: Element) => void;
 };
 
 type OutlineItem = { id: string; level: number; title: string };
@@ -266,10 +273,25 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
         }
 
         const runtimeWindow = window as ReaderWindow;
-        const purifier = createReaderSanitizer(window);
         configureRuntimeFile(runtimeWindow, file);
-        const rendered = runtimeWindow.markdownToHTML?.(markdown, file.filePath);
-        if (typeof rendered !== "string") throw new Error("The Markdown renderer did not return a document.");
+        const revision = await readerSourceRevision(
+          response.headers.get("x-file-sha") || file.fileSha,
+          markdown,
+        );
+        const cacheKey = readerRenderCacheKey({
+          owner: owner ?? "",
+          repository: repository ?? "",
+          path: file.filePath,
+          revision: revision ?? "",
+          renderer: "client-markdown",
+        });
+        let rendered = await readRenderedNote(cacheKey);
+        if (rendered === null) {
+          rendered = runtimeWindow.markdownToHTML?.(markdown, file.filePath) ?? null;
+          if (typeof rendered !== "string") throw new Error("The Markdown renderer did not return a document.");
+          void writeRenderedNote(cacheKey, rendered);
+        }
+        const purifier = createReaderSanitizer(window);
         const sanitized = purifier.sanitize(rendered, {
           ADD_TAGS: ["iframe"],
           ADD_ATTR: ["allowfullscreen", "loading", "sandbox"],
@@ -292,7 +314,7 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
       controller.abort();
       window.speechSynthesis?.cancel();
     };
-  }, [file, markdownFile, previewKind, sourceUrl, reloadKey]);
+  }, [file, markdownFile, owner, previewKind, repository, sourceUrl, reloadKey]);
 
   useEffect(() => {
     if (state !== "rendering" || !contentRef.current) return;
@@ -304,6 +326,7 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
       try {
         await loadNoteTransclusions(container, file, createReaderSanitizer(window), undefined, 0, controller.signal);
         await runtimeWindow.initMarkdownFeatures?.(container);
+        runtimeWindow.obsidianAttachDiagramControls?.(container);
       } catch (featureError) {
         if (controller.signal.aborted) return;
         console.error("Markdown feature initialization failed", featureError);
@@ -355,7 +378,12 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
   return (
     <section className="reader-overlay" role="dialog" aria-modal="true" aria-label={`Reading ${file.fileName}`}>
       <header className="reader-toolbar">
-        <button ref={closeButtonRef} className="reader-action reader-close" type="button" onClick={onClose} aria-label="Close reader">← <span>Library</span></button>
+        <button ref={closeButtonRef} className="reader-action reader-close" type="button" onClick={onClose} aria-label="Close reader">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          <span>Library</span>
+        </button>
         <div className="reader-title">
           <strong>{file.fileName}</strong>
           <span>{file.repository} / {file.filePath}</span>
@@ -364,7 +392,7 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
           <button className={`reader-action ${showOutline ? "is-active" : ""}`} type="button" onClick={() => setShowOutline((shown) => !shown)} disabled={outline.length === 0} aria-expanded={showOutline}>Outline</button>
           <button className={`reader-action ${showRaw ? "is-active" : ""}`} type="button" onClick={() => setShowRaw((raw) => !raw)} disabled={state !== "ready" || !markdownFile} aria-pressed={showRaw}>{showRaw ? "Rendered" : "Raw"}</button>
           <button className="reader-action" type="button" onClick={toggleSpeech} disabled={state !== "ready" || typeof window === "undefined" || !("speechSynthesis" in window) || Boolean(previewKind)}>{speaking ? "Stop reading" : "Read aloud"}</button>
-          <a className="reader-action reader-github" href={`https://github.com/${file.repository}/blob/${file.branch.split("/").map(encodeURIComponent).join("/")}/${file.filePath.split("/").map(encodeURIComponent).join("/")}`} target="_blank" rel="noreferrer">GitHub ↗</a>
+          <a className="reader-action reader-github" href={`https://github.com/${file.repository}/blob/${file.branch.split("/").map(encodeURIComponent).join("/")}/${file.filePath.split("/").map(encodeURIComponent).join("/")}`} target="_blank" rel="noreferrer">GitHub</a>
         </div>
       </header>
 
@@ -372,7 +400,7 @@ export function MarkdownReader({ file, onClose }: { file: ReaderFile; onClose: (
         <main className="reader-main" aria-live="polite">
           {(state === "loading" || state === "rendering") && (
             <div className="reader-loading-overlay" role="status" aria-live="polite" aria-busy="true">
-              <span className="reader-loading-mark" aria-hidden="true">&gt;</span>
+              <span className="reader-loading-mark" aria-hidden="true">•</span>
               <strong>Rendering your file</strong>
               <span>{state === "loading" ? "Opening the file…" : "Preparing diagrams and math…"}</span>
             </div>

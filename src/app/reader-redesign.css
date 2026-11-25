@@ -162,7 +162,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   background: var(--reader-surface);
   box-shadow: var(--shadow);
 }
-.reader-more-options button {
+.reader-more-options button,
+.reader-more-options a {
+  display: block;
   border: 0;
   border-radius: 6px;
   padding: 9px;
@@ -170,9 +172,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   background: transparent;
   font: 500 12px var(--reader-sans);
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 }
-.reader-more-options button:hover { color: var(--reader-accent); background: color-mix(in srgb, var(--reader-accent) 9%, transparent); }
+.reader-more-options button:hover,
+.reader-more-options a:hover { color: var(--reader-accent); background: color-mix(in srgb, var(--reader-accent) 9%, transparent); }
 
 .next-reader-progress-track {
   position: sticky;
@@ -285,10 +289,43 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .reader-search-group > h3 { margin: 0; color: var(--reader-accent); font: 600 10px/1.5 var(--reader-sans); }
 .reader-search-group > button { min-width: 0; min-height: 40px; padding: 8px 9px; border: 0; color: var(--reader-muted); background: transparent; font: 13px/1.5 var(--reader-sans); text-align: left; cursor: pointer; }
 .reader-search-group > button:hover { color: var(--reader-text); background: color-mix(in srgb, var(--reader-accent) 9%, transparent); }
-.reader-diagram-disclosure { margin: 1.25em 0; overflow: hidden; border: 1px solid var(--reader-line); border-radius: 10px; background: var(--reader-surface); }
-.reader-diagram-disclosure > summary { min-height: 44px; display: flex; align-items: center; padding: 9px 12px; color: var(--reader-accent); font: 600 13px/1.4 var(--reader-sans); cursor: pointer; }
-.reader-diagram-disclosure[open] > summary { border-bottom: 1px solid var(--reader-line); }
-.reader-diagram-disclosure > .obsidian-mermaid { margin: 0; padding: 10px; }
+.reader-static-diagram { position: relative; min-width: 0; max-width: 100%; }
+.reader-static-diagram > .reader-diagram-zoom-trigger {
+  min-height: 36px;
+  margin: 8px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--reader-line, var(--border));
+  border-radius: 8px;
+  color: var(--reader-accent, var(--accent));
+  background: var(--reader-surface, var(--surface));
+  font: 550 12px var(--reader-sans, var(--font-dm-sans));
+  cursor: pointer;
+}
+.reader-static-diagram > .reader-diagram-zoom-trigger:focus-visible { outline: 2px solid var(--reader-accent, var(--accent)); outline-offset: 2px; }
+.reader-diagram-zoom-dialog {
+  width: min(96vw, 1100px);
+  height: min(92dvh, 900px);
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--reader-line, var(--border));
+  border-radius: 14px;
+  color: var(--reader-text, var(--text));
+  background: var(--reader-bg, var(--page));
+  box-shadow: var(--shadow);
+}
+.reader-diagram-zoom-dialog::backdrop { background: rgb(0 0 0 / 70%); }
+.reader-diagram-zoom-dialog > header { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--reader-line, var(--border)); }
+.reader-diagram-zoom-dialog h2 { min-width: 0; margin: 0; font: 650 14px var(--reader-sans, var(--font-dm-sans)); }
+.reader-diagram-zoom-toolbar { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.reader-diagram-zoom-toolbar button { min-height: 36px; padding: 0 10px; border: 1px solid var(--reader-line, var(--border)); border-radius: 8px; color: var(--reader-text, var(--text)); background: var(--reader-surface, var(--surface)); font: 550 11px var(--reader-sans, var(--font-dm-sans)); cursor: pointer; }
+.reader-diagram-zoom-toolbar button:focus-visible { outline: 2px solid var(--reader-accent, var(--accent)); outline-offset: 2px; }
+.reader-diagram-zoom-viewport { display: grid; height: calc(100% - 58px); place-items: center; overflow: hidden; touch-action: none; cursor: grab; }
+.reader-diagram-zoom-canvas { display: grid; min-width: min(80vw, 900px); min-height: min(55vh, 600px); place-items: center; transform-origin: center; }
+.reader-diagram-zoom-canvas svg { width: min(80vw, 900px); max-width: none; max-height: 72dvh; height: auto; }
+.reader-diagram-zoom-viewport:active { cursor: grabbing; }
 
 .next-reader-content {
   min-width: 0;
@@ -927,11 +964,16 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 }
 
 @media (max-width: 760px) {
-  .next-reader-toolbar { flex-wrap: wrap; gap: 7px; padding: 8px 10px; background: var(--reader-bg); backdrop-filter: none; }
+  .next-reader-toolbar { min-height: 60px; flex-wrap: nowrap; gap: 6px; padding: 8px 10px; background: var(--reader-bg); backdrop-filter: none; }
   .next-reader-back span { display: none; }
-  .next-reader-title { order: 2; flex: 1 1 100%; }
-  .next-reader-progress-track { top: 110px; }
-  .next-reader-outline { top: 110px; height: calc(100dvh - 110px); }
+  .next-reader-back { width: 36px; min-width: 36px; padding: 0; }
+  .next-reader-back svg { width: 17px; height: 17px; }
+  .next-reader-title { min-width: 0; flex: 1 1 0; gap: 0; }
+  .next-reader-title strong { font-size: 12px; }
+  .next-reader-title span { display: none; }
+  .next-reader-action { min-height: 36px; padding-inline: 8px; }
+  .next-reader-progress-track { top: 60px; }
+  .next-reader-outline { top: 62px; height: calc(100dvh - 62px); }
   .reader-search > label { font-size: 12px; }
   .reader-search-modes button { min-height: 44px; font-size: 13px; }
   .reader-outline-branch > button,
@@ -951,6 +993,12 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .next-reader-content .markdown-content .note-section[data-level="4"] { --reader-bracket-offset: 7px; --reader-bracket-right-inset: 21px; --reader-bracket-underline-offset: 7px; }
   .ai-panel-content { border-radius: 0 0 12px 12px; }
   .next-reader-footer { flex-direction: column; }
+  .reader-diagram-zoom-dialog { width: calc(100vw - 14px); height: calc(100dvh - 14px); border-radius: 10px; }
+  .reader-diagram-zoom-dialog > header { align-items: flex-start; flex-direction: column; }
+  .reader-diagram-zoom-toolbar { width: 100%; }
+  .reader-diagram-zoom-toolbar button { flex: 1; }
+  .reader-diagram-zoom-viewport { height: calc(100% - 102px); }
+  .reader-diagram-zoom-canvas svg { width: 84vw; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -685,27 +685,80 @@ function attachChapterLayout(root, cleanups) {
   });
 }
 
-function openDiagram(root, svg, title, cleanups) {
+function openDiagram(root, svg, title, cleanups, trigger) {
   const dialog = document.createElement("dialog");
   dialog.className = "reader-diagram-dialog";
+  dialog.setAttribute("aria-label", title);
+  const header = document.createElement("header");
+  const heading = document.createElement("h2");
+  heading.textContent = title;
+  const toolbar = document.createElement("div");
+  toolbar.className = "reader-diagram-dialog-toolbar";
+  const content = document.createElement("div");
+  content.className = "reader-diagram-dialog-content";
+  const canvas = document.createElement("div");
+  canvas.className = "reader-diagram-dialog-canvas";
+  const copy = svg.cloneNode(true);
+  copy.removeAttribute("id");
+  canvas.append(copy);
+  content.append(canvas);
+
+  let scale = 1;
+  let x = 0;
+  let y = 0;
+  let drag = null;
+  const paint = () => {
+    canvas.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+  };
+  const addControl = (label, action) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.setAttribute("aria-label", label);
+    button.addEventListener("click", action);
+    toolbar.append(button);
+    return button;
+  };
   const close = document.createElement("button");
   close.type = "button";
   close.textContent = "Close";
   close.setAttribute("aria-label", "Close diagram");
-  const heading = document.createElement("h2");
-  heading.textContent = title;
-  const content = document.createElement("div");
-  content.className = "reader-diagram-dialog-content";
-  content.append(svg.cloneNode(true));
-  dialog.append(close, heading, content);
+  close.addEventListener("click", () => dialog.close());
+  toolbar.append(close);
+  addControl("Zoom out", () => { scale = Math.max(0.5, scale / 1.25); paint(); });
+  addControl("Zoom in", () => { scale = Math.min(6, scale * 1.25); paint(); });
+  addControl("Reset view", () => { scale = 1; x = 0; y = 0; paint(); });
+  header.append(heading, toolbar);
+  dialog.append(header, content);
   root.append(dialog);
   const dismiss = () => dialog.close();
-  close.addEventListener("click", dismiss);
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dismiss();
   });
-  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  content.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    drag = { x: event.clientX, y: event.clientY, left: x, top: y };
+    content.setPointerCapture(event.pointerId);
+  });
+  content.addEventListener("pointermove", (event) => {
+    if (!drag) return;
+    x = drag.left + event.clientX - drag.x;
+    y = drag.top + event.clientY - drag.y;
+    paint();
+  });
+  content.addEventListener("pointerup", () => { drag = null; });
+  content.addEventListener("pointercancel", () => { drag = null; });
+  content.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    scale = Math.max(0.5, Math.min(6, scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1)));
+    paint();
+  }, { passive: false });
+  dialog.addEventListener("close", () => {
+    dialog.remove();
+    trigger?.focus();
+  }, { once: true });
   dialog.showModal();
+  close.focus();
   cleanups.push(() => {
     if (dialog.open) dialog.close();
     dialog.remove();
@@ -716,13 +769,14 @@ function attachDiagrams(root, cleanups) {
   for (const figure of root.querySelectorAll("figure[data-diagram]")) {
     const svg = figure.querySelector("svg");
     if (!svg || figure.querySelector("[data-open-diagram]")) continue;
+    figure.classList.add("reader-static-diagram");
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.openDiagram = "";
     button.textContent = "Expand diagram";
     button.addEventListener("click", () => {
       try {
-        openDiagram(root, svg, figure.dataset.diagramKind || "Diagram", cleanups);
+        openDiagram(root, svg, figure.dataset.diagramKind || "Diagram", cleanups, button);
       } catch (error) {
         figure.dataset.error = error instanceof Error ? error.message : String(error);
         showFeatureError(figure, error);
