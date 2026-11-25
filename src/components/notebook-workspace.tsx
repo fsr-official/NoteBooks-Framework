@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { createPortal } from "react-dom";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { compareExplorerFiles, getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
 import { STREAMS, type LibraryId } from "@/lib/library-streams";
@@ -692,10 +693,13 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   useEffect(() => {
     if (selectedFile && isMobileDetails) {
       const previousOverflow = document.body.style.overflow;
+      const previousDocumentOverflow = document.documentElement.style.overflow;
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
       fileDetailCloseRef.current?.focus();
       return () => {
         document.body.style.overflow = previousOverflow;
+        document.documentElement.style.overflow = previousDocumentOverflow;
       };
     }
 
@@ -704,6 +708,85 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
       fileDetailTriggerRef.current?.focus();
     }
   }, [isMobileDetails, selectedFile]);
+
+  const fileDetailLayer = selectedFile && (
+    <div className="file-detail-layer">
+      {isMobileDetails && (
+        <button
+          aria-label="Dismiss file details"
+          className="file-detail-backdrop"
+          onClick={closeFileDetails}
+          tabIndex={-1}
+          type="button"
+        />
+      )}
+      <aside
+        aria-labelledby="file-detail-title"
+        aria-modal={isMobileDetails ? true : undefined}
+        className="file-detail"
+        onKeyDown={(event) => {
+          if (isMobileDetails && event.key === "Escape") {
+            event.preventDefault();
+            closeFileDetails();
+            return;
+          }
+          if (!isMobileDetails || event.key !== "Tab") return;
+          const focusable = fileDetailRef.current?.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          );
+          if (!focusable?.length) {
+            event.preventDefault();
+            fileDetailRef.current?.focus();
+            return;
+          }
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }}
+        ref={fileDetailRef}
+        role={isMobileDetails ? "dialog" : undefined}
+        tabIndex={isMobileDetails ? -1 : undefined}
+      >
+        <div className="file-detail-heading">
+          <div>
+            <span className="detail-eyebrow">FILE DETAILS</span>
+          </div>
+          <button
+            aria-label="Close file details"
+            className="file-detail-close"
+            onClick={closeFileDetails}
+            ref={fileDetailCloseRef}
+            type="button"
+          >×</button>
+        </div>
+        <div className={`detail-icon file-type-${getFileTypeBadge(selectedFile.file.fileName).kind}`}>{getFileTypeBadge(selectedFile.file.fileName).label}</div>
+        <h2 id="file-detail-title">{selectedFile.file.fileName}</h2>
+        <p className="detail-path">{selectedFile.file.filePath}</p>
+        <div className="detail-rule" />
+        <dl>
+          <div><dt>Repository</dt><dd>{selectedFile.file.repository}</dd></div>
+          <div><dt>Branch</dt><dd>{selectedFile.file.branch}</dd></div>
+          <div><dt>File SHA</dt><dd><code>{selectedFile.file.fileSha}</code></dd></div>
+        </dl>
+        <button
+          className="primary-button detail-open"
+          onClick={() => openFile(selectedFile.key, selectedFile.file)}
+          onMouseEnter={() => prefetchFile(selectedFile.file)}
+          onFocus={() => prefetchFile(selectedFile.file)}
+          type="button"
+        >
+          Open file <span>↗</span>
+        </button>
+        <a className="primary-button detail-source" href={`https://github.com/${selectedFile.file.repository}/blob/${selectedFile.file.branch.split("/").map(encodeURIComponent).join("/")}/${selectedFile.file.filePath.split("/").map(encodeURIComponent).join("/")}`} target="_blank" rel="noreferrer">Open source on GitHub <span>↗</span></a>
+      </aside>
+    </div>
+  );
 
   return (
     <>
@@ -1120,84 +1203,9 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                     )}
                   </div>
 
-                  {selectedFile && (
-                    <div className="file-detail-layer">
-                      {isMobileDetails && (
-                        <button
-                          aria-label="Dismiss file details"
-                          className="file-detail-backdrop"
-                          onClick={closeFileDetails}
-                          tabIndex={-1}
-                          type="button"
-                        />
-                      )}
-                      <aside
-                        aria-labelledby="file-detail-title"
-                        aria-modal={isMobileDetails ? true : undefined}
-                        className="file-detail"
-                        onKeyDown={(event) => {
-                          if (isMobileDetails && event.key === "Escape") {
-                            event.preventDefault();
-                            closeFileDetails();
-                            return;
-                          }
-                          if (!isMobileDetails || event.key !== "Tab") return;
-                          const focusable = fileDetailRef.current?.querySelectorAll<HTMLElement>(
-                            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-                          );
-                          if (!focusable?.length) {
-                            event.preventDefault();
-                            fileDetailRef.current?.focus();
-                            return;
-                          }
-                          const first = focusable[0];
-                          const last = focusable[focusable.length - 1];
-                          if (event.shiftKey && document.activeElement === first) {
-                            event.preventDefault();
-                            last.focus();
-                          } else if (!event.shiftKey && document.activeElement === last) {
-                            event.preventDefault();
-                            first.focus();
-                          }
-                        }}
-                        ref={fileDetailRef}
-                        role={isMobileDetails ? "dialog" : undefined}
-                        tabIndex={isMobileDetails ? -1 : undefined}
-                      >
-                        <div className="file-detail-heading">
-                          <div>
-                            <span className="detail-eyebrow">FILE DETAILS</span>
-                          </div>
-                          <button
-                            aria-label="Close file details"
-                            className="file-detail-close"
-                            onClick={closeFileDetails}
-                            ref={fileDetailCloseRef}
-                            type="button"
-                          >×</button>
-                        </div>
-                        <div className={`detail-icon file-type-${getFileTypeBadge(selectedFile.file.fileName).kind}`}>{getFileTypeBadge(selectedFile.file.fileName).label}</div>
-                        <h2 id="file-detail-title">{selectedFile.file.fileName}</h2>
-                        <p className="detail-path">{selectedFile.file.filePath}</p>
-                        <div className="detail-rule" />
-                        <dl>
-                          <div><dt>Repository</dt><dd>{selectedFile.file.repository}</dd></div>
-                          <div><dt>Branch</dt><dd>{selectedFile.file.branch}</dd></div>
-                          <div><dt>File SHA</dt><dd><code>{selectedFile.file.fileSha}</code></dd></div>
-                        </dl>
-                        <button
-                          className="primary-button detail-open"
-                          onClick={() => openFile(selectedFile.key, selectedFile.file)}
-                          onMouseEnter={() => prefetchFile(selectedFile.file)}
-                          onFocus={() => prefetchFile(selectedFile.file)}
-                          type="button"
-                        >
-                          Open file <span>↗</span>
-                        </button>
-                        <a className="primary-button detail-source" href={`https://github.com/${selectedFile.file.repository}/blob/${selectedFile.file.branch.split("/").map(encodeURIComponent).join("/")}/${selectedFile.file.filePath.split("/").map(encodeURIComponent).join("/")}`} target="_blank" rel="noreferrer">Open source on GitHub <span>↗</span></a>
-                      </aside>
-                    </div>
-                  )}
+                  {fileDetailLayer && (isMobileDetails
+                    ? createPortal(fileDetailLayer, document.body)
+                    : fileDetailLayer)}
                 </div>
               )}
               <footer className="home-footer"><span>File indexes update as repositories change.</span><Link href="/">Back to overview ↑</Link></footer>
