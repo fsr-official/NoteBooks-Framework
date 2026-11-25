@@ -36,11 +36,6 @@ export function SiteNavigation({
           <span className="nav-stream-icon nav-home-icon" aria-hidden="true">n</span>
           <span>Home</span>
         </Link>
-        {isHome && (
-          <a className="nav-link collections-nav-link" href="#collections">
-            <span>Collections</span>
-          </a>
-        )}
         {STREAMS.map((item) => {
           const isActive = activePage === item.id;
           return (

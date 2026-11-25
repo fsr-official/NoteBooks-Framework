@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { createPortal } from "react-dom";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { compareExplorerFiles, getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
 import { STREAMS, type LibraryId } from "@/lib/library-streams";
@@ -86,13 +86,8 @@ interface ExplorerLocation {
   directory: string;
 }
 
-type FilePreviewState =
-  | { status: "ready"; text: string; truncated: boolean }
-  | { status: "error"; message: string };
-
 const STORAGE_KEY = "notebooks:v2:client-session";
 const FILE_HISTORY_LIMIT = 100;
-const FILE_PREVIEW_LIMIT = 1_600;
 const sessionListeners = new Set<() => void>();
 let memorySession: string | null = null;
 
@@ -202,11 +197,11 @@ function isFileLookup(value: unknown): value is FileLookup {
     && typeof file.root === "string";
 }
 
-function publicContentUrl(file: FileLookup, endpoint: "/api/raw" | "/api/media"): string | null {
+function publicTextUrl(file: FileLookup): string | null {
   const [owner, repository, ...extra] = file.repository.split("/");
   if (!owner || !repository || extra.length > 0) return null;
   const params = new URLSearchParams({ owner, repo: repository, path: file.filePath });
-  return `${endpoint}?${params.toString()}`;
+  return `/api/raw?${params.toString()}`;
 }
 
 function isTextPreviewFile(fileName: string): boolean {
@@ -319,7 +314,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const [fileFilter, setFileFilter] = useState<FileFilter>("all");
   const [fileSort, setFileSort] = useState<FileSort>("recommended");
   const [activeFile, setActiveFile] = useState<{ key: string; file: FileLookup; stream: LibraryId } | null>(null);
-  const [filePreviews, setFilePreviews] = useState<Record<string, FilePreviewState>>({});
+  const [isMobileDetails, setIsMobileDetails] = useState(false);
   const [readerFile, setReaderFile] = useState<FileLookup | null>(null);
   const [explorerLocation, setExplorerLocation] = useState<ExplorerLocation | null>(null);
   const [indexState, setIndexState] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -327,8 +322,21 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const [authBindingError, setAuthBindingError] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const topNavRef = useRef<HTMLElement>(null);
+  const fileDetailRef = useRef<HTMLElement>(null);
+  const fileDetailCloseRef = useRef<HTMLButtonElement>(null);
+  const fileDetailTriggerRef = useRef<HTMLButtonElement>(null);
+  const restoreFileDetailFocusRef = useRef(false);
+  const filePreviewRequestsRef = useRef(new Set<string>());
   const indexCache = useRef(new Map<LibraryId, Record<string, FileLookup>>());
   const repoCache = useRef<Record<string, RepositoryLookup> | null>(null);
+
+  useEffect(() => {
+    const mobileDetails = window.matchMedia("(max-width: 800px)");
+    const updateMobileDetails = () => setIsMobileDetails(mobileDetails.matches);
+    updateMobileDetails();
+    mobileDetails.addEventListener("change", updateMobileDetails);
+    return () => mobileDetails.removeEventListener("change", updateMobileDetails);
+  }, []);
 
   useEffect(() => {
     if (!session && !parseSession(getSessionSnapshot())) {
@@ -549,6 +557,11 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
     setActiveFile({ key, file, stream });
   }, [stream]);
 
+  const closeFileDetails = useCallback(() => {
+    restoreFileDetailFocusRef.current = true;
+    setActiveFile(null);
+  }, []);
+
   const openFile = useCallback((key: string, file: FileLookup) => {
     selectFile(key, file);
     if (isLibraryId(stream)) recordOpenedFile(key, file, stream);
@@ -662,51 +675,118 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   useEffect(() => {
     if (!selectedFile || !isTextPreviewFile(selectedFile.file.fileName)) return;
     const file = selectedFile.file;
-    if (filePreviews[file.fileSha]) return;
-    const url = publicContentUrl(file, "/api/raw");
+    if (filePreviewRequestsRef.current.has(file.fileSha)) return;
+    const url = publicTextUrl(file);
     if (!url) return;
 
+    filePreviewRequestsRef.current.add(file.fileSha);
     const controller = new AbortController();
     void fetch(url, { signal: controller.signal })
-      .then(async (response) => {
+      .then((response) => {
         if (!response.ok) throw new Error(`Preview unavailable (${response.status}).`);
-        const content = await response.text();
-        if (controller.signal.aborted) return;
-        setFilePreviews((current) => current[file.fileSha]
-          ? current
-          : {
-              ...current,
-              [file.fileSha]: {
-                status: "ready",
-                text: content.slice(0, FILE_PREVIEW_LIMIT),
-                truncated: content.length > FILE_PREVIEW_LIMIT,
-              },
-            });
+        return response.text();
       })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        setFilePreviews((current) => current[file.fileSha]
-          ? current
-          : {
-              ...current,
-              [file.fileSha]: {
-                status: "error",
-                message: error instanceof Error ? error.message : "The file preview could not be loaded.",
-              },
-            });
-      });
-
+      .catch(() => undefined);
     return () => controller.abort();
-  }, [filePreviews, selectedFile]);
+  }, [selectedFile]);
 
-  const selectedPreview = selectedFile ? filePreviews[selectedFile.file.fileSha] ?? null : null;
-  const previewExtension = selectedFile?.file.fileName.split(".").at(-1)?.toLowerCase() ?? "";
-  const previewTextUrl = selectedFile ? publicContentUrl(selectedFile.file, "/api/raw") : null;
-  const previewMediaUrl = selectedFile && (previewExtension === "pdf"
-    || /^(?:bmp|gif|jpe?g|png|svg|webp)$/.test(previewExtension))
-    ? publicContentUrl(selectedFile.file, "/api/media")
-    : null;
-  const isImagePreview = /^(?:bmp|gif|jpe?g|png|svg|webp)$/.test(previewExtension);
+  useEffect(() => {
+    if (selectedFile && isMobileDetails) {
+      const previousOverflow = document.body.style.overflow;
+      const previousDocumentOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      fileDetailCloseRef.current?.focus();
+      return () => {
+        document.body.style.overflow = previousOverflow;
+        document.documentElement.style.overflow = previousDocumentOverflow;
+      };
+    }
+
+    if (!selectedFile && restoreFileDetailFocusRef.current) {
+      restoreFileDetailFocusRef.current = false;
+      fileDetailTriggerRef.current?.focus();
+    }
+  }, [isMobileDetails, selectedFile]);
+
+  const fileDetailLayer = selectedFile && (
+    <div className="file-detail-layer">
+      {isMobileDetails && (
+        <button
+          aria-label="Dismiss file details"
+          className="file-detail-backdrop"
+          onClick={closeFileDetails}
+          tabIndex={-1}
+          type="button"
+        />
+      )}
+      <aside
+        aria-labelledby="file-detail-title"
+        aria-modal={isMobileDetails ? true : undefined}
+        className="file-detail"
+        onKeyDown={(event) => {
+          if (isMobileDetails && event.key === "Escape") {
+            event.preventDefault();
+            closeFileDetails();
+            return;
+          }
+          if (!isMobileDetails || event.key !== "Tab") return;
+          const focusable = fileDetailRef.current?.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          );
+          if (!focusable?.length) {
+            event.preventDefault();
+            fileDetailRef.current?.focus();
+            return;
+          }
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }}
+        ref={fileDetailRef}
+        role={isMobileDetails ? "dialog" : undefined}
+        tabIndex={isMobileDetails ? -1 : undefined}
+      >
+        <div className="file-detail-heading">
+          <div>
+            <span className="detail-eyebrow">FILE DETAILS</span>
+          </div>
+          <button
+            aria-label="Close file details"
+            className="file-detail-close"
+            onClick={closeFileDetails}
+            ref={fileDetailCloseRef}
+            type="button"
+          >×</button>
+        </div>
+        <div className={`detail-icon file-type-${getFileTypeBadge(selectedFile.file.fileName).kind}`}>{getFileTypeBadge(selectedFile.file.fileName).label}</div>
+        <h2 id="file-detail-title">{selectedFile.file.fileName}</h2>
+        <p className="detail-path">{selectedFile.file.filePath}</p>
+        <div className="detail-rule" />
+        <dl>
+          <div><dt>Repository</dt><dd>{selectedFile.file.repository}</dd></div>
+          <div><dt>Branch</dt><dd>{selectedFile.file.branch}</dd></div>
+          <div><dt>File SHA</dt><dd><code>{selectedFile.file.fileSha}</code></dd></div>
+        </dl>
+        <button
+          className="primary-button detail-open"
+          onClick={() => openFile(selectedFile.key, selectedFile.file)}
+          onMouseEnter={() => prefetchFile(selectedFile.file)}
+          onFocus={() => prefetchFile(selectedFile.file)}
+          type="button"
+        >
+          Open file <span>↗</span>
+        </button>
+        <a className="primary-button detail-source" href={`https://github.com/${selectedFile.file.repository}/blob/${selectedFile.file.branch.split("/").map(encodeURIComponent).join("/")}/${selectedFile.file.filePath.split("/").map(encodeURIComponent).join("/")}`} target="_blank" rel="noreferrer">Open source on GitHub <span>↗</span></a>
+      </aside>
+    </div>
+  );
 
   return (
     <>
@@ -1096,10 +1176,16 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                                   key={entry.key}
                                   type="button"
                                   title="Click to preview · Double-click to read"
-                                  onClick={() => selectFile(entry.key, files[entry.key])}
+                                  onClick={(event) => {
+                                    fileDetailTriggerRef.current = event.currentTarget;
+                                    selectFile(entry.key, files[entry.key]);
+                                  }}
                                   onDoubleClick={() => openFile(entry.key, files[entry.key])}
                                   onKeyDown={(event) => {
-                                    if (event.key === "Enter") selectFile(entry.key, files[entry.key]);
+                                    if (event.key === "Enter") {
+                                      fileDetailTriggerRef.current = event.currentTarget;
+                                      selectFile(entry.key, files[entry.key]);
+                                    }
                                   }}
                                 >
                                   <span className={`file-type file-type-${badge.kind}`} title={badge.kind}>{badge.label}</span>
@@ -1117,77 +1203,9 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                     )}
                   </div>
 
-                  {selectedFile && (
-                    <aside className="file-detail preview-panel" aria-label="Preview tab">
-                      <div className="file-detail-heading">
-                        <div className="preview-tab-label">
-                          <span className="preview-tab is-active">Preview</span>
-                          <span className="detail-eyebrow">FILE</span>
-                        </div>
-                        <button aria-label="Close preview" className="file-detail-close" onClick={() => setActiveFile(null)} type="button">×</button>
-                      </div>
-                      <div className={`detail-icon file-type-${getFileTypeBadge(selectedFile.file.fileName).kind}`}>{getFileTypeBadge(selectedFile.file.fileName).label}</div>
-                      <h2>{selectedFile.file.fileName}</h2>
-                      <p className="detail-path">{selectedFile.file.filePath}</p>
-                      <div className="preview-surface" aria-live="polite">
-                        {previewMediaUrl && previewExtension === "pdf" ? (
-                          <iframe src={previewMediaUrl} title={`Preview of ${selectedFile.file.fileName}`} loading="lazy" />
-                        ) : previewMediaUrl && isImagePreview ? (
-                          <Image
-                            src={previewMediaUrl}
-                            alt={`Preview of ${selectedFile.file.fileName}`}
-                            width={560}
-                            height={320}
-                            unoptimized
-                          />
-                        ) : isTextPreviewFile(selectedFile.file.fileName) ? (
-                          !previewTextUrl ? (
-                            <p className="preview-error" role="alert">This file has an invalid repository path.</p>
-                          ) : selectedPreview?.status === "error" ? (
-                            <div className="preview-error-wrap">
-                              <p className="preview-error" role="alert">{selectedPreview.message}</p>
-                              <button
-                                className="preview-retry"
-                                onClick={() => setFilePreviews((current) => {
-                                  const next = { ...current };
-                                  delete next[selectedFile.file.fileSha];
-                                  return next;
-                                })}
-                                type="button"
-                              >
-                                Try again
-                              </button>
-                            </div>
-                          ) : selectedPreview?.status === "ready" ? (
-                            <pre className="preview-text"><code>{selectedPreview.text}{selectedPreview.truncated ? "\n\n… Preview shortened" : ""}</code></pre>
-                          ) : (
-                            <div className="preview-loading"><span className="loading-spinner" />Loading preview…</div>
-                          )
-                        ) : (
-                          <div className="preview-unavailable">
-                            <span>{getFileTypeBadge(selectedFile.file.fileName).label}</span>
-                            <p>A quick preview isn’t available for this file type.</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="detail-rule" />
-                      <dl>
-                        <div><dt>Repository</dt><dd>{selectedFile.file.repository}</dd></div>
-                        <div><dt>Branch</dt><dd>{selectedFile.file.branch}</dd></div>
-                        <div><dt>File SHA</dt><dd><code>{selectedFile.file.fileSha}</code></dd></div>
-                      </dl>
-                      <button
-                        className="primary-button detail-open"
-                        onClick={() => openFile(selectedFile.key, selectedFile.file)}
-                        onMouseEnter={() => prefetchFile(selectedFile.file)}
-                        onFocus={() => prefetchFile(selectedFile.file)}
-                        type="button"
-                      >
-                        Open file <span>↗</span>
-                      </button>
-                      <a className="primary-button detail-source" href={`https://github.com/${selectedFile.file.repository}/blob/${selectedFile.file.branch.split("/").map(encodeURIComponent).join("/")}/${selectedFile.file.filePath.split("/").map(encodeURIComponent).join("/")}`} target="_blank" rel="noreferrer">Open source on GitHub <span>↗</span></a>
-                    </aside>
-                  )}
+                  {fileDetailLayer && (isMobileDetails
+                    ? createPortal(fileDetailLayer, document.body)
+                    : fileDetailLayer)}
                 </div>
               )}
               <footer className="home-footer"><span>File indexes update as repositories change.</span><Link href="/">Back to overview ↑</Link></footer>

@@ -11,6 +11,10 @@ const harness = vi.hoisted(() => ({
   sceneState: "static",
   mobile: false,
   reducedMotion: false,
+  webglUnavailable: false,
+  animationLoopStarts: 0,
+  animationLoopStops: 0,
+  renderCalls: 0,
   intersectionCallback: null as IntersectionObserverCallback | null,
   pendingTimers: new Map<number, () => void>(),
   nextTimerId: 0,
@@ -20,6 +24,114 @@ const harness = vi.hoisted(() => ({
   resizeObserverDisconnected: 0,
   intersectionObserverDisconnected: 0,
 }));
+
+vi.mock("three", () => {
+  class FakeColor {
+    constructor(public value: string | number = "#ffffff") {}
+
+    copy(color: FakeColor) {
+      this.value = color.value;
+      return this;
+    }
+
+    lerp(color: FakeColor) {
+      this.value = color.value;
+      return this;
+    }
+
+    set(value: string | number) {
+      this.value = value;
+      return this;
+    }
+  }
+
+  class FakeObject {
+    position = { set: () => undefined };
+    rotation = { x: 0, y: 0, z: 0 };
+    add() {}
+  }
+
+  class FakeGeometry {
+    dispose() {}
+
+    setFromPoints() {
+      return this;
+    }
+  }
+
+  class FakeMaterial {
+    color: FakeColor;
+
+    constructor(options: { color?: string | number } = {}) {
+      this.color = new FakeColor(options.color);
+    }
+
+    dispose() {}
+  }
+
+  class FakeRenderer {
+    constructor() {
+      if (harness.webglUnavailable) throw new Error("WebGL unavailable in test");
+    }
+
+    setClearColor() {}
+
+    setPixelRatio() {}
+
+    setSize() {}
+
+    setAnimationLoop(callback: (() => void) | null) {
+      if (callback) harness.animationLoopStarts += 1;
+      else harness.animationLoopStops += 1;
+    }
+
+    render() {
+      harness.renderCalls += 1;
+    }
+
+    dispose() {}
+
+    forceContextLoss() {}
+  }
+
+  class FakeCamera extends FakeObject {
+    left = 0;
+    right = 0;
+    top = 0;
+    bottom = 0;
+    lookAt() {}
+    updateProjectionMatrix() {}
+  }
+
+  class FakeCurve {
+    getPoints() {
+      return [];
+    }
+  }
+
+  class FakeMesh extends FakeObject {}
+  class FakeLine extends FakeObject {}
+  class FakeAmbientLight {}
+  class FakeDirectionalLight extends FakeObject {}
+
+  return {
+    AmbientLight: FakeAmbientLight,
+    BufferGeometry: FakeGeometry,
+    BoxGeometry: FakeGeometry,
+    Color: FakeColor,
+    DirectionalLight: FakeDirectionalLight,
+    EllipseCurve: FakeCurve,
+    Group: FakeObject,
+    LineBasicMaterial: FakeMaterial,
+    LineLoop: FakeLine,
+    Mesh: FakeMesh,
+    MeshStandardMaterial: FakeMaterial,
+    OrthographicCamera: FakeCamera,
+    Scene: FakeObject,
+    SphereGeometry: FakeGeometry,
+    WebGLRenderer: FakeRenderer,
+  };
+});
 
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
@@ -101,6 +213,7 @@ function installBrowserGlobals() {
 
   const browserWindow = {
     devicePixelRatio: 1,
+    getComputedStyle: () => ({ getPropertyValue: () => "" }),
     matchMedia: (query: string) => {
       const callbacks = mediaQueries.get(query) ?? new Set<(event: MediaQueryListEvent) => void>();
       mediaQueries.set(query, callbacks);
@@ -148,6 +261,13 @@ function renderHero() {
   return renderToStaticMarkup(createElement(LandingThreeHero));
 }
 
+function runScheduledSceneTimer() {
+  const callback = [...harness.pendingTimers.values()][0];
+  if (!callback) throw new Error("Landing scene timer was not scheduled");
+  harness.pendingTimers.clear();
+  callback();
+}
+
 function mountHeroEffect() {
   renderHero();
   if (!harness.effect) throw new Error("Landing hero effect was not captured");
@@ -158,6 +278,12 @@ async function enterViewport() {
   harness.intersectionCallback?.([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
 }
 
+async function startHeroScene(expectedState: "ready" | "unavailable" = "ready") {
+  await enterViewport();
+  runScheduledSceneTimer();
+  await vi.waitFor(() => expect(harness.sceneState).toBe(expectedState));
+}
+
 describe("landing Three.js hero", () => {
   let restoreBrowserGlobals: (() => void) | undefined;
 
@@ -165,6 +291,10 @@ describe("landing Three.js hero", () => {
     harness.sceneState = "static";
     harness.mobile = false;
     harness.reducedMotion = false;
+    harness.webglUnavailable = false;
+    harness.animationLoopStarts = 0;
+    harness.animationLoopStops = 0;
+    harness.renderCalls = 0;
     harness.effect = null;
     restoreBrowserGlobals = installBrowserGlobals();
   });
@@ -184,7 +314,9 @@ describe("landing Three.js hero", () => {
     expect(markup).toContain('href="/commerce"');
     expect(markup).toContain('href="/humanities"');
     expect(markup).toContain('href="/developers"');
-    expect(markup).toContain('href="#collections"');
+    const navigation = markup.match(/<nav\b[\s\S]*?<\/nav>/)?.[0];
+    expect(navigation).not.toContain("Collections");
+    expect(markup).toContain('id="collections"');
     expect(markup).toContain('href="/register"');
     expect(markup).toContain('href="/lowersecondary"');
     expect(markup).toContain("Explore the library");
@@ -224,24 +356,48 @@ describe("landing Three.js hero", () => {
     expect(harness.intersectionObserverDisconnected).toBeGreaterThan(0);
   });
 
-  it.each([
-    ["mobile viewport", true, false],
-    ["reduced motion", false, true],
-  ])("keeps the static folio and skips scene startup for %s", (preference, mobile, reducedMotion) => {
-    harness.mobile = mobile;
-    harness.reducedMotion = reducedMotion;
+  it("starts the animated scene on mobile when motion is allowed", async () => {
+    harness.mobile = true;
     const cleanup = mountHeroEffect();
 
-    expect(harness.intersectionCallback).toBeNull();
-    expect(harness.pendingTimers.size).toBe(0);
-    expect(harness.sceneState).toBe("static");
+    expect(harness.intersectionCallback).not.toBeNull();
+    await startHeroScene();
+    expect(harness.animationLoopStarts).toBe(1);
+    expect(harness.renderCalls).toBeGreaterThan(0);
+    expect(harness.sceneState).toBe("ready");
+    cleanup?.();
+  });
+
+  it("renders a static 3D frame for reduced motion without starting an animation loop", async () => {
+    harness.reducedMotion = true;
+    const cleanup = mountHeroEffect();
+
+    expect(harness.intersectionCallback).not.toBeNull();
+    await startHeroScene();
+    expect(harness.animationLoopStarts).toBe(0);
+    expect(harness.renderCalls).toBeGreaterThan(0);
+    expect(harness.sceneState).toBe("ready");
     const markup = renderHero();
+    expect(markup).toContain('data-scene="ready"');
     expect(markup).toContain("FIELD NOTES");
     expect(markup).toContain("IDEAS");
     expect(markup).not.toContain("Loading the optional interactive folio");
     cleanup?.();
-    expect(harness.mediaListeners.get("(max-width: 720px), (max-height: 500px) and (pointer: coarse)")?.size).toBe(0);
     expect(harness.mediaListeners.get("(prefers-reduced-motion: reduce)")?.size).toBe(0);
+  });
+
+  it("uses the semantic static folio when WebGL context creation is unavailable", async () => {
+    harness.webglUnavailable = true;
+    const cleanup = mountHeroEffect();
+
+    await startHeroScene("unavailable");
+    const markup = renderHero();
+    expect(markup).toContain('data-scene="unavailable"');
+    expect(markup).toContain("WebGL is unavailable; the folio is shown as a static diagram.");
+    expect(markup).toContain("FIELD NOTES");
+    expect(markup).toContain("IDEAS");
+    expect(markup).not.toContain("The interactive folio is unavailable; the static diagram remains.");
+    cleanup?.();
   });
 
   it("renders a useful accessible fallback when scene initialization or WebGL fails", () => {
@@ -272,7 +428,6 @@ describe("landing Three.js hero", () => {
     expect(heroSource).toContain('renderer.forceContextLoss()');
     expect(heroSource).toContain('geometries.forEach((geometry) => geometry.dispose())');
     expect(heroSource).toContain('materials.forEach((material) => material.dispose())');
-    expect(heroSource).toContain('mobileViewport.removeEventListener("change", handlePreferenceChange)');
     expect(heroSource).toContain('reducedMotion.removeEventListener("change", handlePreferenceChange)');
   });
 });

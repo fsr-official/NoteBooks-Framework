@@ -1,6 +1,7 @@
 import "@/app/workspace-styles";
 import Link from "next/link";
 import LandingThreeHero from "@/components/landing-three-hero";
+import LandingStreamPrefetch from "@/components/landing-stream-prefetch";
 import { SiteNavigation } from "@/components/site-navigation";
 import { STREAMS } from "@/lib/library-streams";
 import styles from "@/components/landing-three.module.css";
@@ -87,6 +88,8 @@ export default function HomePage() {
         <span>NoteBooks <b>·</b> A shared shelf for curious minds.</span>
         <Link href="/developers">About this library <span aria-hidden="true">↗</span></Link>
       </footer>
+
+      <LandingStreamPrefetch />
     </main>
   );
 }

@@ -98,7 +98,7 @@ test("landing navigation exposes every shared destination and preserves its land
 
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
-  await expect(navigation.getByRole("link", { name: "Collections" })).toHaveAttribute("href", "#collections");
+  await expect(navigation.getByRole("link", { name: "Collections", exact: true })).toHaveCount(0);
   await expect(navigation.getByRole("button", { name: "Appearance settings" })).toBeVisible();
   for (const [label, href] of [
     ["Lower Secondary", "/lowersecondary"],
@@ -111,10 +111,6 @@ test("landing navigation exposes every shared destination and preserves its land
   ]) {
     await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
   }
-
-  await navigation.getByRole("link", { name: "Collections" }).focus();
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/#collections$/);
 
   await navigation.getByRole("button", { name: "Appearance settings" }).focus();
   await page.keyboard.press("Enter");
@@ -235,11 +231,19 @@ test("theme colors and special note ordering continue through nested folders", a
 
   await fileRows.first().focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("complementary", { name: "Preview tab" })).toBeVisible();
-  await expect(page.getByText("Local preview fixture.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Open file" })).toBeEnabled();
-  await page.getByRole("button", { name: "Close preview" }).click();
-  await expect(page.getByRole("complementary", { name: "Preview tab" })).toBeHidden();
+  const fileDetails = page.getByRole("complementary", { name: "NOTES.md" });
+  await expect(fileDetails).toBeVisible();
+  await expect(fileDetails.getByText("biology/chapter-one/NOTES.md", { exact: true })).toBeVisible();
+  await expect(fileDetails.getByText(repository, { exact: true })).toBeVisible();
+  await expect(fileDetails.getByText("main", { exact: true })).toBeVisible();
+  await expect(fileDetails.getByText("biology-chapter-one-NOTES.md", { exact: true })).toBeVisible();
+  await expect(fileDetails.getByRole("button", { name: "Open file" })).toBeEnabled();
+  await expect(fileDetails.getByRole("link", { name: /Open source on GitHub/ })).toHaveAttribute(
+    "href",
+    "https://github.com/local/stream-navigation-fixture/blob/main/biology/chapter-one/NOTES.md",
+  );
+  await fileDetails.getByRole("button", { name: "Close file details" }).click();
+  await expect(fileDetails).toBeHidden();
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Home" }).click();
   await expect(page).toHaveURL("/");
 });
