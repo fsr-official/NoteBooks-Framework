@@ -8,9 +8,30 @@ export type ExplorerEntry =
   | { kind: "directory"; name: string; path: string; fileCount: number }
   | { kind: "file"; key: string; file: ExplorerFile };
 type ExplorerDirectoryEntry = Extract<ExplorerEntry, { kind: "directory" }>;
+export type ExplorerFileSort = "recommended" | "name-asc" | "name-desc";
 
 function normalizedPath(path: string): string {
   return path.replace(/\\/g, "/").replace(/^\.\/+/, "").replace(/^\/+/, "");
+}
+
+function specialFileOrder(fileName: string): number {
+  const { kind } = getFileTypeBadge(fileName);
+  if (kind === "notes") return 0;
+  if (kind === "cnotes") return 1;
+  if (kind === "glossary") return 2;
+  return 3;
+}
+
+export function compareExplorerFiles(
+  leftFileName: string,
+  rightFileName: string,
+  sort: ExplorerFileSort = "recommended",
+): number {
+  const specialOrder = specialFileOrder(leftFileName) - specialFileOrder(rightFileName);
+  if (specialOrder !== 0) return specialOrder;
+
+  const nameOrder = leftFileName.localeCompare(rightFileName);
+  return sort === "name-desc" ? -nameOrder : nameOrder;
 }
 
 export function listDirectoryEntries(
@@ -56,7 +77,7 @@ export function listDirectoryEntries(
   directoryEntries.sort((left, right) => left.name.localeCompare(right.name));
   files.sort((left, right) => {
     if (left.kind !== "file" || right.kind !== "file") return 0;
-    return left.file.fileName.localeCompare(right.file.fileName);
+    return compareExplorerFiles(left.file.fileName, right.file.fileName);
   });
   return [...directoryEntries, ...files];
 }

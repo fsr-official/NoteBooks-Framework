@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
+import { compareExplorerFiles, getFileTypeBadge, listDirectoryEntries } from "@/lib/file-explorer";
+import { STREAMS, type LibraryId } from "@/lib/library-streams";
 import { readerHref } from "@/lib/reader-navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -15,15 +16,16 @@ import {
   type AuthenticatedClientIdentity,
 } from "@/lib/client-session";
 import { COLOR_TOKENS, isThemePreset, type ThemePreset } from "@/lib/theme-tokens";
+import { applyThemeTokens } from "@/lib/theme-preferences";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { SiteNavigation } from "@/components/site-navigation";
+import { StreamIconGlyph } from "@/components/stream-icon-glyph";
 
 const MarkdownReader = dynamic(
   () => import("@/components/markdown-reader").then((module) => module.MarkdownReader),
   { ssr: false, loading: () => <div className="reader-message" role="status">Opening file…</div> },
 );
 
-type LibraryId = "lowersecondary" | "science" | "commerce" | "humanities" | "developer";
-type StreamRoute = "lowersecondary" | "science" | "commerce" | "humanities" | "developers";
 type ThemeGroup = { label: string; presets: ThemePreset[] };
 type FileFilter = "all" | "markdown" | "pdf" | "other";
 type FileSort = "recommended" | "name-asc" | "name-desc";
@@ -108,16 +110,7 @@ const THEME_LABELS: Record<ThemePreset, string> = {
   royal: "Royal", espresso: "Espresso",
 };
 
-const STREAMS: Array<{ id: LibraryId; route: StreamRoute; title: string; eyebrow: string; description: string; icon: string }> = [
-  { id: "lowersecondary", route: "lowersecondary", title: "Lower Secondary", eyebrow: "Build strong foundations", description: "Class 9 and Class 10 resources together in one learning library.", icon: "Ⅱ" },
-  { id: "science", route: "science", title: "Science", eyebrow: "Explore the natural world", description: "Clear notes for biology, chemistry, physics, and mathematics.", icon: "✳" },
-  { id: "commerce", route: "commerce", title: "Commerce", eyebrow: "Understand how things work", description: "Business, economics, accounting, and practical knowledge.", icon: "◈" },
-  { id: "humanities", route: "humanities", title: "Humanities", eyebrow: "Ideas, people, and society", description: "History, civics, culture, and critical perspectives.", icon: "⌘" },
-  { id: "developer", route: "developers", title: "Developers", eyebrow: "Build and contribute", description: "Project documentation, guides, and contributor resources.", icon: "››" },
-];
-
 const LANDING_STREAMS = STREAMS;
-const NAV_STREAMS = STREAMS;
 const EMPTY_PREFERENCES: Preferences = {
   fileHistory: [],
   preset: "midnight",
@@ -253,18 +246,6 @@ function StreamLoadingArt({ stream }: { stream: LibraryId }) {
   return <span className="stream-loading-art generic-stream-loader" aria-hidden="true">{STREAMS.find((item) => item.id === stream)?.icon ?? "✳"}</span>;
 }
 
-function StreamIconGlyph({ stream, fallback }: { stream: LibraryId; fallback: string }) {
-  if (stream === "developer") {
-    return (
-      <svg className="corporal-rank-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M5 16.5 12 21l7-4.5" />
-        <path d="M5 11.5 12 16l7-4.5" />
-      </svg>
-    );
-  }
-  return <>{fallback}</>;
-}
-
 function parseSession(serialized: string | null): ClientSession | null {
   if (!serialized) return null;
   try {
@@ -318,17 +299,7 @@ function parseSession(serialized: string | null): ClientSession | null {
 }
 
 function applyTheme(preferences: Preferences): void {
-  const tokens = COLOR_TOKENS[preferences.preset][preferences.mode];
-  const root = document.documentElement;
-  root.dataset.mode = preferences.mode;
-  root.style.setProperty("--page", preferences.customBackground || tokens.background);
-  root.style.setProperty("--surface", tokens.surface);
-  root.style.setProperty("--accent", preferences.customAccent || tokens.accent);
-  root.style.setProperty("--palette-main", tokens.main);
-  root.style.setProperty("--partner", tokens.partner);
-  root.style.setProperty("--highlight", tokens.highlight);
-  root.style.setProperty("--text", tokens.text);
-  root.style.setProperty("--muted", tokens.muted);
+  applyThemeTokens(document.documentElement, preferences);
 }
 
 function streamTitle(stream: string): string {
@@ -676,10 +647,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
       || (fileFilter === "other" && !/\.(md|markdown|pdf)$/i.test(entry.file.fileName)))
     .sort((left, right) => {
       if (left.kind === "directory" || right.kind === "directory") return 0;
-      const comparison = left.file.fileName.localeCompare(right.file.fileName);
-      if (fileSort === "name-desc") return -comparison;
-      if (fileSort === "name-asc") return comparison;
-      return 0;
+      return compareExplorerFiles(left.file.fileName, right.file.fileName, fileSort);
     });
   const directoryFileCount = filteredExplorerEntries.filter((entry) => entry.kind === "file").length;
   const selectedFile = activeFile?.stream === stream
@@ -743,43 +711,10 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   return (
     <>
     <main className="workspace">
-      <header className={stream === "home" || stream === "account" ? "topbar" : "topbar stream-topbar"}>
-        <Link className="brand" href="/" aria-label="NoteBooks home" onClick={() => {
+      <SiteNavigation activePage={stream} navRef={topNavRef} onNavigate={() => {
           setExplorerLocation(null);
           setActiveFile(null);
-        }}>
-          <span className="brand-mark">n</span>
-          <span>NoteBooks</span>
-          <span className="brand-tag">STUDY SPACE</span>
-        </Link>
-        <nav className="top-nav" aria-label="Main navigation" ref={topNavRef}>
-          <Link aria-current={stream === "home" ? "page" : undefined} className={stream === "home" ? "nav-link active" : "nav-link"} href="/" onClick={() => {
-            setExplorerLocation(null);
-            setActiveFile(null);
-          }}>
-            <span className="nav-stream-icon nav-home-icon" aria-hidden="true">n</span><span>Home</span>
-          </Link>
-          {NAV_STREAMS.map((item) => (
-            <Link
-              aria-current={stream === item.id ? "page" : undefined}
-              className={stream === item.id ? "nav-link active" : "nav-link"}
-              href={`/${item.route}`}
-              key={item.id}
-              onClick={() => {
-                setExplorerLocation(null);
-                setActiveFile(null);
-              }}
-            >
-              <span className={`nav-stream-icon nav-stream-icon-${item.id}`} aria-hidden="true">
-                <span className="nav-icon-glyph"><StreamIconGlyph stream={item.id} fallback={item.icon} /></span>
-              </span>
-              <span>{item.title}</span>
-            </Link>
-          ))}
-          <Link aria-current={stream === "account" ? "page" : undefined} className={`nav-link auth-nav-link ${stream === "account" ? "active" : ""}`} href="/account">Account</Link>
-          <Link className="nav-link auth-nav-join" href="/register">Join</Link>
-        </nav>
-      </header>
+        }} />
 
       <div className={`workspace-layout ${stream === "home" ? "home-layout" : ""}`}>
         <aside className="side-rail">
@@ -1124,7 +1059,10 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                             );
                           })}
                         </nav>
-                        <section className="repository-group">
+                        <section
+                          className="repository-group"
+                          style={{ "--repository-color": `var(--repository-tone-${selectedRepositoryIndex % 2})` } as CSSProperties}
+                        >
                           <div className="repository-heading">
                             <span className="repo-mark repository-bullet" style={{ "--repository-color": `var(--repository-tone-${selectedRepositoryIndex % 2})` } as CSSProperties} aria-hidden="true">•</span>
                             <span><strong>{currentDirectory.split("/").at(-1) ?? repositories[selectedRepository]?.name ?? selectedRepository.split("/").at(-1)}</strong></span>
@@ -1154,7 +1092,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                               const badge = getFileTypeBadge(entry.file.fileName);
                               return (
                                 <button
-                                  className={`file-row ${selectedFile?.key === entry.key ? "file-selected" : ""}`}
+                                  className={`file-row file-row-${badge.kind} ${selectedFile?.key === entry.key ? "file-selected" : ""}`}
                                   key={entry.key}
                                   type="button"
                                   title="Click to preview · Double-click to read"

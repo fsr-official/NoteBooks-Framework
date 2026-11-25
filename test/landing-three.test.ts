@@ -180,6 +180,12 @@ describe("landing Three.js hero", () => {
     expect(markup).toContain('<h1 id="landing-title">Make room for <em>understanding.</em></h1>');
     expect(markup).toContain('<nav class="');
     expect(markup).toContain('aria-label="Main navigation"');
+    expect(markup).toContain('href="/science"');
+    expect(markup).toContain('href="/commerce"');
+    expect(markup).toContain('href="/humanities"');
+    expect(markup).toContain('href="/developers"');
+    expect(markup).toContain('href="#collections"');
+    expect(markup).toContain('href="/register"');
     expect(markup).toContain('href="/lowersecondary"');
     expect(markup).toContain("Explore the library");
     expect(markup).toContain('aria-labelledby="folio-caption"');
@@ -187,6 +193,9 @@ describe("landing Three.js hero", () => {
     expect(markup).toContain("An open folio brings connected ideas into view");
     expect(markup).toContain("FIELD NOTES");
     expect(markup).toContain("IDEAS");
+    expect(markup).toContain('aria-label="Appearance settings"');
+    expect(markup).toContain('aria-label="Color palette"');
+    expect(markup).toContain("Use light mode");
   });
 
   it("keeps Three.js outside the stream's static route imports and waits for the hero to enter view", () => {
