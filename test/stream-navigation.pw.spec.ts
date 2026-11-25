@@ -98,7 +98,7 @@ test("landing navigation exposes every shared destination and preserves its land
 
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   await expect(navigation.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
-  await expect(navigation.getByRole("link", { name: "Collections" })).toHaveAttribute("href", "#collections");
+  await expect(navigation.getByRole("link", { name: "Collections", exact: true })).toHaveCount(0);
   await expect(navigation.getByRole("button", { name: "Appearance settings" })).toBeVisible();
   for (const [label, href] of [
     ["Lower Secondary", "/lowersecondary"],
@@ -111,10 +111,6 @@ test("landing navigation exposes every shared destination and preserves its land
   ]) {
     await expect(navigation.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
   }
-
-  await navigation.getByRole("link", { name: "Collections" }).focus();
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/#collections$/);
 
   await navigation.getByRole("button", { name: "Appearance settings" }).focus();
   await page.keyboard.press("Enter");
