@@ -331,9 +331,13 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   min-width: 0;
   padding: 28px 0 100px;
   scroll-margin-top: 85px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 .reader-document-card {
   width: 100%;
+  box-sizing: border-box;
   margin: 0;
   padding: clamp(20px, 3vw, 36px);
   border: 1px solid var(--reader-line);
@@ -344,7 +348,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .next-reader-content .markdown-content {
   --reader-bracket-gutter: 56px;
   width: 100%;
-  min-width: min(100%, 82ch);
+  min-width: 0;
   max-width: 110ch;
   margin: 0 auto;
   padding-left: var(--reader-bracket-gutter);
@@ -614,6 +618,14 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .next-reader-content .markdown-content .tikz-canvas svg {
   display: block;
   max-width: none !important;
+}
+.next-reader-content .markdown-content .tikz-wrapper > svg,
+.next-reader-content .markdown-content .reader-static-diagram.tikz-wrapper > svg {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  margin-inline: auto;
+  object-fit: contain;
 }
 .next-reader-content .markdown-content .tikz-toolbar {
   position: absolute;
@@ -981,11 +993,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .reader-search-results > button,
   .reader-search-group > button { min-height: 44px; font-size: 14px; line-height: 1.5; }
   .next-reader-layout,
-  .next-reader-layout.outline-collapsed { grid-template-columns: minmax(0, 1fr); padding-inline: 8px; }
+  .next-reader-layout.outline-collapsed { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 100%; padding-inline: 8px; overflow-x: hidden; }
   .next-reader-content { grid-column: 1; }
   .next-reader-content { padding: 25px 4px 70px; }
   .reader-document-card { padding: 18px 16px; border-radius: 12px; }
-  .next-reader-content .markdown-content { --reader-bracket-gutter: 32px; font-size: calc(1rem * var(--reader-font-scale, 1)); }
+  .next-reader-content .markdown-content { --reader-bracket-gutter: 32px; max-width: 100%; min-width: 0; box-sizing: border-box; font-size: calc(1rem * var(--reader-font-scale, 1)); }
   .next-reader-content .markdown-content .note-section::before { border-left-width: 3px; border-top-width: 3px; border-bottom-width: 3px; opacity: .65; }
   .next-reader-content .markdown-content .note-section[data-level="1"] { --reader-bracket-offset: 28px; --reader-bracket-right-inset: 0px; --reader-bracket-underline-offset: 28px; }
   .next-reader-content .markdown-content .note-section[data-level="2"] { --reader-bracket-offset: 21px; --reader-bracket-right-inset: 7px; --reader-bracket-underline-offset: 21px; }

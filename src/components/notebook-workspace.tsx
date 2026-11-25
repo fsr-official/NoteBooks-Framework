@@ -327,6 +327,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
   const fileDetailTriggerRef = useRef<HTMLButtonElement>(null);
   const restoreFileDetailFocusRef = useRef(false);
   const filePreviewRequestsRef = useRef(new Set<string>());
+  const mobileFileSelectionTimerRef = useRef<number | null>(null);
   const indexCache = useRef(new Map<LibraryId, Record<string, FileLookup>>());
   const repoCache = useRef<Record<string, RepositoryLookup> | null>(null);
 
@@ -708,6 +709,13 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
       fileDetailTriggerRef.current?.focus();
     }
   }, [isMobileDetails, selectedFile]);
+
+  useEffect(() => () => {
+    if (mobileFileSelectionTimerRef.current !== null) {
+      window.clearTimeout(mobileFileSelectionTimerRef.current);
+      mobileFileSelectionTimerRef.current = null;
+    }
+  }, []);
 
   const fileDetailLayer = selectedFile && (
     <div className="file-detail-layer">
@@ -1178,13 +1186,30 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                                   title="Click to preview · Double-click to read"
                                   onClick={(event) => {
                                     fileDetailTriggerRef.current = event.currentTarget;
-                                    selectFile(entry.key, files[entry.key]);
+                                    if (isMobileDetails) {
+                                      if (mobileFileSelectionTimerRef.current !== null) {
+                                        window.clearTimeout(mobileFileSelectionTimerRef.current);
+                                      }
+                                      mobileFileSelectionTimerRef.current = window.setTimeout(() => {
+                                        mobileFileSelectionTimerRef.current = null;
+                                        selectFile(entry.key, files[entry.key]);
+                                      }, 260);
+                                    } else {
+                                      selectFile(entry.key, files[entry.key]);
+                                    }
                                   }}
-                                  onDoubleClick={() => openFile(entry.key, files[entry.key])}
+                                  onDoubleClick={(event) => {
+                                    event.preventDefault();
+                                    if (mobileFileSelectionTimerRef.current !== null) {
+                                      window.clearTimeout(mobileFileSelectionTimerRef.current);
+                                      mobileFileSelectionTimerRef.current = null;
+                                    }
+                                    openFile(entry.key, files[entry.key]);
+                                  }}
                                   onKeyDown={(event) => {
                                     if (event.key === "Enter") {
                                       fileDetailTriggerRef.current = event.currentTarget;
-                                      selectFile(entry.key, files[entry.key]);
+                                      openFile(entry.key, files[entry.key]);
                                     }
                                   }}
                                 >
