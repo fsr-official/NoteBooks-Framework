@@ -242,10 +242,44 @@ test("theme colors and special note ordering continue through nested folders", a
     "href",
     "https://github.com/local/stream-navigation-fixture/blob/main/biology/chapter-one/NOTES.md",
   );
-  await fileDetails.getByRole("button", { name: "Close file details" }).click();
-  await expect(fileDetails).toBeHidden();
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Home" }).click();
-  await expect(page).toHaveURL("/");
+});
+
+test("mobile double-click opens the file instead of opening the details overlay", async ({ page }) => {
+  await installLocalFixtures(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/science");
+  await page.getByRole("button", { name: /Stream Navigation Fixture/ }).click();
+  await page.getByRole("button", { name: /biology.*8 files/ }).click();
+  await page.getByRole("button", { name: /chapter-one.*8 files/ }).click();
+  const notes = page.getByRole("button", { name: "NT NOTES.md ›", exact: true });
+  await notes.dblclick();
+  await expect(page).toHaveURL(/\/read\?/);
+  await expect(page).not.toHaveURL(/\/science$/);
+  await expect(page.getByRole("dialog", { name: "NOTES.md" })).toHaveCount(0);
+});
+
+test("nested folder and file hierarchy uses the repository family and theme colors", async ({ page }) => {
+  await installLocalFixtures(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/science");
+  await page.getByRole("button", { name: /Stream Navigation Fixture/ }).click();
+  await page.getByRole("button", { name: /biology.*8 files/ }).click();
+  await page.getByRole("button", { name: /chapter-one.*8 files/ }).click();
+  const styles = await page.evaluate(() => {
+    const nested = document.querySelector<HTMLElement>(".folder-name");
+    const file = document.querySelector<HTMLElement>(".file-name");
+    const repository = document.querySelector<HTMLElement>(".repository-heading strong");
+    const get = (element: HTMLElement | null) => element ? {
+      family: getComputedStyle(element).fontFamily,
+      size: getComputedStyle(element).fontSize,
+      color: getComputedStyle(element).color,
+    } : null;
+    return { folder: get(nested), file: get(file), repository: get(repository), body: get(document.body) };
+  });
+  expect(styles.folder?.family).toBe(styles.file?.family);
+  expect(styles.folder?.size).toBe("13px");
+  expect(styles.file?.size).toBe("13px");
+  expect(styles.folder?.color).not.toBe(styles.body?.color);
 });
 
 test("global navigation is usable without horizontal page overflow on narrow screens", async ({ page }) => {

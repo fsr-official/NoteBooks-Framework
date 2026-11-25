@@ -10,6 +10,7 @@ const fixtureMarker = "C2_RUNTIME_HYDRATION_MARKER";
 
 type DiagramWindow = Window & {
   obsidianAttachDiagramControls?: (root?: Element) => void;
+  obsidianInitTikz?: (root?: Element) => void;
 };
 
 async function installLocalFixtureRoutes(page: Page): Promise<string[]> {
@@ -110,6 +111,90 @@ test("keeps the local note readable when IndexedDB is unavailable and contains n
     expect(dimensions.hasZoomDialog).toBe(false);
   }
   expect(unexpectedRequests).toEqual([]);
+});
+
+test("TikZ static and zoomed SVG stays full-width and centered", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openLocalReader(page);
+  await page.waitForTimeout(300);
+  await page.locator("article.next-reader-content .markdown-content").evaluate((article) => {
+    const figure = document.createElement("figure");
+    figure.className = "tikz-wrapper";
+    figure.dataset.diagramKind = "tikz";
+    figure.innerHTML = '<svg width="600" height="328" viewBox="0 0 600 328" role="img" aria-label="Local TikZ width fixture"><rect x="0" y="0" width="600" height="328" fill="none" stroke="currentColor"/></svg>';
+    article.append(figure);
+  });
+  await page.addScriptTag({ url: "/js/obsidian-markdown-it.js" });
+  await page.evaluate(() => {
+    const article = document.querySelector("article.next-reader-content");
+    (window as DiagramWindow).obsidianInitTikz?.(article ?? undefined);
+    (window as DiagramWindow).obsidianAttachDiagramControls?.(article ?? undefined);
+  });
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const geometry = await page.evaluate(() => {
+      const wrapper = document.querySelector<HTMLElement>(".tikz-wrapper");
+      const svg = wrapper?.querySelector<SVGElement>("svg");
+      if (!wrapper || !svg) throw new Error("TikZ fixture is missing");
+      const w = wrapper.getBoundingClientRect();
+      const s = svg.getBoundingClientRect();
+      return {
+        viewport: document.documentElement.clientWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        wrapperLeft: w.left,
+        wrapperRight: w.right,
+        wrapperWidth: w.width,
+        svgLeft: s.left,
+        svgRight: s.right,
+        svgWidth: s.width,
+        svgHeight: s.height,
+      };
+    });
+    expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport);
+    expect(geometry.wrapperRight).toBeLessThanOrEqual(geometry.viewport + 1);
+    expect(geometry.svgWidth).toBeGreaterThan(200);
+    expect(geometry.svgHeight).toBeGreaterThan(100);
+    expect(Math.abs((geometry.svgLeft + geometry.svgRight) / 2 - (geometry.wrapperLeft + geometry.wrapperRight) / 2)).toBeLessThanOrEqual(2);
+    expect(geometry.svgWidth / geometry.svgHeight).toBeGreaterThan(1.7);
+    expect(geometry.svgWidth / geometry.svgHeight).toBeLessThan(1.9);
+  }
+  const trigger = page.getByRole("button", { name: /Open zoomable.*TikZ.*diagram|Open zoomable.*tikz/i });
+  await trigger.click();
+  const dialog = page.locator("dialog.reader-diagram-zoom-dialog");
+  await expect(dialog).toBeVisible();
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(50);
+    const modalGeometry = await dialog.evaluate((element) => {
+      const viewport = element.querySelector<HTMLElement>(".reader-diagram-zoom-viewport");
+      const canvas = element.querySelector<HTMLElement>(".reader-diagram-zoom-canvas");
+      const svg = canvas?.querySelector<SVGElement>("svg");
+      const v = viewport?.getBoundingClientRect();
+      const c = canvas?.getBoundingClientRect();
+      const s = svg?.getBoundingClientRect();
+      return {
+        viewportWidth: v?.width ?? 0,
+        viewportLeft: v?.left ?? 0,
+        viewportRight: v?.right ?? 0,
+        canvasWidth: c?.width ?? 0,
+        svgWidth: s?.width ?? 0,
+        svgHeight: s?.height ?? 0,
+        svgLeft: s?.left ?? 0,
+        svgRight: s?.right ?? 0,
+        documentWidth: document.documentElement.scrollWidth,
+        viewportDocumentWidth: document.documentElement.clientWidth,
+      };
+    });
+    expect(modalGeometry.documentWidth).toBeLessThanOrEqual(modalGeometry.viewportDocumentWidth);
+    expect(modalGeometry.canvasWidth).toBeGreaterThanOrEqual(modalGeometry.svgWidth);
+    expect(modalGeometry.svgWidth).toBeGreaterThan(200);
+    expect(modalGeometry.svgHeight).toBeGreaterThan(100);
+    expect(modalGeometry.svgWidth).toBeLessThanOrEqual(modalGeometry.viewportWidth);
+    expect(modalGeometry.svgWidth / modalGeometry.svgHeight).toBeGreaterThan(1.7);
+    expect(modalGeometry.svgWidth / modalGeometry.svgHeight).toBeLessThan(1.9);
+    expect(Math.abs((modalGeometry.svgLeft + modalGeometry.svgRight) / 2 - (modalGeometry.viewportLeft + modalGeometry.viewportRight) / 2)).toBeLessThanOrEqual(2);
+  }
+  await dialog.getByRole("button", { name: "Close diagram" }).click();
 });
 
 test("uses explicit accessible diagram zoom/pan controls and preserves reader outline/progress behavior", async ({ page }) => {
