@@ -417,7 +417,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .library-stat { display: none; }
   .folder-row, .repository-row { grid-template-columns: 24px minmax(80px, .9fr) minmax(50px, 1fr) 10px; gap: 5px; padding: 0 9px; }
   .file-row { grid-template-columns: 24px minmax(0, 1fr) 10px; gap: 5px; padding: 0 9px; }
-  .file-name { font-size: 11px; }
+  .file-name { font-size: 13px; }
   .file-path { font-size: 9px; }
   .home-footer { gap: 10px; align-items: flex-start; font-size: 9px; }
   .home-footer span:last-child { white-space: nowrap; }
@@ -782,6 +782,17 @@ body { font-family: var(--font-dm-sans), var(--font-dm-sans), sans-serif; }
 }
 .folder-row:hover, .file-row:hover, .file-row.file-selected { background-color: color-mix(in srgb, var(--repository-color) 11%, transparent); }
 .folder-row .folder-icon, .folder-row .folder-name, .file-row .file-open { color: var(--repository-color); }
+.folder-row .folder-name,
+.file-row .file-name {
+  font-family: var(--font-manrope), var(--font-dm-sans), sans-serif;
+  font-size: 13px;
+  font-weight: 650;
+}
+.file-row-notes .file-name,
+.file-row-cnotes .file-name,
+.file-row-glossary .file-name {
+  color: var(--file-kind-color);
+}
 .file-row-notes { --file-kind-color: color-mix(in srgb, var(--accent) 74%, var(--text)); border-left-color: var(--file-kind-color); }
 .file-row-cnotes { --file-kind-color: color-mix(in srgb, var(--partner) 74%, var(--text)); border-left-color: var(--file-kind-color); }
 .file-row-glossary { --file-kind-color: color-mix(in srgb, color-mix(in srgb, var(--highlight) 75%, var(--partner) 25%) 74%, var(--text)); border-left-color: var(--file-kind-color); }

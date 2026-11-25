@@ -1368,12 +1368,34 @@
         canvas.className = 'reader-diagram-zoom-canvas';
         var copy = svg.cloneNode(true);
         copy.removeAttribute('id');
+        copy.style.width = '100%';
+        copy.style.height = 'auto';
+        copy.style.maxWidth = '100%';
+        copy.style.maxHeight = '100%';
         canvas.appendChild(copy);
         viewport.appendChild(canvas);
 
         var scale = 1;
         var x = 0;
         var y = 0;
+        var fitCopyToViewport = function () {
+            var vb = copy.getAttribute('viewBox');
+            var vbW = 1;
+            var vbH = 1;
+            if (vb) {
+                var points = vb.trim().split(/[\s,]+/);
+                vbW = parseFloat(points[2]) || vbW;
+                vbH = parseFloat(points[3]) || vbH;
+            }
+            var availableWidth = Math.max(viewport.clientWidth - 32, 1);
+            var availableHeight = Math.max(viewport.clientHeight - 32, 1);
+            var fittedWidth = Math.min(availableWidth, availableHeight * vbW / vbH);
+            var fittedHeight = fittedWidth * vbH / vbW;
+            copy.style.width = Math.max(1, Math.round(fittedWidth)) + 'px';
+            copy.style.height = Math.max(1, Math.round(fittedHeight)) + 'px';
+            canvas.style.minWidth = '0';
+            canvas.style.minHeight = '0';
+        };
         var drag = null;
         var paint = function () {
             canvas.style.transform = 'translate(' + x + 'px, ' + y + 'px) scale(' + scale + ')';
@@ -1423,6 +1445,11 @@
         }, { once: true });
         dialog.showModal();
         close.focus();
+        requestAnimationFrame(fitCopyToViewport);
+        window.addEventListener('resize', fitCopyToViewport, { passive: true });
+        dialog.addEventListener('close', function () {
+            window.removeEventListener('resize', fitCopyToViewport);
+        }, { once: true });
     }
     function _attachStaticDiagramControl(container, svg, title) {
         if (!container || !svg || container.querySelector('[data-reader-diagram-zoom]')) return;
@@ -2076,26 +2103,12 @@
             if (!svgH)
                 svgH = parseFloat(svg.getAttribute('height')) || 300;
             var ratio = svgW / (svgH || 1);
-            /* Intelligent sizing: Scale based on viewport width and aspect ratio.
-               Aim for readable size while staying within reasonable bounds.
-               The baseW values are now max widths; they'll scale down if needed. */
-            var viewportW = window.innerWidth * 0.92; /* Account for scrollbar & margins */
-            var maxW, baseW;
-            if (ratio < 0.8)
-                maxW = 375; /* tall/portrait  — less wide */
-            else if (ratio > 1.25)
-                maxW = 600; /* wide/landscape — more wide */
-            else
-                maxW = 450; /* squarish — balanced */
-            /* Scale down if viewport is too narrow */
-            baseW = Math.min(maxW, Math.max(viewportW, 400));
-            /* For very small viewports, use a more conservative approach */
-            if (viewportW < 600) {
-                baseW = Math.min(maxW, viewportW - 30);
-            }
+            var wrapper = svg.closest('.tikz-wrapper');
+            var availableW = wrapper
+                ? Math.max(wrapper.clientWidth - 24, 1)
+                : Math.max(window.innerWidth - 40, 1);
+            var baseW = Math.round(availableW);
             var baseH = Math.round(baseW / ratio);
-            /* Write explicit pixel width/height so fitToView can read them with
-               getAttribute — same pattern Mermaid uses, avoids CSS sizing conflicts */
             svg.setAttribute('width', baseW);
             svg.setAttribute('height', baseH);
             /* Remove CSS classes that would override these attrs */
