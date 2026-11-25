@@ -8,6 +8,11 @@ import { createWildcardMatcher } from "@/lib/markdown/search";
 import { withDesmosTheme } from "@/lib/desmos-theme";
 import type { ReaderChatPanelProps } from "@/components/reader-chat-panel";
 import type { ReaderFile } from "@/lib/reader-types";
+import {
+  readerRenderCacheKey,
+  readerSourceRevision,
+  writeRenderedNote,
+} from "@/lib/reader-render-cache";
 
 type ReaderWindow = Window & {
   Desmos?: {
@@ -26,6 +31,7 @@ type ReaderWindow = Window & {
   NoteBooksMarkdownVendors?: { ensureFor: (root: Element) => Promise<void> };
   obsidianInitTikz?: (root?: Element) => void;
   obsidianInitMermaid?: (root?: Element) => void | Promise<void>;
+  obsidianAttachDiagramControls?: (root?: Element) => void;
 };
 
 type DesmosCalculator = {
@@ -436,6 +442,23 @@ export function NextMarkdownReader({
   }, [ChatPanel, isChatExpanded]);
 
   useEffect(() => {
+    let active = true;
+    void (async () => {
+      const revision = await readerSourceRevision(file.fileSha, html);
+      if (!active) return;
+      const key = readerRenderCacheKey({
+        owner: file.owner,
+        repository: file.repository,
+        path: file.path,
+        revision: revision ?? "",
+        renderer: "server-markdown",
+      });
+      await writeRenderedNote(key, html);
+    })();
+    return () => { active = false; };
+  }, [file, html]);
+
+  useEffect(() => {
     if (!contentElement?.querySelector(".katex, .katex-display")) return;
     let active = true;
     let secondFrame = 0;
@@ -584,79 +607,15 @@ export function NextMarkdownReader({
 
   useEffect(() => {
     const root = contentRef.current;
-    if (!root) return;
-    const blocks = Array.from(root.querySelectorAll<HTMLElement>(".obsidian-mermaid"));
-    if (!blocks.length) return;
-
-    let active = true;
-    const listeners = blocks.map((block) => {
-      const details = document.createElement("details");
-      details.className = "reader-diagram-disclosure";
-      details.dataset.readerDiagram = "mermaid";
-      const reservedHeight = Math.ceil(block.getBoundingClientRect().height);
-      if (reservedHeight > 0) details.style.minHeight = `${reservedHeight}px`;
-
-      const summary = document.createElement("summary");
-      summary.textContent = "Load interactive diagram";
-      block.setAttribute("data-diagram-deferred", "");
-      block.parentElement?.insertBefore(details, block);
-      details.append(summary, block);
-
-      let loading = false;
-      const onToggle = () => {
-        if (!details.open || loading || block.dataset.diagramReady === "true") return;
-        loading = true;
-        summary.textContent = "Loading diagram…";
-        block.removeAttribute("data-diagram-deferred");
-        void (async () => {
-          try {
-            await Promise.all([
-              loadScript("/js/markdown-vendors.js"),
-              loadScript("/js/obsidian-markdown-it.js"),
-            ]);
-            if (!active) return;
-            const runtime = window as ReaderWindow;
-            await runtime.NoteBooksMarkdownVendors?.ensureFor(details);
-            if (!active) return;
-            await runtime.obsidianInitMermaid?.(details);
-            if (!active) return;
-            if (!block.querySelector("svg")) throw new Error("The diagram did not produce an SVG.");
-            block.dataset.diagramReady = "true";
-            summary.textContent = "Interactive diagram";
-          } catch (error) {
-            if (!active) return;
-            console.error("Could not load an interactive Mermaid diagram", error);
-            block.setAttribute("data-diagram-deferred", "");
-            summary.textContent = "Could not load diagram. Close and reopen to retry.";
-          } finally {
-            loading = false;
-          }
-        })();
-      };
-      details.addEventListener("toggle", onToggle);
-      return () => {
-        details.removeEventListener("toggle", onToggle);
-        if (details.contains(block)) details.replaceWith(block);
-        if (block.dataset.diagramReady !== "true") block.removeAttribute("data-diagram-deferred");
-      };
-    });
-
-    return () => {
-      active = false;
-      listeners.forEach((removeListener) => removeListener());
-    };
-  }, [html]);
-
-  useEffect(() => {
-    const root = contentRef.current;
     if (!root) {
       diagramInitializationRef.current = Promise.resolve(true);
       return;
     }
     const hasTikzDiagrams = Boolean(root.querySelector(".tikz-wrapper"));
+    const hasMermaidDiagrams = Boolean(root.querySelector(".obsidian-mermaid"));
     const desmosBlocks = Array.from(root.querySelectorAll<HTMLElement>(".obsidian-desmos"));
     const desmos3DBlocks = Array.from(root.querySelectorAll<HTMLElement>(".obsidian-desmos3d"));
-    if (!hasTikzDiagrams && !desmosBlocks.length && !desmos3DBlocks.length) {
+    if (!hasTikzDiagrams && !hasMermaidDiagrams && !desmosBlocks.length && !desmos3DBlocks.length) {
       diagramInitializationRef.current = waitForReaderLayout(root);
       return;
     }
@@ -708,7 +667,7 @@ export function NextMarkdownReader({
     diagramInitializationRef.current = (async () => {
       try {
         const runtime = window as ReaderWindow;
-        if (hasTikzDiagrams) {
+        if (hasTikzDiagrams || hasMermaidDiagrams) {
           await Promise.all([
             loadScript("/js/markdown-vendors.js"),
             loadScript("/js/obsidian-markdown-it.js"),
@@ -716,7 +675,10 @@ export function NextMarkdownReader({
           if (!active) return true;
           await runtime.NoteBooksMarkdownVendors?.ensureFor(root);
           if (!active) return true;
-          runtime.obsidianInitTikz?.(root);
+          if (hasTikzDiagrams) runtime.obsidianInitTikz?.(root);
+          if (hasMermaidDiagrams) await runtime.obsidianInitMermaid?.(root);
+          if (!active) return true;
+          runtime.obsidianAttachDiagramControls?.(root);
         }
         if (desmosBlocks.length) {
           const [{ compileDesmos2D }, { formatDesmosDiagnostic }] = await Promise.all([
@@ -1007,16 +969,21 @@ export function NextMarkdownReader({
     <main className={`next-note-reader ${readerFontClassName}${sepia ? " is-sepia" : ""}`} onKeyDown={onReaderKeyDown} style={{ "--reader-font-scale": fontScale } as React.CSSProperties}>
       <div className="reader-progress" aria-hidden="true" />
       <header className="next-reader-toolbar">
-        <Link className="next-reader-back" href={backHref}>← <span>{backLabel}</span></Link>
+        <Link className="next-reader-back" href={backHref}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+            <path d="M4 5.5h6.5l2 2H20v11H4z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+          </svg>
+          <span>{backLabel}</span>
+        </Link>
         <div className="next-reader-title">
           <strong>{file.fileName}</strong>
           <span>{file.repository} / {file.path}</span>
         </div>
         <button type="button" className="next-reader-action" aria-expanded={effectiveOutlineOpen} onClick={toggleOutline}>Outline</button>
-        <a className="next-reader-action" href={outlineHref(file)} target="_blank" rel="noreferrer">GitHub ↗</a>
         <details className="reader-more-menu">
           <summary className="next-reader-action">More</summary>
           <div className="reader-more-options">
+            <a href={outlineHref(file)} target="_blank" rel="noreferrer">Open on GitHub</a>
             <button type="button" onClick={() => setFontScale((scale) => Math.max(0.85, Math.round((scale - 0.05) * 100) / 100))}>Smaller text</button>
             <button type="button" onClick={() => setFontScale((scale) => Math.min(1.25, Math.round((scale + 0.05) * 100) / 100))}>Larger text</button>
             <button type="button" aria-pressed={sepia} onClick={() => setSepia((enabled) => !enabled)}>Sepia reading</button>
@@ -1024,7 +991,16 @@ export function NextMarkdownReader({
           </div>
         </details>
       </header>
-      <div className="next-reader-progress-track" aria-label="Reading progress"><span style={{ width: `${Math.round(readingProgress * 100)}%` }} /></div>
+      <div
+        className="next-reader-progress-track"
+        role="progressbar"
+        aria-label="Reading progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(readingProgress * 100)}
+      >
+        <span style={{ width: `${Math.round(readingProgress * 100)}%` }} />
+      </div>
       {aiNotice && <p className="reader-feature-notice" role="status">{aiNotice}</p>}
       <div className={`next-reader-layout${effectiveOutlineOpen ? "" : " outline-collapsed"}${isChatExpanded ? " chat-expanded" : ""}`}>
         <aside className="next-reader-outline" aria-label="Search and outline">

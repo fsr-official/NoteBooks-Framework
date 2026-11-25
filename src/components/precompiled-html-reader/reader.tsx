@@ -7,6 +7,11 @@ import type { ReaderChatPanelProps } from "@/components/reader-chat-panel";
 import type { AiTier } from "@/lib/ai-tiers";
 import type { NoteSearchBlock, NoteSection } from "@/lib/markdown/renderer";
 import type { ReaderFile } from "@/lib/reader-types";
+import {
+  readerRenderCacheKey,
+  readerSourceRevision,
+  writeRenderedNote,
+} from "@/lib/reader-render-cache";
 
 type Props = {
   html: string;
@@ -169,6 +174,23 @@ export function PrecompiledHtmlReader({
       detach?.();
     };
   }, [contentElement, context, desmosApiKey, html]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const revision = await readerSourceRevision(fileSha, html);
+      if (!active) return;
+      const key = readerRenderCacheKey({
+        owner,
+        repository,
+        path: filePath,
+        revision: revision ?? "",
+        renderer: "precompiled-html",
+      });
+      await writeRenderedNote(key, html);
+    })();
+    return () => { active = false; };
+  }, [filePath, fileSha, html, owner, repository]);
 
   useEffect(() => {
     if (document.querySelector('link[data-precompiled-tikz-fonts="true"]')) return;

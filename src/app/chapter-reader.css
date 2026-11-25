@@ -123,6 +123,47 @@
   background: color-mix(in srgb, var(--surface) 65%, var(--page));
   text-align: center;
 }
+.chapter-reader-content .chapter-static-diagram {
+  min-width: 0;
+  max-width: 100%;
+  margin: 22px 0;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 72%, var(--page));
+}
+.chapter-static-diagram figcaption { margin-bottom: 10px; color: var(--text); font-weight: 600; }
+.chapter-static-diagram .tikz-wrapper,
+.chapter-static-diagram .obsidian-mermaid { max-width: 100%; overflow-x: auto; }
+.chapter-static-diagram .tikz-wrapper svg,
+.chapter-static-diagram .obsidian-mermaid svg { max-width: 100%; height: auto; }
+.chapter-static-diagram .reader-diagram-zoom-trigger { min-height: 40px; }
+.chapter-static-diagram .chapter-diagram-source { margin-top: 10px; font-size: 12px; }
+.chapter-static-diagram .chapter-diagram-source summary { color: var(--muted); cursor: pointer; }
+.chapter-static-diagram .chapter-diagram-source pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.reader-diagram-zoom-dialog {
+  width: min(96vw, 1100px);
+  height: min(92dvh, 900px);
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  background: var(--page);
+}
+.reader-diagram-zoom-dialog::backdrop { background: rgb(0 0 0 / 70%); }
+.reader-diagram-zoom-dialog > header { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+.reader-diagram-zoom-dialog h2 { min-width: 0; margin: 0; font-size: 14px; }
+.reader-diagram-zoom-toolbar { display: flex; align-items: center; gap: 6px; }
+.reader-diagram-zoom-toolbar button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--surface); cursor: pointer; }
+.reader-diagram-zoom-viewport { display: grid; height: calc(100% - 58px); place-items: center; overflow: hidden; touch-action: none; cursor: grab; }
+.reader-diagram-zoom-canvas { display: grid; min-width: min(80vw, 900px); min-height: min(55vh, 600px); place-items: center; transform-origin: center; }
+.reader-diagram-zoom-canvas svg { width: min(80vw, 900px); max-width: none; max-height: 72dvh; height: auto; }
+.reader-diagram-zoom-viewport:active { cursor: grabbing; }
 .chapter-visual-placeholder > div { color: var(--accent); font: 500 25px var(--font-dm-mono), monospace; }
 .chapter-visual-placeholder figcaption { color: var(--text); font-weight: 600; }
 .chapter-visual-placeholder small { font-size: 11px; }
@@ -268,7 +309,10 @@
 
 @media (max-width: 720px) {
   .chapter-reader-app { height: auto; min-height: 100dvh; overflow: visible; }
-  .chapter-reader-toolbar { min-height: 62px; }
+  .chapter-reader-toolbar { min-height: 62px; flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .chapter-reader-title { flex: 1 1 100%; }
+  .chapter-reader-title h1 { white-space: normal; overflow-wrap: anywhere; }
+  .chapter-reader-toolbar-actions { width: 100%; justify-content: flex-end; }
   .chapter-reader-mobile-tabs {
     position: sticky;
     z-index: 15;
@@ -283,7 +327,7 @@
   }
   .chapter-reader-mobile-tabs button {
     min-width: 0;
-    min-height: 36px;
+    min-height: 44px;
     padding: 0 4px;
     border: 1px solid transparent;
     border-radius: 7px;
@@ -309,4 +353,12 @@
   .chapter-desmos-host { min-height: 320px; height: 380px; }
   .chapter-reader-facts .chapter-reader-column-label { margin-bottom: 15px; }
   .chapter-reader-ai-drawer { width: 100%; }
+  .chapter-reader-content .chapter-static-diagram { margin-inline: 0; padding: 10px; }
+  .chapter-static-diagram .reader-diagram-zoom-trigger { width: 100%; }
+  .reader-diagram-zoom-dialog { width: calc(100vw - 14px); height: calc(100dvh - 14px); border-radius: 10px; }
+  .reader-diagram-zoom-dialog > header { align-items: flex-start; flex-direction: column; }
+  .reader-diagram-zoom-toolbar { width: 100%; }
+  .reader-diagram-zoom-toolbar button { flex: 1; }
+  .reader-diagram-zoom-viewport { height: calc(100% - 102px); }
+  .reader-diagram-zoom-canvas svg { width: 84vw; }
 }

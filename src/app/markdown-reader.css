@@ -136,6 +136,54 @@
 .markdown-reader .markdown-content .tikz-wrapper svg { height: auto; }
 .markdown-reader .markdown-content .obsidian-mermaid svg { max-width: 100%; height: auto; }
 .markdown-reader .markdown-content .math { overflow-x: auto; overflow-y: hidden; }
+.reader-static-diagram { position: relative; min-width: 0; max-width: 100%; }
+.reader-static-diagram > .reader-diagram-zoom-trigger {
+  min-height: 36px;
+  margin: 8px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--accent);
+  background: var(--surface);
+  font: 550 12px var(--font-sans);
+  cursor: pointer;
+}
+.reader-static-diagram > .reader-diagram-zoom-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.reader-diagram-zoom-dialog,
+.reader-diagram-dialog {
+  width: min(96vw, 1100px);
+  height: min(92dvh, 900px);
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text);
+  background: var(--page);
+  box-shadow: var(--shadow);
+}
+.reader-diagram-zoom-dialog::backdrop,
+.reader-diagram-dialog::backdrop { background: rgb(0 0 0 / 70%); }
+.reader-diagram-zoom-dialog > header,
+.reader-diagram-dialog > header { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+.reader-diagram-zoom-dialog h2,
+.reader-diagram-dialog h2 { min-width: 0; margin: 0; font: 650 14px var(--font-sans); }
+.reader-diagram-zoom-toolbar,
+.reader-diagram-dialog-toolbar { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.reader-diagram-zoom-toolbar button,
+.reader-diagram-dialog-toolbar button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--surface); font: 550 11px var(--font-sans); cursor: pointer; }
+.reader-diagram-zoom-toolbar button:focus-visible,
+.reader-diagram-dialog-toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.reader-diagram-zoom-viewport,
+.reader-diagram-dialog-content { display: grid; height: calc(100% - 58px); place-items: center; overflow: hidden; touch-action: none; cursor: grab; }
+.reader-diagram-zoom-canvas,
+.reader-diagram-dialog-canvas { display: grid; min-width: min(80vw, 900px); min-height: min(55vh, 600px); place-items: center; transform-origin: center; }
+.reader-diagram-zoom-canvas svg,
+.reader-diagram-dialog-canvas svg { width: min(80vw, 900px); max-width: none; max-height: 72dvh; height: auto; }
+.reader-diagram-zoom-viewport:active,
+.reader-diagram-dialog-content:active { cursor: grabbing; }
 
 .reader-overlay { --font-sans: "Inter", "DM Sans", sans-serif; --font-mono: "JetBrains Mono", "DM Mono", monospace; position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; min-width: 0; background: var(--page); color: var(--text); }
 .reader-toolbar { min-height: 68px; display: flex; align-items: center; gap: 20px; padding: 10px clamp(14px, 3vw, 36px); border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--page) 92%, transparent); }
@@ -272,11 +320,13 @@
 }
 
 @media (max-width: 760px) {
-  .reader-toolbar { flex-wrap: wrap; gap: 8px; padding: 9px 12px; }
-  .reader-title { order: 2; flex: 1 1 100%; padding: 0 2px 3px; }
-  .reader-actions { margin-left: auto; }
+  .reader-toolbar { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "close title" "actions actions"; gap: 6px; padding: 8px 10px; }
+  .reader-close { grid-area: close; }
+  .reader-title { grid-area: title; min-width: 0; padding: 0 2px; }
+  .reader-actions { grid-area: actions; min-width: 0; max-width: 100%; margin-left: 0; overflow-x: auto; scrollbar-width: thin; }
   .reader-action { min-height: 34px; padding-inline: 9px; font-size: 12px; }
   .reader-close span { display: none; }
+  .reader-close svg { width: 16px; height: 16px; }
   .reader-main { padding: 25px 14px 60px; }
   .reader-outline { position: absolute; z-index: 2; top: 0; right: 0; bottom: 0; width: min(310px, 82vw); box-shadow: var(--shadow); }
   .pdf-reader { height: max(280px, calc(100dvh - 235px)); min-height: 0; border-radius: 12px; }
@@ -299,4 +349,16 @@
   .pdf-document-name { max-width: 120px; }
   .pdf-assistant { right: 9px; bottom: 9px; }
   .pdf-assistant-panel { width: min(360px, calc(100vw - 18px)); height: min(520px, calc(100dvh - 82px)); }
+  .reader-diagram-zoom-dialog,
+  .reader-diagram-dialog { width: calc(100vw - 14px); height: calc(100dvh - 14px); border-radius: 10px; }
+  .reader-diagram-zoom-dialog > header,
+  .reader-diagram-dialog > header { align-items: flex-start; flex-direction: column; }
+  .reader-diagram-zoom-toolbar,
+  .reader-diagram-dialog-toolbar { width: 100%; }
+  .reader-diagram-zoom-toolbar button,
+  .reader-diagram-dialog-toolbar button { flex: 1; }
+  .reader-diagram-zoom-viewport,
+  .reader-diagram-dialog-content { height: calc(100% - 102px); }
+  .reader-diagram-zoom-canvas svg,
+  .reader-diagram-dialog-canvas svg { width: 84vw; }
 }

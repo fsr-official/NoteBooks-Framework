@@ -36,6 +36,130 @@ type Props = {
 };
 
 type MobileTab = "notes" | "facts" | "outline" | "examples";
+type DiagramRuntimeWindow = Window & {
+  NoteBooksMarkdownVendors?: { ensureFor: (root: Element) => Promise<void> };
+  obsidianInitTikz?: (root?: Element) => void;
+  obsidianInitMermaid?: (root?: Element) => void | Promise<void>;
+  obsidianAttachDiagramControls?: (root?: Element) => void;
+};
+
+const diagramScriptLoads = new Map<string, Promise<void>>();
+
+function loadDiagramScript(source: string): Promise<void> {
+  const pending = diagramScriptLoads.get(source);
+  if (pending) return pending;
+  const runtime = window as DiagramRuntimeWindow;
+  if (
+    (source.endsWith("markdown-vendors.js") && runtime.NoteBooksMarkdownVendors)
+    || (source.endsWith("obsidian-markdown-it.js") && runtime.obsidianInitTikz && runtime.obsidianInitMermaid)
+  ) {
+    return Promise.resolve();
+  }
+  const promise = new Promise<void>((resolve, reject) => {
+    const absoluteSource = new URL(source, window.location.href).href;
+    const existing = Array.from(document.scripts).find((script) => script.src === absoluteSource);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error(`Unable to load the chapter diagram runtime: ${source}`)), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = source;
+    script.async = true;
+    script.dataset.chapterDiagramRuntime = source;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      script.remove();
+      diagramScriptLoads.delete(source);
+      reject(new Error(`Unable to load the chapter diagram runtime: ${source}`));
+    };
+    document.head.appendChild(script);
+  });
+  diagramScriptLoads.set(source, promise);
+  return promise;
+}
+
+function installStaticChapterDiagrams(
+  root: HTMLElement,
+  diagrams: ChapterBundle["diagrams"],
+  isActive: () => boolean,
+): void {
+  const placeholders = Array.from(root.querySelectorAll<HTMLElement>(".chapter-visual-placeholder"));
+  if (!placeholders.length || !diagrams.length) return;
+
+  const figures: HTMLElement[] = [];
+  placeholders.forEach((placeholder, index) => {
+    const displayedTitle = placeholder.querySelector("button span:nth-child(2)")?.textContent?.trim();
+    const diagram = diagrams.find((candidate) => (
+      displayedTitle && candidate.title?.trim() === displayedTitle
+    )) ?? diagrams[index % diagrams.length];
+    if (!diagram) return;
+    const figure = document.createElement("figure");
+    figure.className = "chapter-static-diagram reader-static-diagram";
+    figure.dataset.diagramKind = diagram.kind;
+    const title = document.createElement("figcaption");
+    title.textContent = displayedTitle || diagram.title || `${diagram.kind} diagram`;
+    const preview = document.createElement("div");
+    if (diagram.kind === "tikz") {
+      preview.className = "tikz-wrapper";
+      const loading = document.createElement("div");
+      loading.className = "tikz-loading";
+      loading.setAttribute("role", "status");
+      loading.textContent = "Rendering diagram…";
+      const source = document.createElement("div");
+      source.className = "tikz-source";
+      source.hidden = true;
+      source.textContent = diagram.source;
+      preview.append(loading, source);
+    } else {
+      preview.className = "obsidian-mermaid mermaid";
+      preview.textContent = diagram.source;
+    }
+    const sourceDetails = document.createElement("details");
+    sourceDetails.className = "chapter-diagram-source";
+    const sourceSummary = document.createElement("summary");
+    sourceSummary.textContent = "View diagram source";
+    const sourceCode = document.createElement("pre");
+    sourceCode.textContent = diagram.source;
+    sourceDetails.append(sourceSummary, sourceCode);
+    figure.append(title, preview, sourceDetails);
+    placeholder.replaceWith(figure);
+    figures.push(figure);
+  });
+
+  if (!figures.length) return;
+  void (async () => {
+    try {
+      await Promise.all([
+        loadDiagramScript("/js/markdown-vendors.js"),
+        loadDiagramScript("/js/obsidian-markdown-it.js"),
+      ]);
+      if (!isActive()) return;
+      const runtime = window as DiagramRuntimeWindow;
+      await runtime.NoteBooksMarkdownVendors?.ensureFor(root);
+      if (!isActive()) return;
+      const tikzFigures = figures.filter((figure) => figure.dataset.diagramKind === "tikz");
+      const mermaidFigures = figures.filter((figure) => figure.dataset.diagramKind === "mermaid");
+      if (tikzFigures.length) runtime.obsidianInitTikz?.(root);
+      for (const figure of mermaidFigures) {
+        await runtime.obsidianInitMermaid?.(figure);
+        if (!isActive()) return;
+      }
+      runtime.obsidianAttachDiagramControls?.(root);
+    } catch (error) {
+      if (!isActive()) return;
+      figures.forEach((figure) => {
+        if (figure.querySelector("svg")) return;
+        const message = document.createElement("p");
+        message.className = "chapter-reader-error";
+        message.setAttribute("role", "status");
+        message.textContent = "This diagram preview could not be loaded. Its source is still available in the chapter bundle.";
+        figure.append(message);
+      });
+      console.error("Could not render static chapter diagrams", error);
+    }
+  })();
+}
 
 function inlineText(nodes: InlineNode[]): string {
   return nodes.map((node) => {
@@ -229,6 +353,13 @@ export function ChapterReader({ bundle, sourceCommitSha, stale, backHref }: Prop
     headings.forEach((heading) => observer.observe(heading));
     return () => observer.disconnect();
   }, [bundle.id]);
+
+  useEffect(() => {
+    if (!contentElement) return;
+    let active = true;
+    installStaticChapterDiagrams(contentElement, bundle.diagrams, () => active);
+    return () => { active = false; };
+  }, [bundle.diagrams, contentElement]);
 
   useEffect(() => {
     if (!chatOpen) return;

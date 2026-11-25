@@ -471,19 +471,33 @@ figure[data-diagram] {
 }
 figure[data-diagram] svg { max-width: 100%; height: auto; color: var(--reader-text); }
 .reader-diagram-dialog {
-  width: min(94vw, 1100px);
-  max-height: 90vh;
-  overflow: auto;
+  width: min(96vw, 1100px);
+  height: min(92dvh, 900px);
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid var(--reader-border);
   border-radius: var(--reader-radius-md);
   color: var(--reader-text);
   background: var(--reader-page);
 }
 .reader-diagram-dialog::backdrop { background: rgb(0 0 0 / 70%); }
-.reader-diagram-dialog > button { float: right; }
-.reader-diagram-dialog h2 { margin: 0 0 var(--reader-space-3); font-size: var(--reader-font-base); }
-.reader-diagram-dialog-content { clear: both; overflow: auto; }
-.reader-diagram-dialog svg { max-width: 100%; height: auto; }
+.reader-diagram-dialog > header { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--reader-border); }
+.reader-diagram-dialog h2 { min-width: 0; margin: 0; font-size: var(--reader-font-base); }
+.reader-diagram-dialog-toolbar { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.reader-diagram-dialog-toolbar button { min-height: 36px; padding: 0 10px; border: 1px solid var(--reader-border); border-radius: 8px; color: var(--reader-text); background: var(--reader-surface); cursor: pointer; }
+.reader-diagram-dialog-toolbar button:focus-visible { outline: 2px solid var(--reader-accent); outline-offset: 2px; }
+.reader-diagram-dialog-content { display: grid; height: calc(100% - 58px); place-items: center; overflow: hidden; touch-action: none; cursor: grab; }
+.reader-diagram-dialog-canvas { display: grid; min-width: min(80vw, 900px); min-height: min(55vh, 600px); place-items: center; transform-origin: center; }
+.reader-diagram-dialog-canvas svg { width: min(80vw, 900px); max-width: none; max-height: 72dvh; height: auto; }
+.reader-diagram-dialog-content:active { cursor: grabbing; }
+.reader-static-diagram { position: relative; min-width: 0; max-width: 100%; }
+.reader-static-diagram > [data-open-diagram],
+.reader-static-diagram > .reader-diagram-zoom-trigger { min-height: 36px; margin: 8px 0; padding: 6px 10px; border: 1px solid var(--reader-border); border-radius: 8px; color: var(--reader-accent); background: var(--reader-surface); font: 550 12px var(--reader-sans); cursor: pointer; }
+.reader-static-diagram > [data-open-diagram]:focus-visible,
+.reader-static-diagram > .reader-diagram-zoom-trigger:focus-visible { outline: 2px solid var(--reader-accent); outline-offset: 2px; }
 
 .reader-desmos-host { width: 100%; height: 420px; min-height: 350px; }
 .reader-desmos-host .dcg-container { width: 100%; height: 100%; }
@@ -576,6 +590,12 @@ figure[data-diagram] svg { max-width: 100%; height: auto; color: var(--reader-te
   .chapter-example-concepts { grid-column: auto; }
   .page-reader-layout { display: block; padding: var(--reader-space-3); }
   .page-reader-layout [data-outline] { display: block; max-height: 30vh; margin-bottom: 18px; }
+  .reader-diagram-dialog { width: calc(100vw - 14px); height: calc(100dvh - 14px); border-radius: 10px; }
+  .reader-diagram-dialog > header { align-items: flex-start; flex-direction: column; }
+  .reader-diagram-dialog-toolbar { width: 100%; }
+  .reader-diagram-dialog-toolbar button { flex: 1; }
+  .reader-diagram-dialog-content { height: calc(100% - 102px); }
+  .reader-diagram-dialog-canvas svg { width: 84vw; }
 }
 
 @media (prefers-reduced-motion: reduce) {
