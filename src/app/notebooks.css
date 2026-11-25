@@ -172,10 +172,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .file-row { width: 100%; min-height: 40px; display: grid; grid-template-columns: 27px minmax(0, 1fr) 12px; gap: 8px; align-items: center; padding: 0 13px; text-align: left; border:  0; border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent); background: transparent; color: var(--text); cursor: pointer; }
 .file-row:last-child { border-bottom: 0; }
 .file-row:hover, .file-row.file-selected { background: color-mix(in srgb, var(--accent) 7%, transparent); }
-.file-type { width: 24px; padding: 4px 0; text-align: center; border-radius: 4px; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); font: 9px var(--font-dm-mono), monospace; }
-.file-type-cnotes { color: #82d6ff; background: color-mix(in srgb, #4bb7ef 13%, transparent); }
-.file-type-glossary { color: #e6b6ff; background: color-mix(in srgb, #bd72ed 14%, transparent); }
-.file-type-notes { color: #f0c77f; background: color-mix(in srgb, #e4a834 14%, transparent); }
+.file-type { width: 24px; padding: 4px 0; text-align: center; border-radius: 4px; color: var(--text); background: color-mix(in srgb, var(--repository-color) 20%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--repository-color) 60%, var(--surface)); font: 9px var(--font-dm-mono), monospace; }
 .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .file-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font: 10px var(--font-dm-mono), monospace; }
 .file-open { color: var(--muted); font-size: 17px; }
@@ -796,6 +793,24 @@ body { font-family: var(--font-dm-sans), var(--font-dm-sans), sans-serif; }
 .repository-row-copy strong { color: var(--repository-color); font-size: 13px; font-weight: 650; }
 .repository-row-copy small { font-size: 12px; }
 .repository-row .repo-count { font-size: 12px; }
+.folder-row, .file-row {
+  border-left: 3px solid var(--repository-color);
+  background-color: color-mix(in srgb, var(--repository-color) 4%, transparent);
+  transition: background-color .18s ease, border-color .18s ease;
+}
+.folder-row:hover, .file-row:hover, .file-row.file-selected { background-color: color-mix(in srgb, var(--repository-color) 11%, transparent); }
+.folder-row .folder-icon, .folder-row .folder-name, .file-row .file-open { color: var(--repository-color); }
+.file-row-notes { --file-kind-color: color-mix(in srgb, var(--accent) 74%, var(--text)); border-left-color: var(--file-kind-color); }
+.file-row-cnotes { --file-kind-color: color-mix(in srgb, var(--partner) 74%, var(--text)); border-left-color: var(--file-kind-color); }
+.file-row-glossary { --file-kind-color: color-mix(in srgb, color-mix(in srgb, var(--highlight) 75%, var(--partner) 25%) 74%, var(--text)); border-left-color: var(--file-kind-color); }
+.file-row-notes .file-type, .file-row-cnotes .file-type, .file-row-glossary .file-type {
+  background: color-mix(in srgb, var(--file-kind-color) 22%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--file-kind-color) 65%, var(--surface));
+}
+.file-row:not(.file-row-notes):not(.file-row-cnotes):not(.file-row-glossary) .file-name { color: var(--repository-color); }
+.top-nav .appearanceMenu { flex: 0 0 auto; }
+.top-nav .appearanceTrigger { white-space: nowrap; }
+.landing-topbar .top-nav { min-width: 0; }
 .file-detail { min-width: 0; max-height: calc(100vh - 110px); overflow-y: auto; animation: file-detail-enter .28s ease-out both; }
 .file-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .file-detail-close { width: 30px; height: 30px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 50%; color: var(--muted); background: var(--soft); cursor: pointer; font-size: 20px; line-height: 1; }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { THEME_CHANGE_EVENT } from "@/lib/theme-preferences";
 import styles from "./landing-three.module.css";
 
 type SceneState = "static" | "loading" | "ready" | "failed";
@@ -15,11 +16,12 @@ function mountFolioScene(
   THREE: ThreeModule,
   canvas: HTMLCanvasElement,
   onContextLoss: () => void,
-): () => void {
+): (loseContext?: boolean) => void {
   let renderer: ThreeRenderer | null = null;
   let camera: ThreeCamera | null = null;
   let resizeObserver: ResizeObserver | null = null;
   let contextLostHandler: ((event: Event) => void) | null = null;
+  let themeChangeHandler: (() => void) | null = null;
   let disposed = false;
   const geometries = new Set<ThreeGeometry>();
   const materials = new Set<ThreeMaterial>();
@@ -42,7 +44,7 @@ function mountFolioScene(
     }
   };
 
-  const cleanup = () => {
+  const cleanup = (loseContext = true) => {
     if (disposed) return;
     disposed = true;
     window.removeEventListener("resize", handleResize);
@@ -52,11 +54,15 @@ function mountFolioScene(
       canvas.removeEventListener("webglcontextlost", contextLostHandler);
       contextLostHandler = null;
     }
+    if (themeChangeHandler) {
+      window.removeEventListener(THEME_CHANGE_EVENT, themeChangeHandler);
+      themeChangeHandler = null;
+    }
 
     if (renderer) {
       renderer.setAnimationLoop(null);
       renderer.dispose();
-      renderer.forceContextLoss();
+      if (loseContext) renderer.forceContextLoss();
       renderer = null;
     }
     geometries.forEach((geometry) => geometry.dispose());
@@ -92,6 +98,7 @@ function mountFolioScene(
     const inkMaterial = new THREE.MeshStandardMaterial({ color: "#78938c", roughness: 0.9 });
     const accentMaterial = new THREE.MeshStandardMaterial({ color: "#76e0bd", roughness: 0.62 });
     [coverMaterial, paperMaterial, paperShadeMaterial, inkMaterial, accentMaterial].forEach((material) => materials.add(material));
+    const nodeMaterials: import("three").MeshStandardMaterial[] = [];
 
     const addBox = (
       parent: ThreeObject,
@@ -154,10 +161,33 @@ function mountFolioScene(
     nodePositions.forEach(([x, y], index) => {
       const material = new THREE.MeshStandardMaterial({ color: nodeColors[index], roughness: 0.52 });
       materials.add(material);
+      nodeMaterials.push(material);
       const node = new THREE.Mesh(nodeGeometry, material);
       node.position.set(x, y, 0.48);
       orbitingConcepts.add(node);
     });
+
+    const updateTheme = () => {
+      const readColor = (property: string, fallback: string) => (
+        window.getComputedStyle(canvas).getPropertyValue(property).trim() || fallback
+      );
+      const accentColor = new THREE.Color(readColor("--sea-glass", "#76e0bd"));
+      const surfaceColor = new THREE.Color(readColor("--night-library", "#0b1118"));
+      const partnerColor = readColor("--partner", "#9bb9b0");
+      const highlightColor = readColor("--paper-glint", "#d8fff1");
+      const mainColor = readColor("--palette-main", "#76e0bd");
+
+      coverMaterial.color.copy(surfaceColor.lerp(accentColor, 0.38));
+      inkMaterial.color.set(partnerColor);
+      accentMaterial.color.copy(accentColor);
+      orbitMaterial.color.copy(accentColor);
+      nodeMaterials.forEach((material, index) => {
+        material.color.set([accentColor, highlightColor, partnerColor, mainColor][index]);
+      });
+    };
+    themeChangeHandler = updateTheme;
+    window.addEventListener(THEME_CHANGE_EVENT, themeChangeHandler);
+    updateTheme();
 
     const resizeTarget = canvas.parentElement;
     window.addEventListener("resize", handleResize, { passive: true });
@@ -199,7 +229,7 @@ export default function LandingThreeHero() {
     let cancelled = false;
     let loading = false;
     let failed = false;
-    let sceneCleanup: (() => void) | null = null;
+    let sceneCleanup: ((loseContext?: boolean) => void) | null = null;
     let observer: IntersectionObserver | null = null;
     let loadTimer: number | null = null;
 
@@ -211,7 +241,7 @@ export default function LandingThreeHero() {
       }
       observer?.disconnect();
       observer = null;
-      sceneCleanup?.();
+      sceneCleanup?.(false);
       sceneCleanup = null;
       if (!cancelled) setSceneState("static");
     };

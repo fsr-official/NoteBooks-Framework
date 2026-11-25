@@ -1,65 +1,23 @@
 import "@/app/workspace-styles";
 import Link from "next/link";
 import LandingThreeHero from "@/components/landing-three-hero";
+import { SiteNavigation } from "@/components/site-navigation";
+import { STREAMS } from "@/lib/library-streams";
 import styles from "@/components/landing-three.module.css";
 
-const collections = [
-  {
-    number: "01",
-    title: "Lower Secondary",
-    route: "/lowersecondary",
-    label: "Build strong foundations",
-    description: "Class 9 and Class 10 resources together in one learning library.",
-    symbol: "Ⅱ",
-  },
-  {
-    number: "02",
-    title: "Science",
-    route: "/science",
-    label: "Explore the natural world",
-    description: "Clear notes for biology, chemistry, physics, and mathematics.",
-    symbol: "✳",
-  },
-  {
-    number: "03",
-    title: "Commerce",
-    route: "/commerce",
-    label: "Understand how things work",
-    description: "Business, economics, accounting, and practical knowledge.",
-    symbol: "◈",
-  },
-  {
-    number: "04",
-    title: "Humanities",
-    route: "/humanities",
-    label: "Ideas, people, and society",
-    description: "History, civics, culture, and critical perspectives.",
-    symbol: "⌘",
-  },
-  {
-    number: "05",
-    title: "Developers",
-    route: "/developers",
-    label: "Build and contribute",
-    description: "Project documentation, guides, and contributor resources.",
-    symbol: "››",
-  },
-];
+const collections = STREAMS.map((stream, index) => ({
+  number: String(index + 1).padStart(2, "0"),
+  title: stream.title,
+  route: `/${stream.route}`,
+  label: stream.eyebrow,
+  description: stream.description,
+  symbol: stream.icon,
+}));
 
 export default function HomePage() {
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <Link className={styles.brand} href="/" aria-label="NoteBooks home">
-          <span className={styles.brandMark} aria-hidden="true">n</span>
-          <span>NoteBooks</span>
-        </Link>
-        <nav className={styles.navigation} aria-label="Main navigation">
-          <a href="#collections">Collections</a>
-          <Link href="/developers">About</Link>
-          <Link className={styles.accountLink} href="/account">Your study space <span aria-hidden="true">↗</span></Link>
-        </nav>
-      </header>
+      <SiteNavigation activePage="home" />
 
       <section className={styles.hero} aria-labelledby="landing-title">
         <div className={styles.heroCopy}>

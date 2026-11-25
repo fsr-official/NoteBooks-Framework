@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getFileTypeBadge, listDirectoryEntries, type ExplorerFile } from "../src/lib/file-explorer";
+import {
+  compareExplorerFiles,
+  getFileTypeBadge,
+  listDirectoryEntries,
+  type ExplorerFile,
+} from "../src/lib/file-explorer";
 
 const entries: Record<string, ExplorerFile> = {
   "owner/repo/biology/chapter-one/CNOTES.md": {
@@ -39,9 +44,28 @@ describe("file explorer", () => {
 
     const chapterEntries = listDirectoryEntries(entries, "owner/repo", "biology/chapter-one");
     expect(chapterEntries.map((entry) => entry.kind === "file" ? entry.file.filePath : entry.path)).toEqual([
+      "biology/chapter-one/NOTES.md",
       "biology/chapter-one/CNOTES.md",
       "biology/chapter-one/GLOSSARY.md",
-      "biology/chapter-one/NOTES.md",
+    ]);
+  });
+
+  it("keeps special note files first in their requested order for either name sort", () => {
+    const names = ["z-extra.md", "CNOTES.md", "GLOSSARY.md", "NOTES.md", "a-extra.md"];
+
+    expect([...names].sort((left, right) => compareExplorerFiles(left, right, "name-asc"))).toEqual([
+      "NOTES.md",
+      "CNOTES.md",
+      "GLOSSARY.md",
+      "a-extra.md",
+      "z-extra.md",
+    ]);
+    expect([...names].sort((left, right) => compareExplorerFiles(left, right, "name-desc"))).toEqual([
+      "NOTES.md",
+      "CNOTES.md",
+      "GLOSSARY.md",
+      "z-extra.md",
+      "a-extra.md",
     ]);
   });
 
