@@ -10,6 +10,7 @@ const fixtureMarker = "C2_RUNTIME_HYDRATION_MARKER";
 
 type DiagramWindow = Window & {
   obsidianAttachDiagramControls?: (root?: Element) => void;
+  obsidianInitTikz?: (root?: Element) => void;
 };
 
 async function installLocalFixtureRoutes(page: Page): Promise<string[]> {
@@ -126,6 +127,7 @@ test("TikZ static and zoomed SVG stays full-width and centered", async ({ page }
   await page.addScriptTag({ url: "/js/obsidian-markdown-it.js" });
   await page.evaluate(() => {
     const article = document.querySelector("article.next-reader-content");
+    (window as DiagramWindow).obsidianInitTikz?.(article ?? undefined);
     (window as DiagramWindow).obsidianAttachDiagramControls?.(article ?? undefined);
   });
   for (const width of [320, 390, 768, 1024, 1440]) {
@@ -152,6 +154,9 @@ test("TikZ static and zoomed SVG stays full-width and centered", async ({ page }
     expect(geometry.wrapperRight).toBeLessThanOrEqual(geometry.viewport + 1);
     expect(geometry.svgWidth).toBeGreaterThan(200);
     expect(geometry.svgHeight).toBeGreaterThan(100);
+    expect(Math.abs((geometry.svgLeft + geometry.svgRight) / 2 - (geometry.wrapperLeft + geometry.wrapperRight) / 2)).toBeLessThanOrEqual(2);
+    expect(geometry.svgWidth / geometry.svgHeight).toBeGreaterThan(1.7);
+    expect(geometry.svgWidth / geometry.svgHeight).toBeLessThan(1.9);
   }
   const trigger = page.getByRole("button", { name: /Open zoomable.*TikZ.*diagram|Open zoomable.*tikz/i });
   await trigger.click();
@@ -167,13 +172,23 @@ test("TikZ static and zoomed SVG stays full-width and centered", async ({ page }
     return {
       viewportWidth: v?.width ?? 0,
       canvasWidth: c?.width ?? 0,
+      viewportLeft: v?.left ?? 0,
+      viewportRight: v?.right ?? 0,
+      canvasLeft: c?.left ?? 0,
+      canvasRight: c?.right ?? 0,
       svgWidth: s?.width ?? 0,
       svgHeight: s?.height ?? 0,
+      svgLeft: s?.left ?? 0,
+      svgRight: s?.right ?? 0,
     };
   });
   expect(modalGeometry.canvasWidth).toBeGreaterThanOrEqual(modalGeometry.svgWidth);
   expect(modalGeometry.svgWidth).toBeGreaterThan(200);
   expect(modalGeometry.svgHeight).toBeGreaterThan(100);
+  expect(modalGeometry.svgWidth).toBeLessThanOrEqual(modalGeometry.viewportWidth);
+  expect(modalGeometry.svgWidth / modalGeometry.svgHeight).toBeGreaterThan(1.7);
+  expect(modalGeometry.svgWidth / modalGeometry.svgHeight).toBeLessThan(1.9);
+  expect(Math.abs((modalGeometry.svgLeft + modalGeometry.svgRight) / 2 - (modalGeometry.viewportLeft + modalGeometry.viewportRight) / 2)).toBeLessThanOrEqual(2);
   await dialog.getByRole("button", { name: "Close diagram" }).click();
 });
 

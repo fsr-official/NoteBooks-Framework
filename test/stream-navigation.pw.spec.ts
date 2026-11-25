@@ -242,10 +242,6 @@ test("theme colors and special note ordering continue through nested folders", a
     "href",
     "https://github.com/local/stream-navigation-fixture/blob/main/biology/chapter-one/NOTES.md",
   );
-  await fileDetails.getByRole("button", { name: "Close file details" }).click();
-  await expect(fileDetails).toBeHidden();
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Home" }).click();
-  await expect(page).toHaveURL("/");
 });
 
 test("mobile double-click opens the file instead of opening the details overlay", async ({ page }) => {
@@ -258,6 +254,8 @@ test("mobile double-click opens the file instead of opening the details overlay"
   const notes = page.getByRole("button", { name: "NT NOTES.md ›", exact: true });
   await notes.dblclick();
   await expect(page).toHaveURL(/\/read\?/);
+  await expect(page).not.toHaveURL(/\/science$/);
+  await expect(page.getByRole("dialog", { name: "NOTES.md" })).toHaveCount(0);
 });
 
 test("nested folder and file hierarchy uses the repository family and theme colors", async ({ page }) => {

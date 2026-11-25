@@ -1209,7 +1209,7 @@ export function NotebookWorkspace({ initialStream }: { initialStream: string }) 
                                   onKeyDown={(event) => {
                                     if (event.key === "Enter") {
                                       fileDetailTriggerRef.current = event.currentTarget;
-                                      selectFile(entry.key, files[entry.key]);
+                                      openFile(entry.key, files[entry.key]);
                                     }
                                   }}
                                 >
