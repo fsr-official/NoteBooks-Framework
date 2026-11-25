@@ -16,18 +16,9 @@ type IdleWindow = Window & {
   cancelIdleCallback?: (handle: number) => void;
 };
 
-const publicStreamTreeIndexes = new Set([
-  "science-tree.json",
-  "commerce-tree.json",
-  "humanities-tree.json",
-  "developers-tree.json",
-]);
-const publicStreamJsonUrls = STREAMS.flatMap(({ route }) => {
-  const filename = `${route}-tree.json`;
-  return publicStreamTreeIndexes.has(filename)
-    ? [`/api/public/json/${filename}`]
-    : [];
-});
+const publicStreamJsonUrls = STREAMS.map(({ id }) =>
+  `/api/public/json/${id}-tree.json`,
+);
 
 export default function LandingStreamPrefetch() {
   useEffect(() => {
