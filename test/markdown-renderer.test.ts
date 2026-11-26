@@ -190,6 +190,23 @@ x=1
     expect(result.html).toContain("<span>(7)</span>");
   });
 
+  it("renders LaTeX and Unicode square-root expressions", () => {
+    const result = renderNote(String.raw`
+LaTeX: $\sqrt{x}$.
+
+Unicode: $√x$.
+
+Display: $$
+\sqrt{\frac{2gh}{m}}
+$$
+`);
+
+    expect(result.html).not.toContain("katex-error");
+    expect(result.html.match(/class="katex"/g)).toBeDefined();
+    expect(result.html.match(/class="mord sqrt"/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(result.html).toContain("sqrt");
+  });
+
   it("normalizes inconsistent math delimiters found in repository notes", () => {
     const result = renderNote(String.raw`
 Cross-force pair: \(N_A$–$e_B\).

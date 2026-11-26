@@ -10,6 +10,7 @@ import { renderNote, type RenderedNote } from "@/lib/markdown/renderer";
 import { MdxCompileError, renderMdxNote } from "@/lib/markdown/mdx-compiler";
 import { localPrecompiledHtmlDirectory, readLocalPrecompiledHtml } from "@/lib/precompiled-html";
 import { getReadRouteDataProvider } from "@/lib/read-route-data";
+import "katex/dist/katex.min.css";
 import "../reader-redesign.css";
 import "../chapter-reader.css";
 import "../precompiled-html-reader.css";

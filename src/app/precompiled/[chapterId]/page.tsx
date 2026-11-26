@@ -1,5 +1,6 @@
 import "@/app/reader-redesign.css";
 import "@/app/chapter-reader.css";
+import "katex/dist/katex.min.css";
 import { ChapterReader } from "@/components/chapter-bundle/chapter-reader";
 import { getChapterBundle } from "@/lib/chapter-bundle/server";
 import { isMdxRenderingEnabled } from "@/lib/mdx-feature-flag";
