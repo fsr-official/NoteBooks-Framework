@@ -479,12 +479,33 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .next-reader-content .markdown-content .callout[data-type="tip"] { --callout-color: oklch(68% .14 55); }
 .next-reader-content .markdown-content .callout-title { display: block; margin-bottom: .35em; color: var(--callout-color); font: 650 .9em var(--reader-sans); }
 .next-reader-content .markdown-content .markdown-table-scroll { max-width: 100%; overflow-x: auto; margin: 1em 0; }
+.next-reader-content .markdown-content .markdown-table-scroll table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+}
+.next-reader-content .markdown-content .markdown-table-scroll th,
+.next-reader-content .markdown-content .markdown-table-scroll td {
+  white-space: nowrap;
+}
 .next-reader-content .markdown-content .math,
 .next-reader-content .markdown-content .katex-display { max-width: 100%; margin-block: .75em; overflow-x: auto; overflow-y: hidden; }
 .next-reader-content .markdown-content .katex { color: currentColor; }
 .next-reader-content .markdown-content .tikz-wrapper,
 .next-reader-content .markdown-content .obsidian-mermaid,
 .next-reader-content .markdown-content .obsidian-desmos { max-width: 100%; margin: 1.25em 0; overflow-x: auto; }
+.next-reader-content .markdown-content .obsidian-mermaid {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+.next-reader-content .markdown-content .obsidian-mermaid svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
 .next-reader-content .markdown-content .obsidian-desmos {
   position: relative;
   min-height: 360px;
@@ -993,11 +1014,20 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .reader-search-results > button,
   .reader-search-group > button { min-height: 44px; font-size: 14px; line-height: 1.5; }
   .next-reader-layout,
-  .next-reader-layout.outline-collapsed { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 100%; padding-inline: 8px; overflow-x: hidden; }
+  .next-reader-layout.outline-collapsed { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 100%; padding-inline: 0; overflow-x: hidden; }
   .next-reader-content { grid-column: 1; }
-  .next-reader-content { padding: 25px 4px 70px; }
-  .reader-document-card { padding: 18px 16px; border-radius: 12px; }
-  .next-reader-content .markdown-content { --reader-bracket-gutter: 32px; max-width: 100%; min-width: 0; box-sizing: border-box; font-size: calc(1rem * var(--reader-font-scale, 1)); }
+  .next-reader-content { width: 100%; max-width: 100%; padding: 0 0 70px; }
+  .reader-document-card {
+    width: 100vw;
+    max-width: none;
+    margin-left: calc(50% - 50vw);
+    box-sizing: border-box;
+    padding: 18px 12px 70px;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+  }
+  .next-reader-content .markdown-content { --reader-bracket-gutter: 0px; width: 100%; max-width: none; min-width: 0; box-sizing: border-box; padding-left: 0; font-size: calc(1rem * var(--reader-font-scale, 1)); }
   .next-reader-content .markdown-content .note-section::before { border-left-width: 3px; border-top-width: 3px; border-bottom-width: 3px; opacity: .65; }
   .next-reader-content .markdown-content .note-section[data-level="1"] { --reader-bracket-offset: 28px; --reader-bracket-right-inset: 0px; --reader-bracket-underline-offset: 28px; }
   .next-reader-content .markdown-content .note-section[data-level="2"] { --reader-bracket-offset: 21px; --reader-bracket-right-inset: 7px; --reader-bracket-underline-offset: 21px; }

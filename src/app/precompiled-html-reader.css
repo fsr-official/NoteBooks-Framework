@@ -287,6 +287,8 @@
 }
 
 [data-notes] table {
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
 }
 
@@ -294,6 +296,14 @@
 [data-notes] td {
   padding: var(--reader-space-2) var(--reader-space-3);
   border: 1px solid var(--reader-border);
+  white-space: nowrap;
+}
+
+[data-notes] .markdown-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 [data-facts] {

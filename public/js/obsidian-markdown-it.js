@@ -1328,13 +1328,6 @@
         requestAnimationFrame(fitToView); // kick it off (retry loop handles the rest)
     }
     function _sizeMermaidSVG(svg) {
-        var wAttr = svg.getAttribute('width');
-        var hAttr = svg.getAttribute('height');
-        var w = parseFloat(wAttr) || 0;
-        var h = parseFloat(hAttr) || 0;
-        // Already has concrete pixel dims (not "%" or 0) — leave them
-        if (w > 1 && h > 1 && wAttr && wAttr.indexOf('%') === -1)
-            return;
         var vb = svg.getAttribute('viewBox');
         if (!vb)
             return;
@@ -1346,12 +1339,19 @@
         var vbH = parseFloat(pts[3]) || 0;
         if (!vbW || !vbH)
             return;
-        // Stamp a canonical 1000px-wide render size so the pan/zoom engine
-        // always gets concrete pixel values from getAttribute()
-        var targetW = 1000;
+        var container = svg.closest('.obsidian-mermaid') || svg.parentElement;
+        var availableW = container && container.clientWidth
+            ? Math.max(container.clientWidth - 24, 1)
+            : Math.max(window.innerWidth - 40, 1);
+        var targetW = Math.round(availableW);
         var targetH = Math.round(targetW * vbH / vbW);
         svg.setAttribute('width', targetW);
         svg.setAttribute('height', targetH);
+        svg.style.width = '100%';
+        svg.style.height = 'auto';
+        svg.style.maxWidth = '100%';
+        svg.style.display = 'block';
+        svg.style.marginInline = 'auto';
     }
     function _openDiagramZoomSurface(trigger, svg, title) {
         var dialog = document.createElement('dialog');

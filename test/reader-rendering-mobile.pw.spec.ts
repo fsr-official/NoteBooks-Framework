@@ -89,6 +89,8 @@ test("keeps the local note readable when IndexedDB is unavailable and contains n
       const diagram = document.querySelector<HTMLElement>(".obsidian-mermaid");
       const toolbar = document.querySelector<HTMLElement>(".next-reader-toolbar");
       const progress = document.querySelector<HTMLElement>(".next-reader-progress-track");
+      const card = document.querySelector<HTMLElement>(".reader-document-card");
+      const layout = document.querySelector<HTMLElement>(".next-reader-layout");
       return {
         viewport: document.documentElement.clientWidth,
         document: document.documentElement.scrollWidth,
@@ -99,6 +101,9 @@ test("keeps the local note readable when IndexedDB is unavailable and contains n
         toolbarBottom: toolbar?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
         progressTop: progress?.getBoundingClientRect().top ?? Number.NEGATIVE_INFINITY,
         progressRight: progress?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY,
+        cardLeft: card?.getBoundingClientRect().left ?? Number.POSITIVE_INFINITY,
+        cardRight: card?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY,
+        layoutWidth: layout?.getBoundingClientRect().width ?? 0,
         hasZoomDialog: Boolean(diagram?.querySelector("dialog")),
       };
     });
@@ -108,6 +113,9 @@ test("keeps the local note readable when IndexedDB is unavailable and contains n
     expect(dimensions.toolbarRight).toBeLessThanOrEqual(dimensions.viewport + 1);
     expect(dimensions.progressRight).toBeLessThanOrEqual(dimensions.viewport + 1);
     expect(dimensions.progressTop).toBeGreaterThanOrEqual(dimensions.toolbarBottom - 1);
+    expect(dimensions.cardLeft).toBeGreaterThanOrEqual(-1);
+    expect(dimensions.cardRight).toBeLessThanOrEqual(dimensions.viewport + 1);
+    expect(dimensions.layoutWidth).toBeLessThanOrEqual(dimensions.viewport + 1);
     expect(dimensions.hasZoomDialog).toBe(false);
   }
   expect(unexpectedRequests).toEqual([]);

@@ -135,6 +135,10 @@
 .markdown-reader .markdown-content .tikz-wrapper { max-width: 100%; overflow-x: auto; }
 .markdown-reader .markdown-content .tikz-wrapper svg { height: auto; }
 .markdown-reader .markdown-content .obsidian-mermaid svg { max-width: 100%; height: auto; }
+.markdown-reader .markdown-table-scroll { max-width: 100%; overflow-x: auto; margin: 1.2em 0; }
+.markdown-reader .markdown-table-scroll table { width: max-content; min-width: 100%; table-layout: auto; }
+.markdown-reader .markdown-table-scroll th,
+.markdown-reader .markdown-table-scroll td { white-space: nowrap; }
 .markdown-reader .markdown-content .math { overflow-x: auto; overflow-y: hidden; }
 .reader-static-diagram { position: relative; min-width: 0; max-width: 100%; }
 .reader-static-diagram > .reader-diagram-zoom-trigger {
