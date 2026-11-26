@@ -259,18 +259,25 @@ function normalizeInlineMathSource(source: string): string {
   const removeNestedDollarDelimiters = (math: string) =>
     math.replace(/(?<!\\)\$([^$\r\n]+)(?<!\\)\$/g, "$1");
 
+  const normalizeUnicodeRadicals = (math: string) =>
+    math
+      .replace(/√\{([^{}]+)\}/g, "\\sqrt{$1}")
+      .replace(/√\(([^()\r\n]+)\)/g, "\\sqrt{$1}")
+      .replace(/√([A-Za-z0-9])/g, "\\sqrt{$1}");
+
   const displayMath = source.match(/^(\s*)\$\$([\s\S]*?)\$\$(\s*)$/);
   if (displayMath) {
-    return `${displayMath[1]}$$${removeNestedDollarDelimiters(displayMath[2])}$$${displayMath[3]}`;
+    return `${displayMath[1]}$$${normalizeUnicodeRadicals(removeNestedDollarDelimiters(displayMath[2]))}$$${displayMath[3]}`;
   }
 
   return source.replace(/(\r?\n)|([^\r\n]+)/g, (line, newline: string | undefined, content: string | undefined) => {
     if (newline) return newline;
     return (content ?? "")
       .replace(/\$\$([\s\S]*?)\$\$/g, (_match, math: string) => `$$${removeNestedDollarDelimiters(math)}$$`)
-      .replace(/\\\((.*?)\\\)/g, (_match, math: string) => `\\(${removeNestedDollarDelimiters(math)}\\)`)
-      .replace(/\\\[(.*?)\\\]/g, (_match, math: string) => `\\[${removeNestedDollarDelimiters(math)}\\]`)
-      .replace(/(?<!\S)(?<!\\)\$([^\s$\r\n](?:[^$\r\n]*?[^\s$\r\n])?)\s+(?<!\\)\$/g, (_match, math: string) => `\\(${math.trim()}\\)`);
+      .replace(/(?<!\\)\$([^$\r\n]+)(?<!\\)\$/g, (_match, math: string) => `$${normalizeUnicodeRadicals(removeNestedDollarDelimiters(math))}$`)
+      .replace(/\\\((.*?)\\\)/g, (_match, math: string) => `\\(${normalizeUnicodeRadicals(removeNestedDollarDelimiters(math))}\\)`)
+      .replace(/\\\[(.*?)\\\]/g, (_match, math: string) => `\\[${normalizeUnicodeRadicals(removeNestedDollarDelimiters(math))}\\]`)
+      .replace(/(?<!\S)(?<!\\)\$([^\s$\r\n](?:[^$\r\n]*?[^\s$\r\n])?)\s+(?<!\\)\$/g, (_match, math: string) => `\\(${normalizeUnicodeRadicals(math.trim())}\\)`);
   });
 }
 
