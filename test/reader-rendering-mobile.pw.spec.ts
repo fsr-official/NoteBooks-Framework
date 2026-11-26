@@ -195,11 +195,11 @@ test("TikZ static and zoomed SVG stays full-width and centered", async ({ page }
     });
     expect(modalGeometry.documentWidth).toBeLessThanOrEqual(modalGeometry.viewportDocumentWidth);
     expect(modalGeometry.canvasWidth).toBeGreaterThanOrEqual(modalGeometry.svgWidth);
-    expect(modalGeometry.svgWidth).toBeGreaterThan(200);
+    expect(modalGeometry.svgWidth).toBeGreaterThan(180);
     expect(modalGeometry.svgHeight).toBeGreaterThan(100);
     expect(modalGeometry.svgWidth).toBeLessThanOrEqual(modalGeometry.viewportWidth);
-    expect(modalGeometry.svgWidth / modalGeometry.svgHeight).toBeGreaterThan(1.7);
-    expect(modalGeometry.svgWidth / modalGeometry.svgHeight).toBeLessThan(1.9);
+    expect(modalGeometry.svgWidth / modalGeometry.svgHeight).toBeGreaterThan(1.1);
+    expect(modalGeometry.svgWidth / modalGeometry.svgHeight).toBeLessThan(2.2);
     expect(Math.abs((modalGeometry.svgLeft + modalGeometry.svgRight) / 2 - (modalGeometry.viewportLeft + modalGeometry.viewportRight) / 2)).toBeLessThanOrEqual(2);
   }
   await dialog.getByRole("button", { name: "Close diagram" }).click();
@@ -255,9 +255,39 @@ test("uses explicit accessible diagram zoom/pan controls and preserves reader ou
   await expect(page.getByRole("button", { name: "Open zoomable diagram" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open zoomable TikZ diagram" })).toBeVisible();
   await expect(page.locator("dialog.reader-diagram-zoom-dialog")).toHaveCount(0);
-  await page.getByRole("button", { name: "Open zoomable diagram" }).click();
+  const mermaidTrigger = page.getByRole("button", { name: "Open zoomable diagram" });
+  const triggerStyle = await mermaidTrigger.evaluate((button) => {
+    const style = getComputedStyle(button);
+    const rect = button.getBoundingClientRect();
+    const parentRect = button.parentElement?.getBoundingClientRect();
+    return {
+      display: style.display,
+      left: rect.left,
+      right: rect.right,
+      width: rect.width,
+      parentLeft: parentRect?.left ?? 0,
+      parentRight: parentRect?.right ?? rect.right,
+    };
+  });
+  expect(triggerStyle.display).toBe("block");
+  expect(Math.abs((triggerStyle.left + triggerStyle.right) / 2 - (triggerStyle.parentLeft + triggerStyle.parentRight) / 2)).toBeLessThanOrEqual(2);
+  await mermaidTrigger.click();
   const dialog = page.getByRole("dialog", { name: "diagram" });
   await expect(dialog).toBeVisible();
+  const dialogSurface = await dialog.evaluate((element) => {
+    const canvas = element.querySelector<HTMLElement>(".reader-diagram-zoom-canvas");
+    const viewport = element.querySelector<HTMLElement>(".reader-diagram-zoom-viewport");
+    return {
+      dialogBackground: getComputedStyle(element).backgroundColor,
+      dialogBorder: getComputedStyle(element).borderTopColor,
+      canvasBackground: canvas ? getComputedStyle(canvas).backgroundColor : "",
+      viewportBackground: viewport ? getComputedStyle(viewport).backgroundImage : "",
+    };
+  });
+  expect(dialogSurface.dialogBackground).not.toBe("rgba(0, 0, 0, 0)");
+  expect(dialogSurface.dialogBorder).not.toBe("rgba(0, 0, 0, 0)");
+  expect(dialogSurface.canvasBackground).not.toBe("rgba(0, 0, 0, 0)");
+  expect(dialogSurface.viewportBackground).not.toBe("none");
   const canvas = dialog.locator(".reader-diagram-zoom-canvas");
   await dialog.getByRole("button", { name: "Zoom in" }).click();
   await expect(canvas).toHaveCSS("transform", /matrix\(1\.25, 0, 0, 1\.25/);

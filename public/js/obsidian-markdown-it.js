@@ -1372,6 +1372,10 @@
         copy.style.height = 'auto';
         copy.style.maxWidth = '100%';
         copy.style.maxHeight = '100%';
+        copy.style.padding = '12px';
+        copy.style.boxSizing = 'border-box';
+        copy.style.borderRadius = '8px';
+        copy.style.background = 'var(--reader-surface, var(--surface, #fff))';
         canvas.appendChild(copy);
         viewport.appendChild(canvas);
 
@@ -1387,12 +1391,17 @@
                 vbW = parseFloat(points[2]) || vbW;
                 vbH = parseFloat(points[3]) || vbH;
             }
+            else {
+                vbW = parseFloat(copy.getAttribute('width')) || vbW;
+                vbH = parseFloat(copy.getAttribute('height')) || vbH;
+            }
             var availableWidth = Math.max(viewport.clientWidth - 32, 1);
             var availableHeight = Math.max(viewport.clientHeight - 32, 1);
             var fittedWidth = Math.min(availableWidth, availableHeight * vbW / vbH);
             var fittedHeight = fittedWidth * vbH / vbW;
             copy.style.width = Math.max(1, Math.round(fittedWidth)) + 'px';
             copy.style.height = Math.max(1, Math.round(fittedHeight)) + 'px';
+            copy.style.aspectRatio = vbW + ' / ' + vbH;
             canvas.style.minWidth = '0';
             canvas.style.minHeight = '0';
         };

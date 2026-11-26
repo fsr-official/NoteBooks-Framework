@@ -143,7 +143,8 @@
 .reader-static-diagram { position: relative; min-width: 0; max-width: 100%; }
 .reader-static-diagram > .reader-diagram-zoom-trigger {
   min-height: 36px;
-  margin: 8px 0;
+  display: block;
+  margin: 8px auto;
   padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -165,7 +166,8 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   color: var(--text);
-  background: var(--page);
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
   box-shadow: var(--shadow);
 }
 .reader-diagram-zoom-dialog::backdrop,
@@ -181,11 +183,42 @@
 .reader-diagram-zoom-toolbar button:focus-visible,
 .reader-diagram-dialog-toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .reader-diagram-zoom-viewport,
-.reader-diagram-dialog-content { display: grid; height: calc(100% - 58px); place-items: center; overflow: hidden; touch-action: none; cursor: grab; }
+.reader-diagram-dialog-content {
+  display: grid;
+  height: calc(100% - 58px);
+  place-items: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  padding: 18px;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%);
+}
 .reader-diagram-zoom-canvas,
-.reader-diagram-dialog-canvas { display: grid; min-width: min(80vw, 900px); min-height: min(55vh, 600px); place-items: center; transform-origin: center; }
+.reader-diagram-dialog-canvas {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  max-width: calc(100% - 36px);
+  max-height: calc(100% - 36px);
+  place-items: center;
+  transform-origin: center;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 18%);
+}
 .reader-diagram-zoom-canvas svg,
-.reader-diagram-dialog-canvas svg { width: min(80vw, 900px); max-width: none; max-height: 72dvh; height: auto; }
+.reader-diagram-dialog-canvas svg {
+  width: min(80vw, 900px);
+  max-width: 100%;
+  max-height: 72dvh;
+  height: auto;
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--surface);
+}
 .reader-diagram-zoom-viewport:active,
 .reader-diagram-dialog-content:active { cursor: grabbing; }
 
