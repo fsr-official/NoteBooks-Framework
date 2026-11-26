@@ -255,15 +255,63 @@ function replaceOutsideInlineCode(
   return output + transform(source.slice(plainStart));
 }
 
+function replaceUnicodeRadicals(
+  source: string,
+  transform: (radicand: string) => string,
+): string {
+  const matchingBracket: Record<string, string> = { "(": ")", "{": "}", "[": "]" };
+  let output = "";
+  let cursor = 0;
+
+  while (cursor < source.length) {
+    const radical = source.indexOf("√", cursor);
+    if (radical < 0) break;
+
+    const start = radical + 1;
+    const opening = source[start];
+    let end = start;
+
+    if (opening in matchingBracket) {
+      const brackets = [matchingBracket[opening]];
+      end += 1;
+      while (end < source.length && brackets.length > 0) {
+        const character = source[end];
+        if (character in matchingBracket) {
+          brackets.push(matchingBracket[character]);
+        } else if (character === brackets.at(-1)) {
+          brackets.pop();
+        }
+        end += 1;
+      }
+      if (brackets.length > 0) {
+        output += source.slice(cursor, start);
+        cursor = start;
+        continue;
+      }
+    } else {
+      const atom = source.slice(start).match(/^[\p{L}\p{N}]+(?:[_^](?:\{[^{}]*\}|[\p{L}\p{N}]+))*/u)?.[0];
+      if (!atom) {
+        output += source.slice(cursor, start);
+        cursor = start;
+        continue;
+      }
+      end += atom.length;
+    }
+
+    output += source.slice(cursor, radical);
+    output += transform(source.slice(start, end).replace(/^[([{]|[)\]}]$/g, ""));
+    cursor = end;
+  }
+
+  return output + source.slice(cursor);
+}
+
 function normalizeInlineMathSource(source: string): string {
   const removeNestedDollarDelimiters = (math: string) =>
     math.replace(/(?<!\\)\$([^$\r\n]+)(?<!\\)\$/g, "$1");
 
   const normalizeUnicodeRadicals = (math: string) =>
-    math
-      .replace(/√\{([^{}]+)\}/g, "\\sqrt{$1}")
-      .replace(/√\(([^()\r\n]+)\)/g, "\\sqrt{$1}")
-      .replace(/√([A-Za-z0-9])/g, "\\sqrt{$1}");
+    replaceUnicodeRadicals(math, (radicand) => `\\sqrt{${radicand}}`);
 
   const displayMath = source.match(/^(\s*)\$\$([\s\S]*?)\$\$(\s*)$/);
   if (displayMath) {
@@ -279,6 +327,15 @@ function normalizeInlineMathSource(source: string): string {
       .replace(/\\\[(.*?)\\\]/g, (_match, math: string) => `\\[${normalizeUnicodeRadicals(removeNestedDollarDelimiters(math))}\\]`)
       .replace(/(?<!\S)(?<!\\)\$([^\s$\r\n](?:[^$\r\n]*?[^\s$\r\n])?)\s+(?<!\\)\$/g, (_match, math: string) => `\\(${normalizeUnicodeRadicals(math.trim())}\\)`);
   });
+}
+
+function normalizeBareUnicodeRadicals(source: string): string {
+  const normalizedEnvironments = source.replace(
+    /\\begin\{([A-Za-z*]+)\}([\s\S]*?)\\end\{\1\}/g,
+    (_match, environment: string, content: string) =>
+      `\\begin{${environment}}${replaceUnicodeRadicals(content, (radicand) => `\\sqrt{${radicand}}`)}\\end{${environment}}`,
+  );
+  return replaceUnicodeRadicals(normalizedEnvironments, (radicand) => `\\(\\sqrt{${radicand}}\\)`);
 }
 
 function protectTableMathPipes(source: string): string {
@@ -475,7 +532,8 @@ function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
     for (let index = 0; index < state.tokens.length; index += 1) {
       const token = state.tokens[index];
       if (token.type !== "inline") continue;
-      token.content = replaceOutsideInlineCode(token.content, normalizeInlineMathSource);
+      token.content = replaceOutsideInlineCode(token.content, (text) =>
+        normalizeBareUnicodeRadicals(normalizeInlineMathSource(text)));
 
       const displayMath = token.content.match(/^\s*\$\$([\s\S]*?)\$\$\s*$/);
       if (!displayMath

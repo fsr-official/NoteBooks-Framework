@@ -207,6 +207,24 @@ $$
     expect(result.html).toContain("sqrt");
   });
 
+  it("typesets bare Unicode radicals in prose and tables without changing inline code", () => {
+    const result = renderNote([
+      "Speed: v = √(g² + (v²/R)²).",
+      "",
+      "| Formula |",
+      "| --- |",
+      "| T = 2π√(L/g) |",
+      "",
+      "Code: `√x`.",
+    ].join("\n"));
+
+    expect(result.html).not.toContain("katex-error");
+    expect(result.html.match(/class="mord sqrt"/g)).toHaveLength(2);
+    expect(result.html).toContain("<code>√x</code>");
+    expect(result.html).not.toContain("√(g²");
+    expect(result.html).not.toContain("√(L/g)");
+  });
+
   it("normalizes inconsistent math delimiters found in repository notes", () => {
     const result = renderNote(String.raw`
 Cross-force pair: \(N_A$–$e_B\).
