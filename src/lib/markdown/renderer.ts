@@ -629,6 +629,10 @@ function createMarkdownParser(source?: RenderNoteSource): MarkdownParser {
     }
   });
 
+  md.renderer.rules.table_open = (tokens, index, options, env, renderer) =>
+    `<div class="markdown-table-scroll"><table${renderer.renderAttrs(tokens[index])}>`;
+  md.renderer.rules.table_close = () => "</table></div>";
+
   const renderFence = md.renderer.rules.fence;
   md.renderer.rules.fence = (tokens, index, options, env, renderer) => {
     const token = tokens[index];

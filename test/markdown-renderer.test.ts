@@ -226,6 +226,17 @@ Potential energy: $V = $ sum over all **pairs**, $-Gm_im_j/r_{ij}$.
     expect(renderNote("Code: ``$V = $``.").html).toContain("<code>$V = $</code>");
   });
 
+  it("wraps Markdown tables for mobile horizontal scrolling", () => {
+    const result = renderNote([
+      "| Column A | Column B | Column C |",
+      "| --- | --- | --- |",
+      "| 1234567890 | 9876543210 | 5555555555 |",
+    ].join("\n"));
+
+    expect(result.html).toContain('<div class="markdown-table-scroll"><table');
+    expect(result.html).toContain("</table></div>");
+  });
+
   it("preserves vertical-bar math operators inside Markdown table cells", () => {
     const result = renderNote([
       "| Kind | Value | Extra |",

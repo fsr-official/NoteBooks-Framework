@@ -136,9 +136,11 @@
 .chapter-static-diagram figcaption { margin-bottom: 10px; color: var(--text); font-weight: 600; }
 .chapter-static-diagram .tikz-wrapper,
 .chapter-static-diagram .obsidian-mermaid { max-width: 100%; overflow-x: auto; }
+.chapter-static-diagram .obsidian-mermaid { width: 100%; overflow: hidden; }
+.chapter-static-diagram .obsidian-mermaid svg { display: block; width: 100%; max-width: 100%; height: auto; margin-inline: auto; }
 .chapter-static-diagram .tikz-wrapper svg,
 .chapter-static-diagram .obsidian-mermaid svg { max-width: 100%; height: auto; }
-.chapter-static-diagram .reader-diagram-zoom-trigger { min-height: 40px; }
+.chapter-static-diagram .reader-diagram-zoom-trigger { display: block; min-height: 40px; margin: 10px auto 0; }
 .chapter-static-diagram .chapter-diagram-source { margin-top: 10px; font-size: 12px; }
 .chapter-static-diagram .chapter-diagram-source summary { color: var(--muted); cursor: pointer; }
 .chapter-static-diagram .chapter-diagram-source pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -153,16 +155,48 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
-  background: var(--page);
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
 }
 .reader-diagram-zoom-dialog::backdrop { background: rgb(0 0 0 / 70%); }
 .reader-diagram-zoom-dialog > header { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border); }
 .reader-diagram-zoom-dialog h2 { min-width: 0; margin: 0; font-size: 14px; }
 .reader-diagram-zoom-toolbar { display: flex; align-items: center; gap: 6px; }
 .reader-diagram-zoom-toolbar button { min-height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--surface); cursor: pointer; }
-.reader-diagram-zoom-viewport { display: grid; height: calc(100% - 58px); place-items: center; overflow: hidden; touch-action: none; cursor: grab; }
-.reader-diagram-zoom-canvas { display: grid; min-width: min(80vw, 900px); min-height: min(55vh, 600px); place-items: center; transform-origin: center; }
-.reader-diagram-zoom-canvas svg { width: min(80vw, 900px); max-width: none; max-height: 72dvh; height: auto; }
+.reader-diagram-zoom-viewport {
+  display: grid;
+  height: calc(100% - 58px);
+  place-items: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  padding: 18px;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%);
+}
+.reader-diagram-zoom-canvas {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  max-width: calc(100% - 36px);
+  max-height: calc(100% - 36px);
+  place-items: center;
+  transform-origin: center;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 18%);
+}
+.reader-diagram-zoom-canvas svg {
+  width: min(80vw, 900px);
+  max-width: 100%;
+  max-height: 72dvh;
+  height: auto;
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--surface);
+}
 .reader-diagram-zoom-viewport:active { cursor: grabbing; }
 .chapter-visual-placeholder > div { color: var(--accent); font: 500 25px var(--font-dm-mono), monospace; }
 .chapter-visual-placeholder figcaption { color: var(--text); font-weight: 600; }
@@ -233,14 +267,26 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
-  background: var(--page);
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
   box-shadow: var(--shadow);
 }
 .chapter-visual-modal > header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
 .chapter-visual-modal > header h2 { margin: 0; font-size: 15px; }
 .chapter-visual-modal > header button { padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; color: var(--text); background: var(--surface); cursor: pointer; }
-.chapter-visual-modal-content { overflow: auto; padding: 18px; }
-.chapter-visual-modal-content .obsidian-mermaid { min-width: 0; }
+.chapter-visual-modal-content {
+  overflow: auto;
+  padding: 18px;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%);
+}
+.chapter-visual-modal-content .obsidian-mermaid {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 18%);
+}
 .chapter-visual-modal-content .tikz-wrapper { overflow: auto; }
 .chapter-desmos-figure { display: block; }
 .chapter-desmos-host { width: 100%; min-height: 360px; height: 420px; }
